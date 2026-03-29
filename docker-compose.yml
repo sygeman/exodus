@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  ui:
+    build:
+      context: ./ui
+      dockerfile: Dockerfile
+    volumes:
+      - ./ui:/app
+
+  intent:
+    build:
+      context: ./intent
+      dockerfile: Dockerfile
+    volumes:
+      - ./intent:/app
+
+  control:
+    build:
+      context: ./control
+      dockerfile: Dockerfile
+    volumes:
+      - ./control:/app
+
+  execution:
+    build:
+      context: ./execution
+      dockerfile: Dockerfile
+    ports:
+      - "8081:8081"
+    volumes:
+      - ./execution:/app
+    environment:
+      - PORT=8081
+      - KIMI_API_KEY=${KIMI_API_KEY}
+
+  state:
+    build:
+      context: ./state
+      dockerfile: Dockerfile
+    volumes:
+      - ./state:/app
+
+  infra:
+    build:
+      context: ./infra
+      dockerfile: Dockerfile
+    volumes:
+      - ./infra:/app
