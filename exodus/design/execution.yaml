@@ -1,0 +1,56 @@
+id: exodus-design-execution
+level: design
+parent_id: exodus-vision
+covers: V-03
+
+name: Execution
+purpose: Изолированное выполнение задач
+
+responsibility:
+  - Работа в sandbox runtime
+  - Ограничение skills
+  - Генерация diff и artifacts
+  - Уничтожение после выполнения
+
+input: Task + Snapshot от Control
+output: Изменения (diff) → State
+
+invariants:
+  - id: INV-EXEC-01
+    text: Не имеет доступа к Control
+  - id: INV-EXEC-02
+    text: Не имеет доступа к глобальному State
+  - id: INV-EXEC-03
+    text: Не сохраняет память между запусками
+  - id: INV-EXEC-04
+    text: Работает только с разрешёнными skills
+
+runtime:
+  type: sandbox
+  isolation: process
+  resources:
+    - docker
+    - filesystem
+
+interfaces:
+  input:
+    method: POST
+    endpoint: /execute
+    format: json
+    fields:
+      - task_id
+      - command
+      - callback_url
+      - working_dir
+      - model
+      - role_prompt
+  output:
+    method: POST
+    endpoint: callback_url
+    format: json
+    fields:
+      - task_id
+      - status
+      - result
+      - error
+      - exit_code

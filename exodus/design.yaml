@@ -1,0 +1,62 @@
+id: exodus-design
+level: design
+parent_id: exodus-vision
+
+overview: |
+  Exodus — система из 6 изолированных слоёв с чёткими границами и однонаправленным потоком данных.
+  Каждый слой имеет одну ответственность и взаимодействует только со смежными слоями.
+
+layers:
+  - ref: exodus-design-intent
+    name: Intent
+  - ref: exodus-design-control
+    name: Control
+  - ref: exodus-design-execution
+    name: Execution
+  - ref: exodus-design-state
+    name: State
+  - ref: exodus-design-ui
+    name: UI
+  - ref: exodus-design-infra
+    name: Infra
+
+data_flow:
+  - from: User
+    to: UI
+    data: Намерения, обратная связь
+  - from: UI
+    to: Intent
+    data: Пользовательский ввод
+  - from: Intent
+    to: Control
+    data: Stabilized Intent
+  - from: Control
+    to: Execution
+    data: Task + Snapshot + Skills
+  - from: Execution
+    to: State
+    data: Diff + Artifacts
+  - from: State
+    to: Control
+    data: Снапшоты, история
+  - from: Control
+    to: UI
+    data: Планы, статус, результаты
+
+principles:
+  - id: DP-01
+    text: Однонаправленный поток — данные текут Intent → Control → Execution → State
+  - id: DP-02
+    text: Изоляция слоёв — каждый слой знает только о смежных
+  - id: DP-03
+    text: Stateless Execution — Execution не хранит состояние между запусками
+  - id: DP-04
+    text: Git как единственный источник — вся история в git
+  - id: DP-05
+    text: Трассируемость — любое изменение можно отследить до Intent
+
+constraints:
+  - Execution не может напрямую изменить State
+  - Execution не может получить доступ к Control
+  - Control не может интерпретировать сырой ввод (только Intent)
+  - Изменение на уровне N требует пересборки N+1

@@ -1,0 +1,45 @@
+id: exodus-design-ui
+level: design
+parent_id: exodus-vision
+covers: SC-01
+
+name: UI
+purpose: Единый интерфейс взаимодействия
+
+responsibility:
+  - Ввод намерений пользователем
+  - Показ планов и результатов
+  - Подтверждение перед выполнением
+  - Наблюдение за прогрессом
+
+user_flows:
+  - id: input_intent
+    name: Ввод намерения
+    steps:
+      - Ввод задачи
+      - Диалог уточнения
+      - Показ понимания системы
+  - id: review_plan
+    name: Просмотр плана
+    steps:
+      - Показ ACSD плана
+      - Подтверждение запуска
+  - id: observe_execution
+    name: Наблюдение выполнения
+    steps:
+      - Просмотр прогресса
+      - Получение результатов
+
+interfaces:
+  input:
+    type: user_input
+    formats:
+      - text
+      - voice
+  output:
+    type: ui_render
+    components:
+      - chat
+      - plan_viewer
+      - progress_tracker
+      - result_viewer

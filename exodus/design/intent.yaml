@@ -1,0 +1,48 @@
+id: exodus-design-intent
+level: design
+parent_id: exodus-vision
+covers: V-01
+
+name: Intent
+purpose: Интерпретация смысла и стабилизация намерений
+
+responsibility:
+  - Превращать хаотичные мысли в структурированное намерение
+  - Discovery (тезисы, инсайды, связи)
+  - Stabilization (фиксация Vision, ограничений, допущений)
+
+input: Пользовательский ввод (чат, голос)
+output: Stabilized Intent → Control
+
+modes:
+  - id: discovery
+    name: Discovery Mode
+    purpose: Исследование и накопление инсайдов
+    activities:
+      - Создание тезисов
+      - Споры и аргументация
+      - Выявление связей между идеями
+      - Накопление контекста через диалог
+    output: Набор связанных тезисов
+
+  - id: stabilization
+    name: Stabilization Mode
+    purpose: Формирование чёткого намерения
+    activities:
+      - Анализ тезисов из Discovery
+      - Формулирование Vision
+      - Уточнение через диалог
+      - Фиксация стабилизированного Intent
+    output: Структурированный Intent
+
+interfaces:
+  input:
+    type: natural_language
+    format: text
+    channels:
+      - chat
+      - voice
+  output:
+    type: structured_intent
+    format: yaml
+    destination: Control

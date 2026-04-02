@@ -1,0 +1,53 @@
+id: exodus-design-control
+level: design
+parent_id: exodus-vision
+covers:
+  - V-02
+  - V-06
+
+name: Control
+purpose: Планирование и оркестрация изменений
+
+responsibility:
+  - Декомпозиция Intent на каскад уровней
+  - Управление жизненным циклом Tasks
+  - Git workflow (ветки, коммиты, merge)
+  - Запуск Execution с ограниченным контекстом
+
+input: Stabilized Intent
+output: Task + Snapshot → Execution
+
+components:
+  - id: acsd
+    name: ACSD Engine
+    purpose: Каскадная детализация от Vision до Implementation
+    levels:
+      - vision
+      - design
+      - implementation
+
+  - id: task_manager
+    name: Task Manager
+    purpose: Управление жизненным циклом задач
+    states:
+      - draft
+      - active
+      - in_progress
+      - stabilized
+      - merged
+      - closed
+
+  - id: git_workflow
+    name: Git Workflow
+    purpose: Управление ветками и коммитами
+    flow: trunk-based
+
+interfaces:
+  input:
+    type: stabilized_intent
+    format: yaml
+    source: Intent
+  output:
+    type: task
+    format: yaml
+    destination: Execution

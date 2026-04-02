@@ -1,0 +1,35 @@
+id: exodus-design-state
+level: design
+parent_id: exodus-vision
+covers:
+  - V-04
+  - V-05
+
+name: State
+purpose: Хранение и версионирование состояния продукта
+
+responsibility:
+  - Git как единственный источник правды
+  - История изменений и артефактов
+  - Снапшоты для Execution
+
+input: Изменения от Execution
+output: Состояние продукта, снапшоты
+
+storage:
+  primary: git
+  artifacts:
+    - code
+    - configs
+    - docs
+    - acsd_files
+
+interfaces:
+  input:
+    type: diff
+    format: git_patch
+    source: Execution
+  output:
+    type: snapshot
+    format: git_commit
+    destination: Control

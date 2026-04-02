@@ -1,0 +1,37 @@
+id: exodus-design-infra
+level: design
+parent_id: exodus-vision
+
+name: Infra
+purpose: Инфраструктура runtime
+
+responsibility:
+  - Docker контейнеры
+  - AI модели и API
+  - Внешние сервисы
+
+components:
+  - id: containers
+    name: Container Runtime
+    technology: docker
+    services:
+      - ui
+      - intent
+      - control
+      - execution
+      - state
+
+  - id: ai_models
+    name: AI Models
+    providers:
+      - kimi
+      - openai
+      - anthropic
+    protocols:
+      - acp
+
+  - id: external
+    name: External Services
+    services:
+      - git_provider
+      - package_registry
