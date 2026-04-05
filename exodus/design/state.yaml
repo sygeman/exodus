@@ -1,35 +1,62 @@
-id: exodus-design-state
-level: design
-parent_id: exodus-vision
-covers:
-  - V-04
-  - V-05
+meta:
+  level: L1
+  type: design
+  id: exodus-design-state
+  derives_from: exodus-vision
 
-name: State
-purpose: Хранение и версионирование состояния продукта
+ideas:
+  - id: D-STATE-OVERVIEW
+    type: component
+    text: State Layer — хранение и версионирование состояния продукта
+    implements: [V-04, V-05]
+    part_of: D-LAYER-STATE
 
-responsibility:
-  - Git как единственный источник правды
-  - История изменений и артефактов
-  - Снапшоты для Execution
+  - id: D-STATE-COMP-01
+    type: component
+    text: Git как единственный источник правды
+    part_of: D-STATE-OVERVIEW
 
-input: Изменения от Execution
-output: Состояние продукта, снапшоты
+  - id: D-STATE-COMP-02
+    type: component
+    text: История изменений и артефактов
+    part_of: D-STATE-OVERVIEW
 
-storage:
-  primary: git
-  artifacts:
-    - code
-    - configs
-    - docs
-    - acsd_files
+  - id: D-STATE-COMP-03
+    type: component
+    text: Снапшоты для Execution
+    part_of: D-STATE-OVERVIEW
 
-interfaces:
-  input:
-    type: diff
-    format: git_patch
-    source: Execution
-  output:
-    type: snapshot
-    format: git_commit
-    destination: Control
+  - id: D-STATE-INPUT
+    type: component
+    text: Input — Изменения от Execution, формат git_patch
+    part_of: D-STATE-OVERVIEW
+
+  - id: D-STATE-OUTPUT
+    type: component
+    text: Output — Состояние продукта, снапшоты, формат git_commit
+    part_of: D-STATE-OVERVIEW
+
+  - id: D-STATE-COMP-STORAGE
+    type: component
+    text: Primary storage — git
+    part_of: D-STATE-OVERVIEW
+
+  - id: D-STATE-COMP-ARTIFACT-CODE
+    type: component
+    text: Code — исходный код
+    part_of: D-STATE-COMP-STORAGE
+
+  - id: D-STATE-COMP-ARTIFACT-CONFIG
+    type: component
+    text: Configs — конфигурации
+    part_of: D-STATE-COMP-STORAGE
+
+  - id: D-STATE-COMP-ARTIFACT-DOCS
+    type: component
+    text: Docs — документация
+    part_of: D-STATE-COMP-STORAGE
+
+  - id: D-STATE-COMP-ARTIFACT-IDEAS
+    type: component
+    text: Ideas files — YAML файлы с идеями
+    part_of: D-STATE-COMP-STORAGE

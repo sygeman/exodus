@@ -1,0 +1,206 @@
+meta:
+  level: L1
+  type: design
+  id: exodus-design-cascade
+  derives_from: exodus-vision
+
+ideas:
+  - id: D-CASCADE-OVERVIEW
+    type: component
+    text: Exodus Cascade — система каскадной детализации от намерения до кода через 5 обязательных уровней
+    implements: V-02
+    part_of: D-LAYER-CONTROL
+
+  - id: D-CASCADE-LEVEL-0
+    type: component
+    text: Level 0 — Vision. Цель, границы, инварианты. Отвечает на вопрос "Зачем?"
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-LEVEL-1
+    type: component
+    text: Level 1 — Design. Компоненты, их ответственность, связи. Отвечает на вопрос "Что?"
+    part_of: D-CASCADE-OVERVIEW
+    requires: [D-CASCADE-LEVEL-0]
+
+  - id: D-CASCADE-LEVEL-2
+    type: component
+    text: Level 2 — Specification. Требования к модулю, сущности, операции. Отвечает на вопрос "Как — что должно быть?"
+    part_of: D-CASCADE-OVERVIEW
+    requires: [D-CASCADE-LEVEL-1]
+
+  - id: D-CASCADE-LEVEL-3
+    type: component
+    text: Level 3 — Contract. Публичный API, типы, сигнатуры, ошибки. Отвечает на вопрос "Как — интерфейсы?"
+    part_of: D-CASCADE-OVERVIEW
+    requires: [D-CASCADE-LEVEL-2]
+
+  - id: D-CASCADE-LEVEL-4
+    type: component
+    text: Level 4 — Code. Реализация, тесты, конфигурации. Отвечает на вопрос "Как — реализовано?"
+    part_of: D-CASCADE-OVERVIEW
+    requires: [D-CASCADE-LEVEL-3]
+
+  - id: D-CASCADE-TYPE-GOAL
+    type: component
+    text: Тип идеи — goal. Достижимая цель. Пример — "Пользователи создают заметки"
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-TYPE-NON-GOAL
+    type: component
+    text: Тип идеи — non_goal. Явно исключено из scope. Пример — "Не делать собственную БД"
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-TYPE-CONSTRAINT
+    type: component
+    text: Тип идеи — constraint. Ограничение, которое может измениться. Пример — "Работает только офлайн"
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-TYPE-INVARIANT
+    type: component
+    text: Тип идеи — invariant. Неизменное правило. EXCEPTION только с valid_until. Пример — "Данные принадлежат пользователю"
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-TYPE-COMPONENT
+    type: component
+    text: Тип идеи — component. Должен иметь part_of или содержать другие компоненты. Пример — "Модуль notes"
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-TYPE-DECISION
+    type: component
+    text: Тип идеи — decision. Архитектурное решение. Обязан иметь alternatives с pros/cons/rejected_because/selected
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-TYPE-PRINCIPLE
+    type: component
+    text: Тип идеи — principle. Поддерживает goal, не детализирует. Пример — "Простота превыше оптимизации"
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-LINK-IMPLEMENTS
+    type: component
+    text: Связь — implements. Детализация сверху вниз. Пример — Contract implements Specification
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-LINK-REQUIRES
+    type: component
+    text: Связь — requires. Зависимость горизонтальная. Пример — Auth requires Storage
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-LINK-PART-OF
+    type: component
+    text: Связь — part_of. Композиция часть → целое. Пример — Module part_of System
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-LINK-SUPPORTS
+    type: component
+    text: Связь — supports. Обоснование. Пример — Metric supports Goal
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-LINK-CONTRADICTS
+    type: component
+    text: Связь — contradicts. Конфликт. Пример — Fast contradicts Secure
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-FORMAT-YAML
+    type: component
+    text: Формат — чистый YAML. Все артефакты в YAML. Машинная читаемость приоритет
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-FILE-STRUCTURE
+    type: component
+    text: Файл — контейнер идей одного базового уровня. Связи определяют семантику, не локация файла
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-CASCADE-RULE-1
+    type: invariant
+    text: Каждый уровень — детализация предыдущего. Все уровни обязательны
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-CASCADE-RULE-2
+    type: invariant
+    text: Уровень N+1 не существует без N
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-CASCADE-RULE-3
+    type: invariant
+    text: Изменение N автоматически инвалидирует зависимые уровни N+1
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-VALIDATION-STRICT
+    type: invariant
+    text: Строгая валидация — орфаны, циклы, противоречия, висячие ссылки = error
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-VALIDATION-TWO-PHASE
+    type: component
+    text: Двухфазная валидация. Фаза 1 — механическая (целостность графа). Фаза 2 — LLM семантическая (соответствие кода vision)
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-VALIDATION-FROM-L0
+    type: invariant
+    text: Валидация начинается с L0 — любая идея проверяется через полную цепочку до Vision
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-VALIDATION-LEVEL-RULE
+    type: invariant
+    text: Каждая идея может ссылаться только на N-1 (родитель) или N (сосед). Пропуск уровней запрещён
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-VALIDATION-HUMAN
+    type: invariant
+    text: Ни один артефакт не фиксируется без подтверждения человека
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-GRAPH-LINKS-FIRST
+    type: principle
+    text: Связи — first-class citizens. Каждая идея обязана иметь хотя бы одну связь
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-GRAPH-NO-CYCLES
+    type: invariant
+    text: Нет циклов в графе зависимостей
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-GRAPH-NO-CONTRADICTIONS
+    type: invariant
+    text: Нет противоречий без явного contradicts
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-GRAPH-ADR
+    type: component
+    text: ADR (Architecture Decision Record) — для управляемых отклонений от правил
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-ROLE-HUMAN
+    type: component
+    text: Роль — Человек. Формулирует намерения, оценивает, принимает решения
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-ROLE-LLM
+    type: component
+    text: Роль — LLM. Генерирует артефакты, валидирует семантику, предлагает альтернативы. temperature=0. Кэш по хэшу входа. Не добавляет сущности без обоснования в родителях. Не принимает архитектурных решений
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-ROLE-SYSTEM
+    type: component
+    text: Роль — Система. Парсит, строит граф, запускает каскад, анализирует влияние
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-DECISION-STRUCTURE
+    type: component
+    text: Структура decision — id, type, text, implements, alternatives[option, pros[], cons[], rejected_because, selected]. Ровно одна альтернатива с selected=true. У невыбранных обязательно rejected_because
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-ROOT-FILE
+    type: component
+    text: Корневой файл — exodus.yaml обязателен в корне проекта. Поле vision указывает путь к L0. Если vision не указан — ошибка конфигурации
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-INTENT-BEFORE
+    type: component
+    text: Intent — слой до Exodus Cascade. Discovery + Stabilization. Результат попадает в Cascade как L0 Vision
+    part_of: D-CASCADE-OVERVIEW
+
+  - id: D-CASCADE-CONTROL-IS-ORCHESTRATOR
+    type: component
+    text: Control = Exodus Cascade Orchestrator. Одна система. Детали реализации определяются отдельно
+    part_of: D-CASCADE-OVERVIEW

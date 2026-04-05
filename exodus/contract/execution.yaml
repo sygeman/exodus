@@ -1,0 +1,120 @@
+meta:
+  level: L3
+  type: contract
+  id: exodus-contract-execution
+  derives_from: exodus-spec-execution
+  status: active
+  created: "2025-01-15"
+
+ideas:
+  - id: C-EXEC-OVERVIEW
+    type: component
+    text: Контракты Execution Layer — API, типы, сигнатуры
+    implements: S-EXEC-OVERVIEW
+
+  - id: C-EXEC-API-INPUT
+    type: component
+    text: |
+      POST /execute — приём задач
+      Request: {
+        task_id: string,
+        command: string,
+        callback_url: string,
+        working_dir?: string,
+        model?: {
+          provider: string,
+          modelId: string,
+          apiKey: string
+        },
+        role_prompt?: string
+      }
+      Response: {
+        success: boolean,
+        status: 'accepted' | 'rejected',
+        task_id: string,
+        model?: {
+          provider: string,
+          modelId: string
+        }
+      }
+    part_of: C-EXEC-OVERVIEW
+
+  - id: C-EXEC-API-OUTPUT
+    type: component
+    text: |
+      Callback — отправка результатов
+      Request: {
+        task_id: string,
+        status: 'completed' | 'failed',
+        result: string | null,
+        error: string | null,
+        exit_code: number
+      }
+    part_of: C-EXEC-OVERVIEW
+
+  - id: C-EXEC-API-CHUNK
+    type: component
+    text: |
+      POST /callback/chunk — streaming chunks
+      Request: {
+        task_id: string,
+        chunk: string,
+        chunk_type: 'text'
+      }
+    part_of: C-EXEC-OVERVIEW
+
+  - id: C-EXEC-API-HEALTH
+    type: component
+    text: |
+      GET /health — проверка доступности
+      Response: { status: 'ok' }
+    part_of: C-EXEC-OVERVIEW
+
+  - id: C-EXEC-TYPES-TASK
+    type: component
+    text: |
+      TaskParams: {
+        task_id: string,
+        working_dir: string,
+        command: string,
+        callback_url: string,
+        model?: ModelConfig,
+        role_prompt?: string
+      }
+    part_of: C-EXEC-OVERVIEW
+
+  - id: C-EXEC-TYPES-RESULT
+    type: component
+    text: |
+      TaskResult: {
+        success: boolean,
+        task_id: string,
+        response: string,
+        result?: string,
+        error?: string
+      }
+    part_of: C-EXEC-OVERVIEW
+
+  - id: C-EXEC-TYPES-MODEL
+    type: component
+    text: |
+      ModelConfig: {
+        provider: string,
+        modelId: string,
+        apiKey: string
+      }
+    part_of: C-EXEC-OVERVIEW
+
+  - id: C-EXEC-ERRORS-VALIDATION
+    type: component
+    text: |
+      Validation Error — 400 Bad Request
+      { success: false, error: string }
+    part_of: C-EXEC-OVERVIEW
+
+  - id: C-EXEC-ERRORS-SHUTDOWN
+    type: component
+    text: |
+      Shutdown Error — 503 Service Unavailable
+      { success: false, error: 'Server is shutting down' }
+    part_of: C-EXEC-OVERVIEW

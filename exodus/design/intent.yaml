@@ -1,48 +1,98 @@
-id: exodus-design-intent
-level: design
-parent_id: exodus-vision
-covers: V-01
+meta:
+  level: L1
+  type: design
+  id: exodus-design-intent
+  derives_from: exodus-vision
 
-name: Intent
-purpose: Интерпретация смысла и стабилизация намерений
+ideas:
+  - id: D-INTENT-OVERVIEW
+    type: component
+    text: Intent Layer — интерпретация смысла и стабилизация намерений
+    implements: V-01
+    part_of: D-LAYER-INTENT
 
-responsibility:
-  - Превращать хаотичные мысли в структурированное намерение
-  - Discovery (тезисы, инсайды, связи)
-  - Stabilization (фиксация Vision, ограничений, допущений)
+  - id: D-INTENT-COMP-01
+    type: component
+    text: Превращать хаотичные мысли в структурированное намерение
+    part_of: D-INTENT-OVERVIEW
 
-input: Пользовательский ввод (чат, голос)
-output: Stabilized Intent → Control
+  - id: D-INTENT-COMP-02
+    type: component
+    text: Discovery — накопление идей, инсайдов, связей
+    part_of: D-INTENT-OVERVIEW
 
-modes:
-  - id: discovery
-    name: Discovery Mode
-    purpose: Исследование и накопление инсайдов
-    activities:
-      - Создание тезисов
-      - Споры и аргументация
-      - Выявление связей между идеями
-      - Накопление контекста через диалог
-    output: Набор связанных тезисов
+  - id: D-INTENT-COMP-03
+    type: component
+    text: Stabilization — фиксация Vision, ограничений, допущений
+    part_of: D-INTENT-OVERVIEW
 
-  - id: stabilization
-    name: Stabilization Mode
-    purpose: Формирование чёткого намерения
-    activities:
-      - Анализ тезисов из Discovery
-      - Формулирование Vision
-      - Уточнение через диалог
-      - Фиксация стабилизированного Intent
-    output: Структурированный Intent
+  - id: D-INTENT-INPUT
+    type: component
+    text: Input — пользовательский ввод (чат, голос), формат natural_language
+    part_of: D-INTENT-OVERVIEW
 
-interfaces:
-  input:
-    type: natural_language
-    format: text
-    channels:
-      - chat
-      - voice
-  output:
-    type: structured_intent
-    format: yaml
-    destination: Control
+  - id: D-INTENT-OUTPUT
+    type: component
+    text: Output — Stabilized Intent → Control, формат yaml
+    part_of: D-INTENT-OVERVIEW
+
+  - id: D-INTENT-MODE-DISCOVERY
+    type: component
+    text: Discovery Mode — исследование и накопление инсайдов
+    part_of: D-INTENT-OVERVIEW
+
+  - id: D-INTENT-MODE-DISCOVERY-A1
+    type: component
+    text: Создание идей
+    part_of: D-INTENT-MODE-DISCOVERY
+
+  - id: D-INTENT-MODE-DISCOVERY-A2
+    type: component
+    text: Споры и аргументация
+    part_of: D-INTENT-MODE-DISCOVERY
+
+  - id: D-INTENT-MODE-DISCOVERY-A3
+    type: component
+    text: Выявление связей между идеями
+    part_of: D-INTENT-MODE-DISCOVERY
+
+  - id: D-INTENT-MODE-DISCOVERY-A4
+    type: component
+    text: Накопление контекста через диалог
+    part_of: D-INTENT-MODE-DISCOVERY
+
+  - id: D-INTENT-MODE-DISCOVERY-OUT
+    type: component
+    text: Набор связанных идей
+    part_of: D-INTENT-MODE-DISCOVERY
+
+  - id: D-INTENT-MODE-STABILIZATION
+    type: component
+    text: Stabilization Mode — формирование чёткого намерения
+    part_of: D-INTENT-OVERVIEW
+    requires: [D-INTENT-MODE-DISCOVERY]
+
+  - id: D-INTENT-MODE-STAB-A1
+    type: component
+    text: Анализ идей из Discovery
+    part_of: D-INTENT-MODE-STABILIZATION
+
+  - id: D-INTENT-MODE-STAB-A2
+    type: component
+    text: Формулирование Vision
+    part_of: D-INTENT-MODE-STABILIZATION
+
+  - id: D-INTENT-MODE-STAB-A3
+    type: component
+    text: Уточнение через диалог
+    part_of: D-INTENT-MODE-STABILIZATION
+
+  - id: D-INTENT-MODE-STAB-A4
+    type: component
+    text: Фиксация стабилизированного Intent
+    part_of: D-INTENT-MODE-STABILIZATION
+
+  - id: D-INTENT-MODE-STAB-OUT
+    type: component
+    text: Структурированный Intent
+    part_of: D-INTENT-MODE-STABILIZATION

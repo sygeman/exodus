@@ -1,0 +1,90 @@
+meta:
+  level: L4
+  type: code
+  id: exodus-code-execution
+  derives_from: exodus-contract-execution
+  status: active
+  created: "2025-01-15"
+
+ideas:
+  - id: CODE-EXEC-OVERVIEW
+    type: component
+    text: Реализация Execution Layer — код, тесты, конфигурации
+    implements: C-EXEC-OVERVIEW
+
+  - id: CODE-EXEC-PATH
+    type: component
+    text: ./execution — директория реализации
+    part_of: CODE-EXEC-OVERVIEW
+
+  - id: CODE-EXEC-COMP-API
+    type: component
+    text: HTTP API сервер на Elysia — src/index.ts
+    part_of: CODE-EXEC-OVERVIEW
+    implements: [C-EXEC-API-INPUT, C-EXEC-API-HEALTH]
+
+  - id: CODE-EXEC-COMP-WORKER
+    type: component
+    text: Task Worker — выполнение задач через OpenCode ACP — src/services/worker.ts
+    part_of: CODE-EXEC-OVERVIEW
+
+  - id: CODE-EXEC-COMP-OPENCODE
+    type: component
+    text: OpenCode Executor — интеграция с opencode CLI через ACP протокол — src/services/opencode.ts
+    part_of: CODE-EXEC-OVERVIEW
+
+  - id: CODE-EXEC-COMP-CALLBACK
+    type: component
+    text: Callback Service — отправка результатов в Control — src/services/callback.ts
+    part_of: CODE-EXEC-OVERVIEW
+    implements: [C-EXEC-API-OUTPUT, C-EXEC-API-CHUNK]
+
+  - id: CODE-EXEC-COMP-VALIDATION
+    type: component
+    text: Validation Utils — валидация входных данных — src/utils/validation.ts
+    part_of: CODE-EXEC-OVERVIEW
+
+  - id: CODE-EXEC-COMP-CONFIG
+    type: component
+    text: Конфигурация — src/config.ts
+    part_of: CODE-EXEC-OVERVIEW
+
+  - id: CODE-EXEC-TEST-UNIT
+    type: component
+    text: Unit tests — tests/*.test.ts
+    part_of: CODE-EXEC-OVERVIEW
+
+  - id: CODE-EXEC-TEST-INTEGRATION
+    type: component
+    text: Integration tests — tests/integration/*.test.ts
+    part_of: CODE-EXEC-OVERVIEW
+
+  - id: CODE-EXEC-DEP-RUNTIME
+    type: component
+    text: Bun runtime — package.json
+    part_of: CODE-EXEC-OVERVIEW
+
+  - id: CODE-EXEC-DEP-ELYSIA
+    type: component
+    text: Elysia framework — package.json
+    part_of: CODE-EXEC-OVERVIEW
+
+  - id: CODE-EXEC-DEV-OXLINT
+    type: component
+    text: Oxlint linter — .oxlintrc.json
+    part_of: CODE-EXEC-OVERVIEW
+
+  - id: CODE-EXEC-DEV-PRETTIER
+    type: component
+    text: Prettier formatter — .prettierrc
+    part_of: CODE-EXEC-OVERVIEW
+
+  - id: CODE-EXEC-DEV-TYPESCRIPT
+    type: component
+    text: TypeScript compiler — tsconfig.json
+    part_of: CODE-EXEC-OVERVIEW
+
+  - id: CODE-EXEC-INFRA-DOCKER
+    type: component
+    text: Docker образ — Dockerfile
+    part_of: CODE-EXEC-OVERVIEW

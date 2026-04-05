@@ -1,45 +1,92 @@
-id: exodus-design-ui
-level: design
-parent_id: exodus-vision
-covers: SC-01
+meta:
+  level: L1
+  type: design
+  id: exodus-design-ui
+  derives_from: exodus-vision
 
-name: UI
-purpose: Единый интерфейс взаимодействия
+ideas:
+  - id: D-UI-OVERVIEW
+    type: component
+    text: UI Layer — единый интерфейс взаимодействия
+    implements: SC-01
+    part_of: D-LAYER-UI
 
-responsibility:
-  - Ввод намерений пользователем
-  - Показ планов и результатов
-  - Подтверждение перед выполнением
-  - Наблюдение за прогрессом
+  - id: D-UI-COMP-01
+    type: component
+    text: Ввод намерений пользователем
+    part_of: D-UI-OVERVIEW
 
-user_flows:
-  - id: input_intent
-    name: Ввод намерения
-    steps:
-      - Ввод задачи
-      - Диалог уточнения
-      - Показ понимания системы
-  - id: review_plan
-    name: Просмотр плана
-    steps:
-      - Показ ACSD плана
-      - Подтверждение запуска
-  - id: observe_execution
-    name: Наблюдение выполнения
-    steps:
-      - Просмотр прогресса
-      - Получение результатов
+  - id: D-UI-COMP-02
+    type: component
+    text: Показ планов и результатов
+    part_of: D-UI-OVERVIEW
 
-interfaces:
-  input:
-    type: user_input
-    formats:
-      - text
-      - voice
-  output:
-    type: ui_render
-    components:
-      - chat
-      - plan_viewer
-      - progress_tracker
-      - result_viewer
+  - id: D-UI-COMP-03
+    type: component
+    text: Подтверждение перед выполнением
+    part_of: D-UI-OVERVIEW
+
+  - id: D-UI-COMP-04
+    type: component
+    text: Наблюдение за прогрессом
+    part_of: D-UI-OVERVIEW
+
+  - id: D-UI-INPUT
+    type: component
+    text: Input — пользовательский ввод, форматы [text, voice]
+    part_of: D-UI-OVERVIEW
+
+  - id: D-UI-OUTPUT
+    type: component
+    text: Output — UI рендеринг, компоненты [chat, plan_viewer, progress_tracker, result_viewer]
+    part_of: D-UI-OVERVIEW
+
+  - id: D-UI-FLOW-INPUT
+    type: component
+    text: Ввод намерения — пользовательский сценарий
+    part_of: D-UI-OVERVIEW
+
+  - id: D-UI-FLOW-INPUT-S1
+    type: component
+    text: Ввод задачи
+    part_of: D-UI-FLOW-INPUT
+
+  - id: D-UI-FLOW-INPUT-S2
+    type: component
+    text: Диалог уточнения
+    part_of: D-UI-FLOW-INPUT
+
+  - id: D-UI-FLOW-INPUT-S3
+    type: component
+    text: Показ понимания системы
+    part_of: D-UI-FLOW-INPUT
+
+  - id: D-UI-FLOW-REVIEW
+    type: component
+    text: Просмотр плана — пользовательский сценарий
+    part_of: D-UI-OVERVIEW
+
+  - id: D-UI-FLOW-REVIEW-S1
+    type: component
+    text: Показ ACSD плана
+    part_of: D-UI-FLOW-REVIEW
+
+  - id: D-UI-FLOW-REVIEW-S2
+    type: component
+    text: Подтверждение запуска
+    part_of: D-UI-FLOW-REVIEW
+
+  - id: D-UI-FLOW-OBSERVE
+    type: component
+    text: Наблюдение выполнения — пользовательский сценарий
+    part_of: D-UI-OVERVIEW
+
+  - id: D-UI-FLOW-OBSERVE-S1
+    type: component
+    text: Просмотр прогресса
+    part_of: D-UI-FLOW-OBSERVE
+
+  - id: D-UI-FLOW-OBSERVE-S2
+    type: component
+    text: Получение результатов
+    part_of: D-UI-FLOW-OBSERVE

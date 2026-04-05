@@ -1,56 +1,77 @@
-id: exodus-design-execution
-level: design
-parent_id: exodus-vision
-covers: V-03
+meta:
+  level: L1
+  type: design
+  id: exodus-design-execution
+  derives_from: exodus-vision
 
-name: Execution
-purpose: Изолированное выполнение задач
+ideas:
+  - id: D-EXEC-OVERVIEW
+    type: component
+    text: Execution Layer — изолированное выполнение задач
+    implements: V-03
+    part_of: D-LAYER-EXECUTION
 
-responsibility:
-  - Работа в sandbox runtime
-  - Ограничение skills
-  - Генерация diff и artifacts
-  - Уничтожение после выполнения
+  - id: D-EXEC-COMP-01
+    type: component
+    text: Работа в sandbox runtime
+    part_of: D-EXEC-OVERVIEW
 
-input: Task + Snapshot от Control
-output: Изменения (diff) → State
+  - id: D-EXEC-COMP-02
+    type: component
+    text: Ограничение skills
+    part_of: D-EXEC-OVERVIEW
 
-invariants:
-  - id: INV-EXEC-01
+  - id: D-EXEC-COMP-03
+    type: component
+    text: Генерация diff и artifacts
+    part_of: D-EXEC-OVERVIEW
+
+  - id: D-EXEC-COMP-04
+    type: component
+    text: Уничтожение после выполнения
+    part_of: D-EXEC-OVERVIEW
+
+  - id: D-EXEC-INPUT
+    type: component
+    text: Input — Task + Snapshot от Control
+    part_of: D-EXEC-OVERVIEW
+
+  - id: D-EXEC-OUTPUT
+    type: component
+    text: Output — Изменения (diff) → State
+    part_of: D-EXEC-OVERVIEW
+
+  - id: D-EXEC-INV-01
+    type: invariant
     text: Не имеет доступа к Control
-  - id: INV-EXEC-02
+    part_of: D-EXEC-OVERVIEW
+
+  - id: D-EXEC-INV-02
+    type: invariant
     text: Не имеет доступа к глобальному State
-  - id: INV-EXEC-03
+    part_of: D-EXEC-OVERVIEW
+
+  - id: D-EXEC-INV-03
+    type: invariant
     text: Не сохраняет память между запусками
-  - id: INV-EXEC-04
+    part_of: D-EXEC-OVERVIEW
+
+  - id: D-EXEC-INV-04
+    type: invariant
     text: Работает только с разрешёнными skills
+    part_of: D-EXEC-OVERVIEW
 
-runtime:
-  type: sandbox
-  isolation: process
-  resources:
-    - docker
-    - filesystem
+  - id: D-EXEC-COMP-RUNTIME
+    type: component
+    text: Sandbox runtime для изолированного выполнения, isolation process, resources [docker, filesystem]
+    part_of: D-EXEC-OVERVIEW
 
-interfaces:
-  input:
-    method: POST
-    endpoint: /execute
-    format: json
-    fields:
-      - task_id
-      - command
-      - callback_url
-      - working_dir
-      - model
-      - role_prompt
-  output:
-    method: POST
-    endpoint: callback_url
-    format: json
-    fields:
-      - task_id
-      - status
-      - result
-      - error
-      - exit_code
+  - id: D-EXEC-COMP-API-INPUT
+    type: component
+    text: POST /execute — приём задач, формат json, поля [task_id, command, callback_url, working_dir, model, role_prompt]
+    part_of: D-EXEC-OVERVIEW
+
+  - id: D-EXEC-COMP-API-OUTPUT
+    type: component
+    text: Callback — отправка результатов, формат json, поля [task_id, status, result, error, exit_code]
+    part_of: D-EXEC-OVERVIEW
