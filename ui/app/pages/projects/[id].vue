@@ -44,10 +44,13 @@
 
         <!-- ACSD Graph Layout -->
         <div class="flex-1 flex overflow-hidden">
-          <div class="w-[70%] min-w-0">
+          <div class="w-[70%] min-w-0 relative">
+            <div v-if="isGraphLoading" class="absolute inset-0 flex items-center justify-center bg-elevated/50 z-10">
+              <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-muted" />
+            </div>
             <ACSDGraph
-              :nodes="mockNodes"
-              :edges="mockEdges"
+              :nodes="graphNodes"
+              :edges="graphEdges"
               @node-select="onNodeSelect"
             />
           </div>
@@ -79,7 +82,7 @@
 </template>
 
 <script setup lang="ts">
-import type { ACSDNode, ACSDEdge } from '~/types/acsd'
+import type { ACSDNode } from '~/types/acsd'
 
 const route = useRoute()
 const projectId = route.params.id as string
@@ -87,33 +90,18 @@ const projectId = route.params.id as string
 const { useProject, pullProject } = useProjects()
 const { data: project, isLoading, isError, error } = useProject(projectId)
 
+// Graph data from API
+const { nodes: graphNodes, hierarchyEdges: graphEdges, isLoading: isGraphLoading } = useProjectGraph(projectId)
+
 function onPull() {
   pullProject.mutate(projectId)
 }
-
-// Моковые данные ACSD для демо
-const mockNodes: ACSDNode[] = [
-  { id: 'L0-1', level: 'L0', type: 'goal', text: 'API-сервис для управления контентом', status: 'exists', position: { x: 0, y: 0 } },
-  { id: 'L1-1', level: 'L1', type: 'component', text: 'Модуль авторизации', status: 'exists', position: { x: 0, y: 0 } },
-  { id: 'L1-2', level: 'L1', type: 'component', text: 'Модуль контента', status: 'exists', position: { x: 0, y: 0 } },
-  { id: 'L2-1', level: 'L2', type: 'goal', text: 'OAuth2 авторизация', status: 'exists', position: { x: 0, y: 0 } },
-  { id: 'L2-2', level: 'L2', type: 'goal', text: 'CRUD операции', status: 'gap', position: { x: 0, y: 0 } },
-  { id: 'L3-1', level: 'L3', type: 'component', text: 'POST /auth/login', status: 'exists', position: { x: 0, y: 0 } },
-]
-
-const mockEdges: ACSDEdge[] = [
-  { id: 'e1', source: 'L0-1', target: 'L1-1', type: 'implements' },
-  { id: 'e2', source: 'L0-1', target: 'L1-2', type: 'implements' },
-  { id: 'e3', source: 'L1-1', target: 'L2-1', type: 'implements' },
-  { id: 'e4', source: 'L1-2', target: 'L2-2', type: 'implements' },
-  { id: 'e5', source: 'L2-1', target: 'L3-1', type: 'implements' },
-]
 
 const selectedNodeId = ref<string | null>(null)
 
 const selectedNode = computed(() => {
   if (!selectedNodeId.value) return null
-  return mockNodes.find(n => n.id === selectedNodeId.value) || null
+  return graphNodes.value.find(n => n.id === selectedNodeId.value) || null
 })
 
 function onNodeSelect(nodeId: string | null) {

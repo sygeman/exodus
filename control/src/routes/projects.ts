@@ -3,6 +3,7 @@ import { eq } from 'drizzle-orm';
 import { db } from '../db/index';
 import { projects } from '../db/schema';
 import { gitService } from '../services/git';
+import { buildGraphFromYaml } from '../services/cascade';
 
 const PROJECTS_BASE_PATH = process.env.PROJECTS_PATH || '/data/projects';
 
@@ -144,8 +145,10 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
       };
     }
 
+    const projectData = project[0]!;
+
     try {
-      await gitService.pull(project[0].path);
+      await gitService.pull(projectData.path);
       return {
         success: true,
         message: 'Pulled latest changes',
@@ -155,6 +158,39 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
       return {
         success: false,
         error: `Failed to pull: ${error}`,
+      };
+    }
+  })
+
+  // GET /projects/:id/graph - Build ACSD graph from YAML files
+  .get('/:id/graph', async ({ params, set }) => {
+    const project = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, params.id))
+      .limit(1);
+
+    if (project.length === 0) {
+      set.status = 404;
+      return {
+        success: false,
+        error: 'Project not found',
+      };
+    }
+
+    const projectData = project[0]!;
+
+    try {
+      const graph = await buildGraphFromYaml(projectData.path, projectData.name);
+      return {
+        success: true,
+        data: graph,
+      };
+    } catch (error) {
+      set.status = 500;
+      return {
+        success: false,
+        error: `Failed to build graph: ${error}`,
       };
     }
   });

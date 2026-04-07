@@ -31,7 +31,7 @@ const statusClasses = computed(() => {
 
 <template>
   <div
-    class="acsd-node rounded-lg border px-3 py-2 min-w-[140px] text-center transition-all"
+    class="acsd-node rounded-lg border w-[160px] h-[80px] px-2 py-1.5 text-center transition-all overflow-hidden flex flex-col"
     :class="[levelColors[data.level], statusClasses]"
   >
     <Handle
@@ -42,11 +42,11 @@ const statusClasses = computed(() => {
       :class="handleColors[data.level]"
     />
     
-    <div class="text-xs font-medium text-neutral-400 mb-1">
+    <div class="text-xs font-medium text-neutral-400 mb-0.5 shrink-0">
       {{ data.level }} • {{ data.type }}
     </div>
     
-    <div class="text-sm text-neutral-100 line-clamp-2">
+    <div class="text-sm text-neutral-100 line-clamp-2 overflow-hidden flex-1">
       {{ data.status === 'gap' ? '[?]' : data.text }}
     </div>
     

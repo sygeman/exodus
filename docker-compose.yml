@@ -1,4 +1,4 @@
-version: '3.8'
+version: "3.8"
 
 services:
   postgres:
@@ -17,21 +17,21 @@ services:
       timeout: 5s
       retries: 5
 
-  ui:
-    build:
-      context: ./ui
-      dockerfile: Dockerfile
-      args:
-        - CONTROL_API_URL=http://control:8080
-    ports:
-      - "3000:3000"
-    environment:
-      - PORT=3000
-      - HOST=0.0.0.0
-      - NITRO_PRESET=bun
-      - CONTROL_API_URL=http://control:8080
-    depends_on:
-      - control
+  # ui:
+  #   build:
+  #     context: ./ui
+  #     dockerfile: Dockerfile
+  #     args:
+  #       - CONTROL_API_URL=http://control:8080
+  #   ports:
+  #     - "3000:3000"
+  #   environment:
+  #     - PORT=3000
+  #     - HOST=0.0.0.0
+  #     - NITRO_PRESET=bun
+  #     - CONTROL_API_URL=http://control:8080
+  #   depends_on:
+  #     - control
 
   intent:
     build:

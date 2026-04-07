@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { VueFlow, useVueFlow } from '@vue-flow/core'
 import { Background } from '@vue-flow/background'
+import { MiniMap } from '@vue-flow/minimap'
 import type { Node, Edge } from '@vue-flow/core'
 import dagre from 'dagre'
 import type { ACSDNode, ACSDEdge, ACSDNodeData } from '~/types/acsd'
@@ -117,6 +118,11 @@ onMounted(() => {
       fit-view-on-init
     >
       <Background />
+      <MiniMap
+        :node-color="() => '#525252'"
+        :mask-color="'rgba(64, 64, 64, 0.4)'"
+        bg-color="#171717"
+      />
     </VueFlow>
   </div>
 </template>
@@ -124,6 +130,7 @@ onMounted(() => {
 <style>
 @import '@vue-flow/core/dist/style.css';
 @import '@vue-flow/core/dist/theme-default.css';
+@import '@vue-flow/minimap/dist/style.css';
 
 .acsd-graph {
   --vf-node-bg: var(--color-neutral-900);
@@ -147,7 +154,21 @@ onMounted(() => {
   padding: 0 !important;
 }
 
-.vue-flow__node.selected > * {
-  box-shadow: 0 0 0 2px var(--color-primary-500) !important;
+.vue-flow__minimap {
+  background-color: var(--color-neutral-900);
+  border: 1px solid var(--color-neutral-700);
+}
+
+.vue-flow__minimap-mask {
+  fill: var(--color-neutral-600);
+  opacity: 0.4;
+}
+
+.vue-flow__minimap-node {
+  fill: var(--color-neutral-500);
+}
+
+.vue-flow__minimap-node.selected {
+  fill: var(--color-primary-500);
 }
 </style>
