@@ -83,6 +83,30 @@ export const useProjects = () => {
       })
     },
   })
+
+  const pullProject = useMutation({
+    mutationFn: (id: string) => 
+      $fetch(`/api/control/projects/${id}/pull`, { 
+        method: 'POST' 
+      }).then((r: any) => {
+        if (!r.success) throw new Error(r.error)
+        return id
+      }),
+    onSuccess: (_, id) => {
+      queryClient.invalidateQueries({ queryKey: projectKeys.detail(id) })
+      toast.add({
+        title: 'Pulled latest changes',
+        color: 'success',
+      })
+    },
+    onError: (error: Error) => {
+      toast.add({
+        title: 'Error',
+        description: error.message || 'Failed to pull',
+        color: 'error',
+      })
+    },
+  })
   
   return {
     // Queries
@@ -96,5 +120,6 @@ export const useProjects = () => {
     // Mutations
     createProject,
     deleteProject,
+    pullProject,
   }
 }

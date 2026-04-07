@@ -61,6 +61,11 @@ class GitService {
       return false;
     }
   }
+
+  async pull(path: string): Promise<void> {
+    await this.execGit(['pull'], path);
+    console.log(`[Git] Pulled latest changes in ${path}`);
+  }
 }
 
 export const gitService = new GitService();

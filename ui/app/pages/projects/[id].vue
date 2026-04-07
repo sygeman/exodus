@@ -28,6 +28,17 @@
               @click="navigateTo('/projects')"
             />
             <h1 class="text-lg font-semibold text-highlighted">{{ project.name }}</h1>
+            <div class="flex-1" />
+            <UButton
+              icon="i-lucide-git-pull-arrow"
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              :loading="pullProject.isPending.value"
+              @click="onPull"
+            >
+              Pull
+            </UButton>
           </div>
         </div>
 
@@ -73,8 +84,12 @@ import type { ACSDNode, ACSDEdge } from '~/types/acsd'
 const route = useRoute()
 const projectId = route.params.id as string
 
-const { useProject } = useProjects()
+const { useProject, pullProject } = useProjects()
 const { data: project, isLoading, isError, error } = useProject(projectId)
+
+function onPull() {
+  pullProject.mutate(projectId)
+}
 
 // Моковые данные ACSD для демо
 const mockNodes: ACSDNode[] = [

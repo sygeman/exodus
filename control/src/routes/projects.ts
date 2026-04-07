@@ -126,4 +126,35 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
       success: true,
       message: 'Project archived successfully',
     };
+  })
+
+  // POST /projects/:id/pull - Pull latest changes
+  .post('/:id/pull', async ({ params, set }) => {
+    const project = await db
+      .select()
+      .from(projects)
+      .where(eq(projects.id, params.id))
+      .limit(1);
+
+    if (project.length === 0) {
+      set.status = 404;
+      return {
+        success: false,
+        error: 'Project not found',
+      };
+    }
+
+    try {
+      await gitService.pull(project[0].path);
+      return {
+        success: true,
+        message: 'Pulled latest changes',
+      };
+    } catch (error) {
+      set.status = 500;
+      return {
+        success: false,
+        error: `Failed to pull: ${error}`,
+      };
+    }
   });
