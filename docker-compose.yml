@@ -33,13 +33,6 @@ services:
   #   depends_on:
   #     - control
 
-  intent:
-    build:
-      context: ./intent
-      dockerfile: Dockerfile
-    volumes:
-      - ./intent:/app
-
   control:
     build:
       context: ./control
@@ -68,20 +61,6 @@ services:
     environment:
       - PORT=8081
       - KIMI_API_KEY=${KIMI_API_KEY}
-
-  state:
-    build:
-      context: ./state
-      dockerfile: Dockerfile
-    volumes:
-      - ./state:/app
-
-  infra:
-    build:
-      context: ./infra
-      dockerfile: Dockerfile
-    volumes:
-      - ./infra:/app
 
 volumes:
   postgres_data:
