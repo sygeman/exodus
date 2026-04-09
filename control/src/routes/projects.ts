@@ -187,10 +187,10 @@ export const projectsRoutes = new Elysia({ prefix: '/projects' })
         data: graph,
       };
     } catch (error) {
-      set.status = 500;
+      // Пустой проект — вернуть пустой граф
       return {
-        success: false,
-        error: `Failed to build graph: ${error}`,
+        success: true,
+        data: { nodes: [], edges: [] },
       };
     }
   });

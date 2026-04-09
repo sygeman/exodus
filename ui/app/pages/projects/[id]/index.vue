@@ -45,6 +45,20 @@
               Добавить
             </UButton>
             <UButton
+              icon="i-lucide-save"
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              :disabled="!diff?.addedNodes?.length && !diff?.removedNodes?.length"
+              :loading="commit.isPending.value"
+              @click="commit.mutate()"
+            >
+              Commit
+              <span v-if="diff?.addedNodes?.length || diff?.removedNodes?.length" class="ml-1 text-xs opacity-60">
+                ({{ (diff?.addedNodes?.length || 0) + (diff?.removedNodes?.length || 0) }})
+              </span>
+            </UButton>
+            <UButton
               icon="i-lucide-git-pull-arrow"
               color="neutral"
               variant="ghost"
@@ -118,7 +132,7 @@
           autofocus
         />
         <p class="text-xs text-muted mt-2">
-          Элемент будет создан как draft (без уровня). Уровень можно определить позже.
+          Элемент будет создан как draft. Тип и уровень определяются при стабилизации.
         </p>
       </template>
 
@@ -133,9 +147,45 @@
             label="Создать"
             color="primary"
             :disabled="!newNodeText.trim()"
-            :loading="isCreatingNode"
+            :loading="addNode.isPending.value"
             @click="createNode"
           />
+        </div>
+      </template>
+    </UModal>
+
+    <!-- Модалка доработки идеи -->
+    <UModal v-model:open="showEditDrawer" :fullscreen="true">
+      <template #header>
+        <div class="flex items-center gap-3">
+          <UButton
+            icon="i-lucide-arrow-left"
+            color="neutral"
+            variant="ghost"
+            @click="showEditDrawer = false"
+          />
+          <div>
+            <h3 class="text-base font-medium text-highlighted">Доработка идеи</h3>
+            <p v-if="editingNode" class="text-sm text-muted">{{ editingNode.text }}</p>
+          </div>
+        </div>
+      </template>
+      <template #body>
+        <div class="max-w-2xl mx-auto space-y-6 py-8">
+          <div class="space-y-2">
+            <h4 class="text-sm font-medium text-highlighted">Опиши что изменить</h4>
+            <p class="text-sm text-muted">
+              Система доработает идею через intent — уточнит формулировку, добавит контекст, предложит связи.
+            </p>
+          </div>
+          <UTextarea
+            placeholder="Например: сделай более конкретным, добавь детали, уточни границы..."
+            :rows="6"
+            class="w-full"
+          />
+          <div class="flex justify-end">
+            <UButton label="Отправить" color="primary" />
+          </div>
         </div>
       </template>
     </UModal>
@@ -143,8 +193,6 @@
 </template>
 
 <script setup lang="ts">
-import type { ACSDNode } from '~/types/acsd'
-
 const route = useRoute()
 const projectId = route.params.id as string
 
@@ -160,6 +208,9 @@ const viewTabs = [
 
 // Graph data from API
 const { nodes: graphNodes, hierarchyEdges: graphEdges, isLoading: isGraphLoading } = useProjectGraph(projectId)
+
+// Cascade mutations
+const { addNode, removeNode, commit, diff } = useCascadeMutations(projectId)
 
 function onPull() {
   pullProject.mutate(projectId)
@@ -184,41 +235,46 @@ function onNodeSelectFromPanel(nodeId: string) {
 }
 
 function onNodeAction(action: string, nodeId: string) {
-  console.log('Action:', action, 'on node:', nodeId)
+  if (action === 'delete') {
+    removeNode.mutate(nodeId)
+  }
+  if (action === 'edit') {
+    editNodeId.value = nodeId
+    showEditDrawer.value = true
+  }
 }
 
 // Создание ноды
 const showAddNodeDialog = ref(false)
 const newNodeText = ref('')
-const isCreatingNode = ref(false)
+
+// Редактирование ноды
+const showEditDrawer = ref(false)
+const editNodeId = ref<string | null>(null)
+
+const editingNode = computed(() => {
+  if (!editNodeId.value) return null
+  return graphNodes.value.find(n => n.id === editNodeId.value) || null
+})
 
 function closeAddNodeDialog() {
   showAddNodeDialog.value = false
   newNodeText.value = ''
 }
 
-async function createNode() {
+function createNode() {
   if (!newNodeText.value.trim()) return
 
-  isCreatingNode.value = true
-  try {
-    // TODO: API для создания ноды пока нет
-    // Временно создаём локальную ноду
-    const newNode: ACSDNode = {
-      id: `draft-${Date.now()}`,
+  addNode.mutate(
+    {
       level: null,
-      type: 'component',
       text: newNodeText.value,
-      status: 'draft',
-      position: { x: 0, y: 0 },
+    },
+    {
+      onSuccess: () => {
+        closeAddNodeDialog()
+      },
     }
-
-    // Добавляем в локальный массив (нужен API)
-    // graphNodes.value.push(newNode)
-
-    closeAddNodeDialog()
-  } finally {
-    isCreatingNode.value = false
-  }
+  )
 }
 </script>

@@ -115,11 +115,33 @@ export async function buildGraphFromYaml(
   const config = await readYamlFile<ExodusConfig>(configPath);
 
   if (!config?.vision) {
-    throw new Error('config_missing_vision: exodus.yaml must have vision field');
+    // Пустой проект — пробуем загрузить только draft
+    const exodusDir = join(projectPath, 'exodus');
+    const draftPath = join(exodusDir, 'draft.yaml');
+    const draftContent = await readYamlFile<YAMLFile>(draftPath);
+    if (draftContent?.meta && draftContent.ideas) {
+      for (const idea of draftContent.ideas) {
+        const nodeType = idea.type ? parseNodeType(idea.type) : null;
+
+        const node: ACSDNode = {
+          id: idea.id,
+          level: null,
+          type: nodeType,
+          text: idea.text,
+          status: 'draft',
+          ideaId: idea.id,
+          position: { x: 0, y: 0 },
+        };
+        nodes.push(node);
+        nodeIds.add(idea.id);
+      }
+    }
+    return { nodes, edges };
   }
 
   // Resolve vision path
   const visionPath = join(projectPath, config.vision);
+  const exodusDir = join(projectPath, 'exodus');
 
   // Queue of files to process with their level
   const queue: Array<{ path: string; level: ACSDNodeLevel }> = [
@@ -150,7 +172,9 @@ export async function buildGraphFromYaml(
     // Process ideas
     const ideas = content.ideas || [];
     for (const idea of ideas) {
-      const nodeType = parseNodeType(idea.type);
+      if (!idea.type) continue;
+      if (!idea.type) continue;
+        const nodeType = parseNodeType(idea.type);
       if (!nodeType) {
         continue;
       }
@@ -206,12 +230,49 @@ export async function buildGraphFromYaml(
 
     const nextLevel = nextLevelMap[fileLevel];
     if (nextLevel) {
-      const exodusDir = join(projectPath, 'exodus');
       const derivedFiles = await findDerivedFiles(exodusDir, fileId);
 
       for (const derivedPath of derivedFiles) {
         if (!processedFiles.has(derivedPath)) {
           queue.push({ path: derivedPath, level: nextLevel });
+        }
+      }
+    }
+  }
+
+  // Загрузить draft ноды из draft.yaml
+  const draftPath = join(exodusDir, 'draft.yaml');
+  const draftContent = await readYamlFile<YAMLFile>(draftPath);
+  if (draftContent?.meta && draftContent.ideas) {
+    for (const idea of draftContent.ideas) {
+      const nodeType = idea.type ? parseNodeType(idea.type) : null;
+
+      const node: ACSDNode = {
+        id: idea.id,
+        level: null,
+        type: nodeType,
+        text: idea.text,
+        status: 'draft',
+        ideaId: idea.id,
+        position: { x: 0, y: 0 },
+      };
+
+      if (!nodeIds.has(idea.id)) {
+        nodes.push(node);
+        nodeIds.add(idea.id);
+      }
+
+      for (const edgeType of EDGE_TYPES) {
+        const targets = idea[edgeType];
+        if (!targets) continue;
+        const targetList = Array.isArray(targets) ? targets : [targets];
+        for (const target of targetList) {
+          edges.push({
+            id: `edge-${++edgeCounter}`,
+            source: idea.id,
+            target,
+            type: edgeType,
+          });
         }
       }
     }

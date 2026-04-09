@@ -25,7 +25,7 @@ const levelOrder: Record<string, number> = {
 export const useProjectGraph = (id: string) => {
   const graphQuery = useQuery({
     queryKey: graphKeys.graph(id),
-    queryFn: () => $fetch(`/api/control/projects/${id}/graph`).then((r: any) => {
+    queryFn: () => $fetch(`/api/control/projects/${id}/cascade/graph`).then((r: any) => {
       if (!r.success) throw new Error(r.error)
       return r.data as GraphResponse
     }),

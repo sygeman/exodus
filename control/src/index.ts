@@ -1,5 +1,6 @@
 import { Elysia } from 'elysia';
 import { projectsRoutes } from './routes/projects';
+import { cascadeRoutes } from './routes/cascade';
 import { runMigrations } from './db/migrate';
 
 const PORT = parseInt(process.env.PORT || '8080');
@@ -12,6 +13,7 @@ async function startServer() {
   const app = new Elysia()
     .get('/health', () => ({ status: 'ok', service: 'control' }))
     .use(projectsRoutes)
+    .use(cascadeRoutes)
     .listen({ port: PORT, hostname: HOST });
 
   console.log(`[Control] Ready on ${HOST}:${PORT}`);

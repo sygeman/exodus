@@ -121,18 +121,18 @@ function navigateToNode(nodeId: string) {
           block
           color="primary"
           variant="soft"
-          @click="emit('action', 'stabilize', node.id)"
+          @click="emit('action', 'edit', node.id)"
         >
-          Стабилизировать
+          Доработать
         </UButton>
 
         <UButton
           block
-          color="neutral"
+          color="error"
           variant="ghost"
-          @click="emit('action', 'edit', node.id)"
+          @click="emit('action', 'delete', node.id)"
         >
-          Изменить
+          Удалить
         </UButton>
       </div>
     </div>
@@ -207,32 +207,22 @@ function navigateToNode(nodeId: string) {
       </div>
 
       <div class="pt-4 border-t border-neutral-800 space-y-2">
-        <UButton 
-          v-if="node.level !== 'L4'"
-          block 
-          color="primary" 
+        <UButton
+          block
+          color="primary"
           variant="soft"
-          @click="emit('action', 'detail', node.id)"
-        >
-          Детализировать
-        </UButton>
-        
-        <UButton 
-          block 
-          color="neutral" 
-          variant="ghost"
-          @click="emit('action', 'trace', node.id)"
-        >
-          Трассировка
-        </UButton>
-        
-        <UButton 
-          block 
-          color="neutral" 
-          variant="ghost"
           @click="emit('action', 'edit', node.id)"
         >
-          Изменить
+          Доработать
+        </UButton>
+
+        <UButton
+          block
+          color="error"
+          variant="ghost"
+          @click="emit('action', 'delete', node.id)"
+        >
+          Удалить
         </UButton>
       </div>
     </div>

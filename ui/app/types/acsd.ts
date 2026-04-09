@@ -21,7 +21,7 @@ export type ACSDEdgeType =
 export interface ACSDNode {
   id: string
   level: ACSDNodeLevel
-  type: ACSDNodeType
+  type: ACSDNodeType | null
   text: string
   status: ACSDNodeStatus
   ideaId?: string
