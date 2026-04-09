@@ -29,6 +29,21 @@
             />
             <h1 class="text-lg font-semibold text-highlighted">{{ project.name }}</h1>
             <div class="flex-1" />
+            <UTabs
+              v-model="viewMode"
+              :items="viewTabs"
+              size="sm"
+              class="w-auto"
+            />
+            <UButton
+              icon="i-lucide-plus"
+              color="neutral"
+              variant="ghost"
+              size="xs"
+              @click="showAddNodeDialog = true"
+            >
+              Добавить
+            </UButton>
             <UButton
               icon="i-lucide-git-pull-arrow"
               color="neutral"
@@ -48,9 +63,19 @@
             <div v-if="isGraphLoading" class="absolute inset-0 flex items-center justify-center bg-elevated/50 z-10">
               <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-muted" />
             </div>
+            <!-- Graph View -->
             <ACSDGraph
+              v-if="viewMode === 'graph'"
               :nodes="graphNodes"
               :edges="graphEdges"
+              @node-select="onNodeSelect"
+            />
+            <!-- List View -->
+            <ACSDListView
+              v-else
+              :nodes="graphNodes"
+              :selected-node-id="selectedNodeId"
+              :scroll-to-node="scrollToNode"
               @node-select="onNodeSelect"
             />
           </div>
@@ -58,7 +83,10 @@
             <ACSDNodePanel
               :node="selectedNode"
               :project-name="project?.name || 'Project'"
+              :edges="graphEdges"
+              :nodes="graphNodes"
               @action="onNodeAction"
+              @node-select="onNodeSelectFromPanel"
             />
           </div>
         </div>
@@ -78,6 +106,39 @@
         </UButton>
       </UCard>
     </UContainer>
+
+    <!-- Диалог добавления ноды -->
+    <UModal v-model:open="showAddNodeDialog" title="Добавить элемент">
+      <template #body>
+        <UTextarea
+          v-model="newNodeText"
+          placeholder="Опиши элемент..."
+          :rows="4"
+          class="w-full"
+          autofocus
+        />
+        <p class="text-xs text-muted mt-2">
+          Элемент будет создан как draft (без уровня). Уровень можно определить позже.
+        </p>
+      </template>
+
+      <template #footer>
+        <div class="flex justify-end gap-2">
+          <UButton
+            label="Отмена"
+            variant="ghost"
+            @click="closeAddNodeDialog"
+          />
+          <UButton
+            label="Создать"
+            color="primary"
+            :disabled="!newNodeText.trim()"
+            :loading="isCreatingNode"
+            @click="createNode"
+          />
+        </div>
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -90,6 +151,13 @@ const projectId = route.params.id as string
 const { useProject, pullProject } = useProjects()
 const { data: project, isLoading, isError, error } = useProject(projectId)
 
+// View mode: 'graph' or 'list'
+const viewMode = ref<'graph' | 'list'>('graph')
+const viewTabs = [
+  { label: 'Graph', icon: 'i-lucide-git-graph', value: 'graph' },
+  { label: 'List', icon: 'i-lucide-list', value: 'list' },
+]
+
 // Graph data from API
 const { nodes: graphNodes, hierarchyEdges: graphEdges, isLoading: isGraphLoading } = useProjectGraph(projectId)
 
@@ -98,6 +166,7 @@ function onPull() {
 }
 
 const selectedNodeId = ref<string | null>(null)
+const scrollToNode = ref(false)
 
 const selectedNode = computed(() => {
   if (!selectedNodeId.value) return null
@@ -105,10 +174,51 @@ const selectedNode = computed(() => {
 })
 
 function onNodeSelect(nodeId: string | null) {
+  scrollToNode.value = false
+  selectedNodeId.value = nodeId
+}
+
+function onNodeSelectFromPanel(nodeId: string) {
+  scrollToNode.value = true
   selectedNodeId.value = nodeId
 }
 
 function onNodeAction(action: string, nodeId: string) {
   console.log('Action:', action, 'on node:', nodeId)
+}
+
+// Создание ноды
+const showAddNodeDialog = ref(false)
+const newNodeText = ref('')
+const isCreatingNode = ref(false)
+
+function closeAddNodeDialog() {
+  showAddNodeDialog.value = false
+  newNodeText.value = ''
+}
+
+async function createNode() {
+  if (!newNodeText.value.trim()) return
+
+  isCreatingNode.value = true
+  try {
+    // TODO: API для создания ноды пока нет
+    // Временно создаём локальную ноду
+    const newNode: ACSDNode = {
+      id: `draft-${Date.now()}`,
+      level: null,
+      type: 'component',
+      text: newNodeText.value,
+      status: 'draft',
+      position: { x: 0, y: 0 },
+    }
+
+    // Добавляем в локальный массив (нужен API)
+    // graphNodes.value.push(newNode)
+
+    closeAddNodeDialog()
+  } finally {
+    isCreatingNode.value = false
+  }
 }
 </script>

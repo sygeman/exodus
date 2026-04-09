@@ -45,7 +45,14 @@ function calculateLayout(nodes: ACSDNode[], edges: ACSDEdge[]) {
     g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT })
   }
 
+  // Only add edges for non-draft nodes
   for (const edge of edges) {
+    const sourceNode = nodes.find(n => n.id === edge.source)
+    const targetNode = nodes.find(n => n.id === edge.target)
+
+    // Skip edges involving draft nodes (level === null)
+    if (sourceNode?.level === null || targetNode?.level === null) continue
+
     g.setEdge(edge.source, edge.target)
   }
 
@@ -68,7 +75,31 @@ function calculateLayout(nodes: ACSDNode[], edges: ACSDEdge[]) {
 const vueFlowNodes = computed<Node<ACSDNodeData>[]>(() => {
   const positions = calculateLayout(props.nodes, props.edges)
 
-  return props.nodes.map((node) => ({
+  // Separate draft and regular nodes
+  const draftNodes = props.nodes.filter(n => n.level === null)
+  const regularNodes = props.nodes.filter(n => n.level !== null)
+
+  // Position draft nodes at the top, centered
+  const draftStartY = -100
+  const draftStartX = -((draftNodes.length - 1) * (NODE_WIDTH + HORIZONTAL_GAP)) / 2
+
+  const draftNodeMap = draftNodes.map((node, index) => ({
+    id: node.id,
+    type: 'acsd',
+    position: {
+      x: draftStartX + index * (NODE_WIDTH + HORIZONTAL_GAP),
+      y: draftStartY,
+    },
+    data: {
+      level: null,
+      type: node.type,
+      text: node.text,
+      status: node.status,
+      ideaId: node.ideaId,
+    },
+  }))
+
+  const regularNodeMap = regularNodes.map((node) => ({
     id: node.id,
     type: 'acsd',
     position: positions.get(node.id) || { x: 0, y: 0 },
@@ -80,16 +111,25 @@ const vueFlowNodes = computed<Node<ACSDNodeData>[]>(() => {
       ideaId: node.ideaId,
     },
   }))
+
+  return [...draftNodeMap, ...regularNodeMap]
 })
 
 const vueFlowEdges = computed<Edge[]>(() => {
-  return props.edges.map((edge) => ({
-    id: edge.id,
-    source: edge.source,
-    target: edge.target,
-    type: 'acsd',
-    data: { type: edge.type },
-  }))
+  return props.edges
+    .filter(edge => {
+      const sourceNode = props.nodes.find(n => n.id === edge.source)
+      const targetNode = props.nodes.find(n => n.id === edge.target)
+      // Skip edges involving draft nodes
+      return sourceNode?.level !== null && targetNode?.level !== null
+    })
+    .map((edge) => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      type: 'acsd',
+      data: { type: edge.type },
+    }))
 })
 
 onNodeClick(({ node }) => {

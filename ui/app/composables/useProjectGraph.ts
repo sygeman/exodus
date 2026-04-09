@@ -14,11 +14,12 @@ const graphKeys = {
 
 const levelOrder: Record<string, number> = {
   ROOT: -1,
-  L0: 0,
-  L1: 1,
-  L2: 2,
-  L3: 3,
-  L4: 4,
+  draft: 0,
+  L0: 1,
+  L1: 2,
+  L2: 3,
+  L3: 4,
+  L4: 5,
 }
 
 export const useProjectGraph = (id: string) => {
@@ -39,14 +40,18 @@ export const useProjectGraph = (id: string) => {
     const allNodes = nodes.value
     const allEdges = edges.value
 
-    // Map node id to level
-    const nodeLevels = new Map<string, string>(allNodes.map(n => [n.id, n.level]))
+    // Map node id to level (null for draft)
+    const nodeLevels = new Map<string, string | null>(allNodes.map(n => [n.id, n.level]))
     // Special case for ROOT
     nodeLevels.set('ROOT', 'ROOT')
 
     return allEdges.filter(edge => {
-      const sourceLevel = nodeLevels.get(edge.source) || ''
-      const targetLevel = nodeLevels.get(edge.target) || ''
+      const sourceLevel = nodeLevels.get(edge.source) ?? null
+      const targetLevel = nodeLevels.get(edge.target) ?? null
+
+      // Skip edges involving draft nodes
+      if (sourceLevel === null || targetLevel === null) return false
+      if (sourceLevel === 'ROOT' || targetLevel === 'ROOT') return true
 
       const sourceOrder = levelOrder[sourceLevel] ?? 999
       const targetOrder = levelOrder[targetLevel] ?? 999

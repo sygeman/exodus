@@ -1,9 +1,29 @@
+export type ACSDNodeLevel = null | 'L0' | 'L1' | 'L2' | 'L3' | 'L4'
+
+export type ACSDNodeType =
+  | 'goal'
+  | 'non_goal'
+  | 'constraint'
+  | 'invariant'
+  | 'component'
+  | 'decision'
+  | 'principle'
+
+export type ACSDNodeStatus = 'exists' | 'draft' | 'gap'
+
+export type ACSDEdgeType =
+  | 'implements'
+  | 'requires'
+  | 'part_of'
+  | 'supports'
+  | 'contradicts'
+
 export interface ACSDNode {
   id: string
-  level: 'L0' | 'L1' | 'L2' | 'L3' | 'L4'
-  type: 'goal' | 'component' | 'invariant' | 'principle' | 'decision' | 'constraint' | 'non_goal'
+  level: ACSDNodeLevel
+  type: ACSDNodeType
   text: string
-  status: 'exists' | 'draft' | 'gap'
+  status: ACSDNodeStatus
   ideaId?: string
   position: { x: number; y: number }
 }
@@ -21,9 +41,9 @@ export interface ACSDGraph {
 }
 
 export interface ACSDNodeData {
-  level: ACSDNode['level']
-  type: ACSDNode['type']
+  level: ACSDNodeLevel
+  type: ACSDNodeType
   text: string
-  status: ACSDNode['status']
+  status: ACSDNodeStatus
   ideaId?: string
 }
