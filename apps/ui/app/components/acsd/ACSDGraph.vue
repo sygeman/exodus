@@ -4,7 +4,9 @@ import { Background } from '@vue-flow/background'
 import { MiniMap } from '@vue-flow/minimap'
 import type { Node, Edge } from '@vue-flow/core'
 import dagre from 'dagre'
-import type { ACSDNode, ACSDEdge, ACSDNodeData } from '~/types/acsd'
+import type { ACSDNode, ACSDEdge } from '~/types/acsd'
+import AcsdNodesACSDNode from '~/components/acsd/nodes/ACSDNode.vue'
+import AcsdEdgesACSDEdge from '~/components/acsd/edges/ACSDEdge.vue'
 
 const props = defineProps<{
   nodes: ACSDNode[]
@@ -23,11 +25,11 @@ const HORIZONTAL_GAP = 40
 const VERTICAL_GAP = 60
 
 const nodeTypes = {
-  acsd: markRaw(resolveComponent('AcsdNodesACSDNode')),
+  acsd: markRaw(AcsdNodesACSDNode),
 }
 
 const edgeTypes = {
-  acsd: markRaw(resolveComponent('AcsdEdgesACSDEdge')),
+  acsd: markRaw(AcsdEdgesACSDEdge),
 }
 
 function calculateLayout(nodes: ACSDNode[], edges: ACSDEdge[]) {
@@ -45,12 +47,10 @@ function calculateLayout(nodes: ACSDNode[], edges: ACSDEdge[]) {
     g.setNode(node.id, { width: NODE_WIDTH, height: NODE_HEIGHT })
   }
 
-  // Only add edges for non-draft nodes
   for (const edge of edges) {
     const sourceNode = nodes.find(n => n.id === edge.source)
     const targetNode = nodes.find(n => n.id === edge.target)
 
-    // Skip edges involving draft nodes (level === null)
     if (sourceNode?.level === null || targetNode?.level === null) continue
 
     g.setEdge(edge.source, edge.target)
@@ -72,14 +72,14 @@ function calculateLayout(nodes: ACSDNode[], edges: ACSDEdge[]) {
   return positions
 }
 
-const vueFlowNodes = computed<Node<ACSDNodeData>[]>(() => {
-  const positions = calculateLayout(props.nodes, props.edges)
+const layoutPositions = computed(() => calculateLayout(props.nodes, props.edges))
 
-  // Separate draft and regular nodes
+const vueFlowNodes = computed<Node[]>(() => {
+  const positions = layoutPositions.value
+
   const draftNodes = props.nodes.filter(n => n.level === null)
   const regularNodes = props.nodes.filter(n => n.level !== null)
 
-  // Position draft nodes at the top, centered
   const draftStartY = -100
   const draftStartX = -((draftNodes.length - 1) * (NODE_WIDTH + HORIZONTAL_GAP)) / 2
 
@@ -92,7 +92,7 @@ const vueFlowNodes = computed<Node<ACSDNodeData>[]>(() => {
     },
     data: {
       level: null,
-      type: node.type,
+      type: node.type ?? undefined,
       text: node.text,
       status: node.status,
       ideaId: node.ideaId,
@@ -105,7 +105,7 @@ const vueFlowNodes = computed<Node<ACSDNodeData>[]>(() => {
     position: positions.get(node.id) || { x: 0, y: 0 },
     data: {
       level: node.level,
-      type: node.type,
+      type: node.type ?? undefined,
       text: node.text,
       status: node.status,
       ideaId: node.ideaId,
@@ -115,12 +115,15 @@ const vueFlowNodes = computed<Node<ACSDNodeData>[]>(() => {
   return [...draftNodeMap, ...regularNodeMap]
 })
 
+const nodeMap = computed(() => new Map(props.nodes.map(n => [n.id, n])))
+
 const vueFlowEdges = computed<Edge[]>(() => {
+  const nodes = nodeMap.value
+
   return props.edges
     .filter(edge => {
-      const sourceNode = props.nodes.find(n => n.id === edge.source)
-      const targetNode = props.nodes.find(n => n.id === edge.target)
-      // Skip edges involving draft nodes
+      const sourceNode = nodes.get(edge.source)
+      const targetNode = nodes.get(edge.target)
       return sourceNode?.level !== null && targetNode?.level !== null
     })
     .map((edge) => ({

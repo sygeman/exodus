@@ -21,10 +21,10 @@ const filteredNodes = computed(() => {
     return props.nodes
   }
   const query = searchQuery.value.toLowerCase()
-  return props.nodes.filter(node => 
+  return props.nodes.filter(node =>
     node.text.toLowerCase().includes(query) ||
     node.id.toLowerCase().includes(query) ||
-    node.type.toLowerCase().includes(query)
+    (node.type?.toLowerCase().includes(query) ?? false)
   )
 })
 
@@ -195,14 +195,20 @@ function onNodeClick(nodeId: string) {
 
               <div class="flex-1 min-w-0">
                 <!-- Type Badge -->
-                <div class="flex items-center gap-2 mb-1">
+                <div v-if="node.type" class="flex items-center gap-2 mb-1">
                   <span
                     class="text-xs font-medium uppercase tracking-wide"
                     :class="typeColors[node.type]"
                   >
                     {{ typeLabels[node.type] }}
                   </span>
-                  <span 
+                  <span
+                    class="text-xs text-muted"
+                    v-html="highlightText(node.id, searchQuery)"
+                  />
+                </div>
+                <div v-else class="flex items-center gap-2 mb-1">
+                  <span
                     class="text-xs text-muted"
                     v-html="highlightText(node.id, searchQuery)"
                   />

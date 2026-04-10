@@ -4,9 +4,3 @@
     <p class="text-gray-500">Application settings will be available here soon.</p>
   </div>
 </template>
-
-<script setup lang="ts">
-definePageMeta({
-  layout: 'default'
-})
-</script>

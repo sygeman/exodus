@@ -5,8 +5,8 @@ const route = useRoute();
 const { projects, isLoading, refetch } = useProjects();
 
 const tooltipContent = {
-    align: "center",
-    side: "bottom",
+    align: "center" as const,
+    side: "bottom" as const,
     sideOffset: 8,
 };
 

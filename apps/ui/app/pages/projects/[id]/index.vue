@@ -1,5 +1,5 @@
 <template>
-  <div class="h-screen">
+  <div class="h-dvh">
     <!-- Loading State -->
     <div v-if="isLoading" class="flex justify-center py-12">
       <UIcon name="i-lucide-loader-2" class="w-8 h-8 animate-spin text-muted" />
@@ -16,7 +16,7 @@
 
     <!-- Project Details -->
     <template v-else-if="project">
-      <div class="h-screen flex flex-col">
+      <div class="h-dvh flex flex-col">
         <!-- Header - Full Width -->
         <div class="border-b border-default flex-shrink-0">
           <div class="flex items-center gap-2 px-4 sm:px-6 lg:px-8 py-3">
@@ -380,7 +380,7 @@ const newNodeText = ref('')
 
 // URL параметр intent
 const router = useRouter()
-const editingNodeId = computed(() => route.query.intent as string || null)
+const editingNodeId = computed(() => route.query.intent as string | null)
 
 const showEditDrawer = computed({
   get: () => !!route.query.intent,
@@ -400,138 +400,18 @@ function clearIntentParam() {
   router.push({ query: rest })
 }
 
-const editingNode = computed(() => {
-  if (!editingNodeId.value) return null
-  return graphNodes.value.find(n => n.id === editingNodeId.value) || null
-})
-
-// === MOCK: Intent UX ===
-const intentInput = ref('')
-const mockLoading = ref(false)
-const mockSuggestion = ref<{
-  text: string
-  level: string
-  type: string
-  edges: string[]
-} | null>(null)
-
-interface MockVersion {
-  version: number
-  text: string
-  level: string | null
-  type: string | null
-  edges: string[]
-  isCurrent: boolean
-}
-
-const mockCurrentNode = computed(() => {
-  const node = editingNodeId.value
-    ? graphNodes.value.find(n => n.id === editingNodeId.value)
-    : null
-
-  return {
-    text: node?.text || 'авторизация',
-    level: node?.level || null,
-    type: node?.type || null,
-    edges: [] as string[],
-  }
-})
-
-const mockHistory = ref<MockVersion[]>([])
-
-watch(editingNodeId, (nodeId) => {
-  const node = nodeId ? graphNodes.value.find(n => n.id === nodeId) : null
-  mockHistory.value = [
-    {
-      version: 1,
-      text: node?.text || 'авторизация',
-      level: node?.level || null,
-      type: node?.type || null,
-      edges: [] as string[],
-      isCurrent: true,
-    },
-  ]
-  mockSuggestion.value = null
-  intentInput.value = ''
-})
-
-function mockSuggest() {
-  if (!intentInput.value.trim()) return
-
-  mockLoading.value = true
-
-  $fetch(`/api/control/projects/${projectId}/cascade/suggest`, {
-    method: 'POST',
-    body: {
-      nodeId: editingNodeId.value!,
-      userInput: intentInput.value,
-    },
-  })
-    .then((r: any) => {
-      if (!r.success) throw new Error(r.error)
-      mockSuggestion.value = r.data
-      intentInput.value = ''
-    })
-    .catch((error) => {
-      console.error('Suggest failed:', error)
-    })
-    .finally(() => {
-      mockLoading.value = false
-    })
-}
-
-// Предложения для демонстрации UX
-const mockExamples = [
-  {
-    text: 'OAuth 2.0 авторизация через внешних провайдеров (Google, GitHub)',
-    level: 'L2',
-    type: 'specification',
-    edges: ['requires → L1 Auth', 'requires → L2 External Providers'],
-  },
-  {
-    text: 'POST /auth/oauth/callback — endpoint для обработки callback',
-    level: 'L3',
-    type: 'contract',
-    edges: ['implements → L2 OAuth авторизация', 'requires → L2 Token Storage'],
-  },
-  {
-    text: 'Реализация OAuth2Strategy с passport.js',
-    level: 'L4',
-    type: 'code',
-    edges: ['implements → L3 OAuth callback endpoint'],
-  },
-]
-
-function mockAccept(suggestion?: { text: string; level: string; type: string; edges: string[] }) {
-  const target = suggestion || mockSuggestion.value
-  if (!target) return
-
-  const currentVersion = mockHistory.value.find(v => v.isCurrent)
-  if (currentVersion) {
-    currentVersion.isCurrent = false
-  }
-
-  const newVersion = {
-    version: mockHistory.value.length + 1,
-    text: target.text,
-    level: target.level,
-    type: target.type,
-    edges: target.edges,
-    isCurrent: true,
-  }
-
-  mockHistory.value.push(newVersion)
-  mockSuggestion.value = null
-}
-
-function mockRevert(version: MockVersion) {
-  const currentVersion = mockHistory.value.find(v => v.isCurrent)
-  if (currentVersion) {
-    currentVersion.isCurrent = false
-  }
-
-  version.isCurrent = true
-}
+// Intent editor composable
+const {
+  intentInput,
+  mockLoading,
+  mockSuggestion,
+  mockCurrentNode,
+  mockHistory,
+  mockExamples,
+  mockSuggest,
+  mockAccept,
+  mockRevert,
+} = useIntentEditor(projectId, graphNodes, editingNodeId)
 
 function closeAddNodeDialog() {
   showAddNodeDialog.value = false

@@ -6,7 +6,6 @@
         :schema="schema"
         :state="state"
         class="space-y-4"
-        :validate-on="['submit']"
         @submit="onSubmit"
       >
         <UFormField

@@ -156,11 +156,11 @@ function navigateToNode(nodeId: string) {
     <!-- Нода выбрана -->
     <div v-else class="space-y-4">
       <div class="flex items-center justify-between">
-        <UBadge :color="node.level === 'L0' ? 'amber' : 'neutral'" variant="soft">
+        <UBadge :color="node.level === 'L0' ? 'warning' : 'neutral'" variant="soft">
           {{ node.level }}
         </UBadge>
         <UBadge color="neutral" variant="soft">
-          {{ typeLabels[node.type] || node.type }}
+          {{ node.type ? typeLabels[node.type] : node.type }}
         </UBadge>
       </div>
 
