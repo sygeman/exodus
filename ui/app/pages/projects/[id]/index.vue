@@ -214,8 +214,33 @@
               </div>
             </div>
 
+            <!-- Предложения -->
+            <div v-if="!mockSuggestion" class="mt-6 space-y-3">
+              <div class="flex items-center gap-2">
+                <UIcon name="i-lucide-sparkles" class="w-4 h-4 text-muted" />
+                <span class="text-xs font-medium text-muted uppercase tracking-wide">Предложения</span>
+              </div>
+              <div class="space-y-2">
+                <button
+                  v-for="(example, index) in mockExamples"
+                  :key="index"
+                  class="w-full text-left p-3 rounded-lg border border-default bg-elevated hover:border-primary/30 hover:bg-primary/5 transition-colors cursor-pointer"
+                  @click="mockAccept(example)"
+                >
+                  <div class="flex items-center gap-2 mb-1">
+                    <UBadge :label="example.level" variant="soft" size="xs" />
+                    <span class="text-xs text-muted">{{ example.type }}</span>
+                  </div>
+                  <p class="text-sm text-highlighted">{{ example.text }}</p>
+                  <div v-if="example.edges.length" class="text-xs text-muted mt-1">
+                    {{ example.edges.join(', ') }}
+                  </div>
+                </button>
+              </div>
+            </div>
+
             <!-- Предложение LLM -->
-            <div v-if="mockSuggestion" class="mt-6 space-y-4">
+            <div v-else class="mt-6 space-y-4">
               <div class="flex items-center gap-2">
                 <UIcon name="i-lucide-sparkles" class="w-4 h-4 text-primary" />
                 <span class="text-sm font-medium text-highlighted">Предложение</span>
@@ -243,11 +268,6 @@
                   variant="ghost"
                   color="neutral"
                   @click="mockSuggestion = null"
-                />
-                <UButton
-                  label="Принять"
-                  color="primary"
-                  @click="mockAccept"
                 />
               </div>
             </div>
@@ -440,21 +460,51 @@ function mockSuggest() {
 
   mockLoading.value = true
 
-  // Мокаем задержку LLM
-  setTimeout(() => {
-    mockLoading.value = false
-    mockSuggestion.value = {
-      text: 'OAuth 2.0 flow с поддержкой refresh token и scope management',
-      level: 'L2',
-      type: 'specification',
-      edges: ['requires → L1 Auth', 'requires → L2 Token Storage'],
-    }
-    intentInput.value = ''
-  }, 1200)
+  $fetch(`/api/control/projects/${projectId}/cascade/suggest`, {
+    method: 'POST',
+    body: {
+      nodeId: editingNodeId.value!,
+      userInput: intentInput.value,
+    },
+  })
+    .then((r: any) => {
+      if (!r.success) throw new Error(r.error)
+      mockSuggestion.value = r.data
+      intentInput.value = ''
+    })
+    .catch((error) => {
+      console.error('Suggest failed:', error)
+    })
+    .finally(() => {
+      mockLoading.value = false
+    })
 }
 
-function mockAccept() {
-  if (!mockSuggestion.value) return
+// Предложения для демонстрации UX
+const mockExamples = [
+  {
+    text: 'OAuth 2.0 авторизация через внешних провайдеров (Google, GitHub)',
+    level: 'L2',
+    type: 'specification',
+    edges: ['requires → L1 Auth', 'requires → L2 External Providers'],
+  },
+  {
+    text: 'POST /auth/oauth/callback — endpoint для обработки callback',
+    level: 'L3',
+    type: 'contract',
+    edges: ['implements → L2 OAuth авторизация', 'requires → L2 Token Storage'],
+  },
+  {
+    text: 'Реализация OAuth2Strategy с passport.js',
+    level: 'L4',
+    type: 'code',
+    edges: ['implements → L3 OAuth callback endpoint'],
+  },
+]
+
+function mockAccept(suggestion?: { text: string; level: string; type: string; edges: string[] }) {
+  const target = suggestion || mockSuggestion.value
+  if (!target) return
 
   const currentVersion = mockHistory.value.find(v => v.isCurrent)
   if (currentVersion) {
@@ -463,10 +513,10 @@ function mockAccept() {
 
   const newVersion = {
     version: mockHistory.value.length + 1,
-    text: mockSuggestion.value.text,
-    level: mockSuggestion.value.level,
-    type: mockSuggestion.value.type,
-    edges: mockSuggestion.value.edges,
+    text: target.text,
+    level: target.level,
+    type: target.type,
+    edges: target.edges,
     isCurrent: true,
   }
 

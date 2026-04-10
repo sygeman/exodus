@@ -8,6 +8,7 @@ import {
   graphStore,
 } from '../services/cascade-mutation';
 import { serializeGraphToYaml } from '../services/cascade-serialize';
+import { suggest, handleSuggestCallback } from '../services/cascade-suggest';
 
 /**
  * Получить граф: из кэша (если есть мутации) или из YAML
@@ -71,6 +72,29 @@ export const cascadeRoutes = new Elysia({ prefix: '/projects/:id/cascade' })
       data: result.graph.getGraph(),
     };
   })
+
+  // Предложить развитие идеи
+  .post(
+    '/suggest',
+    async ({ params, body, set }) => {
+      const result = await suggest(params.id, body);
+      if (!result.success) {
+        set.status = result.error === 'Project not found' ? 404 : 500;
+        return { success: false, error: result.error };
+      }
+
+      return {
+        success: true,
+        data: result.data,
+      };
+    },
+    {
+      body: t.Object({
+        nodeId: t.String({ description: 'ID ноды для анализа' }),
+        userInput: t.Optional(t.String({ description: 'Запрос пользователя (опционально)' })),
+      }),
+    }
+  )
 
   // Получить diff изменений
   .get('/diff', async ({ params, set }) => {
@@ -348,4 +372,32 @@ export const cascadeRoutes = new Elysia({ prefix: '/projects/:id/cascade' })
         error: `Failed to commit: ${error}`,
       };
     }
+  })
+
+  // Callback endpoint для execution
+  .post('/callback', async ({ body, set }) => {
+    const { task_id, result, error, status } = body;
+
+    const isSuccess = status === 'completed';
+
+    if (!isSuccess || error) {
+      handleSuggestCallback(task_id, JSON.stringify({ error }));
+      return { success: true };
+    }
+
+    if (!result) {
+      set.status = 400;
+      return { success: false, error: 'No result in callback' };
+    }
+
+    handleSuggestCallback(task_id, result);
+    return { success: true };
+  }, {
+    body: t.Object({
+      task_id: t.String(),
+      status: t.String(),
+      result: t.Optional(t.String()),
+      error: t.Optional(t.String()),
+      exit_code: t.Optional(t.Number()),
+    }),
   });
