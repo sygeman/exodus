@@ -162,29 +162,140 @@
             icon="i-lucide-arrow-left"
             color="neutral"
             variant="ghost"
-            @click="showEditDrawer = false"
+            @click="clearIntentParam"
           />
-          <div>
-            <h3 class="text-base font-medium text-highlighted">Доработка идеи</h3>
-            <p v-if="editingNode" class="text-sm text-muted">{{ editingNode.text }}</p>
-          </div>
+          <h3 class="text-base font-medium text-highlighted">Доработка идеи</h3>
+          <UBadge :label="editingNodeId || ''" variant="soft" size="xs" />
         </div>
       </template>
       <template #body>
-        <div class="max-w-2xl mx-auto space-y-6 py-8">
-          <div class="space-y-2">
-            <h4 class="text-sm font-medium text-highlighted">Опиши что изменить</h4>
-            <p class="text-sm text-muted">
-              Система доработает идею через intent — уточнит формулировку, добавит контекст, предложит связи.
-            </p>
+        <div class="flex h-[calc(100vh-8rem)]">
+          <!-- Основная область -->
+          <div class="flex-1 flex flex-col overflow-y-auto px-8 py-6">
+            <!-- Текущее состояние -->
+            <div class="mb-6 p-4 rounded-lg border border-default bg-elevated">
+              <div class="flex items-center gap-2 mb-2">
+                <span class="text-xs font-medium text-muted uppercase tracking-wide">Текущее состояние</span>
+              </div>
+              <p class="text-base text-highlighted mb-3">{{ mockCurrentNode.text }}</p>
+              <div class="flex gap-4 text-xs">
+                <span class="text-muted">Уровень:</span>
+                <span class="text-highlighted font-medium">{{ mockCurrentNode.level || 'draft' }}</span>
+              </div>
+              <div class="flex gap-4 text-xs mt-1">
+                <span class="text-muted">Тип:</span>
+                <span class="text-highlighted font-medium">{{ mockCurrentNode.type || '—' }}</span>
+              </div>
+              <div class="flex gap-4 text-xs mt-1">
+                <span class="text-muted">Связи:</span>
+                <span class="text-highlighted font-medium">
+                  {{ mockCurrentNode.edges.length ? mockCurrentNode.edges.join(', ') : '—' }}
+                </span>
+              </div>
+            </div>
+
+            <!-- Ввод запроса -->
+            <div class="space-y-3">
+              <UTextarea
+                v-model="intentInput"
+                placeholder="Опиши что изменить..."
+                :rows="4"
+                class="w-full"
+                autofocus
+              />
+              <div class="flex justify-end">
+                <UButton
+                  label="Предложить"
+                  color="primary"
+                  :loading="mockLoading"
+                  :disabled="!intentInput.trim()"
+                  @click="mockSuggest"
+                />
+              </div>
+            </div>
+
+            <!-- Предложение LLM -->
+            <div v-if="mockSuggestion" class="mt-6 space-y-4">
+              <div class="flex items-center gap-2">
+                <UIcon name="i-lucide-sparkles" class="w-4 h-4 text-primary" />
+                <span class="text-sm font-medium text-highlighted">Предложение</span>
+              </div>
+
+              <div class="p-4 rounded-lg border border-primary/30 bg-primary/5">
+                <p class="text-base text-highlighted mb-3">{{ mockSuggestion.text }}</p>
+                <div class="flex gap-4 text-xs mb-2">
+                  <span class="text-muted">Уровень:</span>
+                  <span class="text-highlighted font-medium">{{ mockSuggestion.level }}</span>
+                </div>
+                <div class="flex gap-4 text-xs mb-2">
+                  <span class="text-muted">Тип:</span>
+                  <span class="text-highlighted font-medium">{{ mockSuggestion.type }}</span>
+                </div>
+                <div class="flex gap-4 text-xs">
+                  <span class="text-muted">Связи:</span>
+                  <span class="text-highlighted font-medium">{{ mockSuggestion.edges.join(', ') }}</span>
+                </div>
+              </div>
+
+              <div class="flex gap-2 justify-end">
+                <UButton
+                  label="Отклонить"
+                  variant="ghost"
+                  color="neutral"
+                  @click="mockSuggestion = null"
+                />
+                <UButton
+                  label="Принять"
+                  color="primary"
+                  @click="mockAccept"
+                />
+              </div>
+            </div>
           </div>
-          <UTextarea
-            placeholder="Например: сделай более конкретным, добавь детали, уточни границы..."
-            :rows="6"
-            class="w-full"
-          />
-          <div class="flex justify-end">
-            <UButton label="Отправить" color="primary" />
+
+          <!-- История справа -->
+          <div class="w-72 border-l border-default bg-elevated/50 overflow-y-auto">
+            <div class="p-4">
+              <h4 class="text-xs font-medium text-muted uppercase tracking-wide mb-4">История</h4>
+              <div class="space-y-4">
+                <div
+                  v-for="(version, index) in mockHistory"
+                  :key="index"
+                  class="relative pl-4 pb-4"
+                  :class="{ 'border-l-2 border-primary': version.isCurrent }"
+                >
+                  <div
+                    v-if="index < mockHistory.length - 1"
+                    class="absolute left-[-1px] top-8 bottom-0 w-px bg-border"
+                  />
+                  <div class="flex items-center gap-2 mb-1">
+                    <span class="text-xs font-mono text-muted">v{{ version.version }}</span>
+                    <UBadge
+                      :label="version.level || 'draft'"
+                      :color="version.isCurrent ? 'primary' : 'neutral'"
+                      variant="soft"
+                      size="xs"
+                    />
+                    <span v-if="version.isCurrent" class="text-xs text-primary">текущая</span>
+                  </div>
+                  <p class="text-sm text-highlighted mb-1">{{ version.text }}</p>
+                  <div v-if="version.type" class="text-xs text-muted mb-1">
+                    {{ version.type }}
+                  </div>
+                  <div v-if="version.edges.length" class="text-xs text-muted">
+                    {{ version.edges.join(', ') }}
+                  </div>
+                  <UButton
+                    v-if="!version.isCurrent"
+                    label="Вернуться"
+                    variant="ghost"
+                    size="xs"
+                    class="mt-2"
+                    @click="mockRevert(version)"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </template>
@@ -239,8 +350,7 @@ function onNodeAction(action: string, nodeId: string) {
     removeNode.mutate(nodeId)
   }
   if (action === 'edit') {
-    editNodeId.value = nodeId
-    showEditDrawer.value = true
+    setIntentParam(nodeId)
   }
 }
 
@@ -248,14 +358,130 @@ function onNodeAction(action: string, nodeId: string) {
 const showAddNodeDialog = ref(false)
 const newNodeText = ref('')
 
-// Редактирование ноды
-const showEditDrawer = ref(false)
-const editNodeId = ref<string | null>(null)
+// URL параметр intent
+const router = useRouter()
+const editingNodeId = computed(() => route.query.intent as string || null)
+
+const showEditDrawer = computed({
+  get: () => !!route.query.intent,
+  set: (value: boolean) => {
+    if (!value) {
+      clearIntentParam()
+    }
+  },
+})
+
+function setIntentParam(nodeId: string) {
+  router.push({ query: { ...route.query, intent: nodeId } })
+}
+
+function clearIntentParam() {
+  const { intent, ...rest } = route.query
+  router.push({ query: rest })
+}
 
 const editingNode = computed(() => {
-  if (!editNodeId.value) return null
-  return graphNodes.value.find(n => n.id === editNodeId.value) || null
+  if (!editingNodeId.value) return null
+  return graphNodes.value.find(n => n.id === editingNodeId.value) || null
 })
+
+// === MOCK: Intent UX ===
+const intentInput = ref('')
+const mockLoading = ref(false)
+const mockSuggestion = ref<{
+  text: string
+  level: string
+  type: string
+  edges: string[]
+} | null>(null)
+
+interface MockVersion {
+  version: number
+  text: string
+  level: string | null
+  type: string | null
+  edges: string[]
+  isCurrent: boolean
+}
+
+const mockCurrentNode = computed(() => {
+  const node = editingNodeId.value
+    ? graphNodes.value.find(n => n.id === editingNodeId.value)
+    : null
+
+  return {
+    text: node?.text || 'авторизация',
+    level: node?.level || null,
+    type: node?.type || null,
+    edges: [] as string[],
+  }
+})
+
+const mockHistory = ref<MockVersion[]>([])
+
+watch(editingNodeId, (nodeId) => {
+  const node = nodeId ? graphNodes.value.find(n => n.id === nodeId) : null
+  mockHistory.value = [
+    {
+      version: 1,
+      text: node?.text || 'авторизация',
+      level: node?.level || null,
+      type: node?.type || null,
+      edges: [] as string[],
+      isCurrent: true,
+    },
+  ]
+  mockSuggestion.value = null
+  intentInput.value = ''
+})
+
+function mockSuggest() {
+  if (!intentInput.value.trim()) return
+
+  mockLoading.value = true
+
+  // Мокаем задержку LLM
+  setTimeout(() => {
+    mockLoading.value = false
+    mockSuggestion.value = {
+      text: 'OAuth 2.0 flow с поддержкой refresh token и scope management',
+      level: 'L2',
+      type: 'specification',
+      edges: ['requires → L1 Auth', 'requires → L2 Token Storage'],
+    }
+    intentInput.value = ''
+  }, 1200)
+}
+
+function mockAccept() {
+  if (!mockSuggestion.value) return
+
+  const currentVersion = mockHistory.value.find(v => v.isCurrent)
+  if (currentVersion) {
+    currentVersion.isCurrent = false
+  }
+
+  const newVersion = {
+    version: mockHistory.value.length + 1,
+    text: mockSuggestion.value.text,
+    level: mockSuggestion.value.level,
+    type: mockSuggestion.value.type,
+    edges: mockSuggestion.value.edges,
+    isCurrent: true,
+  }
+
+  mockHistory.value.push(newVersion)
+  mockSuggestion.value = null
+}
+
+function mockRevert(version: MockVersion) {
+  const currentVersion = mockHistory.value.find(v => v.isCurrent)
+  if (currentVersion) {
+    currentVersion.isCurrent = false
+  }
+
+  version.isCurrent = true
+}
 
 function closeAddNodeDialog() {
   showAddNodeDialog.value = false
