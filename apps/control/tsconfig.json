@@ -1,0 +1,11 @@
+{
+  "extends": "@exodus/tsconfig/elysia.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@exodus/types": ["../../packages/types/src"],
+      "@exodus/types/*": ["../../packages/types/src/*"]
+    }
+  },
+  "include": ["src/**/*", "tests/**/*"]
+}

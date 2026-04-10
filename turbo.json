@@ -1,0 +1,66 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": [".env"],
+  "globalEnv": [
+    "NODE_ENV",
+    "DATABASE_URL",
+    "PORT",
+    "HOST",
+    "KIMI_API_KEY",
+    "EXECUTION_URL",
+    "CONTROL_URL",
+    "CONTROL_API_URL",
+    "PROJECTS_PATH"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".output/**", "dist/**"],
+      "env": ["NODE_ENV", "CONTROL_API_URL"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true,
+      "env": ["NODE_ENV", "DATABASE_URL", "PORT", "HOST", "KIMI_API_KEY", "EXECUTION_URL", "CONTROL_URL", "CONTROL_API_URL", "PROJECTS_PATH"]
+    },
+    "start": {
+      "dependsOn": ["build"],
+      "cache": false
+    },
+    "lint": {
+      "cache": true
+    },
+    "lint:fix": {
+      "cache": false
+    },
+    "typecheck": {
+      "cache": true,
+      "dependsOn": ["^build"]
+    },
+    "format": {
+      "cache": false
+    },
+    "format:check": {
+      "cache": true
+    },
+    "test": {
+      "cache": true,
+      "dependsOn": ["build"],
+      "outputs": ["coverage/**"]
+    },
+    "check": {
+      "dependsOn": ["lint", "typecheck", "format:check", "test"]
+    },
+    "db:generate": {
+      "cache": false,
+      "env": ["DATABASE_URL"]
+    },
+    "db:migrate": {
+      "cache": false,
+      "env": ["DATABASE_URL"]
+    },
+    "clean": {
+      "cache": false
+    }
+  }
+}

@@ -1,6 +1,7 @@
 node_modules/
 build/
 dist/
+.output/
 *.log
 .DS_Store
 *.app
@@ -8,3 +9,12 @@ dist/
 .env
 .env.*
 *.env
+
+# Turborepo
+.turbo/
+
+# Nuxt
+.nuxt/
+
+# Data (SQLite + projects)
+data/*

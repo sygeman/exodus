@@ -1,0 +1,31 @@
+{
+  "name": "exodus",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "DATABASE_URL=file:./data/exodus.db turbo run dev",
+    "dev:control": "DATABASE_URL=file:./data/exodus.db turbo run dev --filter=control",
+    "dev:execution": "turbo run dev --filter=execution",
+    "dev:ui": "turbo run dev --filter=ui",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint:fix",
+    "typecheck": "turbo run typecheck",
+    "format": "turbo run format",
+    "format:check": "turbo run format:check",
+    "test": "turbo run test",
+    "check": "turbo run check",
+    "db:generate": "turbo run db:generate --filter=control",
+    "db:migrate": "turbo run db:migrate --filter=control",
+    "clean": "turbo run clean && rm -rf node_modules"
+  },
+  "devDependencies": {
+    "turbo": "^2.4.4"
+  },
+  "packageManager": "bun@1.2.0"
+}
