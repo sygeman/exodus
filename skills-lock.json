@@ -6,6 +6,11 @@
       "sourceType": "well-known",
       "computedHash": "c20fe20eb84bb56fd5a96eae6e36c5fd8d38f989818a4944f8a08140fe5e7a5b"
     },
+    "electrobun": {
+      "source": "gyorkluu/electrobun-skills",
+      "sourceType": "github",
+      "computedHash": "4e37d138754cead75bce301fb31318800b2b7772c7a8de10ae36ae7dcac9aa42"
+    },
     "elysiajs": {
       "source": "elysiajs/skills",
       "sourceType": "github",
