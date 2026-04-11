@@ -33,52 +33,6 @@ function reset() {
           </button>
         </div>
       </div>
-
-      <div class="card">
-        <h2>Getting Started</h2>
-        <ul>
-          <li>
-            <span class="number">1.</span>
-            Run <code>bun run dev</code> for development without HMR
-          </li>
-          <li>
-            <span class="number">2.</span>
-            Run <code>bun run dev:hmr</code> for development with hot reload
-          </li>
-          <li>
-            <span class="number">3.</span>
-            Run <code>bun run build</code> to build for production
-          </li>
-        </ul>
-      </div>
-
-      <div class="card">
-        <h2>Stack</h2>
-        <div class="stack-grid">
-          <div class="stack-item">
-            <span class="icon">⚡</span>
-            <span>Electrobun</span>
-          </div>
-          <div class="stack-item">
-            <span class="icon">💚</span>
-            <span>Vue 3</span>
-          </div>
-          <div class="stack-item">
-            <span class="icon">🔥</span>
-            <span>Vite HMR</span>
-          </div>
-          <div class="stack-item">
-            <span class="icon">📦</span>
-            <span>Bun</span>
-          </div>
-        </div>
-      </div>
-
-      <div class="footer">
-        <p>
-          Edit <code>src/mainview/App.vue</code> and save to see HMR in action
-        </p>
-      </div>
     </div>
   </main>
 </template>
