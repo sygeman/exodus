@@ -1,5 +1,5 @@
-import { BrowserView, BrowserWindow, Updater } from "electrobun/bun";
-import type { MyWebviewRPCType } from "../shared/types";
+import { BrowserWindow, Updater } from "electrobun/bun";
+import { myWebviewRPC } from "./events";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
@@ -24,28 +24,13 @@ async function getMainViewUrl(): Promise<string> {
 // Create the main application window
 const url = await getMainViewUrl();
 
-const myWebviewRPC = BrowserView.defineRPC<MyWebviewRPCType>({
-	maxRequestTime: 5000,
-	handlers: {
-		requests: {
-			someBunFunction: ({ a, b }) => {
-				return a + b;
-			},
-		},
-		messages: {
-			logToBun: ({ msg }) => {
-				console.log("Log to bun: ", msg);
-			},
-		},
-	},
-});
-
 const { webview } = new BrowserWindow({
 	title: "Exodus",
 	url,
+	titleBarStyle: "hiddenInset",
 	frame: {
-		width: 900,
-		height: 700,
+		width: 1200,
+		height: 800,
 		x: 200,
 		y: 200,
 	},
