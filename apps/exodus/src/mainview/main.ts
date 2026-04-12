@@ -3,7 +3,13 @@ import ui from "@nuxt/ui/vue-plugin";
 import { createApp } from "vue";
 import { createRouter, createWebHistory } from "vue-router";
 import App from "./App.vue";
-import { evento, emit } from "./rpc";
+import { createEventoBunWebview } from "../lib/evento/webview-adapter";
+import { Electroview } from "electrobun/view";
+
+const { evento, rpc } = createEventoBunWebview();
+
+const electroview = new Electroview({ rpc });
+evento.setSender(electroview.rpc?.send);
 
 const app = createApp(App);
 
@@ -17,4 +23,4 @@ app.use(ui);
 
 app.mount("#app");
 
-emit();
+evento.emit("test from webview");

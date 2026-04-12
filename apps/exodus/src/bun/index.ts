@@ -1,11 +1,9 @@
-import { BrowserView, BrowserWindow, Updater } from "electrobun/bun";
-import { MyWebviewRPCType } from "../shared/types";
-import { Evento } from "../shared/evento";
+import { BrowserWindow, Updater } from "electrobun/bun";
+import { createEventoBun } from "../lib/evento/bun-adapter";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
 
-// Check if Vite dev server is running for HMR
 async function getMainViewUrl(): Promise<string> {
   const channel = await Updater.localInfo.channel();
   if (channel === "dev") {
@@ -20,53 +18,22 @@ async function getMainViewUrl(): Promise<string> {
   return "views://mainview/index.html";
 }
 
-// Create the main application window
 const url = await getMainViewUrl();
 
-const evento = new Evento();
-
-evento.any((name, payload) => {
-  console.log("Log to bun: ", name, payload);
-});
+const { evento, rpc } = createEventoBun();
 
 const { webview } = new BrowserWindow({
   title: "Exodus",
   url,
-  // titleBarStyle: "hiddenInset",
-  frame: {
-    width: 1200,
-    height: 800,
-    x: 0,
-    y: 0,
-  },
-  rpc: BrowserView.defineRPC<MyWebviewRPCType>({
-    maxRequestTime: 5000,
-    handlers: {
-      messages: {
-        emit: ({ name, payload }) => {
-          evento.emit(name, payload);
-        },
-      },
-    },
-  }),
+  frame: { width: 1200, height: 800, x: 0, y: 0 },
+  rpc,
 });
 
-const emit = (name: string, payload: unknown) => {
-  if (!webview.rpc) {
-    console.error("RPC not configured");
-    return;
-  }
+evento.setSender(webview.rpc?.send);
 
-  webview.rpc.send.emit({ name, payload });
-};
-
-// Ждём загрузки webview
-webview.on("dom-ready", async () => {
-  console.log("Vue app started!");
-
-  evento.any((name, payload) => {
-    emit(name, payload);
-  });
-
-  emit("broadcase", "yo from bun");
+// Ждем когда RPC будет готов
+webview.on("dom-ready", () => {
+  evento.emit("test from bun");
 });
+
+export { evento };
