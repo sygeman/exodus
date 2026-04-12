@@ -2,8 +2,8 @@ import type { ElectrobunConfig } from "electrobun";
 
 export default {
   app: {
-    name: "vue-app",
-    identifier: "vueapp.electrobun.dev",
+    name: "Exodus",
+    identifier: "exodus.sgmn.dev",
     version: "0.0.1",
   },
   build: {

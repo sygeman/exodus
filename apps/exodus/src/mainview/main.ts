@@ -3,13 +3,13 @@ import ui from "@nuxt/ui/vue-plugin";
 import { createApp } from "vue";
 import { createRouter, createWebHistory } from "vue-router";
 import App from "./App.vue";
-import { createEventoWebview } from "../lib/evento/webview-adapter";
+import { createEventoWebview } from "../lib/evento/adapters/webview";
 import { Electroview } from "electrobun/view";
 
 const { evento, rpc } = createEventoWebview();
 
 const electroview = new Electroview({ rpc });
-evento.setSender(electroview.rpc?.send?.emit);
+evento.sender = electroview.rpc?.send?.emit;
 
 const app = createApp(App);
 

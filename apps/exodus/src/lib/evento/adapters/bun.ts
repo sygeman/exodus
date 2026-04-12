@@ -1,6 +1,6 @@
 import { BrowserView } from "electrobun/bun";
-import type { RPCType } from "./types";
-import { Evento } from "./index";
+import type { RPCType } from "../types";
+import { Evento } from "../evento";
 
 export function createEventoBun() {
   const evento = new Evento({ environment: "bun" });
@@ -8,9 +8,8 @@ export function createEventoBun() {
   const rpc = BrowserView.defineRPC<RPCType>({
     handlers: {
       messages: {
-        // Emit from webview environment
-        emit: ({ name, payload }) => {
-          evento["_emitLocal"](name, payload, { environment: "webview" });
+        emit: ({ name, payload, meta }) => {
+          evento.emitLocal(name, payload, meta);
         },
       },
     },
