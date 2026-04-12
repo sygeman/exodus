@@ -1,10 +1,10 @@
+import { EventoRPCEmit } from "./types";
+
 type EventoEnvironment = "bun" | "webview";
 type EventoMeta = { environment: EventoEnvironment };
 type EventoHandler = (name: string, payload: unknown, meta: EventoMeta) => void;
 
-interface RPCSender {
-  emit: (data: { name: string; payload: unknown }) => void;
-}
+type RPCSender = (data: EventoRPCEmit) => void;
 
 export class Evento {
   private events: { [key: string]: EventoHandler[] } = {};
@@ -29,13 +29,13 @@ export class Evento {
 
   emit(name: string, payload?: unknown) {
     this._emitLocal(name, payload, { environment: this.environment });
-    this.sender?.emit({ name, payload });
+    this.sender?.({ name, payload });
   }
 
   private _emitLocal(name: string, payload: unknown, meta: EventoMeta) {
     this.events[name]?.forEach((handler) => handler(name, payload, meta));
     this.anys.forEach((handler) => handler(name, payload, meta));
-    console.log(`Evento[${meta.environment}]:${name}`, payload);
+    console.log("Evento", { name, payload, meta });
   }
 
   setSender(sender: RPCSender | undefined) {

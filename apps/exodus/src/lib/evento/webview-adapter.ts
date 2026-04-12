@@ -2,7 +2,7 @@ import { Electroview } from "electrobun/view";
 import type { RPCType } from "./types";
 import { Evento } from "./index";
 
-export function createEventoBunWebview() {
+export function createEventoWebview() {
   const evento = new Evento({ environment: "webview" });
 
   const rpc = Electroview.defineRPC<RPCType>({

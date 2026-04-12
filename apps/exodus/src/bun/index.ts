@@ -29,9 +29,9 @@ const { webview } = new BrowserWindow({
   rpc,
 });
 
-evento.setSender(webview.rpc?.send);
+evento.setSender(webview.rpc?.send?.emit);
 
-// Ждем когда RPC будет готов
+// Ждем когда Webview будет готов
 webview.on("dom-ready", () => {
   evento.emit("test from bun");
 });
