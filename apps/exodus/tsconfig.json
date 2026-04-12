@@ -12,8 +12,13 @@
 		"noUnusedLocals": true,
 		"noUnusedParameters": true,
 		"noFallthroughCasesInSwitch": true,
-		"moduleResolution": "bundler"
+		"moduleResolution": "bundler",
+		"paths": {
+      "#build/ui/*": [
+        "./node_modules/.nuxt-ui/ui/*"
+      ]
+    }
 	},
-	"include": ["src", "env.d.ts"],
+	"include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue", "auto-imports.d.ts", "components.d.ts", "env.d.ts"],
 	"exclude": ["node_modules", "dist", "build", "../../package/dist"]
 }

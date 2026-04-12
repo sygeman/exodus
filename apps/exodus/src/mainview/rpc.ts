@@ -1,16 +1,30 @@
 import { Electroview } from "electrobun/view";
-import { rpc } from "./events";
+import { MyWebviewRPCType } from "../shared/types";
+import { Evento } from "../shared/evento";
 
-export const electroview = new Electroview({ rpc: rpc });
+export const evento = new Evento();
 
-if (!electroview.rpc) {
-	throw new Error("RPC not configured");
-}
-
-// Вызвать функцию bun из browser:
-electroview.rpc.request.someBunFunction({ a: 9, b: 8 }).then((result) => {
-	console.log("result: ", result);
+evento.any((name, payload) => {
+  console.log("Log to browser: ", name, payload);
 });
 
-// Отправить сообщение:
-electroview.rpc.send.logToBun({ msg: "hi from browser" });
+export const electroview = new Electroview({
+  rpc: Electroview.defineRPC<MyWebviewRPCType>({
+    handlers: {
+      messages: {
+        emit: ({ name, payload }) => {
+          evento.emit(name, payload);
+        },
+      },
+    },
+  }),
+});
+
+export const emit = () => {
+  if (!electroview.rpc) {
+    throw new Error("RPC not configured");
+  }
+
+  // Отправить сообщение:
+  electroview.rpc.send.emit({ name: "broadcast", payload: "hi from browser" });
+};

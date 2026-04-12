@@ -7,6 +7,9 @@ export default {
 		version: "0.0.1",
 	},
 	build: {
+		// bun: {
+		// 	entrypoint: "src/core/backend.ts",
+		// },
 		// Vite builds to dist/, we copy from there
 		copy: {
 			"dist/index.html": "views/mainview/index.html",
