@@ -1,7 +1,7 @@
 export type CounterEventMap = {
-  "counter:increment": void;
-  "counter:reset": void;
-  "counter:updated": { count: number };
-};
+  "counter:increment": void
+  "counter:reset": void
+  "counter:updated": { count: number }
+}
 
-export const counterOutgoingEvents = ["counter:updated"] as const;
+export const counterOutgoingEvents = ["counter:updated"] as const

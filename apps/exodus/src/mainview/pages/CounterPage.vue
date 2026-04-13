@@ -1,9 +1,9 @@
 <script setup lang="ts">
-import { useCounter } from "../../modules/counter/webview";
-import { useTimer } from "../../modules/timer/webview";
+import { useCounter } from "../../modules/counter/webview"
+import { useTimer } from "../../modules/timer/webview"
 
-const { count, increment, reset } = useCounter();
-const { time } = useTimer();
+const { count, increment, reset } = useCounter()
+const { time } = useTimer()
 </script>
 
 <template>
