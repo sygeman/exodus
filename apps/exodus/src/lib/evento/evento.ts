@@ -1,35 +1,43 @@
-import {
-  EventoEnvironment,
-  EventoHandler,
-  EventoHandlerContext,
-  EventoMeta,
-  EventoRPCEmit,
-  EventoUnsubscribe,
-} from "./types";
+import { EventoHandler, EventoHandlerContext, EventoUnsubscribe } from "./types";
 import { isWildcard, splitSegments, matchPattern } from "./utils";
 
+export type EventoMetaFromEnv<E extends string> = { environment: E };
+
+export type EventoMetaType<T> =
+  T extends Evento<infer L, infer R> ? { environment: L | R[number] } : never;
+
 // Internal handler entry with metadata
-type HandlerEntry = {
-  handler: EventoHandler;
+type HandlerEntry<E extends string> = {
+  handler: EventoHandler<E>;
   once: boolean;
 };
 
 // Wildcard pattern entry
-type WildcardEntry = {
+type WildcardEntry<E extends string> = {
   pattern: string;
   segments: string[];
-  handler: EventoHandler;
+  handler: EventoHandler<E>;
   once: boolean;
 };
 
-export class Evento {
-  private events: Map<string, HandlerEntry[]> = new Map();
-  private wildcards: WildcardEntry[] = [];
-  public sender?: (data: EventoRPCEmit) => void;
-  private meta: EventoMeta;
+export class Evento<
+  const Local extends string,
+  const Remotes extends string[] = [],
+> {
+  private events: Map<
+    string,
+    HandlerEntry<Local | Remotes[number]>[]
+  > = new Map();
+  private wildcards: WildcardEntry<Local | Remotes[number]>[] = [];
+  public sender?: (data: {
+    name: string;
+    payload: unknown;
+    meta: EventoMetaFromEnv<Local | Remotes[number]>;
+  }) => void;
+  private meta: EventoMetaFromEnv<Local>;
 
-  constructor({ environment }: { environment: EventoEnvironment }) {
-    this.meta = { environment };
+  constructor(local: Local, ...remotes: Remotes) {
+    this.meta = { environment: local };
   }
 
   /**
@@ -37,20 +45,26 @@ export class Evento {
    * Returns unsubscribe function
    *
    * Patterns:
-   * - "user:login" - exact match
-   * - "user:*" - any single segment (user:login, user:logout)
-   * - "user:**" - any segments (user:login, user:profile:update)
-   * - "*:update" - any namespace ending with update
-   * - "**:*:error" - any path ending with error
+   *   - "user:login" - exact match
+   *   - "user:*" - any single segment (user:login, user:logout)
+   *   - "user:**" - any segments (user:login, user:profile:update)
+   *   - "*:update" - any namespace ending with update
+   *   - "**:*:error" - any path ending with error
    */
-  on(name: string, handler: EventoHandler): EventoUnsubscribe {
+  on(
+    name: string,
+    handler: EventoHandler<Local | Remotes[number]>,
+  ): EventoUnsubscribe {
     return this._subscribe(name, handler, false);
   }
 
   /**
    * Subscribe to an event once, auto-unsubscribe after first call
    */
-  once(name: string, handler: EventoHandler): EventoUnsubscribe {
+  once(
+    name: string,
+    handler: EventoHandler<Local | Remotes[number]>,
+  ): EventoUnsubscribe {
     return this._subscribe(name, handler, true);
   }
 
@@ -59,8 +73,8 @@ export class Evento {
    */
   private _subscribe(
     name: string,
-    handler: EventoHandler,
-    once: boolean
+    handler: EventoHandler<Local | Remotes[number]>,
+    once: boolean,
   ): EventoUnsubscribe {
     // Check if it's a wildcard pattern
     if (isWildcard(name)) {
@@ -72,7 +86,10 @@ export class Evento {
       this.events.set(name, []);
     }
 
-    const entry: HandlerEntry = { handler, once };
+    const entry: HandlerEntry<Local | Remotes[number]> = {
+      handler,
+      once,
+    };
     this.events.get(name)!.push(entry);
 
     // Return unsubscribe function
@@ -93,7 +110,9 @@ export class Evento {
   /**
    * Unsubscribe a specific handler from all events
    */
-  off(handler: EventoHandler): void {
+  off(
+    handler: EventoHandler<Local | Remotes[number]>,
+  ): void {
     // Remove from exact events
     for (const [name, handlers] of this.events.entries()) {
       const index = handlers.findIndex((entry) => entry.handler === handler);
@@ -143,16 +162,29 @@ export class Evento {
   /**
    * Internal emit (from RPC) - public for adapter usage
    */
-  emitLocal(name: string, payload: unknown, meta: EventoMeta): void {
+  emitLocal(
+    name: string,
+    payload: unknown,
+    meta: EventoMetaFromEnv<Local | Remotes[number]>,
+  ): void {
     this._emitLocal(name, payload, meta);
   }
 
   /**
    * Internal emit implementation
    */
-  private _emitLocal(name: string, payload: unknown, meta: EventoMeta): void {
+  private _emitLocal(
+    name: string,
+    payload: unknown,
+    meta: EventoMetaFromEnv<Local | Remotes[number]>,
+  ): void {
     const segments = splitSegments(name);
-    const context: EventoHandlerContext = { name, payload, meta, segments };
+    const context: EventoHandlerContext<Local | Remotes[number]> = {
+      name,
+      payload,
+      meta,
+      segments,
+    };
 
     // Process exact match handlers
     this._processHandlers(this.events.get(name), context);
@@ -168,12 +200,14 @@ export class Evento {
    * Process handler entries and remove once handlers
    */
   private _processHandlers(
-    handlers: HandlerEntry[] | undefined,
-    context: EventoHandlerContext
+    handlers:
+      | HandlerEntry<Local | Remotes[number]>[]
+      | undefined,
+    context: EventoHandlerContext<Local | Remotes[number]>,
   ): void {
     if (!handlers) return;
 
-    const onceHandlers: HandlerEntry[] = [];
+    const onceHandlers: HandlerEntry<Local | Remotes[number]>[] = [];
 
     for (const entry of [...handlers]) {
       entry.handler(context);
@@ -199,10 +233,10 @@ export class Evento {
    * Process wildcard entries and remove once handlers
    */
   private _processWildcards(
-    wildcards: WildcardEntry[],
-    context: EventoHandlerContext
+    wildcards: WildcardEntry<Local | Remotes[number]>[],
+    context: EventoHandlerContext<Local | Remotes[number]>,
   ): void {
-    const onceWildcards: WildcardEntry[] = [];
+    const onceWildcards: WildcardEntry<Local | Remotes[number]>[] = [];
 
     for (const entry of wildcards) {
       entry.handler(context);
@@ -225,11 +259,16 @@ export class Evento {
    */
   private _addWildcard(
     pattern: string,
-    handler: EventoHandler,
-    once: boolean
+    handler: EventoHandler<Local | Remotes[number]>,
+    once: boolean,
   ): EventoUnsubscribe {
     const segments = splitSegments(pattern);
-    const entry: WildcardEntry = { pattern, segments, handler, once };
+    const entry: WildcardEntry<Local | Remotes[number]> = {
+      pattern,
+      segments,
+      handler,
+      once,
+    };
     this.wildcards.push(entry);
 
     return () => {
@@ -243,9 +282,11 @@ export class Evento {
   /**
    * Match event segments against wildcard patterns
    */
-  private _matchWildcards(eventSegments: string[]): WildcardEntry[] {
+  private _matchWildcards(
+    eventSegments: string[],
+  ): WildcardEntry<Local | Remotes[number]>[] {
     return this.wildcards.filter((entry) =>
-      matchPattern(eventSegments, entry.segments)
+      matchPattern(eventSegments, entry.segments),
     );
   }
 }

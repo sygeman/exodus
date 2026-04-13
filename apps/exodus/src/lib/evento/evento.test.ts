@@ -1,36 +1,36 @@
 import { describe, it, expect, beforeEach } from "bun:test";
 import { Evento } from "./evento";
-import { EventoHandlerContext } from "./types";
+import type { EventoHandler, EventoHandlerContext } from "./types";
 
 describe("Evento", () => {
-  let evento: Evento;
+  let evento: Evento<"test">;
 
   beforeEach(() => {
-    evento = new Evento({ environment: "bun" });
+    evento = new Evento("test");
   });
 
   describe("on", () => {
     it("should subscribe to exact event", () => {
-      const handler = ({ name }: EventoHandlerContext) => {
+      const handler = ({ name }: EventoHandlerContext<"test">) => {
         expect(name).toBe("user:login");
       };
-      evento.on("user:login", handler);
+      evento.on("user:login", handler as EventoHandler);
       evento.emit("user:login");
     });
 
     it("should call handler with context", () => {
-      let receivedContext: EventoHandlerContext | null = null;
-      const handler = (ctx: EventoHandlerContext) => {
+      let receivedContext: EventoHandlerContext<"test"> | null = null;
+      const handler = (ctx: EventoHandlerContext<"test">) => {
         receivedContext = ctx;
       };
-      evento.on("user:login", handler);
+      evento.on("user:login", handler as EventoHandler);
       evento.emit("user:login", { userId: 123 });
 
       expect(receivedContext).not.toBeNull();
       expect(receivedContext!.name).toBe("user:login");
       expect(receivedContext!.payload).toEqual({ userId: 123 });
       expect(receivedContext!.segments).toEqual(["user", "login"]);
-      expect(receivedContext!.meta.environment).toBe("bun");
+      expect(receivedContext!.meta.environment).toBe("test");
     });
 
     it("should support multiple handlers for same event", () => {

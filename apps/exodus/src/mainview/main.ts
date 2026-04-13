@@ -3,13 +3,19 @@ import ui from "@nuxt/ui/vue-plugin";
 import { createApp } from "vue";
 import { createRouter, createWebHistory } from "vue-router";
 import App from "./App.vue";
-import { createEventoWebview } from "../lib/evento/adapters/webview";
+import { createEventoWebview } from "./evento-adapter";
 import { Electroview } from "electrobun/view";
 
 const { evento, rpc } = createEventoWebview();
 
 const electroview = new Electroview({ rpc });
 evento.sender = electroview.rpc?.send?.emit;
+
+evento.on("**", ({ name, payload, meta }) => {
+  if (meta.environment === "bun") {
+    console.log("[bun → webview]", name, payload);
+  }
+});
 
 const app = createApp(App);
 

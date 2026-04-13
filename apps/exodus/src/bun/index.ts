@@ -1,5 +1,5 @@
 import { BrowserWindow, Updater } from "electrobun/bun";
-import { createEventoBun } from "../lib/evento/adapters/bun";
+import { createEventoBun } from "./evento-adapter";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;

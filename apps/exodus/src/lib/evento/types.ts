@@ -1,22 +1,15 @@
-import type { RPCSchema } from "electrobun";
-
-export type EventoEnvironment = "bun" | "webview";
-export type EventoMeta = { environment: EventoEnvironment };
-export type EventoRPCEmit = { name: string; payload: unknown; meta: EventoMeta };
+export type EventoMeta = { environment: string };
 
 // Extended handler with segments
-export type EventoHandlerContext = {
+export type EventoHandlerContext<E extends string = string> = {
   name: string;
   payload: unknown;
-  meta: EventoMeta;
+  meta: { environment: E };
   segments: string[];
 };
 
-export type EventoHandler = (context: EventoHandlerContext) => void;
+export type EventoHandler<E extends string = string> = (
+  context: EventoHandlerContext<E>,
+) => void;
 
 export type EventoUnsubscribe = () => void;
-
-export type RPCType = {
-  bun: RPCSchema<{ messages: { emit: EventoRPCEmit } }>;
-  webview: RPCSchema<{ messages: { emit: EventoRPCEmit } }>;
-};
