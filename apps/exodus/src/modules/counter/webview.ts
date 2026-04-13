@@ -1,6 +1,6 @@
 import { ref } from "vue"
-import { evento } from "../../mainview/evento"
-import { useEvento } from "../../mainview/composables/useEvento"
+import { evento } from "@/mainview/evento"
+import { useEvento } from "@/mainview/composables/useEvento"
 
 export function useCounter() {
   const { on } = useEvento()

@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, reactive } from "vue"
-import { useEventoDebugger } from "../composables/useEventoDebugger"
-import { evento } from "../evento"
+import { useEventoDebugger } from "@/mainview/composables/useEventoDebugger"
+import { evento } from "@/mainview/evento"
 
 const emit = defineEmits<{
   (e: "close"): void

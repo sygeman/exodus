@@ -1,4 +1,4 @@
-import type { EventoBun } from "../../bun/evento";
+import type { EventoBun } from "@/bun/evento";
 
 export function initTimer(evento: EventoBun) {
   setInterval(() => {

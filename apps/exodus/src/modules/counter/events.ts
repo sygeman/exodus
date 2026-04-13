@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { EventoRegistry } from "../../lib/evento/types"
+import type { EventoRegistry } from "@/lib/evento/types"
 
 export const counterRegistry: EventoRegistry = {
   "counter:increment": { schema: z.void(), description: "Increment counter" },

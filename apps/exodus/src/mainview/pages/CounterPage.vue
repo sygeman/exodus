@@ -1,9 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { useCounter } from "../../modules/counter/webview"
-import { useTimer } from "../../modules/timer/webview"
-import EventoModal from "../components/EventoModal.vue"
+import { useCounter } from "@/modules/counter/webview"
+import { useTimer } from "@/modules/timer/webview"
+import EventoModal from "@/mainview/components/EventoModal.vue"
 
 const router = useRouter()
 const route = useRoute()

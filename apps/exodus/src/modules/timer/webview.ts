@@ -1,5 +1,5 @@
 import { ref } from "vue"
-import { useEvento } from "../../mainview/composables/useEvento"
+import { useEvento } from "@/mainview/composables/useEvento"
 
 export function useTimer() {
   const { on } = useEvento()

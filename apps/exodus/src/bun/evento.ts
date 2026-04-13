@@ -1,7 +1,7 @@
 import { BrowserView } from "electrobun/bun"
 import type { RPCSchema } from "electrobun"
-import { Evento, type EventoMetaType } from "../lib/evento/evento"
-import type { GlobalEventMap } from "../events"
+import { Evento, type EventoMetaType } from "@/lib/evento/evento"
+import type { GlobalEventMap } from "@/events"
 
 export type EventoBun = Evento<"bun", ["webview"], GlobalEventMap>
 

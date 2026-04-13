@@ -1,5 +1,5 @@
 import { onUnmounted } from "vue"
-import { evento } from "../evento"
+import { evento } from "@/mainview/evento"
 
 export function useEvento() {
   const unsubs: (() => void)[] = []

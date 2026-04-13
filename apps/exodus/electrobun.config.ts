@@ -1,4 +1,18 @@
 import type { ElectrobunConfig } from "electrobun";
+import path from "path";
+
+const aliasPlugin = {
+  name: "alias-resolver",
+  setup(build: any) {
+    build.onResolve({ filter: /^@\// }, (args: any) => {
+      let resolved = path.resolve(process.cwd(), "src", args.path.slice(2));
+      if (!path.extname(resolved)) {
+        resolved += ".ts";
+      }
+      return { path: resolved };
+    });
+  },
+};
 
 export default {
   app: {
@@ -7,9 +21,9 @@ export default {
     version: "0.0.1",
   },
   build: {
-    // bun: {
-    // 	entrypoint: "src/core/backend.ts",
-    // },
+    bun: {
+      plugins: [aliasPlugin],
+    },
     // Vite builds to dist/, we copy from there
     copy: {
       "dist/index.html": "views/mainview/index.html",

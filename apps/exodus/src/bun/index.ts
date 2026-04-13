@@ -1,8 +1,8 @@
 import { BrowserWindow, Updater } from "electrobun/bun"
-import { createEventoBun } from "./evento"
-import { initCounter } from "../modules/counter/bun"
-import { initTimer } from "../modules/timer/bun"
-import { globalRegistry } from "../events"
+import { createEventoBun } from "@/bun/evento"
+import { initCounter } from "@/modules/counter/bun"
+import { initTimer } from "@/modules/timer/bun"
+import { globalRegistry } from "@/events"
 
 const DEV_SERVER_PORT = 5173
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`
