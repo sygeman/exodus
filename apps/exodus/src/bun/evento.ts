@@ -1,10 +1,14 @@
 import { BrowserView } from "electrobun/bun";
 import type { RPCSchema } from "electrobun";
 import { Evento, type EventoMetaType } from "../lib/evento/evento";
-import type { GlobalEventMap } from "../lib/evento/events";
+import type { GlobalEventMap } from "../events";
 
-export function createEventoBun() {
-  const evento = new Evento<"bun", ["webview"], GlobalEventMap>("bun", "webview");
+export type EventoBun = Evento<"bun", ["webview"], GlobalEventMap>;
+
+export function createEventoBun<
+  EventMap extends Record<string, unknown> = GlobalEventMap,
+>() {
+  const evento = new Evento<"bun", ["webview"], EventMap>("bun", "webview");
 
   type EventoMeta = EventoMetaType<typeof evento>;
 

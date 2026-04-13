@@ -1,9 +1,6 @@
-import type { Evento } from "../../lib/evento/evento";
-import type { GlobalEventMap } from "../../lib/evento/events";
+import type { EventoBun } from "../../bun/evento";
 
-export function initCounter(
-  evento: Evento<"bun", ["webview"], GlobalEventMap>,
-) {
+export function initCounter(evento: EventoBun) {
   let count = 0;
 
   evento.on("counter:increment", () => {
@@ -16,5 +13,16 @@ export function initCounter(
     evento.emit("counter:updated", { count });
   });
 
+  evento.on("timer:tick", () => {
+    count++;
+    evento.emit("counter:updated", { count });
+  });
+
   evento.emit("counter:updated", { count });
+
+  evento.on("counter:updated", ({ payload: { count } }) => {
+    if (count >= 100) {
+      evento.emit("counter:reset");
+    }
+  });
 }

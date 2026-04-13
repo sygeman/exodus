@@ -9,13 +9,17 @@ describe("Evento", () => {
     evento = new Evento("test");
   });
 
+  const emit = (name: string, payload?: unknown) => {
+    (evento as any).emit(name, payload);
+  };
+
   describe("on", () => {
     it("should subscribe to exact event", () => {
       const handler = ({ name }: EventoHandlerContext<"test">) => {
         expect(name).toBe("user:login");
       };
       evento.on("user:login", handler as EventoHandler);
-      evento.emit("user:login");
+      emit("user:login");
     });
 
     it("should call handler with context", () => {
@@ -24,7 +28,7 @@ describe("Evento", () => {
         receivedContext = ctx;
       };
       evento.on("user:login", handler as EventoHandler);
-      evento.emit("user:login", { userId: 123 });
+      emit("user:login", { userId: 123 });
 
       expect(receivedContext).not.toBeNull();
       expect(receivedContext!.name).toBe("user:login");
@@ -37,7 +41,7 @@ describe("Evento", () => {
       let count = 0;
       evento.on("user:login", () => count++);
       evento.on("user:login", () => count++);
-      evento.emit("user:login");
+      emit("user:login");
       expect(count).toBe(2);
     });
 
@@ -46,7 +50,7 @@ describe("Evento", () => {
       evento.on("user:*", () => {
         called = true;
       });
-      evento.emit("user:login");
+      emit("user:login");
       expect(called).toBe(true);
     });
 
@@ -54,11 +58,11 @@ describe("Evento", () => {
       let count = 0;
       const unsubscribe = evento.on("user:login", () => count++);
 
-      evento.emit("user:login");
+      emit("user:login");
       expect(count).toBe(1);
 
       unsubscribe();
-      evento.emit("user:login");
+      emit("user:login");
       expect(count).toBe(1);
     });
   });
@@ -68,10 +72,10 @@ describe("Evento", () => {
       let count = 0;
       evento.once("user:login", () => count++);
 
-      evento.emit("user:login");
+      emit("user:login");
       expect(count).toBe(1);
 
-      evento.emit("user:login");
+      emit("user:login");
       expect(count).toBe(1);
     });
 
@@ -79,10 +83,10 @@ describe("Evento", () => {
       let count = 0;
       evento.once("user:*", () => count++);
 
-      evento.emit("user:login");
+      emit("user:login");
       expect(count).toBe(1);
 
-      evento.emit("user:logout");
+      emit("user:logout");
       expect(count).toBe(1);
     });
 
@@ -91,7 +95,7 @@ describe("Evento", () => {
       const unsubscribe = evento.once("user:login", () => count++);
 
       unsubscribe();
-      evento.emit("user:login");
+      emit("user:login");
       expect(count).toBe(0);
     });
   });
@@ -102,11 +106,11 @@ describe("Evento", () => {
       const handler = () => count++;
 
       evento.on("user:login", handler);
-      evento.emit("user:login");
+      emit("user:login");
       expect(count).toBe(1);
 
       evento.off(handler);
-      evento.emit("user:login");
+      emit("user:login");
       expect(count).toBe(1);
     });
 
@@ -115,11 +119,11 @@ describe("Evento", () => {
       const handler = () => count++;
 
       evento.on("user:*", handler);
-      evento.emit("user:login");
+      emit("user:login");
       expect(count).toBe(1);
 
       evento.off(handler);
-      evento.emit("user:logout");
+      emit("user:logout");
       expect(count).toBe(1);
     });
 
@@ -129,11 +133,11 @@ describe("Evento", () => {
 
       evento.on("user:login", handler);
       evento.on("user:*", handler);
-      evento.emit("user:login");
+      emit("user:login");
       expect(count).toBe(2);
 
       evento.off(handler);
-      evento.emit("user:login");
+      emit("user:login");
       expect(count).toBe(2);
     });
   });
@@ -145,7 +149,7 @@ describe("Evento", () => {
       evento.on("user:login", () => count++);
 
       evento.offAll("user:login");
-      evento.emit("user:login");
+      emit("user:login");
       expect(count).toBe(0);
     });
 
@@ -155,7 +159,7 @@ describe("Evento", () => {
       evento.on("user:*", () => count++);
 
       evento.offAll("user:*");
-      evento.emit("user:login");
+      emit("user:login");
       expect(count).toBe(0);
     });
 
@@ -165,7 +169,7 @@ describe("Evento", () => {
       evento.on("user:*", () => count++);
 
       evento.offAll();
-      evento.emit("user:login");
+      emit("user:login");
       expect(count).toBe(0);
     });
   });
@@ -178,7 +182,7 @@ describe("Evento", () => {
       evento.on("user:login", () => (loginCalled = true));
       evento.on("user:logout", () => (logoutCalled = true));
 
-      evento.emit("user:login");
+      emit("user:login");
       expect(loginCalled).toBe(true);
       expect(logoutCalled).toBe(false);
     });
@@ -189,7 +193,7 @@ describe("Evento", () => {
         receivedPayload = payload;
       });
 
-      evento.emit("user:login", { userId: 42 });
+      emit("user:login", { userId: 42 });
       expect(receivedPayload).toEqual({ userId: 42 });
     });
 
@@ -200,7 +204,7 @@ describe("Evento", () => {
       evento.on("user:login", () => (exactCalled = true));
       evento.on("user:*", () => (wildcardCalled = true));
 
-      evento.emit("user:login");
+      emit("user:login");
       expect(exactCalled).toBe(true);
       expect(wildcardCalled).toBe(true);
     });
@@ -209,9 +213,9 @@ describe("Evento", () => {
       let count = 0;
       evento.on("**", () => count++);
 
-      evento.emit("user:login");
-      evento.emit("user:logout");
-      evento.emit("settings:update");
+      emit("user:login");
+      emit("user:logout");
+      emit("settings:update");
       expect(count).toBe(3);
     });
   });
@@ -221,10 +225,10 @@ describe("Evento", () => {
       let count = 0;
       evento.on("user:*", () => count++);
 
-      evento.emit("user:login");
+      emit("user:login");
       expect(count).toBe(1);
 
-      evento.emit("user:profile:update");
+      emit("user:profile:update");
       expect(count).toBe(1);
     });
 
@@ -232,9 +236,9 @@ describe("Evento", () => {
       let count = 0;
       evento.on("user:**", () => count++);
 
-      evento.emit("user:login");
-      evento.emit("user:profile:update");
-      evento.emit("user:settings:theme:change");
+      emit("user:login");
+      emit("user:profile:update");
+      emit("user:settings:theme:change");
       expect(count).toBe(3);
     });
 
@@ -242,9 +246,9 @@ describe("Evento", () => {
       let count = 0;
       evento.on("*:update", () => count++);
 
-      evento.emit("user:update");
-      evento.emit("settings:update");
-      evento.emit("user:profile:update");
+      emit("user:update");
+      emit("settings:update");
+      emit("user:profile:update");
       expect(count).toBe(2);
     });
 
@@ -252,9 +256,9 @@ describe("Evento", () => {
       let count = 0;
       evento.on("**:*:error", () => count++);
 
-      evento.emit("api:error");
-      evento.emit("api:user:error");
-      evento.emit("api:v1:user:error");
+      emit("api:error");
+      emit("api:user:error");
+      emit("api:v1:user:error");
       expect(count).toBe(1);
     });
   });

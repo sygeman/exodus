@@ -6,6 +6,14 @@ export type EventoMetaFromEnv<E extends string> = { environment: E };
 export type EventoMetaType<T> =
   T extends Evento<infer L, infer R> ? { environment: L | R[number] } : never;
 
+type VoidKeys<T> = {
+  [K in keyof T]: T[K] extends void ? K : never;
+}[keyof T];
+
+type NonVoidKeys<T> = {
+  [K in keyof T]: T[K] extends void ? never : K;
+}[keyof T];
+
 // Internal handler entry with metadata
 type HandlerEntry<E extends string> = {
   handler: EventoHandler<E>;
@@ -58,7 +66,11 @@ export class Evento<
     name: string | keyof EventMap,
     handler: EventoHandler<Local | Remotes[number], any>,
   ): EventoUnsubscribe {
-    return this._subscribe(name as string, handler as EventoHandler<Local | Remotes[number]>, false);
+    return this._subscribe(
+      name as string,
+      handler as EventoHandler<Local | Remotes[number]>,
+      false,
+    );
   }
 
   /**
@@ -154,15 +166,12 @@ export class Evento<
   /**
    * Emit an event
    */
-  emit<K extends keyof EventMap>(name: K, payload?: EventMap[K]): void {
-    this._emitLocal(name as string, payload, this.meta);
-
-    if (!this.sender) {
-      console.log("Evento", "Emit: sender not found");
-      return;
-    }
-
-    this.sender({ name: name as string, payload, meta: this.meta });
+  emit<K extends NonVoidKeys<EventMap>>(name: K, payload: EventMap[K]): void;
+  emit<K extends VoidKeys<EventMap>>(name: K): void;
+  emit(name: string, payload?: unknown): void {
+    this._emitLocal(name, payload, this.meta);
+    if (!this.sender) return;
+    this.sender({ name, payload, meta: this.meta });
   }
 
   /**
@@ -198,8 +207,6 @@ export class Evento<
     // Process wildcard handlers
     const matchedWildcards = this._matchWildcards(segments);
     this._processWildcards(matchedWildcards, context);
-
-    console.log("Evento", { name, payload, meta });
   }
 
   /**
@@ -213,7 +220,7 @@ export class Evento<
 
     const onceHandlers: HandlerEntry<Local | Remotes[number]>[] = [];
 
-    for (const entry of [...handlers]) {
+    for (const entry of handlers) {
       entry.handler(context);
       if (entry.once) {
         onceHandlers.push(entry);

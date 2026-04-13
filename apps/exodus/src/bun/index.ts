@@ -1,6 +1,7 @@
 import { BrowserWindow, Updater } from "electrobun/bun";
-import { createEventoBun } from "./evento-adapter";
+import { createEventoBun } from "./evento";
 import { initCounter } from "../modules/counter/bun";
+import { initTimer } from "../modules/timer/bun";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
@@ -33,5 +34,6 @@ const { webview } = new BrowserWindow({
 evento.sender = webview.rpc?.send?.emit;
 
 initCounter(evento);
+initTimer(evento);
 
 export { evento };

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { useCounter } from "../../modules/counter/webview";
+import { useTimer } from "../../modules/timer/webview";
 
 const { count, increment, reset } = useCounter();
+const { time } = useTimer();
 </script>
 
 <template>
@@ -11,5 +13,6 @@ const { count, increment, reset } = useCounter();
       <UButton @click="increment">Increment</UButton>
       <UButton color="neutral" variant="subtle" @click="reset">Reset</UButton>
     </div>
+    <p class="text-sm text-gray-500">Time: {{ new Date(time).toLocaleTimeString() }}</p>
   </div>
 </template>
