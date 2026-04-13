@@ -1,10 +1,11 @@
 import { ref } from "vue"
-import { evento } from "../../mainview/evento"
+import { useEvento } from "../../mainview/composables/useEvento"
 
 export function useTimer() {
+  const { on } = useEvento()
   const time = ref(0)
 
-  evento.on("timer:tick", ({ payload }) => {
+  on("timer:tick", ({ payload }: any) => {
     time.value = payload.time
   })
 

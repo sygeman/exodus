@@ -18,7 +18,6 @@ const app = createApp(App)
 const router = createRouter({
   routes: [
     { path: "/", component: CounterPage },
-    { path: "/evento", component: EventoModal },
   ],
   history: createWebHistory(),
 })
