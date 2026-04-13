@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useCounter } from "../composables/useCounter";
+import { useCounter } from "../../modules/counter/webview";
 
 const { count, increment, reset } = useCounter();
 </script>

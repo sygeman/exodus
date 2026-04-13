@@ -1,9 +1,10 @@
 import { Electroview } from "electrobun/view";
 import type { RPCSchema } from "electrobun";
 import { Evento, type EventoMetaType } from "../lib/evento/evento";
+import type { GlobalEventMap } from "../lib/evento/events";
 
 export function createEventoWebview() {
-  const evento = new Evento("webview", "bun");
+  const evento = new Evento<"webview", ["bun"], GlobalEventMap>("webview", "bun");
 
   type EventoMeta = EventoMetaType<typeof evento>;
 

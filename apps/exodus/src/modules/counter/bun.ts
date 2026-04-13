@@ -1,7 +1,8 @@
-import type { Evento } from "../lib/evento/evento";
+import type { Evento } from "../../lib/evento/evento";
+import type { GlobalEventMap } from "../../lib/evento/events";
 
 export function initCounter(
-  evento: Evento<"bun", ["webview"]>,
+  evento: Evento<"bun", ["webview"], GlobalEventMap>,
 ) {
   let count = 0;
 

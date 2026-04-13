@@ -1,18 +1,11 @@
 import { ref } from "vue";
-import { useEvento } from "./useEvento";
+import { evento } from "../../mainview/evento";
 
 export function useCounter() {
-  const evento = useEvento();
   const count = ref(0);
 
   evento.on("counter:updated", ({ payload }) => {
-    if (
-      typeof payload === "object" &&
-      payload !== null &&
-      "count" in payload
-    ) {
-      count.value = (payload as { count: number }).count;
-    }
+    count.value = payload.count;
   });
 
   const increment = () => {

@@ -23,11 +23,9 @@ type WildcardEntry<E extends string> = {
 export class Evento<
   const Local extends string,
   const Remotes extends string[] = [],
+  EventMap extends Record<string, unknown> = Record<string, unknown>,
 > {
-  private events: Map<
-    string,
-    HandlerEntry<Local | Remotes[number]>[]
-  > = new Map();
+  private events: Map<string, HandlerEntry<Local | Remotes[number]>[]> = new Map();
   private wildcards: WildcardEntry<Local | Remotes[number]>[] = [];
   public sender?: (data: {
     name: string;
@@ -36,7 +34,7 @@ export class Evento<
   }) => void;
   private meta: EventoMetaFromEnv<Local>;
 
-  constructor(local: Local, ...remotes: Remotes) {
+  constructor(local: Local, ..._remotes: Remotes) {
     this.meta = { environment: local };
   }
 
@@ -51,21 +49,31 @@ export class Evento<
    *   - "*:update" - any namespace ending with update
    *   - "**:*:error" - any path ending with error
    */
+  on<K extends keyof EventMap>(
+    name: K,
+    handler: EventoHandler<Local | Remotes[number], EventMap[K]>,
+  ): EventoUnsubscribe;
+  on(name: string, handler: EventoHandler<Local | Remotes[number]>): EventoUnsubscribe;
   on(
-    name: string,
-    handler: EventoHandler<Local | Remotes[number]>,
+    name: string | keyof EventMap,
+    handler: EventoHandler<Local | Remotes[number], any>,
   ): EventoUnsubscribe {
-    return this._subscribe(name, handler, false);
+    return this._subscribe(name as string, handler as EventoHandler<Local | Remotes[number]>, false);
   }
 
   /**
    * Subscribe to an event once, auto-unsubscribe after first call
    */
+  once<K extends keyof EventMap>(
+    name: K,
+    handler: EventoHandler<Local | Remotes[number], EventMap[K]>,
+  ): EventoUnsubscribe;
+  once(name: string, handler: EventoHandler<Local | Remotes[number]>): EventoUnsubscribe;
   once(
-    name: string,
-    handler: EventoHandler<Local | Remotes[number]>,
+    name: string | keyof EventMap,
+    handler: EventoHandler<Local | Remotes[number], any>,
   ): EventoUnsubscribe {
-    return this._subscribe(name, handler, true);
+    return this._subscribe(name as string, handler as EventoHandler<Local | Remotes[number]>, true);
   }
 
   /**
@@ -110,9 +118,7 @@ export class Evento<
   /**
    * Unsubscribe a specific handler from all events
    */
-  off(
-    handler: EventoHandler<Local | Remotes[number]>,
-  ): void {
+  off(handler: EventoHandler<Local | Remotes[number]>): void {
     // Remove from exact events
     for (const [name, handlers] of this.events.entries()) {
       const index = handlers.findIndex((entry) => entry.handler === handler);
@@ -148,15 +154,15 @@ export class Evento<
   /**
    * Emit an event
    */
-  emit(name: string, payload?: unknown): void {
-    this._emitLocal(name, payload, this.meta);
+  emit<K extends keyof EventMap>(name: K, payload?: EventMap[K]): void {
+    this._emitLocal(name as string, payload, this.meta);
 
     if (!this.sender) {
       console.log("Evento", "Emit: sender not found");
       return;
     }
 
-    this.sender({ name, payload, meta: this.meta });
+    this.sender({ name: name as string, payload, meta: this.meta });
   }
 
   /**
@@ -200,9 +206,7 @@ export class Evento<
    * Process handler entries and remove once handlers
    */
   private _processHandlers(
-    handlers:
-      | HandlerEntry<Local | Remotes[number]>[]
-      | undefined,
+    handlers: HandlerEntry<Local | Remotes[number]>[] | undefined,
     context: EventoHandlerContext<Local | Remotes[number]>,
   ): void {
     if (!handlers) return;
@@ -282,11 +286,7 @@ export class Evento<
   /**
    * Match event segments against wildcard patterns
    */
-  private _matchWildcards(
-    eventSegments: string[],
-  ): WildcardEntry<Local | Remotes[number]>[] {
-    return this.wildcards.filter((entry) =>
-      matchPattern(eventSegments, entry.segments),
-    );
+  private _matchWildcards(eventSegments: string[]): WildcardEntry<Local | Remotes[number]>[] {
+    return this.wildcards.filter((entry) => matchPattern(eventSegments, entry.segments));
   }
 }
