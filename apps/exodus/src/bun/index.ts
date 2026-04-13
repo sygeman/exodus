@@ -1,5 +1,6 @@
 import { BrowserWindow, Updater } from "electrobun/bun";
 import { createEventoBun } from "./evento-adapter";
+import { initCounter } from "./counter";
 
 const DEV_SERVER_PORT = 5173;
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`;
@@ -31,11 +32,6 @@ const { webview } = new BrowserWindow({
 
 evento.sender = webview.rpc?.send?.emit;
 
-evento.emit("bun init");
-
-// Ждем когда Webview будет готов
-webview.on("dom-ready", () => {
-  evento.emit("test from bun");
-});
+initCounter(evento);
 
 export { evento };
