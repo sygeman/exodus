@@ -4,7 +4,10 @@
   "description": "Electrobun app with Vue and Vite HMR",
   "type": "module",
   "scripts": {
-    "dev": "concurrently \"vite --port 5173\" \"vite build && electrobun dev --watch\""
+    "dev": "concurrently \"vite --port 5173\" \"vite build && electrobun dev --watch\"",
+    "typecheck": "vue-tsc --noEmit",
+    "test": "bun test --coverage",
+    "check": "bun run typecheck && bun test --coverage"
   },
   "dependencies": {
     "@nuxt/ui": "4.6.1",

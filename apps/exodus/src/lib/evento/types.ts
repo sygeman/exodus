@@ -1,4 +1,13 @@
-export type EventoMeta = { environment: string };
+export type EventMeta = {
+  source: string;
+  depth: number;
+  trace_id: string;
+  timestamp: number;
+};
+
+export type EventoMeta<E extends string = string> = EventMeta & {
+  environment: E;
+};
 
 // Extended handler with segments
 export type EventoHandlerContext<
@@ -7,7 +16,7 @@ export type EventoHandlerContext<
 > = {
   name: string;
   payload: P;
-  meta: { environment: E };
+  meta: EventoMeta<E>;
   segments: string[];
 };
 

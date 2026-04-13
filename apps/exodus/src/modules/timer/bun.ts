@@ -2,6 +2,6 @@ import type { EventoBun } from "../../bun/evento";
 
 export function initTimer(evento: EventoBun) {
   setInterval(() => {
-    evento.emit("timer:tick", { time: Date.now() });
+    evento.emitEvent("timer:tick", { time: Date.now() }, "system:timer_001");
   }, 10);
 }

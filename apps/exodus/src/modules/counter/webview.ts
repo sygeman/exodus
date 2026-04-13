@@ -9,11 +9,11 @@ export function useCounter() {
   });
 
   const increment = () => {
-    evento.emit("counter:increment");
+    evento.emitEvent("counter:increment", "user:click_btn_increment");
   };
 
   const reset = () => {
-    evento.emit("counter:reset");
+    evento.emitEvent("counter:reset", "user:click_btn_reset");
   };
 
   return { count, increment, reset };

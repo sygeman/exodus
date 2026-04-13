@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test";
-import { isWildcard, splitSegments, matchPattern } from "./utils";
+import { isWildcard, splitSegments, matchPattern } from "../utils";
 
 describe("isWildcard", () => {
   it("should return true for patterns with *", () => {

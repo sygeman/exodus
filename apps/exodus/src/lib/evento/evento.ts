@@ -1,10 +1,11 @@
-import { EventoHandler, EventoHandlerContext, EventoUnsubscribe } from "./types";
+import { EventoHandler, EventoHandlerContext, EventoUnsubscribe, EventoMeta } from "./types";
 import { isWildcard, splitSegments, matchPattern } from "./utils";
-
-export type EventoMetaFromEnv<E extends string> = { environment: E };
 
 export type EventoMetaType<T> =
   T extends Evento<infer L, infer R> ? { environment: L | R[number] } : never;
+
+export const MAX_EVENT_DEPTH = 25;
+export const DEPTH_WARNING_THRESHOLD = 20;
 
 type VoidKeys<T> = {
   [K in keyof T]: T[K] extends void ? K : never;
@@ -38,12 +39,18 @@ export class Evento<
   public sender?: (data: {
     name: string;
     payload: unknown;
-    meta: EventoMetaFromEnv<Local | Remotes[number]>;
+    meta: EventoMeta<Local | Remotes[number]>;
   }) => void;
-  private meta: EventoMetaFromEnv<Local>;
+  private meta: EventoMeta<Local>;
 
   constructor(local: Local, ..._remotes: Remotes) {
-    this.meta = { environment: local };
+    this.meta = {
+      environment: local,
+      source: `${local}:init`,
+      depth: 0,
+      trace_id: crypto.randomUUID(),
+      timestamp: Date.now(),
+    };
   }
 
   /**
@@ -96,6 +103,10 @@ export class Evento<
     handler: EventoHandler<Local | Remotes[number]>,
     once: boolean,
   ): EventoUnsubscribe {
+    if (!name || typeof name !== "string") {
+      throw new Error("Event name must be a non-empty string");
+    }
+
     // Check if it's a wildcard pattern
     if (isWildcard(name)) {
       return this._addWildcard(name, handler, once);
@@ -164,14 +175,189 @@ export class Evento<
   }
 
   /**
-   * Emit an event
+   * Emit an event with full EventPayload schema
+   * Merges user payload with auto-generated EventMeta
+   * Only source is required, rest is auto-generated
    */
-  emit<K extends NonVoidKeys<EventMap>>(name: K, payload: EventMap[K]): void;
-  emit<K extends VoidKeys<EventMap>>(name: K): void;
-  emit(name: string, payload?: unknown): void {
-    this._emitLocal(name, payload, this.meta);
+  emitEvent<K extends NonVoidKeys<EventMap>>(name: K, payload: EventMap[K], source: string): void;
+  emitEvent<K extends VoidKeys<EventMap>>(name: K, source: string): void;
+  emitEvent(name: string, payload: unknown, source?: string): void {
+    // If only 2 args, second is source (void event)
+    const eventSource = source ?? (payload as unknown as string);
+    const traceId = crypto.randomUUID();
+
+    if (!this._checkDepth(name, 0, traceId)) return;
+
+    const eventMeta: EventoMeta<Local> = {
+      environment: this.meta.environment,
+      source: eventSource,
+      depth: 0,
+      trace_id: traceId,
+      timestamp: Date.now(),
+    };
+
+    const eventPayload = source ? payload : undefined;
+
+    this._emitLocal(name, eventPayload, eventMeta);
     if (!this.sender) return;
-    this.sender({ name, payload, meta: this.meta });
+    this.sender({ name, payload: eventPayload, meta: eventMeta });
+  }
+
+  /**
+   * Forward an event from handler context
+   * Automatically increments depth and preserves trace_id/source
+   */
+  forward<K extends NonVoidKeys<EventMap>>(
+    name: K,
+    payload: EventMap[K],
+    context: EventoHandlerContext<Local | Remotes[number]>,
+  ): void;
+  forward<K extends VoidKeys<EventMap>>(
+    name: K,
+    context: EventoHandlerContext<Local | Remotes[number]>,
+  ): void;
+  forward(
+    name: string,
+    payload: unknown,
+    context?: EventoHandlerContext<Local | Remotes[number]>,
+  ): void {
+    // Handle void case: forward(name, context)
+    const ctx = context ?? (payload as EventoHandlerContext<Local | Remotes[number]>);
+    const userPayload = context ? payload : undefined;
+    const nextDepth = ctx.meta.depth + 1;
+
+    if (!this._checkDepth(name, nextDepth, ctx.meta.trace_id)) return;
+
+    const eventMeta: EventoMeta<Local> = {
+      environment: this.meta.environment,
+      source: ctx.meta.source,
+      depth: nextDepth,
+      trace_id: ctx.meta.trace_id,
+      timestamp: Date.now(),
+    };
+
+    this._emitLocal(name, userPayload, eventMeta);
+    if (!this.sender) return;
+    this.sender({ name, payload: userPayload, meta: eventMeta });
+  }
+
+  /**
+   * Check event depth and warn/reject if limit exceeded
+   */
+  private _checkDepth(name: string, depth: number, trace_id: string): boolean {
+    if (depth >= MAX_EVENT_DEPTH) {
+      console.warn(`DEPTH_EXCEEDED: event "${name}" rejected at depth ${depth}`);
+      const errorMeta: EventoMeta<Local> = {
+        environment: this.meta.environment,
+        source: "evento:loop_detector",
+        depth,
+        trace_id,
+        timestamp: Date.now(),
+      };
+      this._emitLocal(
+        "evento:error",
+        {
+          error: {
+            code: "DEPTH_EXCEEDED",
+            message: `Event "${name}" rejected: maximum event depth (${MAX_EVENT_DEPTH}) exceeded`,
+            details: { event_name: name, depth, trace_id },
+          },
+        },
+        errorMeta,
+      );
+      return false;
+    }
+
+    if (depth >= DEPTH_WARNING_THRESHOLD) {
+      console.warn(
+        `DEPTH_WARNING: "${name}" at depth ${depth}, approaching limit ${MAX_EVENT_DEPTH}`,
+      );
+    }
+
+    return true;
+  }
+
+  /**
+   * Request-Response pattern
+   * Sends a request and waits for response with matching correlation_id
+   */
+  request<T = unknown, R = unknown>(
+    name: string,
+    payload: T,
+    options?: { timeout?: number },
+  ): Promise<{ data: R; correlation_id: string }> {
+    const correlationId = crypto.randomUUID();
+    const responseEvent = `${name}:response`;
+    const timeout = options?.timeout ?? 1000;
+
+    return new Promise((resolve, reject) => {
+      let timeoutId: ReturnType<typeof setTimeout> | null = null;
+      let resolved = false;
+
+      const unsubscribe = this.on(responseEvent, (ctx) => {
+        const responsePayload = ctx.payload as { correlation_id?: string; data: R };
+        if (responsePayload.correlation_id === correlationId) {
+          resolved = true;
+          if (timeoutId) clearTimeout(timeoutId);
+          unsubscribe();
+          resolve({
+            data: responsePayload.data,
+            correlation_id: correlationId,
+          });
+        }
+      });
+
+      timeoutId = setTimeout(() => {
+        if (!resolved) {
+          unsubscribe();
+          reject(new Error("TIMEOUT"));
+        }
+      }, timeout);
+
+      // Send request with correlation_id
+      this._emitRequest(name, payload, correlationId);
+    });
+  }
+
+  /**
+   * Internal emit for request payload with correlation_id
+   */
+  private _emitRequest<T>(name: string, payload: T, correlationId: string): void {
+    const requestPayload =
+      payload !== undefined && payload !== null
+        ? { ...(payload as Record<string, unknown>), correlation_id: correlationId }
+        : { correlation_id: correlationId };
+
+    (this as any).emitEvent(name, requestPayload as any, `${name}:request`);
+  }
+
+  /**
+   * Reply to a request
+   * Automatically includes correlation_id from request context
+   */
+  reply<T = unknown>(context: EventoHandlerContext<Local | Remotes[number]>, payload: T): void {
+    const correlationId = (context.payload as any).correlation_id;
+    const responseEvent = `${context.name}:response`;
+    const nextDepth = context.meta.depth + 1;
+
+    if (!this._checkDepth(responseEvent, nextDepth, context.meta.trace_id)) return;
+
+    const eventMeta: EventoMeta<Local> = {
+      environment: this.meta.environment,
+      source: context.meta.source,
+      depth: nextDepth,
+      trace_id: context.meta.trace_id,
+      timestamp: Date.now(),
+    };
+
+    const eventPayload = {
+      ...(payload as object),
+      correlation_id: correlationId,
+    };
+
+    this._emitLocal(responseEvent, eventPayload, eventMeta);
+    if (!this.sender) return;
+    this.sender({ name: responseEvent, payload: eventPayload, meta: eventMeta });
   }
 
   /**
@@ -180,9 +366,16 @@ export class Evento<
   emitLocal(
     name: string,
     payload: unknown,
-    meta: EventoMetaFromEnv<Local | Remotes[number]>,
+    meta: Partial<EventoMeta<Local | Remotes[number]>>,
   ): void {
-    this._emitLocal(name, payload, meta);
+    const fullMeta: EventoMeta<Local | Remotes[number]> = {
+      environment: meta.environment ?? this.meta.environment,
+      source: meta.source ?? this.meta.source,
+      depth: meta.depth ?? 0,
+      trace_id: meta.trace_id ?? crypto.randomUUID(),
+      timestamp: meta.timestamp ?? Date.now(),
+    };
+    this._emitLocal(name, payload, fullMeta);
   }
 
   /**
@@ -191,7 +384,7 @@ export class Evento<
   private _emitLocal(
     name: string,
     payload: unknown,
-    meta: EventoMetaFromEnv<Local | Remotes[number]>,
+    meta: EventoMeta<Local | Remotes[number]>,
   ): void {
     const segments = splitSegments(name);
     const context: EventoHandlerContext<Local | Remotes[number]> = {
@@ -221,23 +414,58 @@ export class Evento<
     const onceHandlers: HandlerEntry<Local | Remotes[number]>[] = [];
 
     for (const entry of handlers) {
-      entry.handler(context);
+      try {
+        entry.handler(context);
+      } catch (error) {
+        this._emitError(error, context, entry.handler);
+      }
       if (entry.once) {
         onceHandlers.push(entry);
       }
     }
 
-    // Remove once handlers
-    for (const entry of onceHandlers) {
-      const index = handlers.indexOf(entry);
-      if (index > -1) {
-        handlers.splice(index, 1);
-      }
+    // Remove once handlers using filter (more efficient than splice in loop)
+    if (onceHandlers.length > 0) {
+      const filtered = handlers.filter((h) => !onceHandlers.includes(h));
+      handlers.length = 0;
+      handlers.push(...filtered);
     }
 
     if (handlers.length === 0) {
       this.events.delete(context.name);
     }
+  }
+
+  /**
+   * Emit error event when handler throws
+   */
+  private _emitError(
+    error: unknown,
+    context: EventoHandlerContext<Local | Remotes[number]>,
+    handler: EventoHandler<Local | Remotes[number]>,
+  ): void {
+    const errorMeta: EventoMeta<Local> = {
+      environment: this.meta.environment,
+      source: "evento:error_handler",
+      depth: context.meta.depth,
+      trace_id: context.meta.trace_id,
+      timestamp: Date.now(),
+    };
+
+    this._emitLocal(
+      "evento:error",
+      {
+        error: {
+          code: "HANDLER_ERROR",
+          message: error instanceof Error ? error.message : String(error),
+          details: {
+            event_name: context.name,
+            handler_name: handler.name || "anonymous",
+          },
+        },
+      },
+      errorMeta,
+    );
   }
 
   /**
@@ -250,18 +478,19 @@ export class Evento<
     const onceWildcards: WildcardEntry<Local | Remotes[number]>[] = [];
 
     for (const entry of wildcards) {
-      entry.handler(context);
+      try {
+        entry.handler(context);
+      } catch (error) {
+        this._emitError(error, context, entry.handler);
+      }
       if (entry.once) {
         onceWildcards.push(entry);
       }
     }
 
-    // Remove once wildcards
-    for (const entry of onceWildcards) {
-      const index = this.wildcards.indexOf(entry);
-      if (index > -1) {
-        this.wildcards.splice(index, 1);
-      }
+    // Remove once wildcards using filter
+    if (onceWildcards.length > 0) {
+      this.wildcards = this.wildcards.filter((w) => !onceWildcards.includes(w));
     }
   }
 
@@ -295,5 +524,24 @@ export class Evento<
    */
   private _matchWildcards(eventSegments: string[]): WildcardEntry<Local | Remotes[number]>[] {
     return this.wildcards.filter((entry) => matchPattern(eventSegments, entry.segments));
+  }
+
+  /**
+   * Check if there are any listeners for the given event name
+   * Includes both exact matches and wildcard patterns
+   */
+  hasListeners(name: string): boolean {
+    if (!name || typeof name !== "string") {
+      return false;
+    }
+
+    // Check exact match
+    if (this.events.has(name) && (this.events.get(name)?.length ?? 0) > 0) {
+      return true;
+    }
+
+    // Check wildcard patterns
+    const segments = splitSegments(name);
+    return this._matchWildcards(segments).length > 0;
   }
 }
