@@ -1,11 +1,25 @@
 import { describe, it, expect, beforeEach } from "bun:test"
 import { Evento } from "../evento"
+import { z } from "zod"
 
 describe("Evento - Source Tracking & Loop Detection", () => {
   let evento: Evento<"test">
 
   beforeEach(() => {
     evento = new Evento("test")
+    evento.register({
+      "data:create_item": { schema: z.any() },
+      "data:item_created": { schema: z.any() },
+      "counter:increment": { schema: z.any() },
+      "counter:updated": { schema: z.any() },
+      "ping": { schema: z.any() },
+      "pong": { schema: z.any() },
+      "loop": { schema: z.any() },
+      "action": { schema: z.any() },
+      "a": { schema: z.any() },
+      "b": { schema: z.any() },
+      "c": { schema: z.any() },
+    })
   })
 
   describe("source propagation", () => {

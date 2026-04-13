@@ -16,8 +16,8 @@ export function createEventoBun<EventMap extends Record<string, unknown> = Globa
   }>({
     handlers: {
       messages: {
-        emit: ({ name, payload, meta }) => {
-          evento.emitLocal(name, payload, meta)
+        emit: (msg: { name: string; payload: unknown; meta: EventoMeta }) => {
+          evento.emitLocal(msg.name, msg.payload, msg.meta)
         },
       },
     },

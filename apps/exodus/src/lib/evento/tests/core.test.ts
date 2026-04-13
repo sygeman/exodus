@@ -1,12 +1,26 @@
 import { describe, it, expect, beforeEach } from "bun:test"
 import { Evento } from "../evento"
 import type { EventoHandler, EventoHandlerContext } from "../types"
+import { z } from "zod"
 
 describe("Evento", () => {
   let evento: Evento<"test">
 
   beforeEach(() => {
     evento = new Evento("test")
+    evento.register({
+      "user:login": { schema: z.any() },
+      "counter:increment": { schema: z.any() },
+      "counter:updated": { schema: z.any() },
+      "counter:reset": { schema: z.any() },
+      "timer:tick": { schema: z.any() },
+      "test:event": { schema: z.any() },
+      "step1": { schema: z.any() },
+      "step2": { schema: z.any() },
+      "step3": { schema: z.any() },
+      "settings:query": { schema: z.any() },
+      "settings:query:response": { schema: z.any() },
+    })
   })
 
   const emit = (name: string, payload?: unknown) => {

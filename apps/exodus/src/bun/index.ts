@@ -2,6 +2,7 @@ import { BrowserWindow, Updater } from "electrobun/bun"
 import { createEventoBun } from "./evento"
 import { initCounter } from "../modules/counter/bun"
 import { initTimer } from "../modules/timer/bun"
+import { globalRegistry } from "../events"
 
 const DEV_SERVER_PORT = 5173
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`
@@ -24,6 +25,8 @@ const url = await getMainViewUrl()
 
 const { evento, rpc } = createEventoBun()
 
+evento.register(globalRegistry)
+
 const { webview } = new BrowserWindow({
   title: "Exodus",
   url,
@@ -35,5 +38,18 @@ evento.sender = webview.rpc?.send?.emit
 
 initCounter(evento)
 initTimer(evento)
+
+evento.on("evento:schema:request", (ctx) => {
+  const name = (ctx.payload as any).name
+  console.log("[bun] schema:request for", name)
+  const entry = evento.getSchema(name)
+  const serialized = entry ? evento.serializeSchema(name) : null
+  console.log("[bun] serialized:", serialized)
+  evento.reply(ctx, {
+    name,
+    schema: serialized,
+    description: entry?.description,
+  })
+})
 
 export { evento }

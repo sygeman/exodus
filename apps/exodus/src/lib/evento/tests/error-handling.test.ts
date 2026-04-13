@@ -1,12 +1,18 @@
 import { describe, it, expect, beforeEach } from "bun:test"
 import { Evento } from "../evento"
 import type { EventoHandlerContext } from "../types"
+import { z } from "zod"
 
 describe("Evento - Error Handling", () => {
   let evento: Evento<"test">
 
   beforeEach(() => {
     evento = new Evento("test")
+    evento.register({
+      "data:error": { schema: z.any() },
+      "api:error": { schema: z.any() },
+      "flows:error": { schema: z.any() },
+    })
   })
 
   describe("structured error format", () => {

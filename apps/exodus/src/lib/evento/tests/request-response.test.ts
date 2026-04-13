@@ -1,12 +1,19 @@
 import { describe, it, expect, beforeEach } from "bun:test"
 import { Evento } from "../evento"
 import type { EventoHandlerContext } from "../types"
+import { z } from "zod"
 
 describe("Evento - Request-Response Pattern", () => {
   let evento: Evento<"test">
 
   beforeEach(() => {
     evento = new Evento("test")
+    evento.register({
+      "settings:query": { schema: z.any() },
+      "settings:query:response": { schema: z.any() },
+      "data:query": { schema: z.any() },
+      "data:query:response": { schema: z.any() },
+    })
   })
 
   describe("request/reply", () => {

@@ -22,3 +22,10 @@ export type EventoHandler<E extends string = string, P = unknown> = (
 ) => void
 
 export type EventoUnsubscribe = () => void
+
+export type EventoRegistryEntry = {
+  schema: import("zod").ZodTypeAny
+  description?: string
+}
+
+export type EventoRegistry = Record<string, EventoRegistryEntry>

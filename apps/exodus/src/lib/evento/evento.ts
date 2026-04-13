@@ -1,5 +1,13 @@
-import { EventoHandler, EventoHandlerContext, EventoUnsubscribe, EventoMeta } from "./types"
+import {
+  EventoHandler,
+  EventoHandlerContext,
+  EventoUnsubscribe,
+  EventoMeta,
+  EventoRegistry,
+  EventoRegistryEntry,
+} from "./types"
 import { isWildcard, splitSegments, matchPattern } from "./utils"
+
 
 export type EventoMetaType<T> =
   T extends Evento<infer L, infer R> ? { environment: L | R[number] } : never
@@ -36,6 +44,7 @@ export class Evento<
 > {
   private events: Map<string, HandlerEntry<Local | Remotes[number]>[]> = new Map()
   private wildcards: WildcardEntry<Local | Remotes[number]>[] = []
+  private registry: Map<string, EventoRegistryEntry> = new Map()
   public sender?: (data: {
     name: string
     payload: unknown
@@ -51,6 +60,100 @@ export class Evento<
       trace_id: crypto.randomUUID(),
       timestamp: Date.now(),
     }
+  }
+
+  /**
+   * Register events with their Zod schemas
+   * Can be called multiple times to add more events
+   */
+  register(events: EventoRegistry): void {
+    for (const [name, entry] of Object.entries(events)) {
+      this.registry.set(name, entry)
+    }
+  }
+
+  /**
+   * Get schema for an event
+   */
+  getSchema(name: string): EventoRegistryEntry | undefined {
+    return this.registry.get(name)
+  }
+
+  /**
+   * Serialize Zod schema to JSON description
+   */
+  serializeSchema(name: string): { type: string; properties?: Record<string, { type: string }> } | null {
+    const entry = this.registry.get(name)
+    if (!entry) return null
+
+    const schema = entry.schema
+    const def = (schema as any)._def
+    const typeName = def?.type || schema.constructor?.name
+
+    // Handle void
+    if (typeName === "void" || typeName === "ZodVoid" || typeName === "ZodUndefined") {
+      return { type: "void" }
+    }
+
+    // Handle object
+    if (typeName === "object" || typeName === "ZodObject") {
+      const shape = def.shape || schema.shape?.()
+      const properties: Record<string, { type: string }> = {}
+      const shapeObj = typeof shape === "function" ? shape() : shape
+      for (const [key, value] of Object.entries(shapeObj || {})) {
+        const fieldSchema = value as any
+        const fieldDef = fieldSchema._def || fieldSchema.def
+        const fieldType = fieldDef?.type || "unknown"
+        properties[key] = { type: fieldType }
+      }
+      return { type: "object", properties }
+    }
+
+    // Handle primitives
+    if (typeName === "string" || typeName === "ZodString") return { type: "string" }
+    if (typeName === "number" || typeName === "ZodNumber") return { type: "number" }
+    if (typeName === "boolean" || typeName === "ZodBoolean") return { type: "boolean" }
+
+    return { type: "unknown" }
+  }
+
+  /**
+   * Validate event name and payload against registry
+   */
+  private _validate(name: string, payload: unknown): { valid: boolean; error?: string } {
+    const entry = this.registry.get(name)
+    if (!entry) {
+      return { valid: false, error: `Event "${name}" not registered` }
+    }
+    const result = entry.schema.safeParse(payload)
+    if (!result.success) {
+      return { valid: false, error: `Validation failed for "${name}": ${result.error.message}` }
+    }
+    return { valid: true }
+  }
+
+  /**
+   * Emit validation error via evento:error
+   */
+  private _emitValidationError(name: string, message: string): void {
+    const errorMeta: EventoMeta<Local> = {
+      environment: this.meta.environment,
+      source: "evento:validator",
+      depth: 0,
+      trace_id: crypto.randomUUID(),
+      timestamp: Date.now(),
+    }
+    this._emitLocal(
+      "evento:error",
+      {
+        error: {
+          code: "VALIDATION_ERROR",
+          message,
+          details: { event_name: name },
+        },
+      },
+      errorMeta,
+    )
   }
 
   /**
@@ -180,6 +283,14 @@ export class Evento<
   emitEvent(name: string, payload: unknown, source?: string): void {
     // If only 2 args, second is source (void event)
     const eventSource = source ?? (payload as unknown as string)
+    const eventPayload = source ? payload : undefined
+
+    const validation = this._validate(name, eventPayload)
+    if (!validation.valid) {
+      this._emitValidationError(name, validation.error!)
+      return
+    }
+
     const traceId = crypto.randomUUID()
 
     if (!this._checkDepth(name, 0, traceId)) return
@@ -191,8 +302,6 @@ export class Evento<
       trace_id: traceId,
       timestamp: Date.now(),
     }
-
-    const eventPayload = source ? payload : undefined
 
     this._emitLocal(name, eventPayload, eventMeta)
     if (!this.sender) return
@@ -220,6 +329,13 @@ export class Evento<
     // Handle void case: forward(name, context)
     const ctx = context ?? (payload as EventoHandlerContext<Local | Remotes[number]>)
     const userPayload = context ? payload : undefined
+
+    const validation = this._validate(name, userPayload)
+    if (!validation.valid) {
+      this._emitValidationError(name, validation.error!)
+      return
+    }
+
     const nextDepth = ctx.meta.depth + 1
 
     if (!this._checkDepth(name, nextDepth, ctx.meta.trace_id)) return
@@ -334,6 +450,18 @@ export class Evento<
   reply<T = unknown>(context: EventoHandlerContext<Local | Remotes[number]>, payload: T): void {
     const correlationId = (context.payload as any).correlation_id
     const responseEvent = `${context.name}:response`
+
+    const eventPayload = {
+      ...(payload as object),
+      correlation_id: correlationId,
+    }
+
+    const validation = this._validate(responseEvent, eventPayload)
+    if (!validation.valid) {
+      this._emitValidationError(responseEvent, validation.error!)
+      return
+    }
+
     const nextDepth = context.meta.depth + 1
 
     if (!this._checkDepth(responseEvent, nextDepth, context.meta.trace_id)) return
@@ -344,11 +472,6 @@ export class Evento<
       depth: nextDepth,
       trace_id: context.meta.trace_id,
       timestamp: Date.now(),
-    }
-
-    const eventPayload = {
-      ...(payload as object),
-      correlation_id: correlationId,
     }
 
     this._emitLocal(responseEvent, eventPayload, eventMeta)
@@ -539,5 +662,38 @@ export class Evento<
     // Check wildcard patterns
     const segments = splitSegments(name)
     return this._matchWildcards(segments).length > 0
+  }
+
+  /**
+   * Get debug information about current event bus state
+   * Returns read-only snapshot of listeners and wildcards
+   */
+  getDebugInfo(): {
+    exact: Array<{ name: string; count: number }>
+    wildcards: Array<{ pattern: string; count: number }>
+    registry: Array<{ name: string; description?: string }>
+    environment: Local
+  } {
+    const exact: Array<{ name: string; count: number }> = []
+    for (const [name, handlers] of this.events.entries()) {
+      exact.push({ name, count: handlers.length })
+    }
+
+    const wildcards = this.wildcards.map((w) => ({
+      pattern: w.pattern,
+      count: 1,
+    }))
+
+    const registry = Array.from(this.registry.entries()).map(([name, entry]) => ({
+      name,
+      description: entry.description,
+    }))
+
+    return {
+      exact,
+      wildcards,
+      registry,
+      environment: this.meta.environment,
+    }
   }
 }
