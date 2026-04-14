@@ -1,3 +1,12 @@
+## [0.4.1](https://github.com/sygeman/exodus/compare/v0.4.0...v0.4.1) (2026-04-14)
+
+
+### Bug Fixes
+
+* enable system keyboard shortcuts via ApplicationMenu ([c799606](https://github.com/sygeman/exodus/commit/c799606302d00a2aec7ed1ec05fb3587587f03f8))
+
+
+
 # [0.4.0](https://github.com/sygeman/exodus/compare/v0.3.0...v0.4.0) (2026-04-14)
 
 
@@ -32,15 +41,6 @@
 ### Features
 
 * add settings page with version, theme and locale ([f37509d](https://github.com/sygeman/exodus/commit/f37509d8d20eb3bba59f966380040ab5e5cb9738))
-
-
-
-## [0.0.3](https://github.com/sygeman/exodus/compare/v0.0.2...v0.0.3) (2026-04-14)
-
-
-### Bug Fixes
-
-* remove unused Updater import from bun entrypoint ([d9f2ee4](https://github.com/sygeman/exodus/commit/d9f2ee4e37938fc5fce8ca7ca55a61caecf49450))
 
 
 
