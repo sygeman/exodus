@@ -14,10 +14,15 @@ export function initUpdater(evento: EventoBun) {
       sendStatus({ status: "checking" })
       const result = await Updater.checkForUpdate()
       const currentVersion = await Updater.localInfo.version()
+      const currentHash = await Updater.localInfo.hash()
+
+      const isActuallyAvailable =
+        result.updateAvailable && result.version !== currentVersion && result.hash !== currentHash
+
       if (result.error) {
         sendStatus({ status: "error", error: result.error })
         evento.emitEvent("app:clearDismissedUpdate", "bun")
-      } else if (result.updateAvailable) {
+      } else if (isActuallyAvailable) {
         sendStatus({
           status: "available",
           currentVersion,
