@@ -1,3 +1,12 @@
+# [0.12.0](https://github.com/sygeman/exodus/compare/v0.11.0...v0.12.0) (2026-04-14)
+
+
+### Features
+
+* add one-command Linux installer ([8cc68cd](https://github.com/sygeman/exodus/commit/8cc68cd44d04ac44525c0220b713a57e4c20a5fa))
+
+
+
 # [0.11.0](https://github.com/sygeman/exodus/compare/v0.10.0...v0.11.0) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * add Polish locale ([ced0fa8](https://github.com/sygeman/exodus/commit/ced0fa8fdeb903880196c60bad44c5b3746e702d))
-
-
-
-## [0.7.1](https://github.com/sygeman/exodus/compare/v0.7.0...v0.7.1) (2026-04-14)
-
-
-### Bug Fixes
-
-* pass version instead of hash to updater UI and improve layout ([582e368](https://github.com/sygeman/exodus/commit/582e3682d11a1ef008d35f1e52a9b3d0a554686b))
 
 
 
