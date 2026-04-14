@@ -5,6 +5,8 @@ import { createRouter, createWebHashHistory } from "vue-router"
 import { createI18n } from "vue-i18n"
 import App from "./App.vue"
 import CounterPage from "./pages/CounterPage.vue"
+import EventsPage from "./pages/EventsPage.vue"
+import LogsPage from "./pages/LogsPage.vue"
 import SettingsPage from "./pages/SettingsPage.vue"
 import { evento, rpc } from "./evento"
 import { Electroview } from "electrobun/view"
@@ -32,6 +34,8 @@ const app = createApp(App)
 const router = createRouter({
   routes: [
     { path: "/", component: CounterPage },
+    { path: "/events", component: EventsPage },
+    { path: "/logs", component: LogsPage },
     { path: "/settings", component: SettingsPage },
   ],
   history: createWebHashHistory(),

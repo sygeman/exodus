@@ -1,9 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
 import LogoSvg from "@/mainview/assets/logo.svg"
-import { useModalRoute } from "@/mainview/composables/useModalRoute"
 
-const { openModal } = useModalRoute()
 const { t } = useI18n()
 
 const tooltipContent = {
@@ -53,21 +51,23 @@ const tooltipContent = {
     <!-- Системная навигация -->
     <div class="mt-2 flex flex-shrink-0 flex-col items-center gap-1">
       <UTooltip :text="t('common.events')" :content="tooltipContent" :delay-duration="0">
-        <button
+        <RouterLink
+          to="/events"
           class="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
-          @click="openModal('events')"
+          active-class="bg-[var(--ui-bg-elevated)] text-[var(--ui-text)]"
         >
           <UIcon name="i-lucide-zap" class="h-5 w-5" />
-        </button>
+        </RouterLink>
       </UTooltip>
 
       <UTooltip :text="t('common.logs')" :content="tooltipContent" :delay-duration="0">
-        <button
+        <RouterLink
+          to="/logs"
           class="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
-          @click="openModal('logs')"
+          active-class="bg-[var(--ui-bg-elevated)] text-[var(--ui-text)]"
         >
           <UIcon name="i-lucide-scroll-text" class="h-5 w-5" />
-        </button>
+        </RouterLink>
       </UTooltip>
 
       <UTooltip :text="t('common.settings')" :content="tooltipContent" :delay-duration="0">

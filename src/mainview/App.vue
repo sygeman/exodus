@@ -3,11 +3,6 @@ import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import * as nuxtLocales from "@nuxt/ui/locale"
 import AppSidebar from "@/mainview/components/AppSidebar.vue"
-import EventoModal from "@/mainview/components/EventoModal.vue"
-import LoggerModal from "@/modules/logger/components/LoggerModal.vue"
-import { useModalRoute } from "@/mainview/composables/useModalRoute"
-
-const { isEventsOpen, isLogsOpen } = useModalRoute()
 
 const { locale } = useI18n()
 const appLocale = computed(
@@ -25,8 +20,5 @@ const appLocale = computed(
         <RouterView />
       </main>
     </div>
-
-    <EventoModal v-if="isEventsOpen" />
-    <LoggerModal v-if="isLogsOpen" />
   </UApp>
 </template>
