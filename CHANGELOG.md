@@ -1,3 +1,12 @@
+# [0.15.0](https://github.com/sygeman/exodus/compare/v0.14.0...v0.15.0) (2026-04-14)
+
+
+### Features
+
+* add German (de) locale ([36e4003](https://github.com/sygeman/exodus/commit/36e40036b3563487323d807849c426141e5b2ed0))
+
+
+
 # [0.14.0](https://github.com/sygeman/exodus/compare/v0.13.0...v0.14.0) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * use explicit request/response for route restoration ([34074d3](https://github.com/sygeman/exodus/commit/34074d378cdb7aa3e232a8e4997d73d3265a55ed))
-
-
-
-## [0.12.2](https://github.com/sygeman/exodus/compare/v0.12.1...v0.12.2) (2026-04-14)
-
-
-### Bug Fixes
-
-* restore last route on app restart in release builds ([893f00a](https://github.com/sygeman/exodus/commit/893f00aa835157a5ad18c3dcb1a558a4751c9729))
 
 
 
