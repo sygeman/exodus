@@ -74,9 +74,9 @@ function formatArgs(args: unknown[]) {
     "
   >
     <template #content>
-      <div class="flex flex-col h-full bg-[var(--ui-bg)]">
+      <div class="flex h-full flex-col bg-[var(--ui-bg)]">
         <!-- Header -->
-        <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--ui-border)]">
+        <div class="flex items-center justify-between border-b border-[var(--ui-border)] px-4 py-3">
           <div class="flex items-center gap-3">
             <UButton icon="i-lucide-arrow-left" variant="ghost" @click="emit('close')" />
             <h1 class="text-xl font-bold">{{ t("common.logs") }}</h1>
@@ -85,7 +85,7 @@ function formatArgs(args: unknown[]) {
             }}</UBadge>
           </div>
           <div class="flex items-center gap-2">
-            <div class="hidden sm:flex items-center gap-2 text-xs text-[var(--ui-text-muted)] mr-2">
+            <div class="mr-2 hidden items-center gap-2 text-xs text-[var(--ui-text-muted)] sm:flex">
               <span>D {{ stats.debug }}</span>
               <span>I {{ stats.info }}</span>
               <span>W {{ stats.warn }}</span>
@@ -103,7 +103,7 @@ function formatArgs(args: unknown[]) {
         </div>
 
         <!-- Filters -->
-        <div class="flex flex-wrap gap-2 px-4 py-2 border-b border-[var(--ui-border)]">
+        <div class="flex flex-wrap gap-2 border-b border-[var(--ui-border)] px-4 py-2">
           <USelectMenu v-model="levelFilter" :items="levelOptions" value-key="value" class="w-28" />
           <USelectMenu
             v-model="sourceFilter"
@@ -111,15 +111,15 @@ function formatArgs(args: unknown[]) {
             value-key="value"
             class="w-28"
           />
-          <UInput v-model="textFilter" :placeholder="t('logs.searchLogs')" class="flex-1 min-w-0" />
+          <UInput v-model="textFilter" :placeholder="t('logs.searchLogs')" class="min-w-0 flex-1" />
         </div>
 
         <!-- Logs list -->
-        <UScrollArea class="flex-1 min-h-0">
+        <UScrollArea class="min-h-0 flex-1">
           <div
             v-for="log in logs"
             :key="log.id"
-            class="px-4 py-2 border-b border-[var(--ui-border)] text-xs leading-relaxed hover:bg-[var(--ui-bg-elevated)]"
+            class="border-b border-[var(--ui-border)] px-4 py-2 text-xs leading-relaxed hover:bg-[var(--ui-bg-elevated)]"
           >
             <div class="flex items-center gap-2">
               <span class="font-mono text-[var(--ui-text-muted)]">{{
@@ -133,7 +133,7 @@ function formatArgs(args: unknown[]) {
                 {{ log.level }}
               </UBadge>
               <span
-                class="text-[10px] uppercase px-1.5 py-0.5 rounded"
+                class="rounded px-1.5 py-0.5 text-[10px] uppercase"
                 :class="
                   log.source === 'bun'
                     ? 'bg-blue-500/10 text-blue-500'
@@ -142,19 +142,19 @@ function formatArgs(args: unknown[]) {
               >
                 {{ log.source }}
               </span>
-              <span class="truncate flex-1 min-w-0">{{ log.message }}</span>
+              <span class="min-w-0 flex-1 truncate">{{ log.message }}</span>
             </div>
             <div v-if="log.args.length > 1" class="mt-1 pl-[7.5rem] text-[var(--ui-text-muted)]">
-              <pre class="text-[10px] overflow-auto">{{ formatArgs(log.args.slice(1)) }}</pre>
+              <pre class="overflow-auto text-[10px]">{{ formatArgs(log.args.slice(1)) }}</pre>
             </div>
           </div>
-          <div v-if="logs.length === 0" class="p-8 text-center text-[var(--ui-text-muted)] text-sm">
+          <div v-if="logs.length === 0" class="p-8 text-center text-sm text-[var(--ui-text-muted)]">
             {{ t("common.noLogs") }}
           </div>
         </UScrollArea>
 
         <!-- Pagination -->
-        <div class="flex items-center justify-between px-4 py-2 border-t border-[var(--ui-border)]">
+        <div class="flex items-center justify-between border-t border-[var(--ui-border)] px-4 py-2">
           <span class="text-xs text-[var(--ui-text-muted)]">
             {{ t("logs.totalLogs", { total, pageInfo: t("logs.pageOf", { page, totalPages }) }) }}
           </span>

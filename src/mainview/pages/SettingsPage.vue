@@ -95,13 +95,13 @@ const isLoading = computed(() =>
 </script>
 
 <template>
-  <div class="p-8 flex flex-col items-center gap-6">
+  <div class="flex flex-col items-center gap-6 p-8">
     <h1 class="text-2xl font-bold">{{ t("common.settings") }}</h1>
 
-    <div class="w-full max-w-sm flex flex-col gap-4">
+    <div class="flex w-full max-w-sm flex-col gap-4">
       <div class="flex items-center justify-between gap-4">
         <div class="flex items-center gap-2">
-          <UIcon :name="themeIcon" class="w-5 h-5 text-[var(--ui-text-muted)]" />
+          <UIcon :name="themeIcon" class="h-5 w-5 text-[var(--ui-text-muted)]" />
           <span class="text-sm">{{ themeText }}</span>
         </div>
         <USwitch v-model="isDark" />
@@ -109,7 +109,7 @@ const isLoading = computed(() =>
 
       <div class="flex items-center justify-between gap-4">
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-globe" class="w-5 h-5 text-[var(--ui-text-muted)]" />
+          <UIcon name="i-lucide-globe" class="h-5 w-5 text-[var(--ui-text-muted)]" />
           <span class="text-sm">{{ t("common.language") }}</span>
         </div>
         <UDropdownMenu :items="localeItems">
@@ -121,19 +121,19 @@ const isLoading = computed(() =>
 
       <div class="flex items-center justify-between gap-4">
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-info" class="w-5 h-5 text-[var(--ui-text-muted)]" />
+          <UIcon name="i-lucide-info" class="h-5 w-5 text-[var(--ui-text-muted)]" />
           <span class="text-sm">{{ t("common.version") }}</span>
         </div>
-        <span class="text-sm text-[var(--ui-text-muted)] font-mono">{{ appVersion }}</span>
+        <span class="font-mono text-sm text-[var(--ui-text-muted)]">{{ appVersion }}</span>
       </div>
 
       <div class="flex items-start justify-between gap-4">
         <div class="flex items-center gap-2">
-          <UIcon name="i-lucide-refresh-cw" class="w-5 h-5 text-[var(--ui-text-muted)]" />
+          <UIcon name="i-lucide-refresh-cw" class="h-5 w-5 text-[var(--ui-text-muted)]" />
           <span class="text-sm">{{ t("common.update") }}</span>
         </div>
-        <div class="flex flex-col items-end gap-2 min-w-0">
-          <div class="flex items-center gap-2 flex-wrap justify-end">
+        <div class="flex min-w-0 flex-col items-end gap-2">
+          <div class="flex flex-wrap items-center justify-end gap-2">
             <span
               v-if="updateStatus !== 'idle'"
               class="text-sm"
@@ -174,7 +174,7 @@ const isLoading = computed(() =>
 
           <div
             v-if="updateStatus === 'error' && updateError"
-            class="text-xs text-[var(--ui-error)] text-right max-w-[220px] leading-tight"
+            class="max-w-[220px] text-right text-xs leading-tight text-[var(--ui-error)]"
           >
             {{ updateError }}
           </div>

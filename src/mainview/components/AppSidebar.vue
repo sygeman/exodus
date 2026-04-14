@@ -18,18 +18,18 @@ const tooltipContent = {
 
 <template>
   <aside
-    class="flex flex-col items-center pb-2 w-16 pt-4 border-r border-[var(--ui-border)] select-none"
+    class="flex w-16 flex-col items-center border-r border-[var(--ui-border)] pt-4 pb-2 select-none"
   >
     <!-- Лого -->
-    <RouterLink to="/" class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg">
-      <LogoSvg class="w-8 h-8" />
+    <RouterLink to="/" class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg">
+      <LogoSvg class="h-8 w-8" />
     </RouterLink>
 
     <!-- Проекты (скроллятся) -->
-    <div class="flex-1 min-h-0 overflow-y-auto flex flex-col items-center gap-1 mt-4">
+    <div class="mt-4 flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto">
       <UTooltip :text="t('common.projectA')" :content="tooltipContent" :delay-duration="0">
         <div
-          class="flex-shrink-0 relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors font-semibold text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
+          class="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg font-semibold text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
         >
           A
         </div>
@@ -37,7 +37,7 @@ const tooltipContent = {
 
       <UTooltip :text="t('common.projectB')" :content="tooltipContent" :delay-duration="0">
         <div
-          class="flex-shrink-0 relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors font-semibold text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
+          class="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg font-semibold text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
         >
           B
         </div>
@@ -46,40 +46,40 @@ const tooltipContent = {
       <!-- Кнопка создания проекта -->
       <UTooltip :text="t('common.newProject')" :content="tooltipContent" :delay-duration="0">
         <button
-          class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
+          class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
         >
-          <UIcon name="i-lucide-plus" class="w-5 h-5" />
+          <UIcon name="i-lucide-plus" class="h-5 w-5" />
         </button>
       </UTooltip>
     </div>
 
     <!-- Системная навигация -->
-    <div class="flex-shrink-0 flex flex-col items-center gap-1 mt-2">
+    <div class="mt-2 flex flex-shrink-0 flex-col items-center gap-1">
       <UTooltip :text="t('common.events')" :content="tooltipContent" :delay-duration="0">
         <button
-          class="relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
+          class="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
           @click="emit('open-events')"
         >
-          <UIcon name="i-lucide-zap" class="w-5 h-5" />
+          <UIcon name="i-lucide-zap" class="h-5 w-5" />
         </button>
       </UTooltip>
 
       <UTooltip :text="t('common.logs')" :content="tooltipContent" :delay-duration="0">
         <button
-          class="relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
+          class="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
           @click="emit('open-logs')"
         >
-          <UIcon name="i-lucide-scroll-text" class="w-5 h-5" />
+          <UIcon name="i-lucide-scroll-text" class="h-5 w-5" />
         </button>
       </UTooltip>
 
       <UTooltip :text="t('common.settings')" :content="tooltipContent" :delay-duration="0">
         <RouterLink
           to="/settings"
-          class="relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
+          class="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
           active-class="bg-[var(--ui-bg-elevated)] text-[var(--ui-text)]"
         >
-          <UIcon name="i-lucide-settings" class="w-5 h-5" />
+          <UIcon name="i-lucide-settings" class="h-5 w-5" />
         </RouterLink>
       </UTooltip>
     </div>
