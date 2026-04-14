@@ -1,3 +1,4 @@
 bun run lint
 bun run typecheck
 bun run format:fix
+git add -A
