@@ -4,9 +4,6 @@ Exodus enables product evolution through controlled iterations, where user inten
   <a href="https://github.com/sygeman/exodus/releases/latest/download/stable-macos-arm64-Exodus.dmg">
     <img src="https://img.shields.io/badge/Download-macOS%20(Apple%20Silicon)-000000?logo=apple" alt="Download for macOS">
   </a>
-  <a href="https://github.com/sygeman/exodus/releases/latest/download/install-linux.sh">
-    <img src="https://img.shields.io/badge/Install-Linux-FCC624?logo=linux&logoColor=black" alt="Install on Linux">
-  </a>
 </p>
 
 ## Installation
