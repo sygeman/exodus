@@ -13,17 +13,18 @@ export function initUpdater(evento: EventoBun) {
     try {
       sendStatus({ status: "checking" })
       const result = await Updater.checkForUpdate()
+      const currentVersion = await Updater.localInfo.version()
       if (result.error) {
         sendStatus({ status: "error", error: result.error })
         evento.emitEvent("app:clearDismissedUpdate", "bun")
       } else if (result.updateAvailable) {
         sendStatus({
           status: "available",
-          currentVersion: result.version,
+          currentVersion,
           latestVersion: result.version,
         })
       } else {
-        sendStatus({ status: "latest", currentVersion: result.version })
+        sendStatus({ status: "latest", currentVersion })
         evento.emitEvent("app:clearDismissedUpdate", "bun")
       }
     } catch (err) {
