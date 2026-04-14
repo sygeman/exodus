@@ -8,7 +8,7 @@ export function useCounter() {
   const autoIncrement = ref(false)
   const loading = ref(true)
 
-  on("counter:updated", ({ payload }: any) => {
+  on("counter:updated", ({ payload }) => {
     count.value = payload.count
     autoIncrement.value = payload.autoIncrement
     loading.value = false

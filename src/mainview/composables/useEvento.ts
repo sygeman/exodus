@@ -1,5 +1,6 @@
 import { onUnmounted } from "vue"
 import { evento } from "@/mainview/evento"
+import type { GlobalEventMap } from "@/events"
 
 export function useEvento() {
   const unsubs: (() => void)[] = []
@@ -9,11 +10,17 @@ export function useEvento() {
   })
 
   return {
-    on: (name: string, handler: any) => {
-      unsubs.push(evento.on(name, handler))
+    on: <K extends keyof GlobalEventMap>(
+      name: K,
+      handler: (ctx: { payload: GlobalEventMap[K] }) => void,
+    ) => {
+      unsubs.push(evento.on(name, handler as Parameters<typeof evento.on>[1]))
     },
-    once: (name: string, handler: any) => {
-      unsubs.push(evento.once(name, handler))
+    once: <K extends keyof GlobalEventMap>(
+      name: K,
+      handler: (ctx: { payload: GlobalEventMap[K] }) => void,
+    ) => {
+      unsubs.push(evento.once(name, handler as Parameters<typeof evento.once>[1]))
     },
   }
 }

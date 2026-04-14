@@ -45,7 +45,7 @@ export const loggerRegistry: EventoRegistry = {
   },
   "logger:query:response": {
     schema: z.object({
-      data: z.object({ logs: z.array(z.any()), total: z.number() }),
+      data: z.object({ logs: z.array(z.unknown()), total: z.number() }),
       correlation_id: z.string().optional(),
     }),
     description: "Query logs response",

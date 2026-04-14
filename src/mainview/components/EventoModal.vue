@@ -25,7 +25,7 @@ const filteredRegistry = computed(() => {
   const q = eventFilter.value.trim().toLowerCase()
   if (!q) return registry.value
   return registry.value.filter(
-    (evt: any) =>
+    (evt) =>
       evt.name.toLowerCase().includes(q) ||
       (evt.description && evt.description.toLowerCase().includes(q)),
   )
@@ -36,7 +36,7 @@ const eventSchema = ref<{ type: string; properties?: Record<string, { type: stri
   null,
 )
 const eventDescription = ref("")
-const formValues = reactive<Record<string, any>>({})
+const formValues = reactive<Record<string, unknown>>({})
 const playgroundResult = ref<string | null>(null)
 
 const { t } = useI18n()
@@ -62,14 +62,15 @@ async function selectEvent(name: string) {
   Object.keys(formValues).forEach((key) => delete formValues[key])
 
   try {
-    const res = await (evento as any).request("evento:schema:request", { name }, { timeout: 2000 })
+    const res = await evento.request<
+      { name: string },
+      { schema: { type: string; properties?: Record<string, { type: string }> }; description?: string }
+    >("evento:schema:request", { name }, { timeout: 2000 })
     if (res.data?.schema) {
       eventSchema.value = res.data.schema
       eventDescription.value = res.data.description || ""
       if (res.data.schema.type === "object" && res.data.schema.properties) {
-        for (const [key, fieldDef] of Object.entries(
-          res.data.schema.properties as Record<string, { type: string }>,
-        )) {
+        for (const [key, fieldDef] of Object.entries(res.data.schema.properties)) {
           formValues[key] = fieldDef.type === "boolean" ? false : ""
         }
       }
@@ -83,7 +84,7 @@ function buildPayload(): unknown {
   if (!eventSchema.value) return undefined
   if (eventSchema.value.type === "void") return undefined
   if (eventSchema.value.type === "object" && eventSchema.value.properties) {
-    const payload: Record<string, any> = {}
+    const payload: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(formValues)) {
       const fieldDef = eventSchema.value.properties[key]
       if (fieldDef?.type === "number") {
@@ -208,20 +209,21 @@ const logRows = computed(() =>
                         :label="key"
                         class="text-xs"
                       >
-                        <UInput v-if="fieldDef.type === 'string'" v-model="formValues[key]" size="sm" />
+                        <UInput v-if="fieldDef.type === 'string'" :model-value="String(formValues[key] ?? '')" @update:model-value="(v) => formValues[key] = v" size="sm" />
                         <UInput
                           v-else-if="fieldDef.type === 'number'"
-                          v-model="formValues[key]"
+                          :model-value="String(formValues[key] ?? '')"
+                          @update:model-value="(v) => formValues[key] = v"
                           type="number"
                           size="sm"
                         />
                         <div v-else-if="fieldDef.type === 'boolean'" class="flex items-center gap-2">
-                          <USwitch v-model="formValues[key]" />
+                          <USwitch :model-value="Boolean(formValues[key])" @update:model-value="(v) => formValues[key] = v" />
                           <span class="text-xs text-[var(--ui-text-muted)]">
                             {{ formValues[key] ? "true" : "false" }}
                           </span>
                         </div>
-                        <UInput v-else v-model="formValues[key]" size="sm" />
+                        <UInput v-else :model-value="String(formValues[key] ?? '')" @update:model-value="(v) => formValues[key] = v" size="sm" />
                       </UFormField>
                     </div>
 

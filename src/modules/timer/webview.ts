@@ -5,7 +5,7 @@ export function useTimer() {
   const { on } = useEvento()
   const time = ref(0)
 
-  on("timer:tick", ({ payload }: any) => {
+  on("timer:tick", ({ payload }) => {
     time.value = payload.time
   })
 

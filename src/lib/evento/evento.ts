@@ -88,7 +88,7 @@ export class Evento<
     if (!entry) return null
 
     const schema = entry.schema
-    const def = (schema as any)._def
+    const def = (schema as unknown as { _def?: { type?: string; shape?: unknown } })._def
     const typeName = def?.type || schema.constructor?.name
 
     // Handle void
@@ -98,11 +98,13 @@ export class Evento<
 
     // Handle object
     if (typeName === "object" || typeName === "ZodObject") {
-      const shape = def.shape || (schema as any).shape
+      const shape =
+        (def as { shape?: unknown } | undefined)?.shape ??
+        (schema as unknown as { shape?: unknown }).shape
       const properties: Record<string, { type: string }> = {}
       const shapeObj = typeof shape === "function" ? shape() : shape
       for (const [key, value] of Object.entries(shapeObj || {})) {
-        const fieldSchema = value as any
+        const fieldSchema = value as { _def?: { type?: string }; def?: { type?: string } }
         const fieldDef = fieldSchema._def || fieldSchema.def
         const fieldType = fieldDef?.type || "unknown"
         properties[key] = { type: fieldType }
@@ -175,7 +177,7 @@ export class Evento<
   on(name: string, handler: EventoHandler<Local | Remotes[number]>): EventoUnsubscribe
   on(
     name: string | keyof EventMap,
-    handler: EventoHandler<Local | Remotes[number], any>,
+    handler: EventoHandler<Local | Remotes[number]> | EventoHandler<Local | Remotes[number], EventMap[keyof EventMap]>,
   ): EventoUnsubscribe {
     return this._subscribe(name as string, handler as EventoHandler<Local | Remotes[number]>, false)
   }
@@ -190,7 +192,7 @@ export class Evento<
   once(name: string, handler: EventoHandler<Local | Remotes[number]>): EventoUnsubscribe
   once(
     name: string | keyof EventMap,
-    handler: EventoHandler<Local | Remotes[number], any>,
+    handler: EventoHandler<Local | Remotes[number]> | EventoHandler<Local | Remotes[number], EventMap[keyof EventMap]>,
   ): EventoUnsubscribe {
     return this._subscribe(name as string, handler as EventoHandler<Local | Remotes[number]>, true)
   }
@@ -279,12 +281,10 @@ export class Evento<
    * Merges user payload with auto-generated EventMeta
    * Only source is required, rest is auto-generated
    */
-  emitEvent<K extends NonVoidKeys<EventMap>>(name: K, payload: EventMap[K], source: string): void
-  emitEvent<K extends VoidKeys<EventMap>>(name: K, source: string): void
-  emitEvent(name: string, payload: unknown, source?: string): void {
+  emitEvent(name: string, payload?: unknown, source?: string): void {
     // If only 2 args, second is source (void event)
-    const eventSource = source ?? (payload as unknown as string)
-    const eventPayload = source ? payload : undefined
+    const eventSource = source ?? (typeof payload === "string" ? payload : String(payload))
+    const eventPayload = source !== undefined ? payload : undefined
 
     const validation = this._validate(name, eventPayload)
     if (!validation.valid) {
@@ -441,7 +441,7 @@ export class Evento<
         ? { ...(payload as Record<string, unknown>), correlation_id: correlationId }
         : { correlation_id: correlationId }
 
-    ;(this as any).emitEvent(name, requestPayload as any, `${name}:request`)
+    this.emitEvent(name, requestPayload, `${name}:request`)
   }
 
   /**
@@ -449,7 +449,7 @@ export class Evento<
    * Automatically includes correlation_id from request context
    */
   reply<T = unknown>(context: EventoHandlerContext<Local | Remotes[number]>, payload: T): void {
-    const correlationId = (context.payload as any).correlation_id
+    const correlationId = (context.payload as { correlation_id?: string }).correlation_id
     const responseEvent = `${context.name}:response`
 
     const eventPayload = {

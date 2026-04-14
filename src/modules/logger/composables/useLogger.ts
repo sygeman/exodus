@@ -4,6 +4,11 @@ import type { LogEntry } from "@/modules/logger/events"
 
 const PAGE_SIZE = 100
 
+function formatTime(ts: number) {
+  const d = new Date(ts)
+  return d.toLocaleTimeString() + "." + String(d.getMilliseconds()).padStart(3, "0")
+}
+
 export function useLogger() {
   const logs = ref<LogEntry[]>([])
   const total = ref(0)
@@ -117,11 +122,6 @@ export function useLogger() {
       fetchLogs()
       refreshStats()
     }
-  }
-
-  function formatTime(ts: number) {
-    const d = new Date(ts)
-    return d.toLocaleTimeString() + "." + String(d.getMilliseconds()).padStart(3, "0")
   }
 
   return {

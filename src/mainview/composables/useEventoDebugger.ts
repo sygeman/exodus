@@ -65,7 +65,7 @@ export function useEventoDebugger() {
       if (log.meta.depth > maxDepth) maxDepth = log.meta.depth
     }
     const topEvents = Array.from(counts.entries())
-      .sort((a, b) => b[1] - a[1])
+      .toSorted((a, b) => b[1] - a[1])
       .slice(0, 5)
     return {
       total: logs.value.length,
@@ -86,7 +86,7 @@ export function useEventoDebugger() {
     for (const item of info.wildcards) {
       set.add(item.pattern)
     }
-    return Array.from(set).sort()
+    return Array.from(set).toSorted()
   })
 
   function clearLogs() {
@@ -108,9 +108,9 @@ export function useEventoDebugger() {
       }
     }
     if (parsed === undefined) {
-      ;(evento as any).emitEvent(name, source)
+      evento.emitEvent(name, source)
     } else {
-      ;(evento as any).emitEvent(name, parsed, source)
+      evento.emitEvent(name, parsed, source)
     }
   }
 
@@ -127,7 +127,7 @@ export function useEventoDebugger() {
         parsed = payload
       }
     }
-    const response = await (evento as any).request(name, parsed, { timeout })
+    const response = await evento.request(name, parsed, { timeout })
     return {
       success: true,
       data: JSON.stringify(response.data, null, 2),

@@ -24,12 +24,12 @@ class BunLogger {
     })
 
     evento.on("logger:clear", (ctx) => {
-      const source = (ctx.payload as any).source as "bun" | "webview" | "all"
+      const source = (ctx.payload as { source: "bun" | "webview" | "all" }).source
       clearLogs(source)
     })
 
     evento.on("logger:query", (ctx) => {
-      const q = ctx.payload as any
+      const q = ctx.payload as Parameters<typeof queryLogs>[0]
       const rows = queryLogs(q)
       const total = countLogs(q)
       evento.reply(ctx, { data: { logs: rows, total } })

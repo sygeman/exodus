@@ -1,8 +1,7 @@
 import { Electroview } from "electrobun/view"
 import type { RPCSchema } from "electrobun"
 import { Evento, type EventoMetaType } from "@/lib/evento/evento"
-import type { GlobalEventMap } from "@/events"
-import { globalRegistry } from "@/events"
+import { globalRegistry, type GlobalEventMap } from "@/events"
 
 export function createEventoWebview<EventMap extends Record<string, unknown> = GlobalEventMap>() {
   const evento = new Evento<"webview", ["bun"], EventMap>("webview", "bun")
@@ -23,11 +22,7 @@ export function createEventoWebview<EventMap extends Record<string, unknown> = G
     },
   })
 
-  const sender = (msg: { name: string; payload: unknown; meta: EventoMeta }) => {
-    ;(rpc as unknown as { send: { emit: typeof sender } }).send.emit(msg)
-  }
-
-  return { evento, rpc, sender }
+  return { evento, rpc }
 }
 
-export const { evento, rpc, sender } = createEventoWebview()
+export const { evento, rpc } = createEventoWebview()

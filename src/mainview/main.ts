@@ -6,15 +6,15 @@ import { createI18n } from "vue-i18n"
 import App from "./App.vue"
 import CounterPage from "./pages/CounterPage.vue"
 import SettingsPage from "./pages/SettingsPage.vue"
-import { evento, sender, rpc } from "./evento"
+import { evento, rpc } from "./evento"
 import { Electroview } from "electrobun/view"
 import { webviewLogger } from "@/modules/logger/webview"
 import { defaultLocale, messages } from "./locales"
 
 webviewLogger.init()
 
-new Electroview({ rpc })
-evento.sender = sender
+const electroview = new Electroview({ rpc })
+evento.sender = (msg) => electroview.rpc?.send?.emit(msg)
 
 console.log("Webview process started")
 
