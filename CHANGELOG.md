@@ -1,3 +1,12 @@
+## [0.12.2](https://github.com/sygeman/exodus/compare/v0.12.1...v0.12.2) (2026-04-14)
+
+
+### Bug Fixes
+
+* restore last route on app restart in release builds ([893f00a](https://github.com/sygeman/exodus/commit/893f00aa835157a5ad18c3dcb1a558a4751c9729))
+
+
+
 ## [0.12.1](https://github.com/sygeman/exodus/compare/v0.12.0...v0.12.1) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * add oxlint-tailwindcss plugin with Tailwind linting rules ([da88cd2](https://github.com/sygeman/exodus/commit/da88cd23fa28f76c14cf76617aa2f1d17677f079))
-
-
-
-# [0.9.0](https://github.com/sygeman/exodus/compare/v0.8.0...v0.9.0) (2026-04-14)
-
-
-### Features
-
-* add periodic update check every 15 minutes in bun process ([9524295](https://github.com/sygeman/exodus/commit/9524295666bea85a4b7f2ff8a8f0052022a98c07))
 
 
 
