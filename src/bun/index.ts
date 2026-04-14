@@ -2,6 +2,8 @@ import { BrowserWindow, Updater, ApplicationMenu } from "electrobun/bun"
 import { createEventoBun } from "@/bun/evento"
 import { initCounter } from "@/modules/counter/bun"
 import { initTimer } from "@/modules/timer/bun"
+import { initUpdater } from "@/modules/updater/bun"
+import { initSchema } from "@/modules/schema/bun"
 import { bunLogger } from "@/modules/logger/bun"
 import { globalRegistry } from "@/events"
 
@@ -66,78 +68,9 @@ ApplicationMenu.setApplicationMenu([
 bunLogger.attach(evento)
 initCounter(evento)
 initTimer(evento)
+initUpdater(evento)
+initSchema(evento)
 
 console.log("Bun process started")
-
-evento.on("evento:schema:request", (ctx) => {
-  const name = (ctx.payload as any).name
-  console.log("[bun] schema:request for", name)
-  const entry = evento.getSchema(name)
-  const serialized = entry ? evento.serializeSchema(name) : null
-  console.log("[bun] serialized:", serialized)
-  evento.reply(ctx, {
-    name,
-    schema: serialized,
-    description: entry?.description,
-  })
-})
-
-evento.on("app:checkUpdate", async (ctx) => {
-  try {
-    console.log("[updater] checking for update...")
-    console.log("[updater] local info:", {
-      version: await Updater.localInfo.version().catch(() => "unknown"),
-      channel: await Updater.localInfo.channel().catch(() => "unknown"),
-      hash: await Updater.localInfo.hash().catch(() => "unknown"),
-      baseUrl: await Updater.localInfo.baseUrl().catch(() => "unknown"),
-    })
-    const result = await Updater.checkForUpdate()
-    console.log("[updater] result:", result)
-    evento.reply(ctx, {
-      data: {
-        updateAvailable: result.updateAvailable,
-        currentVersion: result.version,
-        latestVersion: result.hash,
-        error: result.error,
-      },
-    })
-  } catch (err) {
-    console.error("[updater] error:", err)
-    evento.reply(ctx, {
-      data: {
-        updateAvailable: false,
-        error: (err as Error).message,
-      },
-    })
-  }
-})
-
-evento.on("app:downloadUpdate", async (ctx) => {
-  try {
-    console.log("[updater] downloading update...")
-    await Updater.downloadUpdate()
-    console.log("[updater] downloadUpdate completed")
-    evento.reply(ctx, { data: { success: true } })
-  } catch (err) {
-    console.error("[updater] downloadUpdate failed:", err)
-    evento.reply(ctx, {
-      data: { success: false, error: (err as Error).message || String(err) },
-    })
-  }
-})
-
-evento.on("app:applyUpdate", async (ctx) => {
-  try {
-    console.log("[updater] applying update...")
-    await Updater.applyUpdate()
-    console.log("[updater] applyUpdate returned")
-    evento.reply(ctx, { data: { success: true } })
-  } catch (err) {
-    console.error("[updater] applyUpdate failed:", err)
-    evento.reply(ctx, {
-      data: { success: false, error: (err as Error).message || String(err) },
-    })
-  }
-})
 
 export { evento }

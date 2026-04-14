@@ -48,6 +48,9 @@ export default {
     updateAvailable: "Доступно обновление",
     upToDate: "Актуальная версия",
     updateError: "Ошибка",
+    checking: "Проверка...",
+    downloading: "Загрузка...",
+    applying: "Установка...",
   },
   counter: {
     title: "Счетчик: {value}",

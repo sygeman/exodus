@@ -48,6 +48,9 @@ export default {
     updateAvailable: "Update available",
     upToDate: "Up to date",
     updateError: "Error",
+    checking: "Checking...",
+    downloading: "Downloading...",
+    applying: "Applying...",
   },
   counter: {
     title: "Counter: {value}",

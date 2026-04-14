@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from "vue"
+import { computed, ref, onMounted, onUnmounted } from "vue"
 import { useI18n } from "vue-i18n"
 import { useColorMode } from "@vueuse/core"
 import { locales } from "@/mainview/locales"
@@ -24,7 +24,7 @@ const themeText = computed(() => (isDark.value ? t("common.lightMode") : t("comm
 const currentLocale = computed(() => locales.find((l) => l.value === locale.value) ?? locales[0])
 
 function setLocale(value: string) {
-  locale.value = value as any
+  locale.value = value as "en" | "ru"
 }
 
 const localeItems = computed(() =>
@@ -37,64 +37,59 @@ const localeItems = computed(() =>
 
 const appVersion = __APP_VERSION__
 
-const updateStatus = ref<"idle" | "checking" | "available" | "latest" | "error" | "applying">("idle")
+const updateStatus = ref<"idle" | "checking" | "available" | "latest" | "error" | "downloading" | "applying">("idle")
 const updateError = ref<string>("")
+const currentVersion = ref<string>("")
+const latestVersion = ref<string>("")
 
-async function checkForUpdate() {
-  updateStatus.value = "checking"
-  updateError.value = ""
-  try {
-    console.log("[settings] checking for update...")
-    const response = await evento.request("app:checkUpdate", {})
-    console.log("[settings] update response:", response)
-    const data = (response as any).data
-    if (data.error) {
-      updateStatus.value = "error"
-      updateError.value = data.error
-    } else if (data.updateAvailable) {
-      updateStatus.value = "available"
-    } else {
-      updateStatus.value = "latest"
-    }
-  } catch (err) {
-    console.error("[settings] update check failed:", err)
-    updateStatus.value = "error"
-    updateError.value = (err as Error).message || String(err)
-  }
-}
-
-async function applyUpdate() {
-  updateStatus.value = "applying"
-  updateError.value = ""
-  try {
-    console.log("[settings] downloading update...")
-    const downloadResponse = await evento.request("app:downloadUpdate", {}, { timeout: 60000 })
-    console.log("[settings] download response:", downloadResponse)
-    const downloadData = (downloadResponse as any).data
-    if (!downloadData.success) {
-      updateStatus.value = "error"
-      updateError.value = downloadData.error || "Download failed"
-      return
-    }
-
-    console.log("[settings] applying update...")
-    const applyResponse = await evento.request("app:applyUpdate", {}, { timeout: 30000 })
-    console.log("[settings] apply response:", applyResponse)
-    const applyData = (applyResponse as any).data
-    if (!applyData.success) {
-      updateStatus.value = "error"
-      updateError.value = applyData.error || "Apply failed"
-    }
-  } catch (err) {
-    console.error("[settings] update apply failed:", err)
-    updateStatus.value = "error"
-    updateError.value = (err as Error).message || String(err)
-  }
-}
+let unsubscribe: (() => void) | null = null
 
 onMounted(() => {
-  checkForUpdate()
+  unsubscribe = evento.on("app:updateStatus", (ctx) => {
+    updateStatus.value = ctx.payload.status
+    updateError.value = ctx.payload.error || ""
+    currentVersion.value = ctx.payload.currentVersion || ""
+    latestVersion.value = ctx.payload.latestVersion || ""
+  })
+
+  evento.emitEvent("app:checkUpdate", "webview")
 })
+
+onUnmounted(() => {
+  unsubscribe?.()
+})
+
+function checkForUpdate() {
+  evento.emitEvent("app:checkUpdate", "webview")
+}
+
+function startUpdate() {
+  evento.emitEvent("app:startUpdate", "webview")
+}
+
+const statusText = computed(() => {
+  switch (updateStatus.value) {
+    case "checking":
+      return t("common.checking")
+    case "available":
+      return t("common.updateAvailable")
+    case "latest":
+      return t("common.upToDate")
+    case "downloading":
+      return t("common.downloading") || "Downloading..."
+    case "applying":
+      return t("common.applying") || "Applying..."
+    case "error":
+      return t("common.updateError")
+    default:
+      return ""
+  }
+})
+
+const showInstallButton = computed(() => updateStatus.value === "available")
+const isLoading = computed(() =>
+  ["checking", "downloading", "applying"].includes(updateStatus.value)
+)
 </script>
 
 <template>
@@ -137,25 +132,28 @@ onMounted(() => {
         </div>
         <div class="flex items-center gap-2">
           <span
-            v-if="updateStatus === 'available'"
-            class="text-sm text-[var(--ui-success)]"
-          >{{ t("common.updateAvailable") }}</span>
-          <span
-            v-else-if="updateStatus === 'latest'"
-            class="text-sm text-[var(--ui-text-muted)]"
-          >{{ t("common.upToDate") }}</span>
-          <div
-            v-else-if="updateStatus === 'error'"
-            class="flex flex-col items-end gap-1"
+            v-if="updateStatus !== 'idle'"
+            class="text-sm"
+            :class="{
+              'text-[var(--ui-success)]': updateStatus === 'available',
+              'text-[var(--ui-text-muted)]': updateStatus === 'latest' || updateStatus === 'checking',
+              'text-[var(--ui-error)]': updateStatus === 'error',
+              'text-[var(--ui-primary)]': updateStatus === 'downloading' || updateStatus === 'applying',
+            }"
           >
-            <span class="text-sm text-[var(--ui-error)]">{{ t("common.updateError") }}</span>
-            <span class="text-xs text-[var(--ui-error)] opacity-80 max-w-[200px] text-right">{{ updateError }}</span>
-          </div>
+            {{ statusText }}
+          </span>
+          <span
+            v-if="updateStatus === 'available' && latestVersion"
+            class="text-xs text-[var(--ui-text-muted)]"
+          >
+            {{ latestVersion.slice(0, 8) }}
+          </span>
           <UButton
-            v-if="updateStatus === 'available'"
+            v-if="showInstallButton"
             color="success"
             size="sm"
-            @click="applyUpdate"
+            @click="startUpdate"
           >
             {{ t("common.install") }}
           </UButton>
@@ -163,13 +161,20 @@ onMounted(() => {
             v-else
             variant="soft"
             size="sm"
-            :loading="updateStatus === 'checking' || updateStatus === 'applying'"
-            :disabled="updateStatus === 'applying'"
+            :loading="isLoading"
+            :disabled="isLoading"
             @click="checkForUpdate"
           >
             {{ t("common.check") }}
           </UButton>
         </div>
+      </div>
+
+      <div
+        v-if="updateStatus === 'error' && updateError"
+        class="text-xs text-[var(--ui-error)] text-right"
+      >
+        {{ updateError }}
       </div>
     </div>
   </div>

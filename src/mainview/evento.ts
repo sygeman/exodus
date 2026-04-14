@@ -23,7 +23,11 @@ export function createEventoWebview<EventMap extends Record<string, unknown> = G
     },
   })
 
-  return { evento, rpc }
+  const sender = (msg: { name: string; payload: unknown; meta: EventoMeta }) => {
+    ;(rpc as unknown as { send: { emit: typeof sender } }).send.emit(msg)
+  }
+
+  return { evento, rpc, sender }
 }
 
-export const { evento, rpc } = createEventoWebview()
+export const { evento, rpc, sender } = createEventoWebview()
