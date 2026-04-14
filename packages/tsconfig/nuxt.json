@@ -1,9 +1,0 @@
-{
-  "extends": "./base.json",
-  "display": "Nuxt",
-  "compilerOptions": {
-    "jsx": "preserve",
-    "allowJs": true,
-    "types": ["@nuxt/types"]
-  }
-}
