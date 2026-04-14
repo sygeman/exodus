@@ -69,4 +69,4 @@ export default {
     pageOf: "strona {page} z {totalPages}",
     totalLogs: "{total} logów · {pageInfo}",
   },
-};
+}
