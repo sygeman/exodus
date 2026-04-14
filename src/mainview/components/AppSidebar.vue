@@ -15,11 +15,8 @@ const tooltipContent = {
 <template>
   <aside class="flex flex-col items-center pb-2 w-16 pt-4 border-r border-[var(--ui-border)]">
     <!-- Лого -->
-    <RouterLink
-      to="/"
-      class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-[var(--ui-bg-elevated)] text-[var(--ui-primary)]"
-    >
-      <LogoSvg class="w-9 h-9" />
+    <RouterLink to="/" class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg">
+      <LogoSvg class="w-8 h-8" />
     </RouterLink>
 
     <!-- Проекты (скроллятся) -->
