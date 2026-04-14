@@ -1,3 +1,12 @@
+## [0.17.1](https://github.com/sygeman/exodus/compare/v0.17.0...v0.17.1) (2026-04-14)
+
+
+### Bug Fixes
+
+* enable Cmd+Q quit via application menu with explicit action handler ([c43054a](https://github.com/sygeman/exodus/commit/c43054a9d1bfa0e2d5609f16f5515d32307da3a3))
+
+
+
 # [0.17.0](https://github.com/sygeman/exodus/compare/v0.16.1...v0.17.0) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * use correct current version in update toast ([b1bedac](https://github.com/sygeman/exodus/commit/b1bedac309454648455e3d874cf2b799e0746d90))
-
-
-
-# [0.15.0](https://github.com/sygeman/exodus/compare/v0.14.0...v0.15.0) (2026-04-14)
-
-
-### Features
-
-* add German (de) locale ([36e4003](https://github.com/sygeman/exodus/commit/36e40036b3563487323d807849c426141e5b2ed0))
 
 
 
