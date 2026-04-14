@@ -44,9 +44,11 @@ export default {
     },
     linux: {
       bundleCEF: false,
+      icons: "assets/linux",
     },
     win: {
       bundleCEF: false,
+      icons: "assets/icon.ico",
     },
   },
 } satisfies ElectrobunConfig;
