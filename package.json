@@ -7,6 +7,7 @@
     "dev": "concurrently \"vite --port 5173\" \"vite build && electrobun dev --watch\"",
     "build": "vite build",
     "build:stable": "vite build && electrobun build --env=stable",
+    "icons": "./scripts/generate-icons.sh",
     "typecheck": "vue-tsc --noEmit",
     "test": "bun test --coverage",
     "test:watch": "bun test --watch",
