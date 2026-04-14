@@ -1,14 +1,8 @@
 name: Release
 on:
   push:
-    tags:
-      - 'v*'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Version to release (e.g., v1.0.0)'
-        required: true
-        type: string
+    branches:
+      - main
 
 permissions:
   contents: write
@@ -18,25 +12,15 @@ jobs:
     name: Generate Changelog
     runs-on: ubuntu-latest
     outputs:
-      version: ${{ steps.version.outputs.version }}
+      version: ${{ steps.changelog.outputs.version }}
       release_notes: ${{ steps.changelog.outputs.clean_changelog }}
+      tag: ${{ steps.changelog.outputs.tag }}
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.event_name == 'push' && github.ref || 'main' }}
-
-      - name: Get version
-        id: version
-        run: |
-          if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
-            VERSION="${{ github.event.inputs.version }}"
-          else
-            VERSION="${GITHUB_REF#refs/tags/}"
-          fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "Version: $VERSION"
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate Changelog
         id: changelog
@@ -46,18 +30,21 @@ jobs:
           version-file: './package.json'
           version-path: 'version'
           skip-version-file: false
-          skip-commit: true
-          skip-tag: true
+          skip-commit: false
+          skip-tag: false
           skip-git-pull: true
           create-summary: true
 
   build-macos:
     name: Build macOS
     needs: changelog
+    if: needs.changelog.outputs.tag == 'true'
     runs-on: macos-14
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+        with:
+          ref: ${{ needs.changelog.outputs.version }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -67,28 +54,13 @@ jobs:
       - name: Install dependencies
         run: bun install
 
-      - name: Determine build environment
-        id: build-env
-        run: |
-          VERSION="${{ needs.changelog.outputs.version }}"
-          if [[ "$VERSION" == *"-canary"* ]]; then
-            echo "env=canary" >> $GITHUB_OUTPUT
-          else
-            echo "env=stable" >> $GITHUB_OUTPUT
-          fi
-
       - name: Build app
         env:
           ELECTROBUN_DEVELOPER_ID: ${{ secrets.ELECTROBUN_DEVELOPER_ID }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
           APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-        run: |
-          if [ "${{ steps.build-env.outputs.env }}" = "canary" ]; then
-            bun run build:canary
-          else
-            bun run build:stable
-          fi
+        run: bun run build:stable
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v4
@@ -100,6 +72,7 @@ jobs:
   release:
     name: Create Release
     needs: [changelog, build-macos]
+    if: needs.changelog.outputs.tag == 'true'
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
@@ -115,7 +88,7 @@ jobs:
           name: Release ${{ needs.changelog.outputs.version }}
           body: ${{ needs.changelog.outputs.release_notes }}
           draft: false
-          prerelease: ${{ contains(needs.changelog.outputs.version, 'canary') }}
+          prerelease: false
           files: |
             artifacts/**
         env:

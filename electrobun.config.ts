@@ -23,6 +23,9 @@ export default {
     identifier: "exodus.sgmn.dev",
     version: packageJson.version,
   },
+  release: {
+    baseUrl: "https://github.com/sygeman/exodus/releases/latest/download",
+  },
   build: {
     bun: {
       plugins: [aliasPlugin],
