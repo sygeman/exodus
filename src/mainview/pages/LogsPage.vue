@@ -67,11 +67,23 @@ function formatArgs(args: unknown[]) {
         <UBadge v-if="isPaused" color="warning" variant="subtle">{{ t("common.paused") }}</UBadge>
       </div>
       <div class="flex items-center gap-2">
-        <div class="mr-2 hidden items-center gap-2 text-xs text-[var(--ui-text-muted)] sm:flex">
-          <span>D {{ stats.debug }}</span>
-          <span>I {{ stats.info }}</span>
-          <span>W {{ stats.warn }}</span>
-          <span>E {{ stats.error }}</span>
+        <div class="mr-2 hidden items-center gap-3 text-xs text-[var(--ui-text-muted)] sm:flex">
+          <div class="flex items-center gap-1">
+            <span class="text-[var(--ui-text-dimmed)]">Debug</span>
+            <span class="font-medium tabular-nums">{{ stats.debug }}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="text-[var(--ui-text-dimmed)]">Info</span>
+            <span class="font-medium tabular-nums">{{ stats.info }}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="text-[var(--ui-text-dimmed)]">Warn</span>
+            <span class="font-medium tabular-nums">{{ stats.warn }}</span>
+          </div>
+          <div class="flex items-center gap-1">
+            <span class="text-[var(--ui-text-dimmed)]">Error</span>
+            <span class="font-medium tabular-nums">{{ stats.error }}</span>
+          </div>
         </div>
         <UButton :color="isPaused ? 'warning' : 'neutral'" variant="subtle" @click="togglePause">
           {{ isPaused ? t("common.resume") : t("common.pause") }}
