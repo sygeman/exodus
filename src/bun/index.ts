@@ -84,7 +84,15 @@ evento.on("evento:schema:request", (ctx) => {
 
 evento.on("app:checkUpdate", async (ctx) => {
   try {
+    console.log("[updater] checking for update...")
+    console.log("[updater] local info:", {
+      version: await Updater.localInfo.version().catch(() => "unknown"),
+      channel: await Updater.localInfo.channel().catch(() => "unknown"),
+      hash: await Updater.localInfo.hash().catch(() => "unknown"),
+      baseUrl: await Updater.localInfo.baseUrl().catch(() => "unknown"),
+    })
     const result = await Updater.checkForUpdate()
+    console.log("[updater] result:", result)
     evento.reply(ctx, {
       data: {
         updateAvailable: result.updateAvailable,
@@ -94,6 +102,7 @@ evento.on("app:checkUpdate", async (ctx) => {
       },
     })
   } catch (err) {
+    console.error("[updater] error:", err)
     evento.reply(ctx, {
       data: {
         updateAvailable: false,

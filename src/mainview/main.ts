@@ -20,6 +20,14 @@ evento.sender = (msg: { name: string; payload: unknown; meta: any }) => {
 
 console.log("Webview process started")
 
+window.addEventListener("error", (e) => {
+  console.error("[webview error]", e.message, e.filename, e.lineno)
+})
+
+window.addEventListener("unhandledrejection", (e) => {
+  console.error("[webview unhandledrejection]", e.reason)
+})
+
 const app = createApp(App)
 
 const router = createRouter({
