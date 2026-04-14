@@ -1,3 +1,12 @@
+# [0.3.0](https://github.com/sygeman/exodus/compare/v0.2.0...v0.3.0) (2026-04-14)
+
+
+### Features
+
+* add update check to settings page ([1990aeb](https://github.com/sygeman/exodus/commit/1990aeb9d5bc855c57f75504f84628feb9893a8d))
+
+
+
 # [0.2.0](https://github.com/sygeman/exodus/compare/v0.1.0...v0.2.0) (2026-04-14)
 
 
