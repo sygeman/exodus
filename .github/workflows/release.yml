@@ -75,17 +75,87 @@ jobs:
           path: artifacts/**
           if-no-files-found: error
 
-  release:
-    name: Create Release
-    needs: [changelog, build-macos]
+  build-win:
+    name: Build Windows
+    needs: changelog
+    if: needs.changelog.outputs.version != '' || github.event_name == 'workflow_dispatch'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || format('v{0}', needs.changelog.outputs.version) }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build app
+        run: bun run build:stable
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-artifacts
+          path: artifacts/**
+          if-no-files-found: error
+
+  build-linux:
+    name: Build Linux
+    needs: changelog
     if: needs.changelog.outputs.version != '' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - name: Download artifacts
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || format('v{0}', needs.changelog.outputs.version) }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Install dependencies
+        run: bun install
+
+      - name: Build app
+        run: bun run build:stable
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-artifacts
+          path: artifacts/**
+          if-no-files-found: error
+
+  release:
+    name: Create Release
+    needs: [changelog, build-macos, build-win, build-linux]
+    if: needs.changelog.outputs.version != '' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download macOS artifacts
         uses: actions/download-artifact@v4
         with:
           name: macos-artifacts
-          path: artifacts
+          path: artifacts/macos
+
+      - name: Download Windows artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: win-artifacts
+          path: artifacts/win
+
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: linux-artifacts
+          path: artifacts/linux
 
       - name: Create Release
         uses: softprops/action-gh-release@v2
