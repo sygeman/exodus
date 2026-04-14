@@ -5,6 +5,7 @@ import LogoSvg from "@/mainview/assets/logo.svg"
 
 const emit = defineEmits<{
   (e: "open-events"): void
+  (e: "open-logs"): void
 }>()
 
 const tooltipContent = {
@@ -75,6 +76,15 @@ function toggleTheme() {
           @click="emit('open-events')"
         >
           <UIcon name="i-lucide-zap" class="w-5 h-5" />
+        </button>
+      </UTooltip>
+
+      <UTooltip text="Logs" :content="tooltipContent" :delay-duration="0">
+        <button
+          class="relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
+          @click="emit('open-logs')"
+        >
+          <UIcon name="i-lucide-scroll-text" class="w-5 h-5" />
         </button>
       </UTooltip>
 

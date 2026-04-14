@@ -2,21 +2,26 @@ import { BrowserWindow, Updater } from "electrobun/bun"
 import { createEventoBun } from "@/bun/evento"
 import { initCounter } from "@/modules/counter/bun"
 import { initTimer } from "@/modules/timer/bun"
+import { bunLogger } from "@/modules/logger/bun"
 import { globalRegistry } from "@/events"
 
 const DEV_SERVER_PORT = 5173
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`
 
 async function getMainViewUrl(): Promise<string> {
-  const channel = await Updater.localInfo.channel()
-  if (channel === "dev") {
-    try {
-      await fetch(DEV_SERVER_URL, { method: "HEAD" })
-      console.log(`HMR enabled: Using Vite dev server at ${DEV_SERVER_URL}`)
-      return DEV_SERVER_URL
-    } catch {
-      console.log("Vite dev server not running. Run 'bun run dev:hmr' for HMR support.")
+  try {
+    const channel = await Updater.localInfo.channel()
+    if (channel === "dev") {
+      try {
+        await fetch(DEV_SERVER_URL, { method: "HEAD" })
+        console.log(`HMR enabled: Using Vite dev server at ${DEV_SERVER_URL}`)
+        return DEV_SERVER_URL
+      } catch {
+        console.log("Vite dev server not running. Run 'bun run dev:hmr' for HMR support.")
+      }
     }
+  } catch {
+    // Updater fails outside bundled app (dev mode)
   }
   return "views://mainview/index.html"
 }
@@ -36,6 +41,7 @@ const { webview } = new BrowserWindow({
 
 evento.sender = webview.rpc?.send?.emit
 
+bunLogger.attach(evento)
 initCounter(evento)
 initTimer(evento)
 

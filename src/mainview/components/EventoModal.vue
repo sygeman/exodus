@@ -9,9 +9,6 @@ const emit = defineEmits<{
 
 const {
   filteredLogs,
-  filterName,
-  filterSource,
-  filterTraceId,
   isPaused,
   listeners,
   clearLogs,

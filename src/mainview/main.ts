@@ -6,6 +6,9 @@ import App from "./App.vue"
 import CounterPage from "./pages/CounterPage.vue"
 import { evento, rpc } from "./evento"
 import { Electroview } from "electrobun/view"
+import { webviewLogger } from "@/modules/logger/webview"
+
+webviewLogger.init()
 
 const electroview = new Electroview({ rpc })
 evento.sender = (msg: { name: string; payload: unknown; meta: any }) => {
