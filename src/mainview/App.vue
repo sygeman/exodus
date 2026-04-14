@@ -10,7 +10,9 @@ const isDebugOpen = ref(false)
 const isLogsOpen = ref(false)
 
 const { locale } = useI18n()
-const appLocale = computed(() => (nuxtLocales as Record<string, (typeof nuxtLocales)['en']>)[locale.value] ?? nuxtLocales.en)
+const appLocale = computed(
+  () => (nuxtLocales as Record<string, (typeof nuxtLocales)["en"]>)[locale.value] ?? nuxtLocales.en,
+)
 </script>
 
 <template>

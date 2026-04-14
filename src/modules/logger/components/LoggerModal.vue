@@ -58,22 +58,31 @@ const levelBadgeColor = (level: string) => {
 
 function formatArgs(args: unknown[]) {
   if (!args.length) return ""
-  return args
-    .map((a) => (typeof a === "string" ? a : JSON.stringify(a)))
-    .join(" ")
+  return args.map((a) => (typeof a === "string" ? a : JSON.stringify(a))).join(" ")
 }
 </script>
 
 <template>
-  <UModal :open="true" :dismissible="false" fullscreen @update:open="(v) => { if (!v) emit('close') }">
+  <UModal
+    :open="true"
+    :dismissible="false"
+    fullscreen
+    @update:open="
+      (v) => {
+        if (!v) emit('close')
+      }
+    "
+  >
     <template #content>
       <div class="flex flex-col h-full bg-[var(--ui-bg)]">
         <!-- Header -->
         <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--ui-border)]">
           <div class="flex items-center gap-3">
             <UButton icon="i-lucide-arrow-left" variant="ghost" @click="emit('close')" />
-            <h1 class="text-xl font-bold">{{ t('common.logs') }}</h1>
-            <UBadge v-if="isPaused" color="warning" variant="subtle">{{ t('common.paused') }}</UBadge>
+            <h1 class="text-xl font-bold">{{ t("common.logs") }}</h1>
+            <UBadge v-if="isPaused" color="warning" variant="subtle">{{
+              t("common.paused")
+            }}</UBadge>
           </div>
           <div class="flex items-center gap-2">
             <div class="hidden sm:flex items-center gap-2 text-xs text-[var(--ui-text-muted)] mr-2">
@@ -87,16 +96,21 @@ function formatArgs(args: unknown[]) {
               variant="subtle"
               @click="togglePause"
             >
-              {{ isPaused ? t('common.resume') : t('common.pause') }}
+              {{ isPaused ? t("common.resume") : t("common.pause") }}
             </UButton>
-            <UButton color="error" variant="subtle" @click="clear">{{ t('common.clear') }}</UButton>
+            <UButton color="error" variant="subtle" @click="clear">{{ t("common.clear") }}</UButton>
           </div>
         </div>
 
         <!-- Filters -->
         <div class="flex flex-wrap gap-2 px-4 py-2 border-b border-[var(--ui-border)]">
           <USelectMenu v-model="levelFilter" :items="levelOptions" value-key="value" class="w-28" />
-          <USelectMenu v-model="sourceFilter" :items="sourceOptions" value-key="value" class="w-28" />
+          <USelectMenu
+            v-model="sourceFilter"
+            :items="sourceOptions"
+            value-key="value"
+            class="w-28"
+          />
           <UInput v-model="textFilter" :placeholder="t('logs.searchLogs')" class="flex-1 min-w-0" />
         </div>
 
@@ -108,13 +122,23 @@ function formatArgs(args: unknown[]) {
             class="px-4 py-2 border-b border-[var(--ui-border)] text-xs leading-relaxed hover:bg-[var(--ui-bg-elevated)]"
           >
             <div class="flex items-center gap-2">
-              <span class="font-mono text-[var(--ui-text-muted)]">{{ formatTime(log.timestamp) }}</span>
-              <UBadge :color="levelBadgeColor(log.level)" variant="subtle" class="text-[10px] uppercase">
+              <span class="font-mono text-[var(--ui-text-muted)]">{{
+                formatTime(log.timestamp)
+              }}</span>
+              <UBadge
+                :color="levelBadgeColor(log.level)"
+                variant="subtle"
+                class="text-[10px] uppercase"
+              >
                 {{ log.level }}
               </UBadge>
               <span
                 class="text-[10px] uppercase px-1.5 py-0.5 rounded"
-                :class="log.source === 'bun' ? 'bg-blue-500/10 text-blue-500' : 'bg-emerald-500/10 text-emerald-500'"
+                :class="
+                  log.source === 'bun'
+                    ? 'bg-blue-500/10 text-blue-500'
+                    : 'bg-emerald-500/10 text-emerald-500'
+                "
               >
                 {{ log.source }}
               </span>
@@ -125,20 +149,44 @@ function formatArgs(args: unknown[]) {
             </div>
           </div>
           <div v-if="logs.length === 0" class="p-8 text-center text-[var(--ui-text-muted)] text-sm">
-            {{ t('common.noLogs') }}
+            {{ t("common.noLogs") }}
           </div>
         </UScrollArea>
 
         <!-- Pagination -->
         <div class="flex items-center justify-between px-4 py-2 border-t border-[var(--ui-border)]">
           <span class="text-xs text-[var(--ui-text-muted)]">
-            {{ t('logs.totalLogs', { total, pageInfo: t('logs.pageOf', { page, totalPages }) }) }}
+            {{ t("logs.totalLogs", { total, pageInfo: t("logs.pageOf", { page, totalPages }) }) }}
           </span>
           <div class="flex items-center gap-1">
-            <UButton icon="i-lucide-chevrons-left" variant="ghost" size="xs" :disabled="page <= 1 || loading" @click="firstPage" />
-            <UButton icon="i-lucide-chevron-left" variant="ghost" size="xs" :disabled="page <= 1 || loading" @click="prevPage" />
-            <UButton icon="i-lucide-chevron-right" variant="ghost" size="xs" :disabled="page >= totalPages || loading" @click="nextPage" />
-            <UButton icon="i-lucide-chevrons-right" variant="ghost" size="xs" :disabled="page >= totalPages || loading" @click="lastPage" />
+            <UButton
+              icon="i-lucide-chevrons-left"
+              variant="ghost"
+              size="xs"
+              :disabled="page <= 1 || loading"
+              @click="firstPage"
+            />
+            <UButton
+              icon="i-lucide-chevron-left"
+              variant="ghost"
+              size="xs"
+              :disabled="page <= 1 || loading"
+              @click="prevPage"
+            />
+            <UButton
+              icon="i-lucide-chevron-right"
+              variant="ghost"
+              size="xs"
+              :disabled="page >= totalPages || loading"
+              @click="nextPage"
+            />
+            <UButton
+              icon="i-lucide-chevrons-right"
+              variant="ghost"
+              size="xs"
+              :disabled="page >= totalPages || loading"
+              @click="lastPage"
+            />
           </div>
         </div>
       </div>

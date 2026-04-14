@@ -177,7 +177,9 @@ export class Evento<
   on(name: string, handler: EventoHandler<Local | Remotes[number]>): EventoUnsubscribe
   on(
     name: string | keyof EventMap,
-    handler: EventoHandler<Local | Remotes[number]> | EventoHandler<Local | Remotes[number], EventMap[keyof EventMap]>,
+    handler:
+      | EventoHandler<Local | Remotes[number]>
+      | EventoHandler<Local | Remotes[number], EventMap[keyof EventMap]>,
   ): EventoUnsubscribe {
     return this._subscribe(name as string, handler as EventoHandler<Local | Remotes[number]>, false)
   }
@@ -192,7 +194,9 @@ export class Evento<
   once(name: string, handler: EventoHandler<Local | Remotes[number]>): EventoUnsubscribe
   once(
     name: string | keyof EventMap,
-    handler: EventoHandler<Local | Remotes[number]> | EventoHandler<Local | Remotes[number], EventMap[keyof EventMap]>,
+    handler:
+      | EventoHandler<Local | Remotes[number]>
+      | EventoHandler<Local | Remotes[number], EventMap[keyof EventMap]>,
   ): EventoUnsubscribe {
     return this._subscribe(name as string, handler as EventoHandler<Local | Remotes[number]>, true)
   }

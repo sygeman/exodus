@@ -46,14 +46,16 @@ export function migrate() {
 }
 
 export function insertLog(entry: LogEntry) {
-  db.insert(logs).values({
-    id: entry.id,
-    timestamp: entry.timestamp,
-    level: entry.level,
-    source: entry.source,
-    message: entry.message,
-    args: JSON.stringify(entry.args),
-  }).run()
+  db.insert(logs)
+    .values({
+      id: entry.id,
+      timestamp: entry.timestamp,
+      level: entry.level,
+      source: entry.source,
+      message: entry.message,
+      args: JSON.stringify(entry.args),
+    })
+    .run()
 }
 
 export interface LogQuery {
@@ -82,12 +84,7 @@ export function queryLogs(q: LogQuery): LogEntry[] {
   }
   if (q.search?.trim()) {
     const s = `%${q.search.trim()}%`
-    conditions.push(
-      or(
-        like(logs.message, s),
-        like(logs.args, s),
-      )!,
-    )
+    conditions.push(or(like(logs.message, s), like(logs.args, s))!)
   }
 
   const rows = db
@@ -134,12 +131,7 @@ export function countLogs(q: Omit<LogQuery, "limit" | "offset">): number {
   }
   if (q.search?.trim()) {
     const s = `%${q.search.trim()}%`
-    conditions.push(
-      or(
-        like(logs.message, s),
-        like(logs.args, s),
-      )!,
-    )
+    conditions.push(or(like(logs.message, s), like(logs.args, s))!)
   }
 
   const row = db

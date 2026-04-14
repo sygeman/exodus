@@ -8,14 +8,7 @@ const emit = defineEmits<{
   (e: "close"): void
 }>()
 
-const {
-  filteredLogs,
-  isPaused,
-  listeners,
-  clearLogs,
-  togglePause,
-  emitEvent,
-} = useEventoDebugger()
+const { filteredLogs, isPaused, listeners, clearLogs, togglePause, emitEvent } = useEventoDebugger()
 
 const registry = computed(() => listeners.value.registry)
 
@@ -49,8 +42,9 @@ const filteredLogRows = computed(() => {
   const q = logFilter.value.trim().toLowerCase()
   if (!q) return logRows.value
   return logRows.value.filter((row) =>
-    [row.time, row.name, row.source, row.depth, row.trace, row.payload]
-      .some((field) => String(field).toLowerCase().includes(q)),
+    [row.time, row.name, row.source, row.depth, row.trace, row.payload].some((field) =>
+      String(field).toLowerCase().includes(q),
+    ),
   )
 })
 
@@ -64,7 +58,10 @@ async function selectEvent(name: string) {
   try {
     const res = await evento.request<
       { name: string },
-      { schema: { type: string; properties?: Record<string, { type: string }> }; description?: string }
+      {
+        schema: { type: string; properties?: Record<string, { type: string }> }
+        description?: string
+      }
     >("evento:schema:request", { name }, { timeout: 2000 })
     if (res.data?.schema) {
       eventSchema.value = res.data.schema
@@ -141,8 +138,10 @@ const logRows = computed(() =>
         <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--ui-border)]">
           <div class="flex items-center gap-3">
             <UButton icon="i-lucide-arrow-left" variant="ghost" @click="emit('close')" />
-            <h1 class="text-xl font-bold">{{ t('common.events') }}</h1>
-            <UBadge v-if="isPaused" color="warning" variant="subtle">{{ t('common.paused') }}</UBadge>
+            <h1 class="text-xl font-bold">{{ t("common.events") }}</h1>
+            <UBadge v-if="isPaused" color="warning" variant="subtle">{{
+              t("common.paused")
+            }}</UBadge>
           </div>
           <div class="flex items-center gap-2">
             <UButton
@@ -150,9 +149,11 @@ const logRows = computed(() =>
               variant="subtle"
               @click="togglePause"
             >
-              {{ isPaused ? t('common.resume') : t('common.pause') }}
+              {{ isPaused ? t("common.resume") : t("common.pause") }}
             </UButton>
-            <UButton color="error" variant="subtle" @click="clearLogs">{{ t('common.clear') }}</UButton>
+            <UButton color="error" variant="subtle" @click="clearLogs">{{
+              t("common.clear")
+            }}</UButton>
           </div>
         </div>
 
@@ -161,7 +162,11 @@ const logRows = computed(() =>
           <!-- Left Panel -->
           <div class="bg-[var(--ui-bg)] flex flex-col min-h-0">
             <div class="flex flex-wrap gap-2 px-2 py-1.5 border-b border-[var(--ui-border)]">
-              <UInput v-model="eventFilter" :placeholder="t('events.searchEvents')" class="flex-1 min-w-0" />
+              <UInput
+                v-model="eventFilter"
+                :placeholder="t('events.searchEvents')"
+                class="flex-1 min-w-0"
+              />
             </div>
 
             <UScrollArea class="flex-1 min-h-0">
@@ -191,8 +196,12 @@ const logRows = computed(() =>
                   <template v-if="selectedEvent">
                     <UCard variant="outline">
                       <template #header>
-                        <div class="text-xs text-[var(--ui-text-muted)]">{{ t('common.selected') }}</div>
-                        <code class="text-sm font-mono text-[var(--ui-primary)]">{{ selectedEvent }}</code>
+                        <div class="text-xs text-[var(--ui-text-muted)]">
+                          {{ t("common.selected") }}
+                        </div>
+                        <code class="text-sm font-mono text-[var(--ui-primary)]">{{
+                          selectedEvent
+                        }}</code>
                       </template>
                       <p v-if="eventDescription" class="text-xs text-[var(--ui-text-muted)]">
                         {{ eventDescription }}
@@ -209,43 +218,66 @@ const logRows = computed(() =>
                         :label="key"
                         class="text-xs"
                       >
-                        <UInput v-if="fieldDef.type === 'string'" :model-value="String(formValues[key] ?? '')" @update:model-value="(v) => formValues[key] = v" size="sm" />
+                        <UInput
+                          v-if="fieldDef.type === 'string'"
+                          :model-value="String(formValues[key] ?? '')"
+                          @update:model-value="(v) => (formValues[key] = v)"
+                          size="sm"
+                        />
                         <UInput
                           v-else-if="fieldDef.type === 'number'"
                           :model-value="String(formValues[key] ?? '')"
-                          @update:model-value="(v) => formValues[key] = v"
+                          @update:model-value="(v) => (formValues[key] = v)"
                           type="number"
                           size="sm"
                         />
-                        <div v-else-if="fieldDef.type === 'boolean'" class="flex items-center gap-2">
-                          <USwitch :model-value="Boolean(formValues[key])" @update:model-value="(v) => formValues[key] = v" />
+                        <div
+                          v-else-if="fieldDef.type === 'boolean'"
+                          class="flex items-center gap-2"
+                        >
+                          <USwitch
+                            :model-value="Boolean(formValues[key])"
+                            @update:model-value="(v) => (formValues[key] = v)"
+                          />
                           <span class="text-xs text-[var(--ui-text-muted)]">
                             {{ formValues[key] ? "true" : "false" }}
                           </span>
                         </div>
-                        <UInput v-else :model-value="String(formValues[key] ?? '')" @update:model-value="(v) => formValues[key] = v" size="sm" />
+                        <UInput
+                          v-else
+                          :model-value="String(formValues[key] ?? '')"
+                          @update:model-value="(v) => (formValues[key] = v)"
+                          size="sm"
+                        />
                       </UFormField>
                     </div>
 
-                    <div v-else-if="eventSchema?.type === 'void'" class="text-sm text-[var(--ui-text-muted)]">
-                      {{ t('common.noPayload') }}
+                    <div
+                      v-else-if="eventSchema?.type === 'void'"
+                      class="text-sm text-[var(--ui-text-muted)]"
+                    >
+                      {{ t("common.noPayload") }}
                     </div>
 
                     <div v-else class="text-sm text-[var(--ui-text-muted)]">
-                      {{ t('common.unknownSchema', { type: eventSchema?.type || 'unknown' }) }}
+                      {{ t("common.unknownSchema", { type: eventSchema?.type || "unknown" }) }}
                     </div>
 
-                    <UButton color="primary" size="sm" @click="handlePlaygroundEmit">{{ t('common.emit') }}</UButton>
+                    <UButton color="primary" size="sm" @click="handlePlaygroundEmit">{{
+                      t("common.emit")
+                    }}</UButton>
 
                     <UCard v-if="playgroundResult" variant="outline">
                       <template #header>
-                        <div class="text-xs text-[var(--ui-text-muted)]">{{ t('common.result') }}</div>
+                        <div class="text-xs text-[var(--ui-text-muted)]">
+                          {{ t("common.result") }}
+                        </div>
                       </template>
                       <pre class="text-xs overflow-auto">{{ playgroundResult }}</pre>
                     </UCard>
                   </template>
                   <div v-else class="text-[var(--ui-text-muted)] text-sm">
-                    {{ t('common.clickToTest') }}
+                    {{ t("common.clickToTest") }}
                   </div>
                 </div>
               </UScrollArea>
@@ -255,85 +287,100 @@ const logRows = computed(() =>
           <!-- Right Panel -->
           <div class="bg-[var(--ui-bg)] flex flex-col min-h-0">
             <div class="flex gap-2 px-2 py-1.5 border-b border-[var(--ui-border)]">
-              <UInput v-model="logFilter" :placeholder="t('events.searchLogs')" class="flex-1 min-w-0" />
-            </div>
-
-             <UScrollArea class="flex-1 min-h-0">
-               <div
-                 v-for="row in filteredLogRows"
-                 :key="row.id"
-                 class="px-3 py-2 border-b border-[var(--ui-border)] text-xs leading-relaxed cursor-pointer hover:bg-[var(--ui-bg-elevated)]"
-                 @click="selectedLog = row"
-               >
-                 <div class="flex items-center gap-2">
-                   <span class="font-mono text-[var(--ui-text-muted)]">{{ row.time }}</span>
-                   <code class="text-[var(--ui-primary)] text-sm">{{ row.name }}</code>
-                   <span class="text-[var(--ui-text-muted)]">{{ row.source }}</span>
-                   <span class="text-[var(--ui-text-muted)]">d{{ row.depth }}</span>
-                   <span
-                     v-if="row.payload !== 'undefined'"
-                     class="text-[var(--ui-text-muted)] truncate flex-1 min-w-0"
-                   >
-                     {{ row.payload }}
-                   </span>
-                 </div>
-               </div>
-                <div v-if="filteredLogRows.length === 0" class="p-4 text-center text-[var(--ui-text-muted)] text-sm">
-                  {{ t('common.noEvents') }}
-                </div>
-             </UScrollArea>
-           </div>
-         </div>
-       </div>
-     </template>
-   </UModal>
-
-    <UModal
-      :open="!!selectedLog"
-      @update:open="(v) => { if (!v) selectedLog = null }"
-    >
-      <template #content>
-        <UCard>
-          <template #header>
-            <div class="flex items-center justify-between">
-              <h2 class="text-lg font-semibold">{{ t('events.eventDetails') }}</h2>
-              <UButton
-                icon="i-lucide-x"
-                variant="ghost"
-                color="neutral"
-                @click="selectedLog = null"
+              <UInput
+                v-model="logFilter"
+                :placeholder="t('events.searchLogs')"
+                class="flex-1 min-w-0"
               />
             </div>
-          </template>
-          <UScrollArea class="max-h-[60vh]">
-            <div v-if="selectedLog" class="space-y-3 text-sm">
-              <div class="grid grid-cols-[5rem_1fr] gap-2 items-baseline">
-                <span class="text-[var(--ui-text-muted)]">{{ t('common.time') }}</span>
-                <span class="font-mono">{{ selectedLog.time }}</span>
+
+            <UScrollArea class="flex-1 min-h-0">
+              <div
+                v-for="row in filteredLogRows"
+                :key="row.id"
+                class="px-3 py-2 border-b border-[var(--ui-border)] text-xs leading-relaxed cursor-pointer hover:bg-[var(--ui-bg-elevated)]"
+                @click="selectedLog = row"
+              >
+                <div class="flex items-center gap-2">
+                  <span class="font-mono text-[var(--ui-text-muted)]">{{ row.time }}</span>
+                  <code class="text-[var(--ui-primary)] text-sm">{{ row.name }}</code>
+                  <span class="text-[var(--ui-text-muted)]">{{ row.source }}</span>
+                  <span class="text-[var(--ui-text-muted)]">d{{ row.depth }}</span>
+                  <span
+                    v-if="row.payload !== 'undefined'"
+                    class="text-[var(--ui-text-muted)] truncate flex-1 min-w-0"
+                  >
+                    {{ row.payload }}
+                  </span>
+                </div>
               </div>
-              <div class="grid grid-cols-[5rem_1fr] gap-2 items-baseline">
-                <span class="text-[var(--ui-text-muted)]">{{ t('common.events') }}</span>
-                <code class="text-[var(--ui-primary)] font-mono">{{ selectedLog.name }}</code>
+              <div
+                v-if="filteredLogRows.length === 0"
+                class="p-4 text-center text-[var(--ui-text-muted)] text-sm"
+              >
+                {{ t("common.noEvents") }}
               </div>
-              <div class="grid grid-cols-[5rem_1fr] gap-2 items-baseline">
-                <span class="text-[var(--ui-text-muted)]">{{ t('common.source') }}</span>
-                <span>{{ selectedLog.source }}</span>
-              </div>
-              <div class="grid grid-cols-[5rem_1fr] gap-2 items-baseline">
-                <span class="text-[var(--ui-text-muted)]">{{ t('common.depth') }}</span>
-                <span>{{ selectedLog.depth }}</span>
-              </div>
-              <div class="grid grid-cols-[5rem_1fr] gap-2 items-baseline">
-                <span class="text-[var(--ui-text-muted)]">{{ t('common.trace') }}</span>
-                <span class="font-mono text-[var(--ui-text-muted)] truncate">{{ selectedLog.trace }}</span>
-              </div>
-              <div v-if="selectedLog.payload !== 'undefined'" class="space-y-1">
-                <span class="text-[var(--ui-text-muted)]">{{ t('common.payload') }}</span>
-                <pre class="bg-[var(--ui-bg-elevated)] rounded px-3 py-2 overflow-auto text-xs">{{ selectedLog.payload }}</pre>
-              </div>
+            </UScrollArea>
+          </div>
+        </div>
+      </div>
+    </template>
+  </UModal>
+
+  <UModal
+    :open="!!selectedLog"
+    @update:open="
+      (v) => {
+        if (!v) selectedLog = null
+      }
+    "
+  >
+    <template #content>
+      <UCard>
+        <template #header>
+          <div class="flex items-center justify-between">
+            <h2 class="text-lg font-semibold">{{ t("events.eventDetails") }}</h2>
+            <UButton
+              icon="i-lucide-x"
+              variant="ghost"
+              color="neutral"
+              @click="selectedLog = null"
+            />
+          </div>
+        </template>
+        <UScrollArea class="max-h-[60vh]">
+          <div v-if="selectedLog" class="space-y-3 text-sm">
+            <div class="grid grid-cols-[5rem_1fr] gap-2 items-baseline">
+              <span class="text-[var(--ui-text-muted)]">{{ t("common.time") }}</span>
+              <span class="font-mono">{{ selectedLog.time }}</span>
             </div>
-          </UScrollArea>
-        </UCard>
-      </template>
-    </UModal>
- </template>
+            <div class="grid grid-cols-[5rem_1fr] gap-2 items-baseline">
+              <span class="text-[var(--ui-text-muted)]">{{ t("common.events") }}</span>
+              <code class="text-[var(--ui-primary)] font-mono">{{ selectedLog.name }}</code>
+            </div>
+            <div class="grid grid-cols-[5rem_1fr] gap-2 items-baseline">
+              <span class="text-[var(--ui-text-muted)]">{{ t("common.source") }}</span>
+              <span>{{ selectedLog.source }}</span>
+            </div>
+            <div class="grid grid-cols-[5rem_1fr] gap-2 items-baseline">
+              <span class="text-[var(--ui-text-muted)]">{{ t("common.depth") }}</span>
+              <span>{{ selectedLog.depth }}</span>
+            </div>
+            <div class="grid grid-cols-[5rem_1fr] gap-2 items-baseline">
+              <span class="text-[var(--ui-text-muted)]">{{ t("common.trace") }}</span>
+              <span class="font-mono text-[var(--ui-text-muted)] truncate">{{
+                selectedLog.trace
+              }}</span>
+            </div>
+            <div v-if="selectedLog.payload !== 'undefined'" class="space-y-1">
+              <span class="text-[var(--ui-text-muted)]">{{ t("common.payload") }}</span>
+              <pre class="bg-[var(--ui-bg-elevated)] rounded px-3 py-2 overflow-auto text-xs">{{
+                selectedLog.payload
+              }}</pre>
+            </div>
+          </div>
+        </UScrollArea>
+      </UCard>
+    </template>
+  </UModal>
+</template>

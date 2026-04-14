@@ -5,7 +5,11 @@ import { updaterRegistry, type UpdaterEventMap } from "./modules/updater/events"
 import { schemaRegistry, type SchemaEventMap } from "./modules/schema/events"
 import type { EventoRegistry } from "./lib/evento/types"
 
-export type GlobalEventMap = CounterEventMap & TimerEventMap & LoggerEventMap & UpdaterEventMap & SchemaEventMap
+export type GlobalEventMap = CounterEventMap &
+  TimerEventMap &
+  LoggerEventMap &
+  UpdaterEventMap &
+  SchemaEventMap
 
 export const globalRegistry: EventoRegistry = {
   ...counterRegistry,

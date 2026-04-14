@@ -1,6 +1,18 @@
 import type { EventoBun } from "@/bun/evento"
-import { loggerRegistry, LogEntrySchema, type LogEntry, type LogLevel } from "@/modules/logger/events"
-import { insertLog, queryLogs, countLogs, clearLogs, getStats, migrate } from "@/modules/logger/db/index"
+import {
+  loggerRegistry,
+  LogEntrySchema,
+  type LogEntry,
+  type LogLevel,
+} from "@/modules/logger/events"
+import {
+  insertLog,
+  queryLogs,
+  countLogs,
+  clearLogs,
+  getStats,
+  migrate,
+} from "@/modules/logger/db/index"
 
 class BunLogger {
   private evento?: EventoBun
@@ -68,7 +80,13 @@ class BunLogger {
 
   private add(level: LogLevel, args: unknown[]) {
     const message = args
-      .map((a) => (typeof a === "string" ? a : typeof a === "number" || typeof a === "boolean" ? String(a) : JSON.stringify(a)))
+      .map((a) =>
+        typeof a === "string"
+          ? a
+          : typeof a === "number" || typeof a === "boolean"
+            ? String(a)
+            : JSON.stringify(a),
+      )
       .join(" ")
 
     const entry: LogEntry = {
@@ -77,7 +95,9 @@ class BunLogger {
       level,
       source: "bun",
       message,
-      args: args.map((a) => (typeof a === "object" && a !== null ? JSON.parse(JSON.stringify(a)) : a)),
+      args: args.map((a) =>
+        typeof a === "object" && a !== null ? JSON.parse(JSON.stringify(a)) : a,
+      ),
     }
 
     insertLog(entry)

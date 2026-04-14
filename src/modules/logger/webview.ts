@@ -36,7 +36,13 @@ class WebviewLogger {
 
   private add(level: LogLevel, args: unknown[]) {
     const message = args
-      .map((a) => (typeof a === "string" ? a : typeof a === "number" || typeof a === "boolean" ? String(a) : JSON.stringify(a)))
+      .map((a) =>
+        typeof a === "string"
+          ? a
+          : typeof a === "number" || typeof a === "boolean"
+            ? String(a)
+            : JSON.stringify(a),
+      )
       .join(" ")
 
     const entry: LogEntry = {
