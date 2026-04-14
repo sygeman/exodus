@@ -98,7 +98,7 @@ export class Evento<
 
     // Handle object
     if (typeName === "object" || typeName === "ZodObject") {
-      const shape = def.shape || schema.shape?.()
+      const shape = def.shape || (schema as any).shape
       const properties: Record<string, { type: string }> = {}
       const shapeObj = typeof shape === "function" ? shape() : shape
       for (const [key, value] of Object.entries(shapeObj || {})) {
