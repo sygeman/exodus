@@ -1,3 +1,12 @@
+## [0.16.1](https://github.com/sygeman/exodus/compare/v0.16.0...v0.16.1) (2026-04-14)
+
+
+### Bug Fixes
+
+* ignore false-positive update when version or hash matches current ([7466497](https://github.com/sygeman/exodus/commit/746649750bf973a5d2e4240566ae62e64e155886))
+
+
+
 # [0.16.0](https://github.com/sygeman/exodus/compare/v0.15.1...v0.16.0) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * add persistent update toast with dismiss-by-version and settings badge ([5846979](https://github.com/sygeman/exodus/commit/5846979ced0ec32dda58fb61d9d5cb0572c0c25a))
-
-
-
-# [0.13.0](https://github.com/sygeman/exodus/compare/v0.12.4...v0.13.0) (2026-04-14)
-
-
-### Features
-
-* convert events and logs from modals to pages ([71b4ee7](https://github.com/sygeman/exodus/commit/71b4ee7912c12336b26e86cde3b129aa46c43f09))
 
 
 
