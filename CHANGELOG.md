@@ -1,3 +1,12 @@
+# [0.9.0](https://github.com/sygeman/exodus/compare/v0.8.0...v0.9.0) (2026-04-14)
+
+
+### Features
+
+* add periodic update check every 15 minutes in bun process ([9524295](https://github.com/sygeman/exodus/commit/9524295666bea85a4b7f2ff8a8f0052022a98c07))
+
+
+
 # [0.8.0](https://github.com/sygeman/exodus/compare/v0.7.1...v0.8.0) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * event-driven updater with download progress and proper typing ([3fb7891](https://github.com/sygeman/exodus/commit/3fb78916ec809e9c1c8e51b828d3b6cfffa2261b))
-
-
-
-## [0.5.1](https://github.com/sygeman/exodus/compare/v0.5.0...v0.5.1) (2026-04-14)
-
-
-### Bug Fixes
-
-* increase timeout for update download/apply requests ([5bdf44a](https://github.com/sygeman/exodus/commit/5bdf44a3e95e18a62642e0b6d5664d88e3fa1c04))
 
 
 
