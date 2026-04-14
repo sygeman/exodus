@@ -4,6 +4,7 @@ import { evento } from "@/mainview/evento"
 export function useSavedRoute(router: Router) {
   let savedHash: string | null = null
   let restoreReceived = false
+  let isRouterReady = false
 
   function restore(hash: string | null) {
     if (hash && hash !== "#/" && hash !== "#") {
@@ -20,9 +21,13 @@ export function useSavedRoute(router: Router) {
     evento.on("app:restoreRoute", (ctx) => {
       savedHash = ctx.payload.hash
       restoreReceived = true
+      if (isRouterReady) {
+        restore(savedHash)
+      }
     })
 
     router.isReady().then(() => {
+      isRouterReady = true
       if (restoreReceived) {
         restore(savedHash)
       }
@@ -31,6 +36,8 @@ export function useSavedRoute(router: Router) {
     router.afterEach(() => {
       evento.emitEvent("app:routeChanged", { hash: window.location.hash }, "webview")
     })
+
+    evento.emitEvent("app:requestRoute", "webview")
   }
 
   return {

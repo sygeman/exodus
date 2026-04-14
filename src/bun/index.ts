@@ -44,7 +44,7 @@ const { webview } = new BrowserWindow({
 
 evento.sender = webview.rpc?.send?.emit
 
-initAppState(evento, webview, (name, payload) => {
+initAppState(evento, (name, payload) => {
   evento.emitEvent(name, payload, "app:init")
 })
 
