@@ -1,12 +1,9 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
 import LogoSvg from "@/mainview/assets/logo.svg"
+import { useModalRoute } from "@/mainview/composables/useModalRoute"
 
-const emit = defineEmits<{
-  (e: "open-events"): void
-  (e: "open-logs"): void
-}>()
-
+const { openModal } = useModalRoute()
 const { t } = useI18n()
 
 const tooltipContent = {
@@ -58,7 +55,7 @@ const tooltipContent = {
       <UTooltip :text="t('common.events')" :content="tooltipContent" :delay-duration="0">
         <button
           class="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
-          @click="emit('open-events')"
+          @click="openModal('events')"
         >
           <UIcon name="i-lucide-zap" class="h-5 w-5" />
         </button>
@@ -67,7 +64,7 @@ const tooltipContent = {
       <UTooltip :text="t('common.logs')" :content="tooltipContent" :delay-duration="0">
         <button
           class="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
-          @click="emit('open-logs')"
+          @click="openModal('logs')"
         >
           <UIcon name="i-lucide-scroll-text" class="h-5 w-5" />
         </button>

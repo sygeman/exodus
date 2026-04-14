@@ -10,6 +10,7 @@ import { evento, rpc } from "./evento"
 import { Electroview } from "electrobun/view"
 import { webviewLogger } from "@/modules/logger/webview"
 import { defaultLocale, messages } from "./locales"
+import { useSavedRoute } from "./composables/useSavedRoute"
 
 webviewLogger.init()
 
@@ -36,6 +37,9 @@ const router = createRouter({
   history: createWebHashHistory(),
 })
 
+const { startWatching } = useSavedRoute(router)
+startWatching()
+
 const i18n = createI18n({
   legacy: false,
   locale: defaultLocale,
@@ -53,6 +57,8 @@ setTimeout(() => {
   const splash = document.getElementById("splash")
   if (splash) {
     splash.classList.add("fade-out")
-    splash.addEventListener("transitionend", () => splash.remove(), { once: true })
+    splash.addEventListener("transitionend", () => splash.remove(), {
+      once: true,
+    })
   }
 }, 1500)

@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
+import { useModalRoute } from "@/mainview/composables/useModalRoute"
 import { useLogger } from "@/modules/logger/composables/useLogger"
 
-const emit = defineEmits<{
-  (e: "close"): void
-}>()
+const { closeModal } = useModalRoute()
 
 const { t } = useI18n()
 
@@ -69,7 +68,7 @@ function formatArgs(args: unknown[]) {
     fullscreen
     @update:open="
       (v) => {
-        if (!v) emit('close')
+        if (!v) closeModal('logs')
       }
     "
   >
@@ -78,7 +77,7 @@ function formatArgs(args: unknown[]) {
         <!-- Header -->
         <div class="flex items-center justify-between border-b border-[var(--ui-border)] px-4 py-3">
           <div class="flex items-center gap-3">
-            <UButton icon="i-lucide-arrow-left" variant="ghost" @click="emit('close')" />
+            <UButton icon="i-lucide-arrow-left" variant="ghost" @click="closeModal('logs')" />
             <h1 class="text-xl font-bold">{{ t("common.logs") }}</h1>
             <UBadge v-if="isPaused" color="warning" variant="subtle">{{
               t("common.paused")
@@ -156,7 +155,12 @@ function formatArgs(args: unknown[]) {
         <!-- Pagination -->
         <div class="flex items-center justify-between border-t border-[var(--ui-border)] px-4 py-2">
           <span class="text-xs text-[var(--ui-text-muted)]">
-            {{ t("logs.totalLogs", { total, pageInfo: t("logs.pageOf", { page, totalPages }) }) }}
+            {{
+              t("logs.totalLogs", {
+                total,
+                pageInfo: t("logs.pageOf", { page, totalPages }),
+              })
+            }}
           </span>
           <div class="flex items-center gap-1">
             <UButton

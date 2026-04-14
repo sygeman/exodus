@@ -1,13 +1,13 @@
 <script setup lang="ts">
-import { ref, computed } from "vue"
+import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import * as nuxtLocales from "@nuxt/ui/locale"
 import AppSidebar from "@/mainview/components/AppSidebar.vue"
 import EventoModal from "@/mainview/components/EventoModal.vue"
 import LoggerModal from "@/modules/logger/components/LoggerModal.vue"
+import { useModalRoute } from "@/mainview/composables/useModalRoute"
 
-const isDebugOpen = ref(false)
-const isLogsOpen = ref(false)
+const { isEventsOpen, isLogsOpen } = useModalRoute()
 
 const { locale } = useI18n()
 const appLocale = computed(
@@ -18,7 +18,7 @@ const appLocale = computed(
 <template>
   <UApp :locale="appLocale">
     <div class="flex h-screen">
-      <AppSidebar @open-events="isDebugOpen = true" @open-logs="isLogsOpen = true" />
+      <AppSidebar />
 
       <!-- Основной контент -->
       <main class="flex-1 overflow-auto">
@@ -26,7 +26,7 @@ const appLocale = computed(
       </main>
     </div>
 
-    <EventoModal v-if="isDebugOpen" @close="isDebugOpen = false" />
-    <LoggerModal v-if="isLogsOpen" @close="isLogsOpen = false" />
+    <EventoModal v-if="isEventsOpen" />
+    <LoggerModal v-if="isLogsOpen" />
   </UApp>
 </template>

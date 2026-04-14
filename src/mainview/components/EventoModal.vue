@@ -2,11 +2,10 @@
 import { ref, computed, reactive } from "vue"
 import { useI18n } from "vue-i18n"
 import { useEventoDebugger } from "@/mainview/composables/useEventoDebugger"
+import { useModalRoute } from "@/mainview/composables/useModalRoute"
 import { evento } from "@/mainview/evento"
 
-const emit = defineEmits<{
-  (e: "close"): void
-}>()
+const { closeModal } = useModalRoute()
 
 const { filteredLogs, isPaused, listeners, clearLogs, togglePause, emitEvent } = useEventoDebugger()
 
@@ -25,9 +24,10 @@ const filteredRegistry = computed(() => {
 })
 
 const selectedEvent = ref("")
-const eventSchema = ref<{ type: string; properties?: Record<string, { type: string }> } | null>(
-  null,
-)
+const eventSchema = ref<{
+  type: string
+  properties?: Record<string, { type: string }>
+} | null>(null)
 const eventDescription = ref("")
 const formValues = reactive<Record<string, unknown>>({})
 const playgroundResult = ref<string | null>(null)
@@ -131,13 +131,13 @@ const logRows = computed(() =>
 </script>
 
 <template>
-  <UModal :open="true" :dismissible="false" fullscreen @after-leave="emit('close')">
+  <UModal :open="true" :dismissible="false" fullscreen @after-leave="closeModal('events')">
     <template #content>
       <div class="flex h-full flex-col bg-[var(--ui-bg)]">
         <!-- Header -->
         <div class="flex items-center justify-between border-b border-[var(--ui-border)] px-4 py-3">
           <div class="flex items-center gap-3">
-            <UButton icon="i-lucide-arrow-left" variant="ghost" @click="emit('close')" />
+            <UButton icon="i-lucide-arrow-left" variant="ghost" @click="closeModal('events')" />
             <h1 class="text-xl font-bold">{{ t("common.events") }}</h1>
             <UBadge v-if="isPaused" color="warning" variant="subtle">{{
               t("common.paused")
@@ -260,7 +260,11 @@ const logRows = computed(() =>
                     </div>
 
                     <div v-else class="text-sm text-[var(--ui-text-muted)]">
-                      {{ t("common.unknownSchema", { type: eventSchema?.type || "unknown" }) }}
+                      {{
+                        t("common.unknownSchema", {
+                          type: eventSchema?.type || "unknown",
+                        })
+                      }}
                     </div>
 
                     <UButton color="primary" size="sm" @click="handlePlaygroundEmit">{{
@@ -339,7 +343,9 @@ const logRows = computed(() =>
       <UCard>
         <template #header>
           <div class="flex items-center justify-between">
-            <h2 class="text-lg font-semibold">{{ t("events.eventDetails") }}</h2>
+            <h2 class="text-lg font-semibold">
+              {{ t("events.eventDetails") }}
+            </h2>
             <UButton
               icon="i-lucide-x"
               variant="ghost"
