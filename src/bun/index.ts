@@ -50,6 +50,10 @@ initAppState(evento, (name, payload) => {
 
 ApplicationMenu.setApplicationMenu([
   {
+    label: "Exodus",
+    submenu: [{ label: "Quit Exodus", accelerator: "Cmd+Q", action: "quit" }],
+  },
+  {
     label: "Edit",
     submenu: [
       { role: "undo" },
@@ -66,6 +70,13 @@ ApplicationMenu.setApplicationMenu([
     submenu: [{ role: "minimize" }, { role: "close" }],
   },
 ])
+
+ApplicationMenu.on("application-menu-clicked", (event) => {
+  const menuEvent = event as { data?: { action?: string } }
+  if (menuEvent.data?.action === "quit") {
+    process.exit(0)
+  }
+})
 
 bunLogger.attach(evento)
 initCounter(evento)
