@@ -1,3 +1,12 @@
+## [0.7.1](https://github.com/sygeman/exodus/compare/v0.7.0...v0.7.1) (2026-04-14)
+
+
+### Bug Fixes
+
+* pass version instead of hash to updater UI and improve layout ([582e368](https://github.com/sygeman/exodus/commit/582e3682d11a1ef008d35f1e52a9b3d0a554686b))
+
+
+
 # [0.7.0](https://github.com/sygeman/exodus/compare/v0.6.0...v0.7.0) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * show update error details in settings UI and add debug logging ([a9f9c30](https://github.com/sygeman/exodus/commit/a9f9c30f372eb435b823ec5bc9f03fea475fbb59))
-
-
-
-## [0.4.3](https://github.com/sygeman/exodus/compare/v0.4.2...v0.4.3) (2026-04-14)
-
-
-### Bug Fixes
-
-* trigger release with flattened assets ([e2f5153](https://github.com/sygeman/exodus/commit/e2f5153160e2dc0c0adbd6a7cdf0a6531d896a8e))
 
 
 
