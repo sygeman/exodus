@@ -1,3 +1,12 @@
+# [0.5.0](https://github.com/sygeman/exodus/compare/v0.4.3...v0.5.0) (2026-04-14)
+
+
+### Features
+
+* show update error details in settings UI and add debug logging ([a9f9c30](https://github.com/sygeman/exodus/commit/a9f9c30f372eb435b823ec5bc9f03fea475fbb59))
+
+
+
 ## [0.4.3](https://github.com/sygeman/exodus/compare/v0.4.2...v0.4.3) (2026-04-14)
 
 
@@ -31,16 +40,6 @@
 ### Features
 
 * add update check to settings page ([1990aeb](https://github.com/sygeman/exodus/commit/1990aeb9d5bc855c57f75504f84628feb9893a8d))
-
-
-
-# [0.2.0](https://github.com/sygeman/exodus/compare/v0.1.0...v0.2.0) (2026-04-14)
-
-
-### Features
-
-* add windows and linux app icons ([1d52e02](https://github.com/sygeman/exodus/commit/1d52e0212fd9143f9848a55071f5b7780a695e67))
-* move theme and locale toggles from sidebar to settings page ([fad1f86](https://github.com/sygeman/exodus/commit/fad1f86ae56cdad4a8f4512ea09b527598da813a))
 
 
 
