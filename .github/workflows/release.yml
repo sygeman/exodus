@@ -3,6 +3,12 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version tag to build and release (e.g., v0.0.3)'
+        required: true
+        type: string
 
 permissions:
   contents: write
@@ -38,13 +44,13 @@ jobs:
   build-macos:
     name: Build macOS
     needs: changelog
-    if: needs.changelog.outputs.tag == 'true'
+    if: needs.changelog.outputs.version != '' || github.event_name == 'workflow_dispatch'
     runs-on: macos-14
     steps:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          ref: ${{ needs.changelog.outputs.version }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || format('v{0}', needs.changelog.outputs.version) }}
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v2
@@ -72,7 +78,7 @@ jobs:
   release:
     name: Create Release
     needs: [changelog, build-macos]
-    if: needs.changelog.outputs.tag == 'true'
+    if: needs.changelog.outputs.version != '' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Download artifacts
@@ -84,9 +90,9 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.changelog.outputs.version }}
-          name: Release ${{ needs.changelog.outputs.version }}
-          body: ${{ needs.changelog.outputs.release_notes }}
+          tag_name: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || format('v{0}', needs.changelog.outputs.version) }}
+          name: Release ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || format('v{0}', needs.changelog.outputs.version) }}
+          body: ${{ github.event_name == 'workflow_dispatch' && format('Manual release for {0}', github.event.inputs.version) || needs.changelog.outputs.release_notes }}
           draft: false
           prerelease: false
           files: |
