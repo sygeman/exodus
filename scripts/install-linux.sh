@@ -22,6 +22,9 @@ rm -rf "$APP_DIR"
 mkdir -p "$(dirname "$APP_DIR")"
 mv "$TMP_DIR/$APP_NAME" "$APP_DIR"
 
+# Ensure launcher is executable
+chmod +x "$APP_DIR/bin/launcher"
+
 # Find icon in app bundle
 ICON_PATH=""
 for path in "$APP_DIR/Resources/appIcon.png" "$APP_DIR/Resources/app/icon.png"; do
@@ -31,29 +34,25 @@ for path in "$APP_DIR/Resources/appIcon.png" "$APP_DIR/Resources/app/icon.png"; 
   fi
 done
 
-DESKTOP_FILE="$APP_DIR/Exodus.desktop"
-if [ -f "$DESKTOP_FILE" ]; then
-  mkdir -p "$APPLICATIONS_DIR"
-  cp "$DESKTOP_FILE" "$APPLICATIONS_DIR/exodus.desktop"
-  chmod +x "$APPLICATIONS_DIR/exodus.desktop"
-  echo "Added Exodus to applications menu"
-elif [ -n "$ICON_PATH" ]; then
-  mkdir -p "$APPLICATIONS_DIR"
-  cat > "$APPLICATIONS_DIR/exodus.desktop" << EOF
+mkdir -p "$APPLICATIONS_DIR"
+
+cat > "$APPLICATIONS_DIR/exodus.desktop" << EOF
 [Desktop Entry]
 Version=1.0
 Type=Application
 Name=Exodus
 Comment=Exodus application
-Exec="$APP_DIR/bin/launcher"
-Icon=$ICON_PATH
+Exec="$APP_DIR/bin/launcher" %u
+TryExec=$APP_DIR/bin/launcher
+Icon=${ICON_PATH:-$APP_DIR/Resources/appIcon.png}
 Terminal=false
 StartupWMClass=Exodus
+StartupNotify=true
 Categories=Utility;Application;
 EOF
-  chmod +x "$APPLICATIONS_DIR/exodus.desktop"
-  echo "Added Exodus to applications menu"
-fi
+
+chmod +x "$APPLICATIONS_DIR/exodus.desktop"
+echo "Added Exodus to applications menu"
 
 mkdir -p "$BIN_DIR"
 ln -sf "$APP_DIR/bin/launcher" "$BIN_DIR/exodus"
