@@ -10,6 +10,7 @@ export default defineConfig({
     svgLoader(),
     ui({
       ui: {
+        colorMode: true,
         colors: {
           primary: "amber",
           neutral: "neutral",

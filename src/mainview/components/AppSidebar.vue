@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import { computed } from "vue"
+import { useColorMode } from "@vueuse/core"
 import LogoSvg from "@/mainview/assets/logo.svg"
 
 const emit = defineEmits<{
@@ -9,6 +11,24 @@ const tooltipContent = {
   align: "center" as const,
   side: "bottom" as const,
   sideOffset: 8,
+}
+
+const colorMode = useColorMode()
+
+const isDark = computed({
+  get() {
+    return colorMode.value === "dark"
+  },
+  set(_isDark: boolean) {
+    colorMode.store.value = _isDark ? "dark" : "light"
+  },
+})
+
+const themeIcon = computed(() => (isDark.value ? "i-lucide-sun" : "i-lucide-moon"))
+const themeText = computed(() => (isDark.value ? "Light mode" : "Dark mode"))
+
+function toggleTheme() {
+  isDark.value = !isDark.value
 }
 </script>
 
@@ -55,6 +75,15 @@ const tooltipContent = {
           @click="emit('open-events')"
         >
           <UIcon name="i-lucide-zap" class="w-5 h-5" />
+        </button>
+      </UTooltip>
+
+      <UTooltip :text="themeText" :content="tooltipContent">
+        <button
+          class="relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
+          @click="toggleTheme"
+        >
+          <UIcon :name="themeIcon" class="w-5 h-5" />
         </button>
       </UTooltip>
 
