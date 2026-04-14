@@ -81,4 +81,15 @@ evento.on("app:checkUpdate", async (ctx) => {
   }
 })
 
+evento.on("app:applyUpdate", async (ctx) => {
+  try {
+    await Updater.applyUpdate()
+    evento.reply(ctx, { data: { success: true } })
+  } catch (err) {
+    evento.reply(ctx, {
+      data: { success: false, error: (err as Error).message },
+    })
+  }
+})
+
 export { evento }

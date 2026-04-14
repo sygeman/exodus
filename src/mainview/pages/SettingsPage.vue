@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from "vue"
+import { computed, ref, onMounted } from "vue"
 import { useI18n } from "vue-i18n"
 import { useColorMode } from "@vueuse/core"
 import { locales } from "@/mainview/locales"
@@ -37,7 +37,7 @@ const localeItems = computed(() =>
 
 const appVersion = __APP_VERSION__
 
-const updateStatus = ref<"idle" | "checking" | "available" | "latest" | "error">("idle")
+const updateStatus = ref<"idle" | "checking" | "available" | "latest" | "error" | "applying">("idle")
 const updateError = ref<string>("")
 
 async function checkForUpdate() {
@@ -59,6 +59,26 @@ async function checkForUpdate() {
     updateError.value = (err as Error).message
   }
 }
+
+async function applyUpdate() {
+  updateStatus.value = "applying"
+  updateError.value = ""
+  try {
+    const response = await evento.request("app:applyUpdate", {})
+    const data = (response as any).data
+    if (!data.success) {
+      updateStatus.value = "error"
+      updateError.value = data.error || "Unknown error"
+    }
+  } catch (err) {
+    updateStatus.value = "error"
+    updateError.value = (err as Error).message
+  }
+}
+
+onMounted(() => {
+  checkForUpdate()
+})
 </script>
 
 <template>
@@ -114,9 +134,19 @@ async function checkForUpdate() {
             :title="updateError"
           >{{ t("common.updateError") }}</span>
           <UButton
+            v-if="updateStatus === 'available'"
+            color="success"
+            size="sm"
+            @click="applyUpdate"
+          >
+            {{ t("common.install") }}
+          </UButton>
+          <UButton
+            v-else
             variant="soft"
             size="sm"
-            :loading="updateStatus === 'checking'"
+            :loading="updateStatus === 'checking' || updateStatus === 'applying'"
+            :disabled="updateStatus === 'applying'"
             @click="checkForUpdate"
           >
             {{ t("common.check") }}

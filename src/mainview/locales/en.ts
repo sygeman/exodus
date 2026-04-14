@@ -44,6 +44,7 @@ export default {
     version: "Version",
     update: "Update",
     check: "Check",
+    install: "Install",
     updateAvailable: "Update available",
     upToDate: "Up to date",
     updateError: "Error",

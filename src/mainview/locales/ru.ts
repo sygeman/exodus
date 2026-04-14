@@ -44,6 +44,7 @@ export default {
     version: "Версия",
     update: "Обновление",
     check: "Проверить",
+    install: "Обновить",
     updateAvailable: "Доступно обновление",
     upToDate: "Актуальная версия",
     updateError: "Ошибка",

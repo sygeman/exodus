@@ -29,6 +29,20 @@ export const globalRegistry: EventoRegistry = {
     }),
     description: "App update check response",
   },
+  "app:applyUpdate": {
+    schema: z.object({}).optional(),
+    description: "Apply downloaded update and restart",
+  },
+  "app:applyUpdate:response": {
+    schema: z.object({
+      data: z.object({
+        success: z.boolean(),
+        error: z.string().optional(),
+      }),
+      correlation_id: z.string().optional(),
+    }),
+    description: "Apply update response",
+  },
   "evento:schema:request": {
     schema: z.object({ name: z.string() }),
     description: "Request event schema",
