@@ -1,4 +1,4 @@
-import { BrowserWindow, Updater } from "electrobun/bun"
+import { BrowserWindow } from "electrobun/bun"
 import { createEventoBun } from "@/bun/evento"
 import { initCounter } from "@/modules/counter/bun"
 import { initTimer } from "@/modules/timer/bun"
