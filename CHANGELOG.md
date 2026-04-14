@@ -1,3 +1,12 @@
+## [0.12.3](https://github.com/sygeman/exodus/compare/v0.12.2...v0.12.3) (2026-04-14)
+
+
+### Bug Fixes
+
+* use explicit request/response for route restoration ([34074d3](https://github.com/sygeman/exodus/commit/34074d378cdb7aa3e232a8e4997d73d3265a55ed))
+
+
+
 ## [0.12.2](https://github.com/sygeman/exodus/compare/v0.12.1...v0.12.2) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * persist route and modals in localStorage via composables ([7efe14f](https://github.com/sygeman/exodus/commit/7efe14f7dad6ddc68e27096d52132a3d856fb763))
-
-
-
-# [0.10.0](https://github.com/sygeman/exodus/compare/v0.9.0...v0.10.0) (2026-04-14)
-
-
-### Features
-
-* add oxlint-tailwindcss plugin with Tailwind linting rules ([da88cd2](https://github.com/sygeman/exodus/commit/da88cd23fa28f76c14cf76617aa2f1d17677f079))
 
 
 
