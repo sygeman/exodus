@@ -112,13 +112,30 @@ evento.on("app:checkUpdate", async (ctx) => {
   }
 })
 
-evento.on("app:applyUpdate", async (ctx) => {
+evento.on("app:downloadUpdate", async (ctx) => {
   try {
-    await Updater.applyUpdate()
+    console.log("[updater] downloading update...")
+    await Updater.downloadUpdate()
+    console.log("[updater] downloadUpdate completed")
     evento.reply(ctx, { data: { success: true } })
   } catch (err) {
+    console.error("[updater] downloadUpdate failed:", err)
     evento.reply(ctx, {
-      data: { success: false, error: (err as Error).message },
+      data: { success: false, error: (err as Error).message || String(err) },
+    })
+  }
+})
+
+evento.on("app:applyUpdate", async (ctx) => {
+  try {
+    console.log("[updater] applying update...")
+    await Updater.applyUpdate()
+    console.log("[updater] applyUpdate returned")
+    evento.reply(ctx, { data: { success: true } })
+  } catch (err) {
+    console.error("[updater] applyUpdate failed:", err)
+    evento.reply(ctx, {
+      data: { success: false, error: (err as Error).message || String(err) },
     })
   }
 })

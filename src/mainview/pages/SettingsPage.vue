@@ -67,15 +67,28 @@ async function applyUpdate() {
   updateStatus.value = "applying"
   updateError.value = ""
   try {
-    const response = await evento.request("app:applyUpdate", {})
-    const data = (response as any).data
-    if (!data.success) {
+    console.log("[settings] downloading update...")
+    const downloadResponse = await evento.request("app:downloadUpdate", {}, { timeout: 60000 })
+    console.log("[settings] download response:", downloadResponse)
+    const downloadData = (downloadResponse as any).data
+    if (!downloadData.success) {
       updateStatus.value = "error"
-      updateError.value = data.error || "Unknown error"
+      updateError.value = downloadData.error || "Download failed"
+      return
+    }
+
+    console.log("[settings] applying update...")
+    const applyResponse = await evento.request("app:applyUpdate", {}, { timeout: 30000 })
+    console.log("[settings] apply response:", applyResponse)
+    const applyData = (applyResponse as any).data
+    if (!applyData.success) {
+      updateStatus.value = "error"
+      updateError.value = applyData.error || "Apply failed"
     }
   } catch (err) {
+    console.error("[settings] update apply failed:", err)
     updateStatus.value = "error"
-    updateError.value = (err as Error).message
+    updateError.value = (err as Error).message || String(err)
   }
 }
 
