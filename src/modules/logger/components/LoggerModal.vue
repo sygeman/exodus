@@ -1,9 +1,13 @@
 <script setup lang="ts">
+import { computed } from "vue"
+import { useI18n } from "vue-i18n"
 import { useLogger } from "@/modules/logger/composables/useLogger"
 
 const emit = defineEmits<{
   (e: "close"): void
 }>()
+
+const { t } = useI18n()
 
 const {
   logs,
@@ -25,19 +29,19 @@ const {
   lastPage,
 } = useLogger()
 
-const levelOptions: { label: string; value: string }[] = [
-  { label: "All", value: "all" },
-  { label: "Debug", value: "debug" },
-  { label: "Info", value: "info" },
-  { label: "Warn", value: "warn" },
-  { label: "Error", value: "error" },
-]
+const levelOptions = computed<{ label: string; value: string }[]>(() => [
+  { label: t("common.all"), value: "all" },
+  { label: t("common.debug"), value: "debug" },
+  { label: t("common.info"), value: "info" },
+  { label: t("common.warn"), value: "warn" },
+  { label: t("common.error"), value: "error" },
+])
 
-const sourceOptions: { label: string; value: string }[] = [
-  { label: "All", value: "all" },
-  { label: "Bun", value: "bun" },
-  { label: "Webview", value: "webview" },
-]
+const sourceOptions = computed<{ label: string; value: string }[]>(() => [
+  { label: t("common.all"), value: "all" },
+  { label: t("common.bun"), value: "bun" },
+  { label: t("common.webview"), value: "webview" },
+])
 
 const levelBadgeColor = (level: string) => {
   switch (level) {
@@ -68,8 +72,8 @@ function formatArgs(args: unknown[]) {
         <div class="flex items-center justify-between px-4 py-3 border-b border-[var(--ui-border)]">
           <div class="flex items-center gap-3">
             <UButton icon="i-lucide-arrow-left" variant="ghost" @click="emit('close')" />
-            <h1 class="text-xl font-bold">Logs</h1>
-            <UBadge v-if="isPaused" color="warning" variant="subtle">Paused</UBadge>
+            <h1 class="text-xl font-bold">{{ t('common.logs') }}</h1>
+            <UBadge v-if="isPaused" color="warning" variant="subtle">{{ t('common.paused') }}</UBadge>
           </div>
           <div class="flex items-center gap-2">
             <div class="hidden sm:flex items-center gap-2 text-xs text-[var(--ui-text-muted)] mr-2">
@@ -83,9 +87,9 @@ function formatArgs(args: unknown[]) {
               variant="subtle"
               @click="togglePause"
             >
-              {{ isPaused ? "Resume" : "Pause" }}
+              {{ isPaused ? t('common.resume') : t('common.pause') }}
             </UButton>
-            <UButton color="error" variant="subtle" @click="clear">Clear</UButton>
+            <UButton color="error" variant="subtle" @click="clear">{{ t('common.clear') }}</UButton>
           </div>
         </div>
 
@@ -93,7 +97,7 @@ function formatArgs(args: unknown[]) {
         <div class="flex flex-wrap gap-2 px-4 py-2 border-b border-[var(--ui-border)]">
           <USelectMenu v-model="levelFilter" :items="levelOptions" value-key="value" class="w-28" />
           <USelectMenu v-model="sourceFilter" :items="sourceOptions" value-key="value" class="w-28" />
-          <UInput v-model="textFilter" placeholder="Search logs" class="flex-1 min-w-0" />
+          <UInput v-model="textFilter" :placeholder="t('logs.searchLogs')" class="flex-1 min-w-0" />
         </div>
 
         <!-- Logs list -->
@@ -121,14 +125,14 @@ function formatArgs(args: unknown[]) {
             </div>
           </div>
           <div v-if="logs.length === 0" class="p-8 text-center text-[var(--ui-text-muted)] text-sm">
-            No logs.
+            {{ t('common.noLogs') }}
           </div>
         </UScrollArea>
 
         <!-- Pagination -->
         <div class="flex items-center justify-between px-4 py-2 border-t border-[var(--ui-border)]">
           <span class="text-xs text-[var(--ui-text-muted)]">
-            {{ total }} logs · page {{ page }} of {{ totalPages }}
+            {{ t('logs.totalLogs', { total, pageInfo: t('logs.pageOf', { page, totalPages }) }) }}
           </span>
           <div class="flex items-center gap-1">
             <UButton icon="i-lucide-chevrons-left" variant="ghost" size="xs" :disabled="page <= 1 || loading" @click="firstPage" />

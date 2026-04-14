@@ -1,12 +1,16 @@
 <script setup lang="ts">
 import { computed } from "vue"
+import { useI18n } from "vue-i18n"
 import { useColorMode } from "@vueuse/core"
 import LogoSvg from "@/mainview/assets/logo.svg"
+import { locales } from "@/mainview/locales"
 
 const emit = defineEmits<{
   (e: "open-events"): void
   (e: "open-logs"): void
 }>()
+
+const { t, locale } = useI18n()
 
 const tooltipContent = {
   align: "center" as const,
@@ -26,10 +30,16 @@ const isDark = computed({
 })
 
 const themeIcon = computed(() => (isDark.value ? "i-lucide-sun" : "i-lucide-moon"))
-const themeText = computed(() => (isDark.value ? "Light mode" : "Dark mode"))
+const themeText = computed(() => (isDark.value ? t("common.lightMode") : t("common.darkMode")))
 
 function toggleTheme() {
   isDark.value = !isDark.value
+}
+
+const currentLocaleLabel = computed(() => locales.find((l) => l.value === locale.value)?.label ?? locale.value)
+function switchLocale() {
+  const next = locales[(locales.findIndex((l) => l.value === locale.value) + 1) % locales.length]
+  locale.value = next.value
 }
 </script>
 
@@ -42,7 +52,7 @@ function toggleTheme() {
 
     <!-- Проекты (скроллятся) -->
     <div class="flex-1 min-h-0 overflow-y-auto flex flex-col items-center gap-1 mt-4">
-      <UTooltip text="Project A" :content="tooltipContent" :delay-duration="0">
+      <UTooltip :text="t('common.projectA')" :content="tooltipContent" :delay-duration="0">
         <div
           class="flex-shrink-0 relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors font-semibold text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
         >
@@ -50,7 +60,7 @@ function toggleTheme() {
         </div>
       </UTooltip>
 
-      <UTooltip text="Project B" :content="tooltipContent" :delay-duration="0">
+      <UTooltip :text="t('common.projectB')" :content="tooltipContent" :delay-duration="0">
         <div
           class="flex-shrink-0 relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors font-semibold text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
         >
@@ -59,7 +69,7 @@ function toggleTheme() {
       </UTooltip>
 
       <!-- Кнопка создания проекта -->
-      <UTooltip text="New Project" :content="tooltipContent" :delay-duration="0">
+      <UTooltip :text="t('common.newProject')" :content="tooltipContent" :delay-duration="0">
         <button
           class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
         >
@@ -70,7 +80,7 @@ function toggleTheme() {
 
     <!-- Системная навигация -->
     <div class="flex-shrink-0 flex flex-col items-center gap-1 mt-2">
-      <UTooltip text="Events" :content="tooltipContent" :delay-duration="0">
+      <UTooltip :text="t('common.events')" :content="tooltipContent" :delay-duration="0">
         <button
           class="relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
           @click="emit('open-events')"
@@ -79,7 +89,7 @@ function toggleTheme() {
         </button>
       </UTooltip>
 
-      <UTooltip text="Logs" :content="tooltipContent" :delay-duration="0">
+      <UTooltip :text="t('common.logs')" :content="tooltipContent" :delay-duration="0">
         <button
           class="relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
           @click="emit('open-logs')"
@@ -97,7 +107,16 @@ function toggleTheme() {
         </button>
       </UTooltip>
 
-      <UTooltip text="Settings" :content="tooltipContent" :delay-duration="0">
+      <UTooltip :text="currentLocaleLabel" :content="tooltipContent" :delay-duration="0">
+        <button
+          class="relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)] text-xs font-semibold"
+          @click="switchLocale"
+        >
+          {{ locale.toUpperCase() }}
+        </button>
+      </UTooltip>
+
+      <UTooltip :text="t('common.settings')" :content="tooltipContent" :delay-duration="0">
         <button
           class="relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
         >
