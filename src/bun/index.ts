@@ -5,6 +5,7 @@ import { initTimer } from "@/modules/timer/bun"
 import { initUpdater } from "@/modules/updater/bun"
 import { initSchema } from "@/modules/schema/bun"
 import { bunLogger } from "@/modules/logger/bun"
+import { initAppState } from "@/modules/app-state/bun"
 import { globalRegistry } from "@/events"
 
 const DEV_SERVER_PORT = 5173
@@ -42,6 +43,10 @@ const { webview } = new BrowserWindow({
 })
 
 evento.sender = webview.rpc?.send?.emit
+
+initAppState(evento, webview, (name, payload) => {
+  evento.emitEvent(name, payload, "app:init")
+})
 
 ApplicationMenu.setApplicationMenu([
   {

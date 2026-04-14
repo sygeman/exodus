@@ -1,45 +1,39 @@
 import type { Router } from "vue-router"
-
-const LS_ROUTE_KEY = "exodus:last-route"
+import { evento } from "@/mainview/evento"
 
 export function useSavedRoute(router: Router) {
-  function save(hash: string) {
-    try {
-      localStorage.setItem(LS_ROUTE_KEY, hash)
-    } catch {
-      // ignore storage errors
-    }
-  }
+  let savedHash: string | null = null
+  let restoreReceived = false
 
-  function restore() {
-    const savedHash = (() => {
-      try {
-        return localStorage.getItem(LS_ROUTE_KEY)
-      } catch {
-        return null
-      }
-    })()
-
-    if (savedHash && savedHash !== "#/" && savedHash !== "#") {
-      const hash = savedHash.startsWith("#") ? savedHash.slice(1) : savedHash
-      const [pathPart, queryString] = hash.split("?")
+  function restore(hash: string | null) {
+    if (hash && hash !== "#/" && hash !== "#") {
+      const path = hash.startsWith("#") ? hash.slice(1) : hash
+      const [pathPart, queryString] = path.split("?")
       const query = queryString ? Object.fromEntries(new URLSearchParams(queryString)) : {}
-      router.replace({ path: pathPart, query })
+      router.replace({ path: pathPart, query }).catch(() => {
+        // ignore navigation errors
+      })
     }
   }
 
   function startWatching() {
-    router.afterEach(() => {
-      save(window.location.hash)
+    evento.on("app:restoreRoute", (ctx) => {
+      savedHash = ctx.payload.hash
+      restoreReceived = true
     })
 
     router.isReady().then(() => {
-      restore()
+      if (restoreReceived) {
+        restore(savedHash)
+      }
+    })
+
+    router.afterEach(() => {
+      evento.emitEvent("app:routeChanged", { hash: window.location.hash }, "webview")
     })
   }
 
   return {
-    save,
     restore,
     startWatching,
   }
