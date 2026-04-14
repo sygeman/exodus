@@ -9,7 +9,7 @@ const emit = defineEmits<{
 
 const tooltipContent = {
   align: "center" as const,
-  side: "bottom" as const,
+  side: "right" as const,
   sideOffset: 8,
 }
 
@@ -33,7 +33,7 @@ function toggleTheme() {
 </script>
 
 <template>
-  <aside class="flex flex-col items-center pb-2 w-16 pt-4 border-r border-[var(--ui-border)]">
+  <aside class="flex flex-col items-center pb-2 w-16 pt-4 border-r border-[var(--ui-border)] select-none">
     <!-- Лого -->
     <RouterLink to="/" class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg">
       <LogoSvg class="w-8 h-8" />
@@ -41,7 +41,7 @@ function toggleTheme() {
 
     <!-- Проекты (скроллятся) -->
     <div class="flex-1 min-h-0 overflow-y-auto flex flex-col items-center gap-1 mt-4">
-      <UTooltip text="Project A" :content="tooltipContent">
+      <UTooltip text="Project A" :content="tooltipContent" :delay-duration="0">
         <div
           class="flex-shrink-0 relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors font-semibold text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
         >
@@ -49,7 +49,7 @@ function toggleTheme() {
         </div>
       </UTooltip>
 
-      <UTooltip text="Project B" :content="tooltipContent">
+      <UTooltip text="Project B" :content="tooltipContent" :delay-duration="0">
         <div
           class="flex-shrink-0 relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors font-semibold text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
         >
@@ -58,7 +58,7 @@ function toggleTheme() {
       </UTooltip>
 
       <!-- Кнопка создания проекта -->
-      <UTooltip text="New Project" :content="tooltipContent">
+      <UTooltip text="New Project" :content="tooltipContent" :delay-duration="0">
         <button
           class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
         >
@@ -69,7 +69,7 @@ function toggleTheme() {
 
     <!-- Системная навигация -->
     <div class="flex-shrink-0 flex flex-col items-center gap-1 mt-2">
-      <UTooltip text="Events" :content="tooltipContent">
+      <UTooltip text="Events" :content="tooltipContent" :delay-duration="0">
         <button
           class="relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
           @click="emit('open-events')"
@@ -78,7 +78,7 @@ function toggleTheme() {
         </button>
       </UTooltip>
 
-      <UTooltip :text="themeText" :content="tooltipContent">
+      <UTooltip :text="themeText" :content="tooltipContent" :delay-duration="0">
         <button
           class="relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
           @click="toggleTheme"
@@ -87,7 +87,7 @@ function toggleTheme() {
         </button>
       </UTooltip>
 
-      <UTooltip text="Settings" :content="tooltipContent">
+      <UTooltip text="Settings" :content="tooltipContent" :delay-duration="0">
         <button
           class="relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
         >
