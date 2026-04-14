@@ -1,3 +1,12 @@
+# [0.13.0](https://github.com/sygeman/exodus/compare/v0.12.4...v0.13.0) (2026-04-14)
+
+
+### Features
+
+* convert events and logs from modals to pages ([71b4ee7](https://github.com/sygeman/exodus/commit/71b4ee7912c12336b26e86cde3b129aa46c43f09))
+
+
+
 ## [0.12.4](https://github.com/sygeman/exodus/compare/v0.12.3...v0.12.4) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * correct Linux icon path and add desktop file fallback in installer ([45843f8](https://github.com/sygeman/exodus/commit/45843f82baf64af807e1c4bd1562da5e307cc30f))
-
-
-
-# [0.12.0](https://github.com/sygeman/exodus/compare/v0.11.0...v0.12.0) (2026-04-14)
-
-
-### Features
-
-* add one-command Linux installer ([8cc68cd](https://github.com/sygeman/exodus/commit/8cc68cd44d04ac44525c0220b713a57e4c20a5fa))
 
 
 
