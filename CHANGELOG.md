@@ -1,3 +1,12 @@
+# [0.11.0](https://github.com/sygeman/exodus/compare/v0.10.0...v0.11.0) (2026-04-14)
+
+
+### Features
+
+* persist route and modals in localStorage via composables ([7efe14f](https://github.com/sygeman/exodus/commit/7efe14f7dad6ddc68e27096d52132a3d856fb763))
+
+
+
 # [0.10.0](https://github.com/sygeman/exodus/compare/v0.9.0...v0.10.0) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * pass version instead of hash to updater UI and improve layout ([582e368](https://github.com/sygeman/exodus/commit/582e3682d11a1ef008d35f1e52a9b3d0a554686b))
-
-
-
-# [0.7.0](https://github.com/sygeman/exodus/compare/v0.6.0...v0.7.0) (2026-04-14)
-
-
-### Features
-
-* add oxc and drizzle agent skills ([3fd33cd](https://github.com/sygeman/exodus/commit/3fd33cd61f18cf4f54741b7d8e032975d8f864e8))
 
 
 
