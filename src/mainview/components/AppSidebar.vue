@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import LogoIcon from "@/mainview/components/LogoIcon.vue"
+import LogoSvg from "@/mainview/assets/logo.svg"
 
 const emit = defineEmits<{
   (e: "open-events"): void
@@ -19,7 +19,7 @@ const tooltipContent = {
       to="/"
       class="flex-shrink-0 flex items-center justify-center w-10 h-10 rounded-lg bg-[var(--ui-bg-elevated)] text-[var(--ui-primary)]"
     >
-      <LogoIcon />
+      <LogoSvg class="w-9 h-9" />
     </RouterLink>
 
     <!-- Проекты (скроллятся) -->
