@@ -60,4 +60,25 @@ evento.on("evento:schema:request", (ctx) => {
   })
 })
 
+evento.on("app:checkUpdate", async (ctx) => {
+  try {
+    const result = await Updater.checkForUpdate()
+    evento.reply(ctx, {
+      data: {
+        updateAvailable: result.updateAvailable,
+        currentVersion: result.version,
+        latestVersion: result.hash,
+        error: result.error,
+      },
+    })
+  } catch (err) {
+    evento.reply(ctx, {
+      data: {
+        updateAvailable: false,
+        error: (err as Error).message,
+      },
+    })
+  }
+})
+
 export { evento }

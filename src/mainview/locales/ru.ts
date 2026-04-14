@@ -42,6 +42,11 @@ export default {
     webview: "Webview",
     language: "Язык",
     version: "Версия",
+    update: "Обновление",
+    check: "Проверить",
+    updateAvailable: "Доступно обновление",
+    upToDate: "Актуальная версия",
+    updateError: "Ошибка",
   },
   counter: {
     title: "Счетчик: {value}",

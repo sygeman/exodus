@@ -42,6 +42,11 @@ export default {
     webview: "Webview",
     language: "Language",
     version: "Version",
+    update: "Update",
+    check: "Check",
+    updateAvailable: "Update available",
+    upToDate: "Up to date",
+    updateError: "Error",
   },
   counter: {
     title: "Counter: {value}",
