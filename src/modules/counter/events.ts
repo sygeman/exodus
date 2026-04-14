@@ -14,6 +14,13 @@ export const counterRegistry: EventoRegistry = {
     schema: z.object({ correlation_id: z.string().optional() }),
     description: "Query counter state",
   },
+  "counter:query:response": {
+    schema: z.object({
+      data: z.object({ count: z.number(), autoIncrement: z.boolean() }),
+      correlation_id: z.string().optional(),
+    }),
+    description: "Counter query response",
+  },
 }
 
 export type CounterEventMap = {
@@ -23,6 +30,7 @@ export type CounterEventMap = {
   "counter:auto:enable": void
   "counter:auto:disable": void
   "counter:query": { correlation_id?: string }
+  "counter:query:response": { count: number; autoIncrement: boolean; correlation_id?: string }
 }
 
 export const counterOutgoingEvents = ["counter:updated"] as const
