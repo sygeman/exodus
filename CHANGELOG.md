@@ -1,3 +1,12 @@
+# [0.6.0](https://github.com/sygeman/exodus/compare/v0.5.1...v0.6.0) (2026-04-14)
+
+
+### Features
+
+* event-driven updater with download progress and proper typing ([3fb7891](https://github.com/sygeman/exodus/commit/3fb78916ec809e9c1c8e51b828d3b6cfffa2261b))
+
+
+
 ## [0.5.1](https://github.com/sygeman/exodus/compare/v0.5.0...v0.5.1) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * enable system keyboard shortcuts via ApplicationMenu ([c799606](https://github.com/sygeman/exodus/commit/c799606302d00a2aec7ed1ec05fb3587587f03f8))
-
-
-
-# [0.4.0](https://github.com/sygeman/exodus/compare/v0.3.0...v0.4.0) (2026-04-14)
-
-
-### Features
-
-* auto-check updates on settings page with install button ([4b72692](https://github.com/sygeman/exodus/commit/4b726928e26c2187b133504dbb472eb39859ea3e))
 
 
 
