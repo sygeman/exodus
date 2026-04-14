@@ -4,20 +4,18 @@ import { join, dirname } from "path"
 import { logs } from "./schema"
 import { desc, and, eq, gte, lte, like, or, sql } from "drizzle-orm"
 import type { LogEntry } from "../events"
-import { homedir } from "os"
 import { mkdirSync } from "fs"
+import { Utils } from "electrobun/bun"
 
 function getDbPath(): string {
   if (process.env.LOGS_DB_PATH) return process.env.LOGS_DB_PATH
-  // Store in standard OS app data location
-  const home = homedir()
-  if (process.platform === "darwin") {
-    return join(home, "Library", "Application Support", "Exodus", "logs.db")
+
+  try {
+    return join(Utils.paths.userData, "logs.db")
+  } catch {
+    // Fallback for dev mode when version.json is unavailable
+    return join(Utils.paths.home, ".local", "share", "Exodus", "dev", "logs.db")
   }
-  if (process.platform === "win32") {
-    return join(process.env.LOCALAPPDATA || home, "Exodus", "logs.db")
-  }
-  return join(home, ".local", "share", "Exodus", "logs.db")
 }
 
 const DB_PATH = getDbPath()
