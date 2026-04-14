@@ -1,3 +1,12 @@
+# [0.1.0](https://github.com/sygeman/exodus/compare/v0.0.3...v0.1.0) (2026-04-14)
+
+
+### Features
+
+* add settings page with version, theme and locale ([f37509d](https://github.com/sygeman/exodus/commit/f37509d8d20eb3bba59f966380040ab5e5cb9738))
+
+
+
 ## [0.0.3](https://github.com/sygeman/exodus/compare/v0.0.2...v0.0.3) (2026-04-14)
 
 
