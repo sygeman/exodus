@@ -1,4 +1,4 @@
-## [0.4.1](https://github.com/sygeman/exodus/compare/v0.4.0...v0.4.1) (2026-04-14)
+## [0.4.2](https://github.com/sygeman/exodus/compare/v0.4.0...v0.4.2) (2026-04-14)
 
 
 ### Bug Fixes
