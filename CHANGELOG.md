@@ -1,3 +1,12 @@
+## [0.12.1](https://github.com/sygeman/exodus/compare/v0.12.0...v0.12.1) (2026-04-14)
+
+
+### Bug Fixes
+
+* correct Linux icon path and add desktop file fallback in installer ([45843f8](https://github.com/sygeman/exodus/commit/45843f82baf64af807e1c4bd1562da5e307cc30f))
+
+
+
 # [0.12.0](https://github.com/sygeman/exodus/compare/v0.11.0...v0.12.0) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * add periodic update check every 15 minutes in bun process ([9524295](https://github.com/sygeman/exodus/commit/9524295666bea85a4b7f2ff8a8f0052022a98c07))
-
-
-
-# [0.8.0](https://github.com/sygeman/exodus/compare/v0.7.1...v0.8.0) (2026-04-14)
-
-
-### Features
-
-* add Polish locale ([ced0fa8](https://github.com/sygeman/exodus/commit/ced0fa8fdeb903880196c60bad44c5b3746e702d))
 
 
 
