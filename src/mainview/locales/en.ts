@@ -55,6 +55,17 @@ export default {
     updateAvailableDescription: "{current} → {latest}",
     updateNow: "Update now",
     updateLater: "Later",
+    appearance: "Appearance",
+    about: "About",
+    theme: "Theme",
+  },
+  settings: {
+    theme: "Theme",
+    darkModeDescription: "Switch to a darker color scheme that's easier on the eyes.",
+    lightModeDescription: "Switch to a lighter color scheme.",
+    languageDescription: "Select the language you want to use in the app.",
+    versionDescription: "Current application version.",
+    updateDescription: "Check for and install the latest updates.",
   },
   counter: {
     title: "Counter: {value}",

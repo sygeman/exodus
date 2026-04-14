@@ -55,6 +55,17 @@ export default {
     updateAvailableDescription: "{current} → {latest}",
     updateNow: "Обновить",
     updateLater: "Позже",
+    appearance: "Внешний вид",
+    about: "О приложении",
+    theme: "Тема",
+  },
+  settings: {
+    theme: "Тема",
+    darkModeDescription: "Переключиться на тёмную цветовую схему, которая меньше нагружает глаза.",
+    lightModeDescription: "Переключиться на светлую цветовую схему.",
+    languageDescription: "Выберите язык, который хотите использовать в приложении.",
+    versionDescription: "Текущая версия приложения.",
+    updateDescription: "Проверьте и установите последние обновления.",
   },
   counter: {
     title: "Счетчик: {value}",

@@ -55,6 +55,18 @@ export default {
     updateAvailableDescription: "{current} → {latest}",
     updateNow: "Zaktualizuj",
     updateLater: "Później",
+    appearance: "Wygląd",
+    about: "O aplikacji",
+    theme: "Motyw",
+  },
+  settings: {
+    theme: "Motyw",
+    darkModeDescription:
+      "Przełącz się na ciemniejszą paletę kolorów, która jest łagodniejsza dla oczu.",
+    lightModeDescription: "Przełącz się na jaśniejszą paletę kolorów.",
+    languageDescription: "Wybierz język, którego chcesz używać w aplikacji.",
+    versionDescription: "Aktualna wersja aplikacji.",
+    updateDescription: "Sprawdź i zainstaluj najnowsze aktualizacje.",
   },
   counter: {
     title: "Licznik: {value}",

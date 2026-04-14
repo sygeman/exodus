@@ -7,7 +7,10 @@ import App from "./App.vue"
 import CounterPage from "./pages/CounterPage.vue"
 import EventsPage from "./pages/EventsPage.vue"
 import LogsPage from "./pages/LogsPage.vue"
-import SettingsPage from "./pages/SettingsPage.vue"
+import SettingsLayout from "./pages/settings/SettingsLayout.vue"
+import SettingsAppearance from "./pages/settings/SettingsAppearance.vue"
+import SettingsLanguage from "./pages/settings/SettingsLanguage.vue"
+import SettingsAbout from "./pages/settings/SettingsAbout.vue"
 import { evento, rpc } from "./evento"
 import { Electroview } from "electrobun/view"
 import { webviewLogger } from "@/modules/logger/webview"
@@ -36,7 +39,16 @@ const router = createRouter({
     { path: "/", component: CounterPage },
     { path: "/events", component: EventsPage },
     { path: "/logs", component: LogsPage },
-    { path: "/settings", component: SettingsPage },
+    {
+      path: "/settings",
+      component: SettingsLayout,
+      redirect: "/settings/appearance",
+      children: [
+        { path: "appearance", component: SettingsAppearance },
+        { path: "language", component: SettingsLanguage },
+        { path: "about", component: SettingsAbout },
+      ],
+    },
   ],
   history: createWebHashHistory(),
 })

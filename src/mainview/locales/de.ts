@@ -55,6 +55,17 @@ export default {
     updateAvailableDescription: "{current} → {latest}",
     updateNow: "Jetzt aktualisieren",
     updateLater: "Später",
+    appearance: "Erscheinungsbild",
+    about: "Über",
+    theme: "Design",
+  },
+  settings: {
+    theme: "Design",
+    darkModeDescription: "Wechseln Sie zu einem dunkleren Farbschema, das augenschonender ist.",
+    lightModeDescription: "Wechseln Sie zu einem helleren Farbschema.",
+    languageDescription: "Wählen Sie die Sprache aus, die Sie in der App verwenden möchten.",
+    versionDescription: "Aktuelle App-Version.",
+    updateDescription: "Prüfen und installieren Sie die neuesten Updates.",
   },
   counter: {
     title: "Zähler: {value}",
