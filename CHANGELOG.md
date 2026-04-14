@@ -1,3 +1,12 @@
+# [0.10.0](https://github.com/sygeman/exodus/compare/v0.9.0...v0.10.0) (2026-04-14)
+
+
+### Features
+
+* add oxlint-tailwindcss plugin with Tailwind linting rules ([da88cd2](https://github.com/sygeman/exodus/commit/da88cd23fa28f76c14cf76617aa2f1d17677f079))
+
+
+
 # [0.9.0](https://github.com/sygeman/exodus/compare/v0.8.0...v0.9.0) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * add oxc and drizzle agent skills ([3fd33cd](https://github.com/sygeman/exodus/commit/3fd33cd61f18cf4f54741b7d8e032975d8f864e8))
-
-
-
-# [0.6.0](https://github.com/sygeman/exodus/compare/v0.5.1...v0.6.0) (2026-04-14)
-
-
-### Features
-
-* event-driven updater with download progress and proper typing ([3fb7891](https://github.com/sygeman/exodus/commit/3fb78916ec809e9c1c8e51b828d3b6cfffa2261b))
 
 
 
