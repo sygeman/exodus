@@ -1,3 +1,12 @@
+# [0.16.0](https://github.com/sygeman/exodus/compare/v0.15.1...v0.16.0) (2026-04-14)
+
+
+### Features
+
+* center counter on screen ([81b8401](https://github.com/sygeman/exodus/commit/81b8401aa9c2f490cf5d4c93706c873b25db33b6))
+
+
+
 ## [0.15.1](https://github.com/sygeman/exodus/compare/v0.15.0...v0.15.1) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * convert events and logs from modals to pages ([71b4ee7](https://github.com/sygeman/exodus/commit/71b4ee7912c12336b26e86cde3b129aa46c43f09))
-
-
-
-## [0.12.4](https://github.com/sygeman/exodus/compare/v0.12.3...v0.12.4) (2026-04-14)
-
-
-### Bug Fixes
-
-* correct Linux desktop entry and icon path in installer ([6311429](https://github.com/sygeman/exodus/commit/6311429b15b2e45d887d2d275d9ee93f356339ae))
 
 
 
