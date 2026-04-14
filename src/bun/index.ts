@@ -1,4 +1,4 @@
-import { BrowserWindow, Updater } from "electrobun/bun"
+import { BrowserWindow, Updater, ApplicationMenu } from "electrobun/bun"
 import { createEventoBun } from "@/bun/evento"
 import { initCounter } from "@/modules/counter/bun"
 import { initTimer } from "@/modules/timer/bun"
@@ -40,6 +40,28 @@ const { webview } = new BrowserWindow({
 })
 
 evento.sender = webview.rpc?.send?.emit
+
+ApplicationMenu.setMenu([
+  {
+    label: "Edit",
+    submenu: [
+      { role: "undo" },
+      { role: "redo" },
+      { type: "separator" },
+      { role: "cut" },
+      { role: "copy" },
+      { role: "paste" },
+      { role: "selectAll" },
+    ],
+  },
+  {
+    label: "Window",
+    submenu: [
+      { role: "minimize" },
+      { role: "close" },
+    ],
+  },
+])
 
 bunLogger.attach(evento)
 initCounter(evento)
