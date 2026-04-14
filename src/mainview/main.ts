@@ -17,6 +17,8 @@ evento.sender = (msg: { name: string; payload: unknown; meta: any }) => {
   ;(electroview.rpc as any).send.emit(msg)
 }
 
+console.log("Webview process started")
+
 const app = createApp(App)
 
 const router = createRouter({

@@ -1,5 +1,8 @@
 import type { ElectrobunConfig } from "electrobun";
 import path from "path";
+import { readFileSync } from "fs";
+
+const packageJson = JSON.parse(readFileSync("./package.json", "utf-8"));
 
 const aliasPlugin = {
   name: "alias-resolver",
@@ -18,7 +21,7 @@ export default {
   app: {
     name: "Exodus",
     identifier: "exodus.sgmn.dev",
-    version: "0.0.1",
+    version: packageJson.version,
   },
   build: {
     bun: {

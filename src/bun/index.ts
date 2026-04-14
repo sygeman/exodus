@@ -45,6 +45,8 @@ bunLogger.attach(evento)
 initCounter(evento)
 initTimer(evento)
 
+console.log("Bun process started")
+
 evento.on("evento:schema:request", (ctx) => {
   const name = (ctx.payload as any).name
   console.log("[bun] schema:request for", name)
