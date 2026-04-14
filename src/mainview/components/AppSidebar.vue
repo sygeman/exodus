@@ -117,11 +117,13 @@ function switchLocale() {
       </UTooltip>
 
       <UTooltip :text="t('common.settings')" :content="tooltipContent" :delay-duration="0">
-        <button
+        <RouterLink
+          to="/settings"
           class="relative flex items-center justify-center w-10 h-10 rounded-lg transition-colors text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
+          active-class="bg-[var(--ui-bg-elevated)] text-[var(--ui-text)]"
         >
           <UIcon name="i-lucide-settings" class="w-5 h-5" />
-        </button>
+        </RouterLink>
       </UTooltip>
     </div>
   </aside>

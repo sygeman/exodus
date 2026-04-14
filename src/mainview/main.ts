@@ -5,6 +5,7 @@ import { createRouter, createWebHashHistory } from "vue-router"
 import { createI18n } from "vue-i18n"
 import App from "./App.vue"
 import CounterPage from "./pages/CounterPage.vue"
+import SettingsPage from "./pages/SettingsPage.vue"
 import { evento, rpc } from "./evento"
 import { Electroview } from "electrobun/view"
 import { webviewLogger } from "@/modules/logger/webview"
@@ -22,7 +23,10 @@ console.log("Webview process started")
 const app = createApp(App)
 
 const router = createRouter({
-  routes: [{ path: "/", component: CounterPage }],
+  routes: [
+    { path: "/", component: CounterPage },
+    { path: "/settings", component: SettingsPage },
+  ],
   history: createWebHashHistory(),
 })
 

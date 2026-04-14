@@ -41,6 +41,7 @@ export default {
     bun: "Bun",
     webview: "Webview",
     language: "Язык",
+    version: "Версия",
   },
   counter: {
     title: "Счетчик: {value}",
