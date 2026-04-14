@@ -1,3 +1,12 @@
+## [0.12.4](https://github.com/sygeman/exodus/compare/v0.12.3...v0.12.4) (2026-04-14)
+
+
+### Bug Fixes
+
+* correct Linux desktop entry and icon path in installer ([6311429](https://github.com/sygeman/exodus/commit/6311429b15b2e45d887d2d275d9ee93f356339ae))
+
+
+
 ## [0.12.3](https://github.com/sygeman/exodus/compare/v0.12.2...v0.12.3) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * add one-command Linux installer ([8cc68cd](https://github.com/sygeman/exodus/commit/8cc68cd44d04ac44525c0220b713a57e4c20a5fa))
-
-
-
-# [0.11.0](https://github.com/sygeman/exodus/compare/v0.10.0...v0.11.0) (2026-04-14)
-
-
-### Features
-
-* persist route and modals in localStorage via composables ([7efe14f](https://github.com/sygeman/exodus/commit/7efe14f7dad6ddc68e27096d52132a3d856fb763))
 
 
 
