@@ -14,7 +14,8 @@ export function useCounter() {
     loading.value = false
   })
 
-  evento.request("counter:query", {}, { timeout: 2000 })
+  evento
+    .request("counter:query", {}, { timeout: 2000 })
     .then((res) => {
       const data = res.data as { count: number; autoIncrement: boolean }
       count.value = data.count

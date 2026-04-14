@@ -12,13 +12,13 @@ describe("Evento - Source Tracking & Loop Detection", () => {
       "data:item_created": { schema: z.any() },
       "counter:increment": { schema: z.any() },
       "counter:updated": { schema: z.any() },
-      "ping": { schema: z.any() },
-      "pong": { schema: z.any() },
-      "loop": { schema: z.any() },
-      "action": { schema: z.any() },
-      "a": { schema: z.any() },
-      "b": { schema: z.any() },
-      "c": { schema: z.any() },
+      ping: { schema: z.any() },
+      pong: { schema: z.any() },
+      loop: { schema: z.any() },
+      action: { schema: z.any() },
+      a: { schema: z.any() },
+      b: { schema: z.any() },
+      c: { schema: z.any() },
     })
   })
 

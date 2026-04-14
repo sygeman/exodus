@@ -8,7 +8,6 @@ import {
 } from "./types"
 import { isWildcard, splitSegments, matchPattern } from "./utils"
 
-
 export type EventoMetaType<T> =
   T extends Evento<infer L, infer R> ? { environment: L | R[number] } : never
 
@@ -82,7 +81,9 @@ export class Evento<
   /**
    * Serialize Zod schema to JSON description
    */
-  serializeSchema(name: string): { type: string; properties?: Record<string, { type: string }> } | null {
+  serializeSchema(
+    name: string,
+  ): { type: string; properties?: Record<string, { type: string }> } | null {
     const entry = this.registry.get(name)
     if (!entry) return null
 

@@ -15,9 +15,9 @@ describe("Evento", () => {
       "counter:reset": { schema: z.any() },
       "timer:tick": { schema: z.any() },
       "test:event": { schema: z.any() },
-      "step1": { schema: z.any() },
-      "step2": { schema: z.any() },
-      "step3": { schema: z.any() },
+      step1: { schema: z.any() },
+      step2: { schema: z.any() },
+      step3: { schema: z.any() },
       "settings:query": { schema: z.any() },
       "settings:query:response": { schema: z.any() },
     })

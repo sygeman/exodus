@@ -23,7 +23,7 @@ function closeDebug() {
 
 <template>
   <div class="p-8 flex flex-col items-center gap-4">
-    <h1 class="text-2xl font-bold">Counter: {{ loading ? '...' : count }}</h1>
+    <h1 class="text-2xl font-bold">Counter: {{ loading ? "..." : count }}</h1>
     <div class="flex gap-2">
       <UButton :loading="loading" @click="increment">Increment</UButton>
       <UButton :loading="loading" color="neutral" variant="subtle" @click="reset">Reset</UButton>
@@ -33,9 +33,7 @@ function closeDebug() {
       <span class="text-sm text-gray-600">Auto increment</span>
     </div>
     <p class="text-sm text-gray-500">Time: {{ new Date(time).toLocaleTimeString() }}</p>
-    <UButton variant="ghost" color="neutral" @click="openDebug">
-      Open Evento Debug →
-    </UButton>
+    <UButton variant="ghost" color="neutral" @click="openDebug"> Open Evento Debug → </UButton>
   </div>
 
   <EventoModal v-if="isDebugOpen" @close="closeDebug" />

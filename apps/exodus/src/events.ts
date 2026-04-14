@@ -10,6 +10,12 @@ export type GlobalEventMap = CounterEventMap & TimerEventMap
 export const globalRegistry: EventoRegistry = {
   ...counterRegistry,
   ...timerRegistry,
-  "evento:schema:request": { schema: z.object({ name: z.string() }), description: "Request event schema" },
-  "evento:schema:request:response": { schema: z.object({ name: z.string(), schema: z.any(), description: z.string().optional() }), description: "Event schema response" },
+  "evento:schema:request": {
+    schema: z.object({ name: z.string() }),
+    description: "Request event schema",
+  },
+  "evento:schema:request:response": {
+    schema: z.object({ name: z.string(), schema: z.any(), description: z.string().optional() }),
+    description: "Event schema response",
+  },
 }
