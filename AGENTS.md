@@ -66,3 +66,4 @@ BREAKING CHANGE: old settings schema is no longer supported"
 - If a change includes both a fix and a feature, split it into two commits when possible.
 - Never force-push to `main` unless explicitly asked.
 - After the CI bumps `package.json`, run `git pull` locally to stay in sync.
+- **Zero tolerance for lint/type warnings and bugs.** Always run `bun run lint` and `bun run typecheck` after making changes and fix all errors and warnings before finishing. Do not leave any `any` types or type casts in new or modified code — use proper types derived from schemas.
