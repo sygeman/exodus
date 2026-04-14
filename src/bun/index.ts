@@ -41,7 +41,7 @@ const { webview } = new BrowserWindow({
 
 evento.sender = webview.rpc?.send?.emit
 
-ApplicationMenu.setMenu([
+ApplicationMenu.setApplicationMenu([
   {
     label: "Edit",
     submenu: [
