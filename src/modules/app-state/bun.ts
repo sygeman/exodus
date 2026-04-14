@@ -3,33 +3,55 @@ import { join, dirname } from "path"
 import { Utils } from "electrobun/bun"
 import type { EventoBun } from "@/bun/evento"
 
-const ROUTE_FILE = join(Utils.paths.userData, "last-route.json")
+const STATE_FILE = join(Utils.paths.userData, "app-state.json")
 
-function saveRoute(hash: string) {
+interface AppState {
+  lastRoute?: { hash: string }
+  dismissedUpdate?: { version: string }
+}
+
+function readState(): AppState {
   try {
-    mkdirSync(dirname(ROUTE_FILE), { recursive: true })
-    writeFileSync(ROUTE_FILE, JSON.stringify({ hash }))
+    if (!existsSync(STATE_FILE)) return {}
+    return JSON.parse(readFileSync(STATE_FILE, "utf-8")) as AppState
+  } catch {
+    return {}
+  }
+}
+
+function writeState(state: AppState) {
+  try {
+    mkdirSync(dirname(STATE_FILE), { recursive: true })
+    writeFileSync(STATE_FILE, JSON.stringify(state))
   } catch {
     // ignore
   }
 }
 
-function getSavedRoute(): string | null {
-  try {
-    if (!existsSync(ROUTE_FILE)) return null
-    const data = JSON.parse(readFileSync(ROUTE_FILE, "utf-8"))
-    return data.hash || null
-  } catch {
-    return null
-  }
-}
-
 export function initAppState(evento: EventoBun, sender: (name: string, payload: unknown) => void) {
   evento.on("app:routeChanged", (ctx) => {
-    saveRoute(ctx.payload.hash)
+    const state = readState()
+    state.lastRoute = { hash: ctx.payload.hash }
+    writeState(state)
   })
 
-  evento.on("app:requestRoute", () => {
-    sender("app:restoreRoute", { hash: getSavedRoute() })
+  evento.on("app:requestState", () => {
+    const state = readState()
+    sender("app:restoreState", {
+      hash: state.lastRoute?.hash ?? null,
+      dismissedUpdateVersion: state.dismissedUpdate?.version ?? null,
+    })
+  })
+
+  evento.on("app:dismissUpdate", (ctx) => {
+    const state = readState()
+    state.dismissedUpdate = { version: ctx.payload.version }
+    writeState(state)
+  })
+
+  evento.on("app:clearDismissedUpdate", () => {
+    const state = readState()
+    delete state.dismissedUpdate
+    writeState(state)
   })
 }

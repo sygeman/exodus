@@ -2,6 +2,10 @@
 import { useI18n } from "vue-i18n"
 import LogoSvg from "@/mainview/assets/logo.svg"
 
+defineProps<{
+  updateAvailable?: boolean
+}>()
+
 const { t } = useI18n()
 
 const tooltipContent = {
@@ -77,6 +81,10 @@ const tooltipContent = {
           active-class="bg-[var(--ui-bg-elevated)] text-[var(--ui-text)]"
         >
           <UIcon name="i-lucide-settings" class="h-5 w-5" />
+          <span
+            v-if="updateAvailable"
+            class="absolute top-2 right-2 h-2 w-2 rounded-full bg-[var(--ui-primary)]"
+          />
         </RouterLink>
       </UTooltip>
     </div>

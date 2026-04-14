@@ -12,7 +12,7 @@ import { evento, rpc } from "./evento"
 import { Electroview } from "electrobun/view"
 import { webviewLogger } from "@/modules/logger/webview"
 import { defaultLocale, messages } from "./locales"
-import { useSavedRoute } from "./composables/useSavedRoute"
+import { useAppState } from "./composables/useAppState"
 
 webviewLogger.init()
 
@@ -41,7 +41,7 @@ const router = createRouter({
   history: createWebHashHistory(),
 })
 
-const { startWatching } = useSavedRoute(router)
+const { startWatching } = useAppState(router)
 startWatching()
 
 const i18n = createI18n({

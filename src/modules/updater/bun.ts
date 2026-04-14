@@ -15,6 +15,7 @@ export function initUpdater(evento: EventoBun) {
       const result = await Updater.checkForUpdate()
       if (result.error) {
         sendStatus({ status: "error", error: result.error })
+        evento.emitEvent("app:clearDismissedUpdate", "bun")
       } else if (result.updateAvailable) {
         sendStatus({
           status: "available",
@@ -23,6 +24,7 @@ export function initUpdater(evento: EventoBun) {
         })
       } else {
         sendStatus({ status: "latest", currentVersion: result.version })
+        evento.emitEvent("app:clearDismissedUpdate", "bun")
       }
     } catch (err) {
       console.error("[updater] checkUpdate error:", err)
@@ -30,6 +32,7 @@ export function initUpdater(evento: EventoBun) {
         status: "error",
         error: (err as Error).message || String(err),
       })
+      evento.emitEvent("app:clearDismissedUpdate", "bun")
     }
   }
 
@@ -49,6 +52,9 @@ export function initUpdater(evento: EventoBun) {
       })
     }
   })
+
+  // Check immediately on startup
+  checkForUpdate()
 
   // Periodic background check every 15 minutes
   setInterval(checkForUpdate, CHECK_INTERVAL_MS)

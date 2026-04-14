@@ -1,7 +1,9 @@
+import { ref } from "vue"
 import type { Router } from "vue-router"
 import { evento } from "@/mainview/evento"
 
-export function useSavedRoute(router: Router) {
+export function useAppState(router: Router) {
+  const dismissedUpdateVersion = ref<string | null>(null)
   let savedHash: string | null = null
   let restoreReceived = false
   let isRouterReady = false
@@ -18,8 +20,9 @@ export function useSavedRoute(router: Router) {
   }
 
   function startWatching() {
-    evento.on("app:restoreRoute", (ctx) => {
+    evento.on("app:restoreState", (ctx) => {
       savedHash = ctx.payload.hash
+      dismissedUpdateVersion.value = ctx.payload.dismissedUpdateVersion
       restoreReceived = true
       if (isRouterReady) {
         restore(savedHash)
@@ -37,11 +40,12 @@ export function useSavedRoute(router: Router) {
       evento.emitEvent("app:routeChanged", { hash: window.location.hash }, "webview")
     })
 
-    evento.emitEvent("app:requestRoute", "webview")
+    evento.emitEvent("app:requestState", "webview")
   }
 
   return {
     restore,
     startWatching,
+    dismissedUpdateVersion,
   }
 }

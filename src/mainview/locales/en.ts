@@ -51,6 +51,10 @@ export default {
     checking: "Checking...",
     downloading: "Downloading...",
     applying: "Applying...",
+    updateAvailableTitle: "Update available",
+    updateAvailableDescription: "{current} → {latest}",
+    updateNow: "Update now",
+    updateLater: "Later",
   },
   counter: {
     title: "Counter: {value}",

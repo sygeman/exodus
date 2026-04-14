@@ -51,6 +51,10 @@ export default {
     checking: "Sprawdzanie...",
     downloading: "Pobieranie...",
     applying: "Instalowanie...",
+    updateAvailableTitle: "Dostępna aktualizacja",
+    updateAvailableDescription: "{current} → {latest}",
+    updateNow: "Zaktualizuj",
+    updateLater: "Później",
   },
   counter: {
     title: "Licznik: {value}",

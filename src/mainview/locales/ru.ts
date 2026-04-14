@@ -51,6 +51,10 @@ export default {
     checking: "Проверка...",
     downloading: "Загрузка...",
     applying: "Установка...",
+    updateAvailableTitle: "Доступно обновление",
+    updateAvailableDescription: "{current} → {latest}",
+    updateNow: "Обновить",
+    updateLater: "Позже",
   },
   counter: {
     title: "Счетчик: {value}",
