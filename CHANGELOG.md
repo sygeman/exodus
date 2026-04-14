@@ -1,3 +1,12 @@
+# [0.17.0](https://github.com/sygeman/exodus/compare/v0.16.1...v0.17.0) (2026-04-14)
+
+
+### Features
+
+* redesign settings page in Discord style with nested routes ([f87af8a](https://github.com/sygeman/exodus/commit/f87af8af58302b43aee344bcb149f0f3479a7973))
+
+
+
 ## [0.16.1](https://github.com/sygeman/exodus/compare/v0.16.0...v0.16.1) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * add German (de) locale ([36e4003](https://github.com/sygeman/exodus/commit/36e40036b3563487323d807849c426141e5b2ed0))
-
-
-
-# [0.14.0](https://github.com/sygeman/exodus/compare/v0.13.0...v0.14.0) (2026-04-14)
-
-
-### Features
-
-* add persistent update toast with dismiss-by-version and settings badge ([5846979](https://github.com/sygeman/exodus/commit/5846979ced0ec32dda58fb61d9d5cb0572c0c25a))
 
 
 
