@@ -1,3 +1,12 @@
+## [0.15.1](https://github.com/sygeman/exodus/compare/v0.15.0...v0.15.1) (2026-04-14)
+
+
+### Bug Fixes
+
+* use correct current version in update toast ([b1bedac](https://github.com/sygeman/exodus/commit/b1bedac309454648455e3d874cf2b799e0746d90))
+
+
+
 # [0.15.0](https://github.com/sygeman/exodus/compare/v0.14.0...v0.15.0) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * correct Linux desktop entry and icon path in installer ([6311429](https://github.com/sygeman/exodus/commit/6311429b15b2e45d887d2d275d9ee93f356339ae))
-
-
-
-## [0.12.3](https://github.com/sygeman/exodus/compare/v0.12.2...v0.12.3) (2026-04-14)
-
-
-### Bug Fixes
-
-* use explicit request/response for route restoration ([34074d3](https://github.com/sygeman/exodus/commit/34074d378cdb7aa3e232a8e4997d73d3265a55ed))
 
 
 
