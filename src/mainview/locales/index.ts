@@ -8,7 +8,7 @@ export const messages = {
 
 export type Locale = "en" | "ru"
 export const defaultLocale: Locale = "ru"
-export const locales: { value: Locale; label: string }[] = [
-  { value: "en", label: "English" },
-  { value: "ru", label: "Русский" },
+export const locales: { value: Locale; label: string; flag: string }[] = [
+  { value: "en", label: "English", flag: "🇺🇸" },
+  { value: "ru", label: "Русский", flag: "🇷🇺" },
 ]
