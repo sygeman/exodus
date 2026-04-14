@@ -44,7 +44,7 @@ export default {
     },
     linux: {
       bundleCEF: false,
-      icons: "assets/linux",
+      icon: "assets/linux/icon_256x256.png",
     },
     win: {
       bundleCEF: false,

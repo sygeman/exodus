@@ -22,10 +22,35 @@ rm -rf "$APP_DIR"
 mkdir -p "$(dirname "$APP_DIR")"
 mv "$TMP_DIR/$APP_NAME" "$APP_DIR"
 
+# Find icon in app bundle
+ICON_PATH=""
+for path in "$APP_DIR/Resources/appIcon.png" "$APP_DIR/Resources/app/icon.png"; do
+  if [ -f "$path" ]; then
+    ICON_PATH="$path"
+    break
+  fi
+done
+
 DESKTOP_FILE="$APP_DIR/Exodus.desktop"
 if [ -f "$DESKTOP_FILE" ]; then
   mkdir -p "$APPLICATIONS_DIR"
   cp "$DESKTOP_FILE" "$APPLICATIONS_DIR/exodus.desktop"
+  chmod +x "$APPLICATIONS_DIR/exodus.desktop"
+  echo "Added Exodus to applications menu"
+elif [ -n "$ICON_PATH" ]; then
+  mkdir -p "$APPLICATIONS_DIR"
+  cat > "$APPLICATIONS_DIR/exodus.desktop" << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Exodus
+Comment=Exodus application
+Exec="$APP_DIR/bin/launcher"
+Icon=$ICON_PATH
+Terminal=false
+StartupWMClass=Exodus
+Categories=Utility;Application;
+EOF
   chmod +x "$APPLICATIONS_DIR/exodus.desktop"
   echo "Added Exodus to applications menu"
 fi
