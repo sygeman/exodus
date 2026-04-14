@@ -9,7 +9,7 @@ const { time } = useTimer()
 </script>
 
 <template>
-  <div class="flex flex-col items-center gap-4 p-8">
+  <div class="flex h-full flex-col items-center justify-center gap-4 p-8">
     <h1 class="text-2xl font-bold">
       {{ t("counter.title", { value: loading ? t("counter.loading") : count }) }}
     </h1>
