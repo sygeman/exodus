@@ -1,3 +1,12 @@
+# [0.7.0](https://github.com/sygeman/exodus/compare/v0.6.0...v0.7.0) (2026-04-14)
+
+
+### Features
+
+* add oxc and drizzle agent skills ([3fd33cd](https://github.com/sygeman/exodus/commit/3fd33cd61f18cf4f54741b7d8e032975d8f864e8))
+
+
+
 # [0.6.0](https://github.com/sygeman/exodus/compare/v0.5.1...v0.6.0) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * trigger release with flattened assets ([e2f5153](https://github.com/sygeman/exodus/commit/e2f5153160e2dc0c0adbd6a7cdf0a6531d896a8e))
-
-
-
-## [0.4.2](https://github.com/sygeman/exodus/compare/v0.4.0...v0.4.2) (2026-04-14)
-
-
-### Bug Fixes
-
-* enable system keyboard shortcuts via ApplicationMenu ([c799606](https://github.com/sygeman/exodus/commit/c799606302d00a2aec7ed1ec05fb3587587f03f8))
 
 
 
