@@ -4,6 +4,8 @@ import { evento } from "@/mainview/evento"
 
 export function useAppState(router: Router) {
   const dismissedUpdateVersion = ref<string | null>(null)
+  const systemLocale = ref<string | null>(null)
+  const systemTheme = ref<"dark" | "light" | null>(null)
   let savedHash: string | null = null
   let restoreReceived = false
   let isRouterReady = false
@@ -23,6 +25,8 @@ export function useAppState(router: Router) {
     evento.on("app:restoreState", (ctx) => {
       savedHash = ctx.payload.hash
       dismissedUpdateVersion.value = ctx.payload.dismissedUpdateVersion
+      systemLocale.value = ctx.payload.locale
+      systemTheme.value = ctx.payload.theme
       restoreReceived = true
       if (isRouterReady) {
         restore(savedHash)
@@ -47,5 +51,7 @@ export function useAppState(router: Router) {
     restore,
     startWatching,
     dismissedUpdateVersion,
+    systemLocale,
+    systemTheme,
   }
 }

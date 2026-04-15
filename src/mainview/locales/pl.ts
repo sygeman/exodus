@@ -60,10 +60,7 @@ export default {
     theme: "Motyw",
   },
   settings: {
-    theme: "Motyw",
-    darkModeDescription:
-      "Przełącz się na ciemniejszą paletę kolorów, która jest łagodniejsza dla oczu.",
-    lightModeDescription: "Przełącz się na jaśniejszą paletę kolorów.",
+    darkModeDescription: "Użyj ciemnej palety kolorów.",
     languageDescription: "Wybierz język, którego chcesz używać w aplikacji.",
     versionDescription: "Aktualna wersja aplikacji.",
     updateDescription: "Sprawdź i zainstaluj najnowsze aktualizacje.",

@@ -14,8 +14,17 @@ export const appStateRegistry: EventoRegistry = {
     schema: z.object({
       hash: z.string().nullable(),
       dismissedUpdateVersion: z.string().nullable(),
+      locale: z.string().nullable(),
+      theme: z.enum(["dark", "light"]).nullable(),
     }),
     description: "Restore saved app state to webview",
+  },
+  "app:saveSettings": {
+    schema: z.object({
+      locale: z.string().optional(),
+      theme: z.enum(["dark", "light"]).optional(),
+    }),
+    description: "Save user settings",
   },
   "app:dismissUpdate": {
     schema: z.object({ version: z.string() }),
@@ -33,7 +42,10 @@ export type AppStateEventMap = {
   "app:restoreState": {
     hash: string | null
     dismissedUpdateVersion: string | null
+    locale: string | null
+    theme: "dark" | "light" | null
   }
+  "app:saveSettings": { locale?: string; theme?: "dark" | "light" }
   "app:dismissUpdate": { version: string }
   "app:clearDismissedUpdate": void
 }

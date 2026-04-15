@@ -8,6 +8,8 @@ const STATE_FILE = join(Utils.paths.userData, "app-state.json")
 interface AppState {
   lastRoute?: { hash: string }
   dismissedUpdate?: { version: string }
+  locale?: string
+  theme?: "dark" | "light"
 }
 
 function readState(): AppState {
@@ -28,6 +30,53 @@ function writeState(state: AppState) {
   }
 }
 
+function getSystemLocale(): string {
+  try {
+    return Intl.DateTimeFormat().resolvedOptions().locale
+  } catch {
+    return "en-US"
+  }
+}
+
+function getSystemTheme(): "dark" | "light" {
+  if (process.platform === "darwin") {
+    try {
+      const { execSync } = require("child_process")
+      const style = execSync("defaults read -g AppleInterfaceStyle", { encoding: "utf-8" }).trim()
+      return style === "Dark" ? "dark" : "light"
+    } catch {
+      return "light"
+    }
+  }
+
+  if (process.platform === "win32") {
+    try {
+      const { execSync } = require("child_process")
+      const result = execSync(
+        'reg query "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize" /v AppsUseLightTheme',
+        { encoding: "utf-8" },
+      )
+      return result.includes("0x0") ? "dark" : "light"
+    } catch {
+      return "light"
+    }
+  }
+
+  if (process.platform === "linux") {
+    try {
+      const { execSync } = require("child_process")
+      const theme = execSync("gsettings get org.gnome.desktop.interface gtk-theme", {
+        encoding: "utf-8",
+      }).trim()
+      return theme.toLowerCase().includes("dark") ? "dark" : "light"
+    } catch {
+      return "light"
+    }
+  }
+
+  return "light"
+}
+
 export function initAppState(evento: EventoBun, sender: (name: string, payload: unknown) => void) {
   evento.on("app:routeChanged", (ctx) => {
     const state = readState()
@@ -37,10 +86,25 @@ export function initAppState(evento: EventoBun, sender: (name: string, payload: 
 
   evento.on("app:requestState", () => {
     const state = readState()
+    const systemLocale = getSystemLocale()
+    const systemTheme = getSystemTheme()
     sender("app:restoreState", {
       hash: state.lastRoute?.hash ?? null,
       dismissedUpdateVersion: state.dismissedUpdate?.version ?? null,
+      locale: state.locale ?? systemLocale,
+      theme: state.theme ?? systemTheme,
     })
+  })
+
+  evento.on("app:saveSettings", (ctx) => {
+    const state = readState()
+    if (ctx.payload.locale !== undefined) {
+      state.locale = ctx.payload.locale
+    }
+    if (ctx.payload.theme !== undefined) {
+      state.theme = ctx.payload.theme
+    }
+    writeState(state)
   })
 
   evento.on("app:dismissUpdate", (ctx) => {

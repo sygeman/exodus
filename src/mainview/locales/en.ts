@@ -60,9 +60,7 @@ export default {
     theme: "Theme",
   },
   settings: {
-    theme: "Theme",
-    darkModeDescription: "Switch to a darker color scheme that's easier on the eyes.",
-    lightModeDescription: "Switch to a lighter color scheme.",
+    darkModeDescription: "Use a dark color scheme.",
     languageDescription: "Select the language you want to use in the app.",
     versionDescription: "Current application version.",
     updateDescription: "Check for and install the latest updates.",
