@@ -1,8 +1,8 @@
 export const appStateEvents = {
-  routeChanged: "Webview-Route geändert",
-  requestState: "Gespeicherten App-Status von Bun anfordern",
-  restoreState: "Gespeicherten App-Status in Webview wiederherstellen",
-  saveSettings: "Benutzereinstellungen speichern",
-  dismissUpdate: "Update für bestimmte Version ausblenden",
-  clearDismissedUpdate: "Ausgeblendete Update-Version zurücksetzen",
+  "route-changed": "Webview-Route geändert",
+  "request-state": "Gespeicherten App-Status von Bun anfordern",
+  "restore-state": "Gespeicherten App-Status in Webview wiederherstellen",
+  "save-settings": "Benutzereinstellungen speichern",
+  "dismiss-update": "Update für bestimmte Version ausblenden",
+  "clear-dismissed-update": "Ausgeblendete Update-Version zurücksetzen",
 }

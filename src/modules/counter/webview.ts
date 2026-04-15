@@ -10,16 +10,16 @@ export function useCounter() {
 
   on("counter:updated", ({ payload }) => {
     count.value = payload.count
-    autoIncrement.value = payload.autoIncrement
+    autoIncrement.value = payload.auto_increment
     loading.value = false
   })
 
   evento
     .request("counter:query", {}, { timeout: 2000 })
     .then((res) => {
-      const data = res.data as { count: number; autoIncrement: boolean }
+      const data = res.data as { count: number; auto_increment: boolean }
       count.value = data.count
-      autoIncrement.value = data.autoIncrement
+      autoIncrement.value = data.auto_increment
     })
     .catch((err) => {
       console.error("[counter] query failed:", err)

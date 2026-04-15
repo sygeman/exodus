@@ -5,8 +5,8 @@ import type { UpdaterEventMap } from "./events"
 const CHECK_INTERVAL_MS = 15 * 60 * 1000 // 15 minutes
 
 export function initUpdater(evento: EventoBun) {
-  function sendStatus(payload: UpdaterEventMap["updater:updateStatus"]) {
-    evento.emitEvent("updater:updateStatus", payload, "bun")
+  function sendStatus(payload: UpdaterEventMap["updater:update-status"]) {
+    evento.emitEvent("updater:update-status", payload, "bun")
   }
 
   async function checkForUpdate() {
@@ -21,16 +21,16 @@ export function initUpdater(evento: EventoBun) {
 
       if (result.error) {
         sendStatus({ status: "error", error: result.error })
-        evento.emitEvent("app:clearDismissedUpdate", "bun")
+        evento.emitEvent("app-state:clear-dismissed-update", "bun")
       } else if (isActuallyAvailable) {
         sendStatus({
           status: "available",
-          currentVersion,
-          latestVersion: result.version,
+          current_version: currentVersion,
+          latest_version: result.version,
         })
       } else {
-        sendStatus({ status: "latest", currentVersion })
-        evento.emitEvent("app:clearDismissedUpdate", "bun")
+        sendStatus({ status: "latest", current_version: currentVersion })
+        evento.emitEvent("app-state:clear-dismissed-update", "bun")
       }
     } catch (err) {
       console.error("[updater] checkUpdate error:", err)
@@ -38,13 +38,13 @@ export function initUpdater(evento: EventoBun) {
         status: "error",
         error: (err as Error).message || String(err),
       })
-      evento.emitEvent("app:clearDismissedUpdate", "bun")
+      evento.emitEvent("app-state:clear-dismissed-update", "bun")
     }
   }
 
-  evento.on("updater:checkUpdate", checkForUpdate)
+  evento.on("updater:check-update", checkForUpdate)
 
-  evento.on("updater:startUpdate", async () => {
+  evento.on("updater:start-update", async () => {
     try {
       sendStatus({ status: "downloading" })
       await Updater.downloadUpdate()

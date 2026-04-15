@@ -18,7 +18,7 @@ const isDark = computed({
 })
 
 watch(isDark, (value) => {
-  evento.emitEvent("app:saveSettings", { theme: value ? "dark" : "light" }, "webview")
+  evento.emitEvent("app-state:save-settings", { theme: value ? "dark" : "light" }, "webview")
 })
 
 const themeIcon = computed(() => (isDark.value ? "i-lucide-sun" : "i-lucide-moon"))

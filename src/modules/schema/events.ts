@@ -6,7 +6,7 @@ export const schemaRegistry: EventoRegistry = {
     schema: z.object({ name: z.string() }),
   },
   "schema:request:response": {
-    schema: z.object({ name: z.string(), schema: z.unknown(), description: z.string().optional() }),
+    schema: z.object({ name: z.string(), schema: z.unknown() }),
   },
 }
 

@@ -6,36 +6,36 @@ export function initCounter(evento: EventoBun) {
 
   evento.on("counter:increment", (ctx) => {
     count++
-    evento.forward("counter:updated", { count, autoIncrement }, ctx)
+    evento.forward("counter:updated", { count, auto_increment: autoIncrement }, ctx)
   })
 
   evento.on("counter:reset", (ctx) => {
     count = 0
-    evento.forward("counter:updated", { count, autoIncrement }, ctx)
+    evento.forward("counter:updated", { count, auto_increment: autoIncrement }, ctx)
   })
 
   evento.on("timer:tick", (ctx) => {
     if (autoIncrement) {
       count++
-      evento.forward("counter:updated", { count, autoIncrement }, ctx)
+      evento.forward("counter:updated", { count, auto_increment: autoIncrement }, ctx)
     }
   })
 
   evento.on("counter:auto:enable", (ctx) => {
     autoIncrement = true
-    evento.forward("counter:updated", { count, autoIncrement }, ctx)
+    evento.forward("counter:updated", { count, auto_increment: autoIncrement }, ctx)
   })
 
   evento.on("counter:auto:disable", (ctx) => {
     autoIncrement = false
-    evento.forward("counter:updated", { count, autoIncrement }, ctx)
+    evento.forward("counter:updated", { count, auto_increment: autoIncrement }, ctx)
   })
 
   evento.on("counter:query", (ctx) => {
-    evento.reply(ctx, { data: { count, autoIncrement } })
+    evento.reply(ctx, { data: { count, auto_increment: autoIncrement } })
   })
 
-  evento.emitEvent("counter:updated", { count, autoIncrement }, "counter:init")
+  evento.emitEvent("counter:updated", { count, auto_increment: autoIncrement }, "counter:init")
 
   evento.on("counter:updated", ({ payload }) => {
     if (payload.count >= 100) {

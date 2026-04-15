@@ -39,7 +39,7 @@ function showUpdateToast() {
         color: "primary",
         variant: "solid",
         onClick: () => {
-          evento.emitEvent("updater:startUpdate", "webview")
+          evento.emitEvent("updater:start-update", "webview")
         },
       },
       {
@@ -48,7 +48,7 @@ function showUpdateToast() {
         variant: "ghost",
         onClick: () => {
           toast.remove("app-update")
-          evento.emitEvent("app:dismissUpdate", { version: latestVersion.value }, "webview")
+          evento.emitEvent("app-state:dismiss-update", { version: latestVersion.value }, "webview")
           dismissedUpdateVersion.value = latestVersion.value
         },
       },
@@ -77,11 +77,11 @@ function closeUpdateToast() {
 }
 
 onMounted(() => {
-  unsubscribe = evento.on("updater:updateStatus", (ctx) => {
+  unsubscribe = evento.on("updater:update-status", (ctx) => {
     const prevStatus = updateStatus.value
     updateStatus.value = ctx.payload.status
-    currentVersion.value = ctx.payload.currentVersion || ""
-    latestVersion.value = ctx.payload.latestVersion || ""
+    currentVersion.value = ctx.payload.current_version || ""
+    latestVersion.value = ctx.payload.latest_version || ""
 
     if (ctx.payload.status === "available") {
       showUpdateToast()
@@ -95,7 +95,7 @@ onMounted(() => {
     }
   })
 
-  evento.on("app:clearDismissedUpdate", () => {
+  evento.on("app-state:clear-dismissed-update", () => {
     dismissedUpdateVersion.value = null
   })
 })

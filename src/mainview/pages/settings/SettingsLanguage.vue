@@ -16,7 +16,7 @@ const selectedLocale = computed<Locale>({
 })
 
 watch(selectedLocale, (value) => {
-  evento.emitEvent("app:saveSettings", { locale: value }, "webview")
+  evento.emitEvent("app-state:save-settings", { locale: value }, "webview")
 })
 </script>
 

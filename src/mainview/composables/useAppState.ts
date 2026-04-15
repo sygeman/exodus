@@ -22,9 +22,9 @@ export function useAppState(router: Router) {
   }
 
   function startWatching() {
-    evento.on("app:restoreState", (ctx) => {
+    evento.on("app-state:restore-state", (ctx) => {
       savedHash = ctx.payload.hash
-      dismissedUpdateVersion.value = ctx.payload.dismissedUpdateVersion
+      dismissedUpdateVersion.value = ctx.payload.dismissed_update_version
       systemLocale.value = ctx.payload.locale
       systemTheme.value = ctx.payload.theme
       restoreReceived = true
@@ -41,10 +41,10 @@ export function useAppState(router: Router) {
     })
 
     router.afterEach(() => {
-      evento.emitEvent("app:routeChanged", { hash: window.location.hash }, "webview")
+      evento.emitEvent("app-state:route-changed", { hash: window.location.hash }, "webview")
     })
 
-    evento.emitEvent("app:requestState", "webview")
+    evento.emitEvent("app-state:request-state", "webview")
   }
 
   return {

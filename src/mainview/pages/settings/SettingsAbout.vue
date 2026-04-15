@@ -17,14 +17,14 @@ const latestVersion = ref<string>("")
 let unsubscribe: (() => void) | null = null
 
 onMounted(() => {
-  unsubscribe = evento.on("updater:updateStatus", (ctx) => {
+  unsubscribe = evento.on("updater:update-status", (ctx) => {
     updateStatus.value = ctx.payload.status
     updateError.value = ctx.payload.error || ""
-    currentVersion.value = ctx.payload.currentVersion || ""
-    latestVersion.value = ctx.payload.latestVersion || ""
+    currentVersion.value = ctx.payload.current_version || ""
+    latestVersion.value = ctx.payload.latest_version || ""
   })
 
-  evento.emitEvent("updater:checkUpdate", "webview")
+  evento.emitEvent("updater:check-update", "webview")
 })
 
 onUnmounted(() => {
@@ -32,11 +32,11 @@ onUnmounted(() => {
 })
 
 function checkForUpdate() {
-  evento.emitEvent("updater:checkUpdate", "webview")
+  evento.emitEvent("updater:check-update", "webview")
 }
 
 function startUpdate() {
-  evento.emitEvent("updater:startUpdate", "webview")
+  evento.emitEvent("updater:start-update", "webview")
 }
 
 const statusText = computed(() => {

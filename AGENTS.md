@@ -67,3 +67,10 @@ BREAKING CHANGE: old settings schema is no longer supported"
 - Never force-push to `main` unless explicitly asked.
 - After the CI bumps `package.json`, run `git pull` locally to stay in sync.
 - **Zero tolerance for lint/type warnings and bugs.** Always run `bun run lint` and `bun run typecheck` after making changes and fix all errors and warnings before finishing. Do not leave any `any` types or type casts in new or modified code — use proper types derived from schemas.
+
+## Event Naming Convention
+
+- **All event names must use kebab-case strictly.**
+- The event namespace must match the module name exactly.
+- Examples: `logger:entry`, `app-state:route-changed`, `updater:check-update`, `schema:request-response`
+- Payload property names in schemas must also use kebab-case.

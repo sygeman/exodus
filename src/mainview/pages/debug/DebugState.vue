@@ -12,11 +12,11 @@ let unsubscribe: (() => void) | null = null
 
 function fetchAppState() {
   loading.value = true
-  evento.emitEvent("app:requestState", "webview")
+  evento.emitEvent("app-state:request-state", "webview")
 }
 
 onMounted(() => {
-  unsubscribe = evento.on("app:restoreState", (ctx) => {
+  unsubscribe = evento.on("app-state:restore-state", (ctx) => {
     appState.value = { ...ctx.payload }
     loading.value = false
   })

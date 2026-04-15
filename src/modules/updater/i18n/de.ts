@@ -1,5 +1,5 @@
 export const updaterEvents = {
-  checkUpdate: "Nach App-Updates suchen (fire and forget)",
-  updateStatus: "Broadcast des App-Update-Status",
-  startUpdate: "Download starten und Update anwenden (fire and forget)",
+  "check-update": "Nach App-Updates suchen (fire and forget)",
+  "update-status": "Broadcast des App-Update-Status",
+  "start-update": "Download starten und Update anwenden (fire and forget)",
 }

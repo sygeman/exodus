@@ -78,25 +78,25 @@ function getSystemTheme(): "dark" | "light" {
 }
 
 export function initAppState(evento: EventoBun, sender: (name: string, payload: unknown) => void) {
-  evento.on("app:routeChanged", (ctx) => {
+  evento.on("app-state:route-changed", (ctx) => {
     const state = readState()
     state.lastRoute = { hash: ctx.payload.hash }
     writeState(state)
   })
 
-  evento.on("app:requestState", () => {
+  evento.on("app-state:request-state", () => {
     const state = readState()
     const systemLocale = getSystemLocale()
     const systemTheme = getSystemTheme()
-    sender("app:restoreState", {
+    sender("app-state:restore-state", {
       hash: state.lastRoute?.hash ?? null,
-      dismissedUpdateVersion: state.dismissedUpdate?.version ?? null,
+      dismissed_update_version: state.dismissedUpdate?.version ?? null,
       locale: state.locale ?? systemLocale,
       theme: state.theme ?? systemTheme,
     })
   })
 
-  evento.on("app:saveSettings", (ctx) => {
+  evento.on("app-state:save-settings", (ctx) => {
     const state = readState()
     if (ctx.payload.locale !== undefined) {
       state.locale = ctx.payload.locale
@@ -107,13 +107,13 @@ export function initAppState(evento: EventoBun, sender: (name: string, payload: 
     writeState(state)
   })
 
-  evento.on("app:dismissUpdate", (ctx) => {
+  evento.on("app-state:dismiss-update", (ctx) => {
     const state = readState()
     state.dismissedUpdate = { version: ctx.payload.version }
     writeState(state)
   })
 
-  evento.on("app:clearDismissedUpdate", () => {
+  evento.on("app-state:clear-dismissed-update", () => {
     const state = readState()
     delete state.dismissedUpdate
     writeState(state)
