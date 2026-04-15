@@ -1,24 +1,24 @@
 import { z } from "zod"
-import type { EventoRegistry } from "@/lib/evento/types"
+import { createRegistry } from "@/lib/evento/registry"
 
-export const counterRegistry: EventoRegistry = {
-  "counter:increment": { schema: z.void() },
-  "counter:reset": { schema: z.void() },
-  "counter:updated": {
+export const counterRegistry = createRegistry("counter", {
+  increment: { schema: z.void() },
+  reset: { schema: z.void() },
+  updated: {
     schema: z.object({ count: z.number(), auto_increment: z.boolean() }),
   },
-  "counter:auto-enable": { schema: z.void() },
-  "counter:auto-disable": { schema: z.void() },
-  "counter:query": {
+  "auto-enable": { schema: z.void() },
+  "auto-disable": { schema: z.void() },
+  query: {
     schema: z.object({ correlation_id: z.string().optional() }),
   },
-  "counter:query:response": {
+  "query:response": {
     schema: z.object({
       data: z.object({ count: z.number(), auto_increment: z.boolean() }),
       correlation_id: z.string().optional(),
     }),
   },
-}
+})
 
 export type CounterEventMap = {
   "counter:increment": void

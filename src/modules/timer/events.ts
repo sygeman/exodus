@@ -1,11 +1,11 @@
 import { z } from "zod"
-import type { EventoRegistry } from "@/lib/evento/types"
+import { createRegistry } from "@/lib/evento/registry"
 
-export const timerRegistry: EventoRegistry = {
-  "timer:tick": {
+export const timerRegistry = createRegistry("timer", {
+  tick: {
     schema: z.object({ time: z.number() }),
   },
-}
+})
 
 export type TimerEventMap = {
   "timer:tick": { time: number }

@@ -1,11 +1,11 @@
 import { z } from "zod"
-import type { EventoRegistry } from "@/lib/evento/types"
+import { createRegistry } from "@/lib/evento/registry"
 
-export const updaterRegistry: EventoRegistry = {
-  "updater:check-update": {
+export const updaterRegistry = createRegistry("updater", {
+  "check-update": {
     schema: z.object({}).optional(),
   },
-  "updater:update-status": {
+  "update-status": {
     schema: z.object({
       status: z.enum(["checking", "available", "latest", "error", "downloading", "applying"]),
       current_version: z.string().optional(),
@@ -13,10 +13,10 @@ export const updaterRegistry: EventoRegistry = {
       error: z.string().optional(),
     }),
   },
-  "updater:start-update": {
+  "start-update": {
     schema: z.object({}).optional(),
   },
-}
+})
 
 export type UpdaterEventMap = {
   "updater:check-update": void

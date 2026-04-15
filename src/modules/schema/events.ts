@@ -1,14 +1,14 @@
 import { z } from "zod"
-import type { EventoRegistry } from "@/lib/evento/types"
+import { createRegistry } from "@/lib/evento/registry"
 
-export const schemaRegistry: EventoRegistry = {
-  "schema:request": {
+export const schemaRegistry = createRegistry("schema", {
+  request: {
     schema: z.object({ name: z.string() }),
   },
-  "schema:request:response": {
+  "request:response": {
     schema: z.object({ name: z.string(), schema: z.unknown() }),
   },
-}
+})
 
 export type SchemaEventMap = {
   "schema:request": { name: string }

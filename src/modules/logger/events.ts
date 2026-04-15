@@ -1,5 +1,5 @@
 import { z } from "zod"
-import type { EventoRegistry } from "@/lib/evento/types"
+import { createRegistry } from "@/lib/evento/registry"
 
 export const LogLevelSchema = z.enum(["debug", "info", "warn", "error"])
 export type LogLevel = z.infer<typeof LogLevelSchema>
@@ -24,14 +24,14 @@ export const LogEntrySchema = z.object({
   count: z.number().optional(),
 })
 
-export const loggerRegistry: EventoRegistry = {
-  "logger:entry": {
+export const loggerRegistry = createRegistry("logger", {
+  entry: {
     schema: LogEntrySchema,
   },
-  "logger:clear": {
+  clear: {
     schema: z.object({ source: z.enum(["bun", "webview", "all"]) }),
   },
-  "logger:query": {
+  query: {
     schema: z.object({
       level: z.string().optional(),
       source: z.string().optional(),
@@ -42,24 +42,24 @@ export const loggerRegistry: EventoRegistry = {
       offset: z.number().optional(),
     }),
   },
-  "logger:query:response": {
+  "query:response": {
     schema: z.object({
       data: z.object({ logs: z.array(z.unknown()), total: z.number() }),
       correlation_id: z.string().optional(),
     }),
   },
-  "logger:stats": {
+  stats: {
     schema: z.object({
       correlation_id: z.string().optional(),
     }),
   },
-  "logger:stats:response": {
+  "stats:response": {
     schema: z.object({
       data: z.object({ debug: z.number(), info: z.number(), warn: z.number(), error: z.number() }),
       correlation_id: z.string().optional(),
     }),
   },
-}
+})
 
 export type LoggerEventMap = {
   "logger:entry": LogEntry

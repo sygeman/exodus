@@ -1,14 +1,14 @@
 import { z } from "zod"
-import type { EventoRegistry } from "@/lib/evento/types"
+import { createRegistry } from "@/lib/evento/registry"
 
-export const appStateRegistry: EventoRegistry = {
-  "app-state:route-changed": {
+export const appStateRegistry = createRegistry("app-state", {
+  "route-changed": {
     schema: z.object({ hash: z.string() }),
   },
-  "app-state:request-state": {
+  "request-state": {
     schema: z.void(),
   },
-  "app-state:restore-state": {
+  "restore-state": {
     schema: z.object({
       hash: z.string().nullable(),
       dismissed_update_version: z.string().nullable(),
@@ -16,19 +16,19 @@ export const appStateRegistry: EventoRegistry = {
       theme: z.enum(["dark", "light"]).nullable(),
     }),
   },
-  "app-state:save-settings": {
+  "save-settings": {
     schema: z.object({
       locale: z.string().optional(),
       theme: z.enum(["dark", "light"]).optional(),
     }),
   },
-  "app-state:dismiss-update": {
+  "dismiss-update": {
     schema: z.object({ version: z.string() }),
   },
-  "app-state:clear-dismissed-update": {
+  "clear-dismissed-update": {
     schema: z.void(),
   },
-}
+})
 
 export type AppStateEventMap = {
   "app-state:route-changed": { hash: string }
