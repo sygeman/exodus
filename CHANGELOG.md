@@ -1,3 +1,12 @@
+# [0.21.0](https://github.com/sygeman/exodus/compare/v0.20.0...v0.21.0) (2026-04-15)
+
+
+### Features
+
+* split debug events and playground, add log deduplication with count ([83137b5](https://github.com/sygeman/exodus/commit/83137b565677226ac71fb2b988cfe32dc17d6d92))
+
+
+
 # [0.20.0](https://github.com/sygeman/exodus/compare/v0.19.0...v0.20.0) (2026-04-15)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * enable Cmd+Q quit via application menu with explicit action handler ([c43054a](https://github.com/sygeman/exodus/commit/c43054a9d1bfa0e2d5609f16f5515d32307da3a3))
-
-
-
-# [0.17.0](https://github.com/sygeman/exodus/compare/v0.16.1...v0.17.0) (2026-04-14)
-
-
-### Features
-
-* redesign settings page in Discord style with nested routes ([f87af8a](https://github.com/sygeman/exodus/commit/f87af8af58302b43aee344bcb149f0f3479a7973))
 
 
 
