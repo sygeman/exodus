@@ -6,8 +6,9 @@ import { createI18n } from "vue-i18n"
 import { useColorMode } from "@vueuse/core"
 import App from "./App.vue"
 import CounterPage from "./pages/CounterPage.vue"
-import EventsPage from "./pages/EventsPage.vue"
-import LogsPage from "./pages/LogsPage.vue"
+import DebugLayout from "./pages/debug/DebugLayout.vue"
+import DebugEvents from "./pages/debug/DebugEvents.vue"
+import DebugLogs from "./pages/debug/DebugLogs.vue"
 import SettingsLayout from "./pages/settings/SettingsLayout.vue"
 import SettingsAppearance from "./pages/settings/SettingsAppearance.vue"
 import SettingsLanguage from "./pages/settings/SettingsLanguage.vue"
@@ -38,8 +39,15 @@ const app = createApp(App)
 const router = createRouter({
   routes: [
     { path: "/", component: CounterPage },
-    { path: "/events", component: EventsPage },
-    { path: "/logs", component: LogsPage },
+    {
+      path: "/debug",
+      component: DebugLayout,
+      redirect: "/debug/logs",
+      children: [
+        { path: "logs", component: DebugLogs },
+        { path: "events", component: DebugEvents },
+      ],
+    },
     {
       path: "/settings",
       component: SettingsLayout,

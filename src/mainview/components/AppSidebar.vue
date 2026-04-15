@@ -54,23 +54,13 @@ const tooltipContent = {
 
     <!-- Системная навигация -->
     <div class="mt-2 flex flex-shrink-0 flex-col items-center gap-1">
-      <UTooltip :text="t('common.events')" :content="tooltipContent" :delay-duration="0">
+      <UTooltip :text="t('common.debug')" :content="tooltipContent" :delay-duration="0">
         <RouterLink
-          to="/events"
+          to="/debug"
           class="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
           active-class="bg-[var(--ui-bg-elevated)] text-[var(--ui-text)]"
         >
-          <UIcon name="i-lucide-zap" class="h-5 w-5" />
-        </RouterLink>
-      </UTooltip>
-
-      <UTooltip :text="t('common.logs')" :content="tooltipContent" :delay-duration="0">
-        <RouterLink
-          to="/logs"
-          class="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
-          active-class="bg-[var(--ui-bg-elevated)] text-[var(--ui-text)]"
-        >
-          <UIcon name="i-lucide-scroll-text" class="h-5 w-5" />
+          <UIcon name="i-lucide-bug" class="h-5 w-5" />
         </RouterLink>
       </UTooltip>
 
