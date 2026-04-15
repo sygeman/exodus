@@ -1,3 +1,12 @@
+# [0.18.0](https://github.com/sygeman/exodus/compare/v0.17.1...v0.18.0) (2026-04-15)
+
+
+### Features
+
+* detect and persist system locale and theme ([69fab18](https://github.com/sygeman/exodus/commit/69fab1868bee64158967a52dd27180777d9b5568))
+
+
+
 ## [0.17.1](https://github.com/sygeman/exodus/compare/v0.17.0...v0.17.1) (2026-04-14)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * center counter on screen ([81b8401](https://github.com/sygeman/exodus/commit/81b8401aa9c2f490cf5d4c93706c873b25db33b6))
-
-
-
-## [0.15.1](https://github.com/sygeman/exodus/compare/v0.15.0...v0.15.1) (2026-04-14)
-
-
-### Bug Fixes
-
-* use correct current version in update toast ([b1bedac](https://github.com/sygeman/exodus/commit/b1bedac309454648455e3d874cf2b799e0746d90))
 
 
 
