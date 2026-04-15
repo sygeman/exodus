@@ -7,7 +7,6 @@ import { evento } from "@/mainview/evento"
 
 interface RegistryItem {
   name: string
-  description?: string
 }
 
 interface GroupedEvents {
@@ -23,13 +22,20 @@ const eventFilter = ref("")
 
 const filterQuery = computed(() => eventFilter.value.trim().toLowerCase())
 
+function getEventDescriptionKey(name: string): string {
+  const idx = name.indexOf(":")
+  const namespace = idx > 0 ? name.slice(0, idx) : "default"
+  const eventKey = idx > 0 ? name.slice(idx + 1) : name
+  return `events.${namespace}.${eventKey}`
+}
+
 const filteredRegistry = computed(() => {
   const q = filterQuery.value
   if (!q) return registry.value
   return registry.value.filter(
     (evt) =>
       evt.name.toLowerCase().includes(q) ||
-      (evt.description && t(evt.description).toLowerCase().includes(q)),
+      t(getEventDescriptionKey(evt.name)).toLowerCase().includes(q),
   )
 })
 
@@ -90,12 +96,11 @@ async function selectEvent(name: string) {
       { name: string },
       {
         schema: { type: string; properties?: Record<string, { type: string }> }
-        description?: string
       }
-    >("evento:schema:request", { name }, { timeout: 2000 })
+    >("schema:request", { name }, { timeout: 2000 })
     if (res.data?.schema) {
       eventSchema.value = res.data.schema
-      eventDescription.value = res.data.description ? t(res.data.description) : ""
+      eventDescription.value = t(getEventDescriptionKey(name))
       if (res.data.schema.type === "object" && res.data.schema.properties) {
         for (const [key, fieldDef] of Object.entries(res.data.schema.properties)) {
           formValues[key] = fieldDef.type === "boolean" ? false : ""
@@ -212,9 +217,8 @@ onMounted(() => {
                     v-html="highlightMatch(evt.name.slice(group.namespace.length + 1), filterQuery)"
                   />
                   <span
-                    v-if="evt.description"
                     class="truncate text-xs text-[var(--ui-text-muted)]"
-                    v-html="highlightMatch(t(evt.description), filterQuery)"
+                    v-html="highlightMatch(t(getEventDescriptionKey(evt.name)), filterQuery)"
                   />
                 </div>
               </div>

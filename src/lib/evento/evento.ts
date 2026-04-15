@@ -676,7 +676,7 @@ export class Evento<
   getDebugInfo(): {
     exact: Array<{ name: string; count: number }>
     wildcards: Array<{ pattern: string; count: number }>
-    registry: Array<{ name: string; description?: string }>
+    registry: Array<{ name: string }>
     environment: Local
   } {
     const exact: Array<{ name: string; count: number }> = []
@@ -689,9 +689,8 @@ export class Evento<
       count: 1,
     }))
 
-    const registry = Array.from(this.registry.entries()).map(([name, entry]) => ({
+    const registry = Array.from(this.registry.entries()).map(([name]) => ({
       name,
-      description: entry.description,
     }))
 
     return {

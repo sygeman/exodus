@@ -5,8 +5,8 @@ import type { UpdaterEventMap } from "./events"
 const CHECK_INTERVAL_MS = 15 * 60 * 1000 // 15 minutes
 
 export function initUpdater(evento: EventoBun) {
-  function sendStatus(payload: UpdaterEventMap["app:updateStatus"]) {
-    evento.emitEvent("app:updateStatus", payload, "bun")
+  function sendStatus(payload: UpdaterEventMap["updater:updateStatus"]) {
+    evento.emitEvent("updater:updateStatus", payload, "bun")
   }
 
   async function checkForUpdate() {
@@ -42,9 +42,9 @@ export function initUpdater(evento: EventoBun) {
     }
   }
 
-  evento.on("app:checkUpdate", checkForUpdate)
+  evento.on("updater:checkUpdate", checkForUpdate)
 
-  evento.on("app:startUpdate", async () => {
+  evento.on("updater:startUpdate", async () => {
     try {
       sendStatus({ status: "downloading" })
       await Updater.downloadUpdate()

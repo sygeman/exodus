@@ -27,11 +27,9 @@ export const LogEntrySchema = z.object({
 export const loggerRegistry: EventoRegistry = {
   "logger:entry": {
     schema: LogEntrySchema,
-    description: "events.logger.entry",
   },
   "logger:clear": {
     schema: z.object({ source: z.enum(["bun", "webview", "all"]) }),
-    description: "events.logger.clear",
   },
   "logger:query": {
     schema: z.object({
@@ -43,27 +41,23 @@ export const loggerRegistry: EventoRegistry = {
       limit: z.number().optional(),
       offset: z.number().optional(),
     }),
-    description: "events.logger.query",
   },
   "logger:query:response": {
     schema: z.object({
       data: z.object({ logs: z.array(z.unknown()), total: z.number() }),
       correlation_id: z.string().optional(),
     }),
-    description: "events.logger.query:response",
   },
   "logger:stats": {
     schema: z.object({
       correlation_id: z.string().optional(),
     }),
-    description: "events.logger.stats",
   },
   "logger:stats:response": {
     schema: z.object({
       data: z.object({ debug: z.number(), info: z.number(), warn: z.number(), error: z.number() }),
       correlation_id: z.string().optional(),
     }),
-    description: "events.logger.stats:response",
   },
 }
 

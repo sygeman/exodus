@@ -1,4 +1,4 @@
 export const schemaEvents = {
-  schemaRequest: "Poproś o schemat zdarzenia",
-  schemaRequestResponse: "Odpowiedź ze schematem zdarzenia",
+  request: "Poproś o schemat zdarzenia",
+  "request:response": "Odpowiedź ze schematem zdarzenia",
 }

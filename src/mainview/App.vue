@@ -39,7 +39,7 @@ function showUpdateToast() {
         color: "primary",
         variant: "solid",
         onClick: () => {
-          evento.emitEvent("app:startUpdate", "webview")
+          evento.emitEvent("updater:startUpdate", "webview")
         },
       },
       {
@@ -77,7 +77,7 @@ function closeUpdateToast() {
 }
 
 onMounted(() => {
-  unsubscribe = evento.on("app:updateStatus", (ctx) => {
+  unsubscribe = evento.on("updater:updateStatus", (ctx) => {
     const prevStatus = updateStatus.value
     updateStatus.value = ctx.payload.status
     currentVersion.value = ctx.payload.currentVersion || ""

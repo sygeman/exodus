@@ -1,4 +1,4 @@
 export const schemaEvents = {
-  schemaRequest: "Event-Schema anfordern",
-  schemaRequestResponse: "Antwort mit Event-Schema",
+  request: "Event-Schema anfordern",
+  "request:response": "Antwort mit Event-Schema",
 }
