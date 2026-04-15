@@ -1,3 +1,12 @@
+# [0.19.0](https://github.com/sygeman/exodus/compare/v0.18.0...v0.19.0) (2026-04-15)
+
+
+### Features
+
+* group logs and events under debug layout with shared MenuLayout component ([d74775e](https://github.com/sygeman/exodus/commit/d74775ef5c1b5300f47b1046c61a72bfb9a1c6f6))
+
+
+
 # [0.18.0](https://github.com/sygeman/exodus/compare/v0.17.1...v0.18.0) (2026-04-15)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * ignore false-positive update when version or hash matches current ([7466497](https://github.com/sygeman/exodus/commit/746649750bf973a5d2e4240566ae62e64e155886))
-
-
-
-# [0.16.0](https://github.com/sygeman/exodus/compare/v0.15.1...v0.16.0) (2026-04-14)
-
-
-### Features
-
-* center counter on screen ([81b8401](https://github.com/sygeman/exodus/commit/81b8401aa9c2f490cf5d4c93706c873b25db33b6))
 
 
 
