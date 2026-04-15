@@ -1,3 +1,12 @@
+## [0.22.1](https://github.com/sygeman/exodus/compare/v0.22.0...v0.22.1) (2026-04-15)
+
+
+### Bug Fixes
+
+* correct counter auto event names and app-state i18n keys ([303606b](https://github.com/sygeman/exodus/commit/303606bc430970e26f0a128c58b7a1a51d07b3d0))
+
+
+
 # [0.22.0](https://github.com/sygeman/exodus/compare/v0.21.0...v0.22.0) (2026-04-15)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * group logs and events under debug layout with shared MenuLayout component ([d74775e](https://github.com/sygeman/exodus/commit/d74775ef5c1b5300f47b1046c61a72bfb9a1c6f6))
-
-
-
-# [0.18.0](https://github.com/sygeman/exodus/compare/v0.17.1...v0.18.0) (2026-04-15)
-
-
-### Features
-
-* detect and persist system locale and theme ([69fab18](https://github.com/sygeman/exodus/commit/69fab1868bee64158967a52dd27180777d9b5568))
 
 
 
