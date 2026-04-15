@@ -7,6 +7,7 @@ export const logs = sqliteTable("logs", {
   source: text("source").notNull(),
   message: text("message").notNull(),
   args: text("args").notNull(),
+  count: integer("count", { mode: "number" }),
 })
 
 export type LogRow = typeof logs.$inferSelect

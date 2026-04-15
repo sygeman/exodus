@@ -11,6 +11,7 @@ export interface LogEntry {
   source: "bun" | "webview"
   message: string
   args: unknown[]
+  count?: number
 }
 
 export const LogEntrySchema = z.object({
@@ -20,6 +21,7 @@ export const LogEntrySchema = z.object({
   source: z.enum(["bun", "webview"]),
   message: z.string(),
   args: z.array(z.unknown()),
+  count: z.number().optional(),
 })
 
 export const loggerRegistry: EventoRegistry = {

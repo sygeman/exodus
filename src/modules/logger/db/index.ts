@@ -37,12 +37,20 @@ export function migrate() {
       level TEXT NOT NULL,
       source TEXT NOT NULL,
       message TEXT NOT NULL,
-      args TEXT NOT NULL
+      args TEXT NOT NULL,
+      count INTEGER
     );
     CREATE INDEX IF NOT EXISTS idx_logs_timestamp ON logs(timestamp);
     CREATE INDEX IF NOT EXISTS idx_logs_level ON logs(level);
     CREATE INDEX IF NOT EXISTS idx_logs_source ON logs(source);
   `)
+
+  // Migrate existing tables that lack the count column
+  try {
+    sqlite.exec(`ALTER TABLE logs ADD COLUMN count INTEGER`)
+  } catch {
+    // Column already exists — ignore
+  }
 }
 
 export function insertLog(entry: LogEntry) {
@@ -54,6 +62,7 @@ export function insertLog(entry: LogEntry) {
       source: entry.source,
       message: entry.message,
       args: JSON.stringify(entry.args),
+      count: entry.count,
     })
     .run()
 }
@@ -111,6 +120,7 @@ export function queryLogs(q: LogQuery): LogEntry[] {
       source: r.source as LogEntry["source"],
       message: r.message,
       args: parsedArgs,
+      count: r.count ?? undefined,
     }
   })
 }
