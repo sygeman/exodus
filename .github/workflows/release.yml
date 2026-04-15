@@ -119,48 +119,6 @@ jobs:
           path: artifacts/**
           if-no-files-found: error
 
-  build-win:
-    name: Build Windows
-    needs: [changelog, build-web]
-    if: needs.changelog.outputs.version != '' || github.event_name == 'workflow_dispatch'
-    runs-on: windows-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || format('v{0}', needs.changelog.outputs.version) }}
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache dependencies
-        uses: actions/cache@v5
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json') }}
-
-      - name: Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
-
-      - name: Download web artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: web-dist
-          path: dist
-
-      - name: Build app
-        run: bunx electrobun build --env=stable
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: win-artifacts
-          path: artifacts/**
-          if-no-files-found: error
-
   build-linux:
     name: Build Linux
     needs: [changelog, build-web]
@@ -208,7 +166,7 @@ jobs:
 
   release:
     name: Create Release
-    needs: [changelog, build-macos, build-win, build-linux]
+    needs: [changelog, build-macos, build-linux]
     if: needs.changelog.outputs.version != '' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:

@@ -46,9 +46,5 @@ export default {
       bundleCEF: false,
       icon: "assets/linux/icon_256x256.png",
     },
-    win: {
-      bundleCEF: false,
-      icons: "assets/icon.ico",
-    },
   },
 } satisfies ElectrobunConfig;
