@@ -31,8 +31,8 @@ export function initCounter(evento: EventoBun) {
     evento.forward("counter:updated", { count, auto_increment: autoIncrement }, ctx)
   })
 
-  evento.on("counter:query", (ctx) => {
-    evento.reply(ctx, { data: { count, auto_increment: autoIncrement } })
+  evento.handle("counter:query", () => {
+    return { count, auto_increment: autoIncrement }
   })
 
   evento.emitEvent("counter:updated", { count, auto_increment: autoIncrement }, "counter:init")

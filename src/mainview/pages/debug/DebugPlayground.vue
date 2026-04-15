@@ -92,18 +92,14 @@ async function selectEvent(name: string) {
   await router.replace({ query: name ? { event: name } : {} })
 
   try {
-    const res = await evento.request<
-      { name: string },
-      {
-        schema: { type: string; properties?: Record<string, { type: string }> }
-      }
-    >("schema:request", { name }, { timeout: 2000 })
-    if (res.data?.schema) {
-      eventSchema.value = res.data.schema
+    const res = await evento.request("schema:request", { name }, { timeout: 2000 })
+    if (res.schema) {
+      const schema = res.schema as { type: string; properties?: Record<string, { type: string }> }
+      eventSchema.value = schema
       eventDescription.value = t(getEventDescriptionKey(name))
-      if (res.data.schema.type === "object" && res.data.schema.properties) {
-        for (const [key, fieldDef] of Object.entries(res.data.schema.properties)) {
-          formValues[key] = fieldDef.type === "boolean" ? false : ""
+      if (schema.type === "object" && schema.properties) {
+        for (const [key, fieldDef] of Object.entries(schema.properties)) {
+          formValues[key] = (fieldDef as { type: string }).type === "boolean" ? false : ""
         }
       }
     }

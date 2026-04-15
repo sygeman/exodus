@@ -9,32 +9,28 @@ describe("Evento - Request-Response Pattern", () => {
   beforeEach(() => {
     evento = new Evento("test")
     evento.register({
-      "settings:query": { schema: z.any() },
-      "settings:query:response": { schema: z.any() },
-      "data:query": { schema: z.any() },
-      "data:query:response": { schema: z.any() },
+      "settings:query": { schema: z.any(), response: z.any() },
+      "data:query": { schema: z.any(), response: z.any() },
     })
   })
 
   describe("request/reply", () => {
     it("should resolve with response payload", async () => {
       evento.on("settings:query", (ctx) => {
-        evento.reply(ctx, {
-          data: { theme: "dark" },
-        })
+        evento.reply(ctx, { theme: "dark" })
       })
 
       const response = await evento.request("settings:query", { keys: ["theme"] })
 
-      expect(response.data).toEqual({ theme: "dark" })
+      expect(response).toEqual({ theme: "dark" })
     })
 
     it("should include correlation_id in request payload", async () => {
-      let receivedCorrelationId: string | null = null
+      let receivedCorrelationId: string | undefined = undefined
 
       evento.on("settings:query", (ctx) => {
-        receivedCorrelationId = (ctx.payload as any).correlation_id
-        evento.reply(ctx, { data: {} })
+        receivedCorrelationId = (ctx.payload as { correlation_id?: string }).correlation_id
+        evento.reply(ctx, {})
       })
 
       await evento.request("settings:query", { keys: ["theme"] })
@@ -56,10 +52,10 @@ describe("Evento - Request-Response Pattern", () => {
       const responses: Promise<unknown>[] = []
 
       evento.on("data:query", (ctx) => {
-        const correlationId = (ctx.payload as any).correlation_id
+        const correlationId = (ctx.payload as { correlation_id?: string }).correlation_id
         // Simulate delayed reply
         setTimeout(() => {
-          evento.reply(ctx, { data: { id: correlationId } })
+          evento.reply(ctx, { id: correlationId })
         }, 10)
       })
 
@@ -79,7 +75,7 @@ describe("Evento - Request-Response Pattern", () => {
 
       evento.on("settings:query", (ctx) => {
         requestContext = ctx
-        evento.reply(ctx, { data: { theme: "dark" } })
+        evento.reply(ctx, { theme: "dark" })
       })
 
       evento.on("settings:query:response", (ctx) => {
@@ -93,9 +89,44 @@ describe("Evento - Request-Response Pattern", () => {
       expect(replyContext!.meta.source).toBe(requestContext!.meta.source)
       expect(replyContext!.meta.trace_id).toBe(requestContext!.meta.trace_id)
       expect(replyContext!.meta.depth).toBe(requestContext!.meta.depth + 1)
-      expect((replyContext!.payload as any).correlation_id).toBe(
-        (requestContext!.payload as any).correlation_id,
+      expect((replyContext!.payload as { correlation_id?: string }).correlation_id).toBe(
+        (requestContext!.payload as { correlation_id?: string }).correlation_id,
       )
+    })
+  })
+
+  describe("handle", () => {
+    it("should auto-reply with return value", async () => {
+      evento.handle("settings:query", () => {
+        return { theme: "dark" }
+      })
+
+      const response = await evento.request("settings:query", { keys: ["theme"] })
+
+      expect(response).toEqual({ theme: "dark" })
+    })
+
+    it("should auto-reply with async return value", async () => {
+      evento.handle("settings:query", async () => {
+        return { theme: "light" }
+      })
+
+      const response = await evento.request("settings:query", { keys: ["theme"] })
+
+      expect(response).toEqual({ theme: "light" })
+    })
+
+    it("should not reply when handler returns void", async () => {
+      evento.handle("settings:query", () => {
+        // no return
+      })
+
+      try {
+        await evento.request("settings:query", { keys: ["theme"] }, { timeout: 50 })
+        expect(false).toBe(true)
+      } catch (err) {
+        expect(err).toBeInstanceOf(Error)
+      }
     })
   })
 })

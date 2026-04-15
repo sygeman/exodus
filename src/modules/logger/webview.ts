@@ -147,13 +147,11 @@ class WebviewLogger {
     limit?: number
     offset?: number
   }): Promise<{ logs: LogEntry[]; total: number }> {
-    const res = await evento.request("logger:query", q, { timeout: 5000 })
-    return res.data as { logs: LogEntry[]; total: number }
+    return evento.request("logger:query", q, { timeout: 5000 })
   }
 
   async stats(): Promise<{ debug: number; info: number; warn: number; error: number }> {
-    const res = await evento.request("logger:stats", {}, { timeout: 2000 })
-    return res.data as { debug: number; info: number; warn: number; error: number }
+    return evento.request("logger:stats", undefined, { timeout: 2000 })
   }
 }
 

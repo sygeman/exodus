@@ -6,7 +6,11 @@ export function createRegistry<
 >(namespace: N, events: T): { [K in keyof T as `${N}:${K & string}`]: T[K] } {
   const result = {} as Record<string, EventoRegistryEntry>
   for (const [key, value] of Object.entries(events)) {
-    result[`${namespace}:${key}`] = value
+    const fullKey = `${namespace}:${key}`
+    result[fullKey] = value
+    if (value.response) {
+      result[`${fullKey}:response`] = { schema: value.response }
+    }
   }
   return result as { [K in keyof T as `${N}:${K & string}`]: T[K] }
 }

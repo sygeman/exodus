@@ -49,16 +49,15 @@ class BunLogger {
       clearLogs(source)
     })
 
-    evento.on("logger:query", (ctx) => {
+    evento.handle("logger:query", (ctx) => {
       const q = ctx.payload as Parameters<typeof queryLogs>[0]
       const rows = queryLogs(q)
       const total = countLogs(q)
-      evento.reply(ctx, { data: { logs: rows, total } })
+      return { logs: rows, total }
     })
 
-    evento.on("logger:stats", (ctx) => {
-      const stats = getStats()
-      evento.reply(ctx, { data: stats })
+    evento.handle("logger:stats", () => {
+      return getStats()
     })
 
     this.patchConsole()

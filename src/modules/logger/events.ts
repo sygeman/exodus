@@ -41,22 +41,15 @@ export const loggerRegistry = createRegistry("logger", {
       limit: z.number().optional(),
       offset: z.number().optional(),
     }),
-  },
-  "query:response": {
-    schema: z.object({
-      data: z.object({ logs: z.array(z.unknown()), total: z.number() }),
-      correlation_id: z.string().optional(),
-    }),
+    response: z.object({ logs: z.array(z.unknown()), total: z.number() }),
   },
   stats: {
-    schema: z.object({
-      correlation_id: z.string().optional(),
-    }),
-  },
-  "stats:response": {
-    schema: z.object({
-      data: z.object({ debug: z.number(), info: z.number(), warn: z.number(), error: z.number() }),
-      correlation_id: z.string().optional(),
+    schema: z.void(),
+    response: z.object({
+      debug: z.number(),
+      info: z.number(),
+      warn: z.number(),
+      error: z.number(),
     }),
   },
 })
@@ -74,6 +67,6 @@ export type LoggerEventMap = {
     offset?: number
   }
   "logger:query:response": { logs: LogEntry[]; total: number }
-  "logger:stats": Record<string, never>
+  "logger:stats": void
   "logger:stats:response": { debug: number; info: number; warn: number; error: number }
 }

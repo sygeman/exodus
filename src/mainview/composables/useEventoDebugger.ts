@@ -127,11 +127,11 @@ export function useEventoDebugger() {
         parsed = payload
       }
     }
-    const response = await evento.request(name, parsed, { timeout })
+    const data = await evento.request(name, parsed, { timeout })
     return {
       success: true,
-      data: JSON.stringify(response.data, null, 2),
-      correlation_id: response.correlation_id,
+      data: JSON.stringify(data, null, 2),
+      correlation_id: "",
     }
   }
 

@@ -25,6 +25,7 @@ export type EventoUnsubscribe = () => void
 
 export type EventoRegistryEntry = {
   schema: import("zod").ZodTypeAny
+  response?: import("zod").ZodTypeAny
 }
 
 export type EventoRegistry = Record<string, EventoRegistryEntry>

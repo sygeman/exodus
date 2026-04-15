@@ -9,7 +9,8 @@ import {
 import { isWildcard, splitSegments, matchPattern } from "./utils"
 
 export type EventoMetaType<T> =
-  T extends Evento<infer L, infer R> ? { environment: L | R[number] } : never
+  // oxlint-disable-next-line no-unused-vars
+  T extends Evento<infer L, infer R, infer _Map> ? { environment: L | R[number] } : never
 
 export const MAX_EVENT_DEPTH = 25
 export const DEPTH_WARNING_THRESHOLD = 20
@@ -21,6 +22,10 @@ type VoidKeys<T> = {
 type NonVoidKeys<T> = {
   [K in keyof T]: T[K] extends void ? never : K
 }[keyof T]
+
+type RequestResponseType<EventMap, K extends string> = `${K}:response` extends keyof EventMap
+  ? EventMap[`${K}:response`]
+  : unknown
 
 // Internal handler entry with metadata
 type HandlerEntry<E extends string> = {
@@ -44,6 +49,8 @@ export class Evento<
   private events: Map<string, HandlerEntry<Local | Remotes[number]>[]> = new Map()
   private wildcards: WildcardEntry<Local | Remotes[number]>[] = []
   private registry: Map<string, EventoRegistryEntry> = new Map()
+  private requestEvents: Set<string> = new Set()
+  private responseEvents: Set<string> = new Set()
   public sender?: (data: {
     name: string
     payload: unknown
@@ -68,6 +75,12 @@ export class Evento<
   register(events: EventoRegistry): void {
     for (const [name, entry] of Object.entries(events)) {
       this.registry.set(name, entry)
+      if (entry.response) {
+        this.requestEvents.add(name)
+        const responseName = `${name}:response`
+        this.registry.set(responseName, { schema: entry.response })
+        this.responseEvents.add(responseName)
+      }
     }
   }
 
@@ -122,13 +135,21 @@ export class Evento<
 
   /**
    * Validate event name and payload against registry
+   * For request/response events, correlation_id is stripped before validation
    */
   private _validate(name: string, payload: unknown): { valid: boolean; error?: string } {
     const entry = this.registry.get(name)
     if (!entry) {
       return { valid: false, error: `Event "${name}" not registered` }
     }
-    const result = entry.schema.safeParse(payload)
+    const isRequestOrResponse = this.requestEvents.has(name) || this.responseEvents.has(name)
+    const payloadToValidate =
+      isRequestOrResponse && payload !== null && typeof payload === "object"
+        ? Object.fromEntries(
+            Object.entries(payload as object).filter(([k]) => k !== "correlation_id"),
+          )
+        : payload
+    const result = entry.schema.safeParse(payloadToValidate)
     if (!result.success) {
       return { valid: false, error: `Validation failed for "${name}": ${result.error.message}` }
     }
@@ -397,12 +418,13 @@ export class Evento<
   /**
    * Request-Response pattern
    * Sends a request and waits for response with matching correlation_id
+   * Returns the response payload directly (without { data, correlation_id } wrapper)
    */
-  request<T = unknown, R = unknown>(
-    name: string,
-    payload: T,
+  request<K extends string>(
+    name: K,
+    payload: K extends keyof EventMap ? EventMap[K] : unknown,
     options?: { timeout?: number },
-  ): Promise<{ data: R; correlation_id: string }> {
+  ): Promise<RequestResponseType<EventMap, K>> {
     const correlationId = crypto.randomUUID()
     const responseEvent = `${name}:response`
     const timeout = options?.timeout ?? 1000
@@ -412,15 +434,14 @@ export class Evento<
       let resolved = false
 
       const unsubscribe = this.on(responseEvent, (ctx) => {
-        const responsePayload = ctx.payload as { correlation_id?: string; data: R }
+        const responsePayload = ctx.payload as { correlation_id?: string }
         if (responsePayload.correlation_id === correlationId) {
           resolved = true
           if (timeoutId) clearTimeout(timeoutId)
           unsubscribe()
-          resolve({
-            data: responsePayload.data,
-            correlation_id: correlationId,
-          })
+          const { correlation_id, ...data } = responsePayload
+          void correlation_id
+          resolve(data as RequestResponseType<EventMap, K>)
         }
       })
 
@@ -451,6 +472,7 @@ export class Evento<
   /**
    * Reply to a request
    * Automatically includes correlation_id from request context
+   * Payload is sent directly (without { data } wrapper)
    */
   reply<T = unknown>(context: EventoHandlerContext<Local | Remotes[number]>, payload: T): void {
     const correlationId = (context.payload as { correlation_id?: string }).correlation_id
@@ -482,6 +504,32 @@ export class Evento<
     this._emitLocal(responseEvent, eventPayload, eventMeta)
     if (!this.sender) return
     this.sender({ name: responseEvent, payload: eventPayload, meta: eventMeta })
+  }
+
+  /**
+   * Handle a request event with automatic reply
+   * Handler return value is sent as reply payload
+   * If handler returns void/undefined, no reply is sent
+   */
+  handle<K extends keyof EventMap>(
+    name: K,
+    handler: (
+      context: EventoHandlerContext<Local | Remotes[number], EventMap[K]>,
+    ) => unknown | Promise<unknown>,
+  ): EventoUnsubscribe {
+    return this.on(name as string, (ctx) => {
+      const result = handler(ctx as EventoHandlerContext<Local | Remotes[number], EventMap[K]>)
+      if (result === undefined) return
+      if (result instanceof Promise) {
+        result.then((data) => {
+          if (data !== undefined) {
+            this.reply(ctx, data)
+          }
+        })
+      } else {
+        this.reply(ctx, result)
+      }
+    })
   }
 
   /**

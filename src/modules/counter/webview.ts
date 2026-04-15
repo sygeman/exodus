@@ -15,9 +15,8 @@ export function useCounter() {
   })
 
   evento
-    .request("counter:query", {}, { timeout: 2000 })
-    .then((res) => {
-      const data = res.data as { count: number; auto_increment: boolean }
+    .request("counter:query", undefined, { timeout: 2000 })
+    .then((data) => {
       count.value = data.count
       autoIncrement.value = data.auto_increment
     })

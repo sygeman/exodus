@@ -4,9 +4,7 @@ import { createRegistry } from "@/lib/evento/registry"
 export const schemaRegistry = createRegistry("schema", {
   request: {
     schema: z.object({ name: z.string() }),
-  },
-  "request:response": {
-    schema: z.object({ name: z.string(), schema: z.unknown() }),
+    response: z.object({ name: z.string(), schema: z.unknown() }),
   },
 })
 

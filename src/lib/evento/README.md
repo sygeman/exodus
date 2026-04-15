@@ -60,11 +60,16 @@ evento.on("counter:increment", (ctx) => {
 
 ```typescript
 // Запрос
-const response = await evento.request("settings:query", { keys: ["theme"] }, { timeout: 200 })
+const data = await evento.request("settings:query", { keys: ["theme"] }, { timeout: 200 })
 
-// Ответ
+// Ответ через handle (авто-reply)
+evento.handle("settings:query", (ctx) => {
+  return { theme: "dark" }
+})
+
+// Или вручную через reply
 evento.on("settings:query", (ctx) => {
-  evento.reply(ctx, { data: { theme: "dark" } })
+  evento.reply(ctx, { theme: "dark" })
 })
 ```
 
