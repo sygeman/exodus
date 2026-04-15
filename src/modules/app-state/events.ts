@@ -4,11 +4,11 @@ import type { EventoRegistry } from "@/lib/evento/types"
 export const appStateRegistry: EventoRegistry = {
   "app:routeChanged": {
     schema: z.object({ hash: z.string() }),
-    description: "Webview route changed",
+    description: "events.appState.routeChanged",
   },
   "app:requestState": {
     schema: z.void(),
-    description: "Request saved app state from bun",
+    description: "events.appState.requestState",
   },
   "app:restoreState": {
     schema: z.object({
@@ -17,22 +17,22 @@ export const appStateRegistry: EventoRegistry = {
       locale: z.string().nullable(),
       theme: z.enum(["dark", "light"]).nullable(),
     }),
-    description: "Restore saved app state to webview",
+    description: "events.appState.restoreState",
   },
   "app:saveSettings": {
     schema: z.object({
       locale: z.string().optional(),
       theme: z.enum(["dark", "light"]).optional(),
     }),
-    description: "Save user settings",
+    description: "events.appState.saveSettings",
   },
   "app:dismissUpdate": {
     schema: z.object({ version: z.string() }),
-    description: "Dismiss update for a specific version",
+    description: "events.appState.dismissUpdate",
   },
   "app:clearDismissedUpdate": {
     schema: z.void(),
-    description: "Clear dismissed update version",
+    description: "events.appState.clearDismissedUpdate",
   },
 }
 

@@ -1,6 +1,7 @@
 <script setup lang="ts">
-import { ref, computed, reactive } from "vue"
+import { ref, computed, reactive, onMounted } from "vue"
 import { useI18n } from "vue-i18n"
+import { useRoute, useRouter } from "vue-router"
 import { useEventoDebugger } from "@/mainview/composables/useEventoDebugger"
 import { evento } from "@/mainview/evento"
 
@@ -28,7 +29,7 @@ const filteredRegistry = computed(() => {
   return registry.value.filter(
     (evt) =>
       evt.name.toLowerCase().includes(q) ||
-      (evt.description && evt.description.toLowerCase().includes(q)),
+      (evt.description && t(evt.description).toLowerCase().includes(q)),
   )
 })
 
@@ -72,6 +73,8 @@ const formValues = reactive<Record<string, unknown>>({})
 const playgroundResult = ref<string | null>(null)
 
 const { t } = useI18n()
+const route = useRoute()
+const router = useRouter()
 
 async function selectEvent(name: string) {
   selectedEvent.value = name
@@ -79,6 +82,8 @@ async function selectEvent(name: string) {
   eventDescription.value = ""
   playgroundResult.value = null
   Object.keys(formValues).forEach((key) => delete formValues[key])
+
+  await router.replace({ query: name ? { event: name } : {} })
 
   try {
     const res = await evento.request<
@@ -90,7 +95,7 @@ async function selectEvent(name: string) {
     >("evento:schema:request", { name }, { timeout: 2000 })
     if (res.data?.schema) {
       eventSchema.value = res.data.schema
-      eventDescription.value = res.data.description || ""
+      eventDescription.value = res.data.description ? t(res.data.description) : ""
       if (res.data.schema.type === "object" && res.data.schema.properties) {
         for (const [key, fieldDef] of Object.entries(res.data.schema.properties)) {
           formValues[key] = fieldDef.type === "boolean" ? false : ""
@@ -139,6 +144,13 @@ function copyEventName(name: string) {
     copiedEventName.value = null
   }, 1500)
 }
+
+onMounted(() => {
+  const eventFromQuery = route.query.event
+  if (typeof eventFromQuery === "string" && eventFromQuery) {
+    selectEvent(eventFromQuery)
+  }
+})
 </script>
 
 <template>
@@ -202,7 +214,7 @@ function copyEventName(name: string) {
                   <span
                     v-if="evt.description"
                     class="truncate text-xs text-[var(--ui-text-muted)]"
-                    v-html="highlightMatch(evt.description, filterQuery)"
+                    v-html="highlightMatch(t(evt.description), filterQuery)"
                   />
                 </div>
               </div>

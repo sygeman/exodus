@@ -2,24 +2,24 @@ import { z } from "zod"
 import type { EventoRegistry } from "@/lib/evento/types"
 
 export const counterRegistry: EventoRegistry = {
-  "counter:increment": { schema: z.void(), description: "Increment counter" },
-  "counter:reset": { schema: z.void(), description: "Reset counter" },
+  "counter:increment": { schema: z.void(), description: "events.counter.increment" },
+  "counter:reset": { schema: z.void(), description: "events.counter.reset" },
   "counter:updated": {
     schema: z.object({ count: z.number(), autoIncrement: z.boolean() }),
-    description: "Counter value updated",
+    description: "events.counter.updated",
   },
-  "counter:auto:enable": { schema: z.void(), description: "Enable auto increment" },
-  "counter:auto:disable": { schema: z.void(), description: "Disable auto increment" },
+  "counter:auto:enable": { schema: z.void(), description: "events.counter.auto:enable" },
+  "counter:auto:disable": { schema: z.void(), description: "events.counter.auto:disable" },
   "counter:query": {
     schema: z.object({ correlation_id: z.string().optional() }),
-    description: "Query counter state",
+    description: "events.counter.query",
   },
   "counter:query:response": {
     schema: z.object({
       data: z.object({ count: z.number(), autoIncrement: z.boolean() }),
       correlation_id: z.string().optional(),
     }),
-    description: "Counter query response",
+    description: "events.counter.query:response",
   },
 }
 

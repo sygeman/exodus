@@ -1,3 +1,10 @@
+import { loggerEvents } from "@/modules/logger/i18n/ru"
+import { appStateEvents } from "@/modules/app-state/i18n/ru"
+import { counterEvents } from "@/modules/counter/i18n/ru"
+import { timerEvents } from "@/modules/timer/i18n/ru"
+import { updaterEvents } from "@/modules/updater/i18n/ru"
+import { schemaEvents } from "@/modules/schema/i18n/ru"
+
 export default {
   common: {
     counter: "Счетчик",
@@ -81,6 +88,12 @@ export default {
     searchEvents: "Поиск событий",
     searchLogs: "Поиск логов",
     eventDetails: "Детали события",
+    logger: loggerEvents,
+    appState: appStateEvents,
+    counter: counterEvents,
+    timer: timerEvents,
+    updater: updaterEvents,
+    schema: schemaEvents,
   },
   logs: {
     title: "Логи",

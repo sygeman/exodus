@@ -4,11 +4,11 @@ import type { EventoRegistry } from "@/lib/evento/types"
 export const schemaRegistry: EventoRegistry = {
   "evento:schema:request": {
     schema: z.object({ name: z.string() }),
-    description: "Request event schema",
+    description: "events.schema.schemaRequest",
   },
   "evento:schema:request:response": {
     schema: z.object({ name: z.string(), schema: z.unknown(), description: z.string().optional() }),
-    description: "Event schema response",
+    description: "events.schema.schemaRequestResponse",
   },
 }
 

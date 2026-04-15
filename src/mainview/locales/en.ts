@@ -1,3 +1,10 @@
+import { loggerEvents } from "@/modules/logger/i18n/en"
+import { appStateEvents } from "@/modules/app-state/i18n/en"
+import { counterEvents } from "@/modules/counter/i18n/en"
+import { timerEvents } from "@/modules/timer/i18n/en"
+import { updaterEvents } from "@/modules/updater/i18n/en"
+import { schemaEvents } from "@/modules/schema/i18n/en"
+
 export default {
   common: {
     counter: "Counter",
@@ -81,6 +88,12 @@ export default {
     searchEvents: "Search events",
     searchLogs: "Search logs",
     eventDetails: "Event Details",
+    logger: loggerEvents,
+    appState: appStateEvents,
+    counter: counterEvents,
+    timer: timerEvents,
+    updater: updaterEvents,
+    schema: schemaEvents,
   },
   logs: {
     title: "Logs",

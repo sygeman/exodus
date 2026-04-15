@@ -4,7 +4,7 @@ import type { EventoRegistry } from "@/lib/evento/types"
 export const updaterRegistry: EventoRegistry = {
   "app:checkUpdate": {
     schema: z.object({}).optional(),
-    description: "Check for app updates (fire and forget)",
+    description: "events.updater.checkUpdate",
   },
   "app:updateStatus": {
     schema: z.object({
@@ -13,11 +13,11 @@ export const updaterRegistry: EventoRegistry = {
       latestVersion: z.string().optional(),
       error: z.string().optional(),
     }),
-    description: "App update status broadcast",
+    description: "events.updater.updateStatus",
   },
   "app:startUpdate": {
     schema: z.object({}).optional(),
-    description: "Start download and apply update (fire and forget)",
+    description: "events.updater.startUpdate",
   },
 }
 
