@@ -9,6 +9,7 @@ import CounterPage from "./pages/CounterPage.vue"
 import DebugLayout from "./pages/debug/DebugLayout.vue"
 import DebugEvents from "./pages/debug/DebugEvents.vue"
 import DebugLogs from "./pages/debug/DebugLogs.vue"
+import DebugState from "./pages/debug/DebugState.vue"
 import SettingsLayout from "./pages/settings/SettingsLayout.vue"
 import SettingsAppearance from "./pages/settings/SettingsAppearance.vue"
 import SettingsLanguage from "./pages/settings/SettingsLanguage.vue"
@@ -46,6 +47,7 @@ const router = createRouter({
       children: [
         { path: "logs", component: DebugLogs },
         { path: "events", component: DebugEvents },
+        { path: "state", component: DebugState },
       ],
     },
     {

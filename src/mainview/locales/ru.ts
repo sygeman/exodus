@@ -58,6 +58,9 @@ export default {
     appearance: "Внешний вид",
     about: "О приложении",
     theme: "Тема",
+    state: "Состояние",
+    refresh: "Обновить",
+    loading: "Загрузка...",
   },
   settings: {
     darkModeDescription: "Использовать тёмную цветовую схему.",

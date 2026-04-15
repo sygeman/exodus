@@ -58,6 +58,9 @@ export default {
     appearance: "Erscheinungsbild",
     about: "Über",
     theme: "Design",
+    state: "Zustand",
+    refresh: "Aktualisieren",
+    loading: "Laden...",
   },
   settings: {
     darkModeDescription: "Ein dunkles Farbschema verwenden.",

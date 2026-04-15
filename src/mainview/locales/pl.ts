@@ -58,6 +58,9 @@ export default {
     appearance: "Wygląd",
     about: "O aplikacji",
     theme: "Motyw",
+    state: "Stan",
+    refresh: "Odśwież",
+    loading: "Ładowanie...",
   },
   settings: {
     darkModeDescription: "Użyj ciemnej palety kolorów.",

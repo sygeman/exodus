@@ -58,6 +58,9 @@ export default {
     appearance: "Appearance",
     about: "About",
     theme: "Theme",
+    state: "State",
+    refresh: "Refresh",
+    loading: "Loading...",
   },
   settings: {
     darkModeDescription: "Use a dark color scheme.",
