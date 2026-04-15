@@ -21,12 +21,12 @@ export function initCounter(evento: EventoBun) {
     }
   })
 
-  evento.on("counter:auto:enable", (ctx) => {
+  evento.on("counter:auto-enable", (ctx) => {
     autoIncrement = true
     evento.forward("counter:updated", { count, auto_increment: autoIncrement }, ctx)
   })
 
-  evento.on("counter:auto:disable", (ctx) => {
+  evento.on("counter:auto-disable", (ctx) => {
     autoIncrement = false
     evento.forward("counter:updated", { count, auto_increment: autoIncrement }, ctx)
   })

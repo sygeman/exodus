@@ -89,7 +89,7 @@ export default {
     searchLogs: "Поиск логов",
     eventDetails: "Детали события",
     logger: loggerEvents,
-    appState: appStateEvents,
+    "app-state": appStateEvents,
     counter: counterEvents,
     timer: timerEvents,
     updater: updaterEvents,

@@ -39,9 +39,9 @@ export function useCounter() {
   const setAuto = (value: boolean) => {
     autoIncrement.value = value
     if (value) {
-      evento.emitEvent("counter:auto:enable", "user:toggle_auto")
+      evento.emitEvent("counter:auto-enable", "user:toggle_auto")
     } else {
-      evento.emitEvent("counter:auto:disable", "user:toggle_auto")
+      evento.emitEvent("counter:auto-disable", "user:toggle_auto")
     }
   }
 
