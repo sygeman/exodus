@@ -1,3 +1,12 @@
+# [0.23.0](https://github.com/sygeman/exodus/compare/v0.22.1...v0.23.0) (2026-04-15)
+
+
+### Features
+
+* declarative request-response with auto-generated response events and handle() sugar ([2c256da](https://github.com/sygeman/exodus/commit/2c256da87538ec38f332141ecb1e81863fb700b9))
+
+
+
 ## [0.22.1](https://github.com/sygeman/exodus/compare/v0.22.0...v0.22.1) (2026-04-15)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * add debug state page showing app JSON state ([d1db786](https://github.com/sygeman/exodus/commit/d1db78640570e45acdab4cd94f35666dc5e77e56))
-
-
-
-# [0.19.0](https://github.com/sygeman/exodus/compare/v0.18.0...v0.19.0) (2026-04-15)
-
-
-### Features
-
-* group logs and events under debug layout with shared MenuLayout component ([d74775e](https://github.com/sygeman/exodus/commit/d74775ef5c1b5300f47b1046c61a72bfb9a1c6f6))
 
 
 
