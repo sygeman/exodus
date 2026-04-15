@@ -1,3 +1,12 @@
+# [0.20.0](https://github.com/sygeman/exodus/compare/v0.19.0...v0.20.0) (2026-04-15)
+
+
+### Features
+
+* add debug state page showing app JSON state ([d1db786](https://github.com/sygeman/exodus/commit/d1db78640570e45acdab4cd94f35666dc5e77e56))
+
+
+
 # [0.19.0](https://github.com/sygeman/exodus/compare/v0.18.0...v0.19.0) (2026-04-15)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * redesign settings page in Discord style with nested routes ([f87af8a](https://github.com/sygeman/exodus/commit/f87af8af58302b43aee344bcb149f0f3479a7973))
-
-
-
-## [0.16.1](https://github.com/sygeman/exodus/compare/v0.16.0...v0.16.1) (2026-04-14)
-
-
-### Bug Fixes
-
-* ignore false-positive update when version or hash matches current ([7466497](https://github.com/sygeman/exodus/commit/746649750bf973a5d2e4240566ae62e64e155886))
 
 
 
