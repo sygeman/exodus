@@ -11,7 +11,7 @@ import { PROJECT_COLORS } from "@/modules/projects/constants"
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
-const { projects, update, remove } = useProjects()
+const { projects, loading, update, remove } = useProjects()
 
 const projectId = computed(() => route.params.id as string)
 const project = computed(() => projects.value.find((p) => p.id === projectId.value))
@@ -97,7 +97,7 @@ function handleDelete() {
   </div>
 
   <div
-    v-else
+    v-else-if="!loading"
     class="flex h-full flex-col items-center justify-center gap-2 text-[var(--ui-text-muted)]"
   >
     <UIcon name="i-lucide-folder-x" class="h-10 w-10" />
