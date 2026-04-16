@@ -1,5 +1,5 @@
 import { ref, computed } from "vue"
-import { evento } from "@/mainview/evento"
+import { evento } from "@/evento"
 
 export interface EventoLogEntry {
   id: string

@@ -1,8 +1,8 @@
 <script setup lang="ts">
 import { computed, watch } from "vue"
 import { useI18n } from "vue-i18n"
-import { locales, type Locale } from "@/mainview/locales"
-import { evento } from "@/mainview/evento"
+import { locales, type Locale } from "@/locales"
+import { evento } from "@/evento"
 
 const { t, locale } = useI18n()
 

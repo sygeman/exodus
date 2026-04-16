@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 
-SVG="src/mainview/assets/logo.svg"
+SVG="src/assets/logo.svg"
 OUT_DIR="assets"
 ICONSET="$OUT_DIR/icon.iconset"
 ICNS="$OUT_DIR/icon.icns"

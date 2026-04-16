@@ -1,4 +1,4 @@
-import { evento } from "@/mainview/evento"
+import { evento } from "@/evento"
 import { loggerRegistry, type LogEntry, type LogLevel } from "@/modules/logger/events"
 
 interface DedupState {

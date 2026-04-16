@@ -1,6 +1,6 @@
 import { ref } from "vue"
 import type { Router } from "vue-router"
-import { evento } from "@/mainview/evento"
+import { evento } from "@/evento"
 
 export function useAppState(router: Router) {
   const dismissedUpdateVersion = ref<string | null>(null)

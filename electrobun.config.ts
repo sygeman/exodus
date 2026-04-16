@@ -32,8 +32,8 @@ export default {
     },
     // Vite builds to dist/, we copy from there
     copy: {
-      "dist/index.html": "views/mainview/index.html",
-      "dist/assets": "views/mainview/assets",
+      "dist/index.html": "views/index.html",
+      "dist/assets": "views/assets",
     },
     watch: ["src/lib/**", "src/modules/**"],
     // Ignore Vite output in watch mode — HMR handles view rebuilds separately

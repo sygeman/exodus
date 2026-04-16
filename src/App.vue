@@ -2,8 +2,8 @@
 import { computed, ref, onMounted, onUnmounted } from "vue"
 import { useI18n } from "vue-i18n"
 import * as nuxtLocales from "@nuxt/ui/locale"
-import AppSidebar from "@/mainview/components/AppSidebar.vue"
-import { evento } from "@/mainview/evento"
+import AppSidebar from "@/components/AppSidebar.vue"
+import { evento } from "@/evento"
 
 const { locale, t } = useI18n()
 const toast = useToast()

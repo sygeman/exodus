@@ -1,4 +1,4 @@
-import { evento } from "@/mainview/evento"
+import { evento } from "@/evento"
 import type { Router } from "vue-router"
 import { ref, onMounted, onUnmounted } from "vue"
 import type { Project } from "@/modules/projects/events"

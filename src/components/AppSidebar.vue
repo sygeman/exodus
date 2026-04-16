@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
-import LogoSvg from "@/mainview/assets/logo.svg"
+import LogoSvg from "@/assets/logo.svg"
 import ProjectsSidebar from "@/modules/projects/components/ProjectsSidebar.vue"
 
 defineProps<{

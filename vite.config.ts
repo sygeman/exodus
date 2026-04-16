@@ -21,7 +21,7 @@ export default defineConfig({
       },
     }),
   ],
-  root: "src/mainview",
+  root: "src",
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),

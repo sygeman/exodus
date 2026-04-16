@@ -55,7 +55,7 @@ function createEventoBun(): {
 
 ```typescript
 import { Electroview } from "electrobun/view"
-import { createEventoWebview } from "@/mainview/evento"
+import { createEventoWebview } from "@/evento"
 
 const { evento, rpc } = createEventoWebview()
 ```

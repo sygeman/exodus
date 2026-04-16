@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from "vue"
 import { useI18n } from "vue-i18n"
-import { useEventoDebugger } from "@/mainview/composables/useEventoDebugger"
+import { useEventoDebugger } from "@/composables/useEventoDebugger"
 
 const { filteredLogs, isPaused, clearLogs, togglePause } = useEventoDebugger()
 

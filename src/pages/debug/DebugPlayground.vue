@@ -2,8 +2,8 @@
 import { ref, computed, reactive, onMounted } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
-import { useEventoDebugger } from "@/mainview/composables/useEventoDebugger"
-import { evento } from "@/mainview/evento"
+import { useEventoDebugger } from "@/composables/useEventoDebugger"
+import { evento } from "@/evento"
 
 interface RegistryItem {
   name: string

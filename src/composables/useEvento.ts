@@ -1,5 +1,5 @@
 import { onUnmounted } from "vue"
-import { evento } from "@/mainview/evento"
+import { evento } from "@/evento"
 import type { GlobalEventMap } from "@/events"
 
 export function useEvento() {

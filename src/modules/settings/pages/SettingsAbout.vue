@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, onMounted, onUnmounted } from "vue"
 import { useI18n } from "vue-i18n"
-import { evento } from "@/mainview/evento"
+import { evento } from "@/evento"
 
 const { t } = useI18n()
 

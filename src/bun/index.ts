@@ -25,7 +25,7 @@ async function getMainViewUrl(): Promise<string> {
   } catch {
     // Updater fails outside bundled app (dev mode)
   }
-  return "views://mainview/index.html"
+  return "views://index.html"
 }
 
 const url = await getMainViewUrl()
