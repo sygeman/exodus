@@ -1,3 +1,12 @@
+# [0.27.0](https://github.com/sygeman/exodus/compare/v0.26.0...v0.27.0) (2026-04-16)
+
+
+### Features
+
+* **i18n:** add simplified chinese (zh) locale ([a99ff0f](https://github.com/sygeman/exodus/commit/a99ff0ffd9a3e21745472d05ffa32b5ce4d2f1b0))
+
+
+
 # [0.26.0](https://github.com/sygeman/exodus/compare/v0.25.0...v0.26.0) (2026-04-16)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * allow void request/response events to pass validation and catch async handle errors ([76942d7](https://github.com/sygeman/exodus/commit/76942d71d17f25d95c43bb3634bc73006b3b5821))
-
-
-
-# [0.23.0](https://github.com/sygeman/exodus/compare/v0.22.1...v0.23.0) (2026-04-15)
-
-
-### Features
-
-* declarative request-response with auto-generated response events and handle() sugar ([2c256da](https://github.com/sygeman/exodus/commit/2c256da87538ec38f332141ecb1e81863fb700b9))
 
 
 
