@@ -40,10 +40,19 @@ function getInitials(name: string): string {
         class="flex h-10 w-10 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg font-semibold transition-all hover:opacity-90"
         :class="
           currentProjectId === project.id
-            ? 'text-white'
+            ? 'bg-[var(--ui-bg-elevated)]'
             : 'text-[var(--ui-text-muted)] hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]'
         "
-        :style="currentProjectId === project.id ? { backgroundColor: project.color } : undefined"
+        :style="
+          currentProjectId === project.id
+            ? {
+                color: project.color,
+                borderColor: project.color,
+                borderWidth: '2px',
+                borderStyle: 'solid',
+              }
+            : undefined
+        "
       >
         {{ getInitials(project.name) }}
       </ULink>
