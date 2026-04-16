@@ -8,25 +8,32 @@ import { settingsMessages as settingsDe } from "@/modules/settings/i18n/de"
 import { settingsMessages as settingsPl } from "@/modules/settings/i18n/pl"
 import { settingsMessages as settingsRu } from "@/modules/settings/i18n/ru"
 import { settingsMessages as settingsZh } from "@/modules/settings/i18n/zh"
+import { debugMessages as debugEn } from "@/modules/debug/i18n/en"
+import { debugMessages as debugDe } from "@/modules/debug/i18n/de"
+import { debugMessages as debugPl } from "@/modules/debug/i18n/pl"
+import { debugMessages as debugRu } from "@/modules/debug/i18n/ru"
+import { debugMessages as debugZh } from "@/modules/debug/i18n/zh"
 
 function mergeMessages(
   base: typeof en,
-  overrides: typeof settingsEn,
+  settings: typeof settingsEn,
+  debug: typeof debugEn,
 ): typeof en & { settings: typeof settingsEn.settings } {
   return {
     ...base,
-    ...overrides,
-    common: { ...base.common, ...overrides.common },
-    settings: overrides.settings,
+    ...settings,
+    ...debug,
+    common: { ...base.common, ...settings.common, ...debug.common },
+    settings: settings.settings,
   } as typeof en & { settings: typeof settingsEn.settings }
 }
 
 export const messages = {
-  de: mergeMessages(de, settingsDe),
-  en: mergeMessages(en, settingsEn),
-  pl: mergeMessages(pl, settingsPl),
-  ru: mergeMessages(ru, settingsRu),
-  zh: mergeMessages(zh, settingsZh),
+  de: mergeMessages(de, settingsDe, debugDe),
+  en: mergeMessages(en, settingsEn, debugEn),
+  pl: mergeMessages(pl, settingsPl, debugPl),
+  ru: mergeMessages(ru, settingsRu, debugRu),
+  zh: mergeMessages(zh, settingsZh, debugZh),
 }
 
 export type Locale = "de" | "en" | "pl" | "ru" | "zh"

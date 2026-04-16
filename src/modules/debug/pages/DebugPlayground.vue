@@ -172,7 +172,7 @@ onMounted(() => {
         >
           <UInput
             v-model="eventFilter"
-            :placeholder="t('events.searchEvents')"
+            :placeholder="t('debug.searchEvents')"
             class="min-w-0 flex-1"
           />
           <span v-if="filterQuery" class="text-xs text-[var(--ui-text-muted)]">

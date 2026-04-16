@@ -117,7 +117,7 @@ function formatArgs(args: unknown[]) {
     <div class="flex flex-wrap gap-2 border-b border-[var(--ui-border)] px-4 py-2">
       <USelectMenu v-model="levelFilter" :items="levelOptions" value-key="value" class="w-28" />
       <USelectMenu v-model="sourceFilter" :items="sourceOptions" value-key="value" class="w-28" />
-      <UInput v-model="textFilter" :placeholder="t('logs.searchLogs')" class="min-w-0 flex-1" />
+      <UInput v-model="textFilter" :placeholder="t('debug.searchLogs')" class="min-w-0 flex-1" />
     </div>
 
     <!-- Logs list -->
@@ -183,9 +183,9 @@ function formatArgs(args: unknown[]) {
     <div class="flex items-center justify-between border-t border-[var(--ui-border)] px-4 py-2">
       <span class="text-xs text-[var(--ui-text-muted)]">
         {{
-          t("logs.totalLogs", {
+          t("debug.totalLogs", {
             total,
-            pageInfo: t("logs.pageOf", { page, totalPages }),
+            pageInfo: t("debug.pageOf", { page, totalPages }),
           })
         }}
       </span>

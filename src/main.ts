@@ -9,11 +9,7 @@ import ProjectsListPage from "@/modules/projects/components/ProjectsListPage.vue
 import ProjectLayout from "@/modules/projects/components/ProjectLayout.vue"
 import ProjectPage from "@/modules/projects/components/ProjectPage.vue"
 import ProjectSettingsPage from "@/modules/projects/components/ProjectSettingsPage.vue"
-import DebugLayout from "./pages/debug/DebugLayout.vue"
-import DebugEvents from "./pages/debug/DebugEvents.vue"
-import DebugLogs from "./pages/debug/DebugLogs.vue"
-import DebugPlayground from "./pages/debug/DebugPlayground.vue"
-import DebugState from "./pages/debug/DebugState.vue"
+import { debugRoutes } from "@/modules/debug/routes"
 import { settingsRoutes } from "@/modules/settings/routes"
 import NotFound from "./pages/NotFound.vue"
 import { evento, rpc } from "./evento"
@@ -52,17 +48,7 @@ const router = createRouter({
         { path: "settings", component: ProjectSettingsPage },
       ],
     },
-    {
-      path: "/debug",
-      component: DebugLayout,
-      redirect: "/debug/logs",
-      children: [
-        { path: "logs", component: DebugLogs },
-        { path: "events", component: DebugEvents },
-        { path: "playground", component: DebugPlayground },
-        { path: "state", component: DebugState },
-      ],
-    },
+    ...debugRoutes,
     ...settingsRoutes,
     { path: "/:pathMatch(.*)*", component: NotFound },
   ],

@@ -66,7 +66,7 @@ const logRows = computed(() =>
 
     <!-- Log Filter -->
     <div class="flex gap-2 border-b border-[var(--ui-border)] px-2 py-1.5">
-      <UInput v-model="logFilter" :placeholder="t('events.searchLogs')" class="min-w-0 flex-1" />
+      <UInput v-model="logFilter" :placeholder="t('debug.searchLogs')" class="min-w-0 flex-1" />
     </div>
 
     <!-- Log Stream -->
@@ -112,7 +112,7 @@ const logRows = computed(() =>
         <template #header>
           <div class="flex items-center justify-between">
             <h2 class="text-lg font-semibold">
-              {{ t("events.eventDetails") }}
+              {{ t("debug.eventDetails") }}
             </h2>
             <UButton
               icon="i-lucide-x"
