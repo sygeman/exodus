@@ -137,18 +137,40 @@ export class Evento<
    * Validate event name and payload against registry
    * For request/response events, correlation_id is stripped before validation
    */
+  private _isVoidSchema(schema: unknown): boolean {
+    const def = (schema as { _def?: { type?: string } })._def
+    const typeName = def?.type || (schema as { constructor?: { name?: string } }).constructor?.name
+    return typeName === "void" || typeName === "ZodVoid" || typeName === "ZodUndefined"
+  }
+
+  /**
+   * Validate event name and payload against registry
+   * For request/response events, correlation_id is stripped before validation
+   */
   private _validate(name: string, payload: unknown): { valid: boolean; error?: string } {
     const entry = this.registry.get(name)
     if (!entry) {
       return { valid: false, error: `Event "${name}" not registered` }
     }
     const isRequestOrResponse = this.requestEvents.has(name) || this.responseEvents.has(name)
-    const payloadToValidate =
+    let payloadToValidate =
       isRequestOrResponse && payload !== null && typeof payload === "object"
         ? Object.fromEntries(
             Object.entries(payload as object).filter(([k]) => k !== "correlation_id"),
           )
         : payload
+
+    // For void request/response schemas, empty object after stripping correlation_id is valid
+    if (
+      isRequestOrResponse &&
+      this._isVoidSchema(entry.schema) &&
+      payloadToValidate !== null &&
+      typeof payloadToValidate === "object" &&
+      Object.keys(payloadToValidate).length === 0
+    ) {
+      payloadToValidate = undefined
+    }
+
     const result = entry.schema.safeParse(payloadToValidate)
     if (!result.success) {
       return { valid: false, error: `Validation failed for "${name}": ${result.error.message}` }
@@ -521,11 +543,15 @@ export class Evento<
       const result = handler(ctx as EventoHandlerContext<Local | Remotes[number], EventMap[K]>)
       if (result === undefined) return
       if (result instanceof Promise) {
-        result.then((data) => {
-          if (data !== undefined) {
-            this.reply(ctx, data)
-          }
-        })
+        result
+          .then((data) => {
+            if (data !== undefined) {
+              this.reply(ctx, data)
+            }
+          })
+          .catch((error) => {
+            this._emitError(error, ctx, handler as EventoHandler<Local | Remotes[number]>)
+          })
       } else {
         this.reply(ctx, result)
       }
