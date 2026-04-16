@@ -2,13 +2,11 @@ import { loggerEvents } from "@/modules/logger/i18n/ru"
 import { appStateEvents } from "@/modules/app-state/i18n/ru"
 import { updaterEvents } from "@/modules/updater/i18n/ru"
 import { schemaEvents } from "@/modules/schema/i18n/ru"
-import { projectsEvents } from "@/modules/projects/i18n/ru"
 
 export default {
   common: {
     darkMode: "Тёмная тема",
     lightMode: "Светлая тема",
-    newProject: "Новый проект",
     back: "Назад",
     close: "Закрыть",
     search: "Поиск",
@@ -27,24 +25,6 @@ export default {
     updateAvailableDescription: "{current} → {latest}",
     updateNow: "Обновить",
     updateLater: "Позже",
-    delete: "Удалить",
-    save: "Сохранить",
-  },
-  projects: {
-    title: "Проекты",
-    empty: "Пока нет проектов",
-    create: "Создать проект",
-    notFound: "Проект не найден",
-    backToList: "Назад к проектам",
-    settingsTitle: "Настройки проекта",
-    overview: "Обзор",
-    general: "Общие",
-    emptyBoard: "Доска пуста",
-    emptyBoardDescription: "Содержимое проекта появится здесь позже.",
-    name: "Название",
-    color: "Цвет",
-    nameRequired: "Название обязательно",
-    colorRequired: "Цвет обязателен",
   },
   events: {
     title: "События",
@@ -52,7 +32,6 @@ export default {
     "app-state": appStateEvents,
     updater: updaterEvents,
     schema: schemaEvents,
-    projects: projectsEvents,
   },
   notFound: {
     title: "Страница не найдена",

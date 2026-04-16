@@ -1,10 +1,28 @@
-export const projectsEvents = {
-  list: "List all projects",
-  "list:response": "Projects list response",
-  create: "Create a new project",
-  update: "Update a project",
-  delete: "Delete a project",
-  created: "Project created",
-  updated: "Project updated",
-  deleted: "Project deleted",
+import { projectsEvents } from "./events/en"
+
+export const projectsMessages = {
+  common: {
+    newProject: "New Project",
+    save: "Save",
+    delete: "Delete",
+  },
+  projects: {
+    title: "Projects",
+    empty: "No projects yet",
+    create: "Create project",
+    notFound: "Project not found",
+    backToList: "Back to projects",
+    settingsTitle: "Project Settings",
+    overview: "Overview",
+    general: "General",
+    emptyBoard: "Board is empty",
+    emptyBoardDescription: "Project content will appear here soon.",
+    name: "Name",
+    color: "Color",
+    nameRequired: "Name is required",
+    colorRequired: "Color is required",
+  },
+  events: {
+    projects: projectsEvents,
+  },
 }
