@@ -7,17 +7,7 @@ import {
   updateProject,
   deleteProject,
 } from "@/modules/projects/db"
-
-const PROJECT_COLORS = [
-  "#ef4444", // red
-  "#f97316", // orange
-  "#eab308", // yellow
-  "#22c55e", // green
-  "#06b6d4", // cyan
-  "#3b82f6", // blue
-  "#a855f7", // purple
-  "#ec4899", // pink
-]
+import { PROJECT_COLORS } from "@/modules/projects/constants"
 
 function getRandomColor(): string {
   return PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)]
@@ -38,21 +28,33 @@ export function initProjects(evento: EventoBun) {
       color: ctx.payload.color ?? getRandomColor(),
       created_at: Date.now(),
     }
-    createProject(project)
-    evento.emitEvent("projects:created", project, "bun")
+    try {
+      createProject(project)
+      evento.emitEvent("projects:created", project, "bun")
+    } catch (err) {
+      console.error("[projects] create failed:", err)
+    }
   })
 
   evento.on("projects:update", (ctx) => {
     const { id, ...data } = ctx.payload
-    updateProject(id, data)
-    const updated = listProjects().find((p) => p.id === id)
-    if (updated) {
-      evento.emitEvent("projects:updated", updated, "bun")
+    try {
+      updateProject(id, data)
+      const updated = listProjects().find((p) => p.id === id)
+      if (updated) {
+        evento.emitEvent("projects:updated", updated, "bun")
+      }
+    } catch (err) {
+      console.error("[projects] update failed:", err)
     }
   })
 
   evento.on("projects:delete", (ctx) => {
-    deleteProject(ctx.payload.id)
-    evento.emitEvent("projects:deleted", { id: ctx.payload.id }, "bun")
+    try {
+      deleteProject(ctx.payload.id)
+      evento.emitEvent("projects:deleted", { id: ctx.payload.id }, "bun")
+    } catch (err) {
+      console.error("[projects] delete failed:", err)
+    }
   })
 }

@@ -40,14 +40,7 @@ export function migrate() {
 }
 
 export function listProjects(): Project[] {
-  const rows = db.select().from(projects).orderBy(desc(projects.created_at)).all()
-
-  return rows.map((r) => ({
-    id: r.id,
-    name: r.name,
-    color: r.color,
-    created_at: r.created_at,
-  }))
+  return db.select().from(projects).orderBy(desc(projects.created_at)).all()
 }
 
 export function createProject(project: Project) {
