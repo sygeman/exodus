@@ -90,19 +90,19 @@ function formatArgs(args: unknown[]) {
       <div class="flex items-center gap-2">
         <div class="mr-2 hidden items-center gap-3 text-xs text-[var(--ui-text-muted)] sm:flex">
           <div class="flex items-center gap-1">
-            <span class="text-[var(--ui-text-dimmed)]">Debug</span>
+            <span class="text-[var(--ui-text-dimmed)]">{{ t("common.debug") }}</span>
             <span class="font-medium tabular-nums">{{ stats.debug }}</span>
           </div>
           <div class="flex items-center gap-1">
-            <span class="text-[var(--ui-text-dimmed)]">Info</span>
+            <span class="text-[var(--ui-text-dimmed)]">{{ t("common.info") }}</span>
             <span class="font-medium tabular-nums">{{ stats.info }}</span>
           </div>
           <div class="flex items-center gap-1">
-            <span class="text-[var(--ui-text-dimmed)]">Warn</span>
+            <span class="text-[var(--ui-text-dimmed)]">{{ t("common.warn") }}</span>
             <span class="font-medium tabular-nums">{{ stats.warn }}</span>
           </div>
           <div class="flex items-center gap-1">
-            <span class="text-[var(--ui-text-dimmed)]">Error</span>
+            <span class="text-[var(--ui-text-dimmed)]">{{ t("common.error") }}</span>
             <span class="font-medium tabular-nums">{{ stats.error }}</span>
           </div>
         </div>
