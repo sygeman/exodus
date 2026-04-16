@@ -5,7 +5,6 @@ import { createRouter, createWebHashHistory } from "vue-router"
 import { createI18n } from "vue-i18n"
 import { useColorMode } from "@vueuse/core"
 import App from "./App.vue"
-import CounterPage from "./pages/CounterPage.vue"
 import DebugLayout from "./pages/debug/DebugLayout.vue"
 import DebugEvents from "./pages/debug/DebugEvents.vue"
 import DebugLogs from "./pages/debug/DebugLogs.vue"
@@ -40,7 +39,7 @@ const app = createApp(App)
 
 const router = createRouter({
   routes: [
-    { path: "/", component: CounterPage },
+    { path: "/", redirect: "/debug/logs" },
     {
       path: "/debug",
       component: DebugLayout,

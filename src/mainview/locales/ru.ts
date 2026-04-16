@@ -1,13 +1,10 @@
 import { loggerEvents } from "@/modules/logger/i18n/ru"
 import { appStateEvents } from "@/modules/app-state/i18n/ru"
-import { counterEvents } from "@/modules/counter/i18n/ru"
-import { timerEvents } from "@/modules/timer/i18n/ru"
 import { updaterEvents } from "@/modules/updater/i18n/ru"
 import { schemaEvents } from "@/modules/schema/i18n/ru"
 
 export default {
   common: {
-    counter: "Счетчик",
     events: "События",
     logs: "Логи",
     settings: "Настройки",
@@ -38,8 +35,6 @@ export default {
     noEvents: "Нет событий.",
     noLogs: "Нет логов.",
     autoIncrement: "Автоинкремент",
-    increment: "Увеличить",
-    reset: "Сбросить",
     all: "Все",
     debug: "Отладка",
     info: "Информация",
@@ -78,11 +73,6 @@ export default {
     versionDescription: "Текущая версия приложения.",
     updateDescription: "Проверьте и установите последние обновления.",
   },
-  counter: {
-    title: "Счетчик: {value}",
-    loading: "...",
-    time: "Время: {time}",
-  },
   events: {
     title: "События",
     searchEvents: "Поиск событий",
@@ -90,8 +80,6 @@ export default {
     eventDetails: "Детали события",
     logger: loggerEvents,
     "app-state": appStateEvents,
-    counter: counterEvents,
-    timer: timerEvents,
     updater: updaterEvents,
     schema: schemaEvents,
   },

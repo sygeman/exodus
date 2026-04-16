@@ -1,13 +1,10 @@
 import { loggerEvents } from "@/modules/logger/i18n/en"
 import { appStateEvents } from "@/modules/app-state/i18n/en"
-import { counterEvents } from "@/modules/counter/i18n/en"
-import { timerEvents } from "@/modules/timer/i18n/en"
 import { updaterEvents } from "@/modules/updater/i18n/en"
 import { schemaEvents } from "@/modules/schema/i18n/en"
 
 export default {
   common: {
-    counter: "Counter",
     events: "Events",
     logs: "Logs",
     settings: "Settings",
@@ -38,8 +35,6 @@ export default {
     noEvents: "No events.",
     noLogs: "No logs.",
     autoIncrement: "Auto increment",
-    increment: "Increment",
-    reset: "Reset",
     all: "All",
     debug: "Debug",
     info: "Info",
@@ -78,11 +73,6 @@ export default {
     versionDescription: "Current application version.",
     updateDescription: "Check for and install the latest updates.",
   },
-  counter: {
-    title: "Counter: {value}",
-    loading: "...",
-    time: "Time: {time}",
-  },
   events: {
     title: "Events",
     searchEvents: "Search events",
@@ -90,8 +80,6 @@ export default {
     eventDetails: "Event Details",
     logger: loggerEvents,
     "app-state": appStateEvents,
-    counter: counterEvents,
-    timer: timerEvents,
     updater: updaterEvents,
     schema: schemaEvents,
   },

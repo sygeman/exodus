@@ -1,7 +1,5 @@
 import { BrowserWindow, Updater, ApplicationMenu } from "electrobun/bun"
 import { createEventoBun } from "@/bun/evento"
-import { initCounter } from "@/modules/counter/bun"
-import { initTimer } from "@/modules/timer/bun"
 import { initUpdater } from "@/modules/updater/bun"
 import { initSchema } from "@/modules/schema/bun"
 import { bunLogger } from "@/modules/logger/bun"
@@ -79,8 +77,6 @@ ApplicationMenu.on("application-menu-clicked", (event) => {
 })
 
 bunLogger.attach(evento)
-initCounter(evento)
-initTimer(evento)
 initUpdater(evento)
 initSchema(evento)
 
