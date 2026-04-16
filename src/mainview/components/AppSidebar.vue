@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
 import LogoSvg from "@/mainview/assets/logo.svg"
+import ProjectsSidebar from "@/modules/projects/components/ProjectsSidebar.vue"
 
 defineProps<{
   updateAvailable?: boolean
@@ -25,32 +26,7 @@ const tooltipContent = {
     </RouterLink>
 
     <!-- Проекты (скроллятся) -->
-    <div class="mt-4 flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto">
-      <UTooltip :text="t('common.projectA')" :content="tooltipContent" :delay-duration="0">
-        <div
-          class="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg font-semibold text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
-        >
-          A
-        </div>
-      </UTooltip>
-
-      <UTooltip :text="t('common.projectB')" :content="tooltipContent" :delay-duration="0">
-        <div
-          class="relative flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg font-semibold text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
-        >
-          B
-        </div>
-      </UTooltip>
-
-      <!-- Кнопка создания проекта -->
-      <UTooltip :text="t('common.newProject')" :content="tooltipContent" :delay-duration="0">
-        <button
-          class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg-elevated)] hover:text-[var(--ui-text)]"
-        >
-          <UIcon name="i-lucide-plus" class="h-5 w-5" />
-        </button>
-      </UTooltip>
-    </div>
+    <ProjectsSidebar />
 
     <!-- Системная навигация -->
     <div class="mt-2 flex flex-shrink-0 flex-col items-center gap-1">

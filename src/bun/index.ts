@@ -2,6 +2,7 @@ import { BrowserWindow, Updater, ApplicationMenu } from "electrobun/bun"
 import { createEventoBun } from "@/bun/evento"
 import { initUpdater } from "@/modules/updater/bun"
 import { initSchema } from "@/modules/schema/bun"
+import { initProjects } from "@/modules/projects/bun"
 import { bunLogger } from "@/modules/logger/bun"
 import { initAppState } from "@/modules/app-state/bun"
 import { globalRegistry } from "@/events"
@@ -77,6 +78,7 @@ ApplicationMenu.on("application-menu-clicked", (event) => {
 })
 
 bunLogger.attach(evento)
+initProjects(evento)
 initUpdater(evento)
 initSchema(evento)
 

@@ -2,6 +2,7 @@ import { loggerEvents } from "@/modules/logger/i18n/en"
 import { appStateEvents } from "@/modules/app-state/i18n/en"
 import { updaterEvents } from "@/modules/updater/i18n/en"
 import { schemaEvents } from "@/modules/schema/i18n/en"
+import { projectsEvents } from "@/modules/projects/i18n/en"
 
 export default {
   common: {
@@ -11,8 +12,6 @@ export default {
     darkMode: "Dark mode",
     lightMode: "Light mode",
     newProject: "New Project",
-    projectA: "Project A",
-    projectB: "Project B",
     back: "Back",
     close: "Close",
     clear: "Clear",
@@ -34,7 +33,6 @@ export default {
     clickToTest: "Click an event above to test it.",
     noEvents: "No events.",
     noLogs: "No logs.",
-    autoIncrement: "Auto increment",
     all: "All",
     debug: "Debug",
     info: "Info",
@@ -66,12 +64,26 @@ export default {
     state: "State",
     refresh: "Refresh",
     loading: "Loading...",
+    delete: "Delete",
+    save: "Save",
   },
   settings: {
     darkModeDescription: "Use a dark color scheme.",
     languageDescription: "Select the language you want to use in the app.",
     versionDescription: "Current application version.",
     updateDescription: "Check for and install the latest updates.",
+  },
+  projects: {
+    title: "Projects",
+    empty: "No projects yet",
+    create: "Create project",
+    notFound: "Project not found",
+    backToList: "Back to projects",
+    settingsTitle: "Project Settings",
+    name: "Name",
+    color: "Color",
+    nameRequired: "Name is required",
+    colorRequired: "Color is required",
   },
   events: {
     title: "Events",
@@ -82,6 +94,7 @@ export default {
     "app-state": appStateEvents,
     updater: updaterEvents,
     schema: schemaEvents,
+    projects: projectsEvents,
   },
   logs: {
     title: "Logs",

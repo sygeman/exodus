@@ -2,6 +2,7 @@ import { loggerEvents } from "@/modules/logger/i18n/ru"
 import { appStateEvents } from "@/modules/app-state/i18n/ru"
 import { updaterEvents } from "@/modules/updater/i18n/ru"
 import { schemaEvents } from "@/modules/schema/i18n/ru"
+import { projectsEvents } from "@/modules/projects/i18n/ru"
 
 export default {
   common: {
@@ -11,8 +12,6 @@ export default {
     darkMode: "Тёмная тема",
     lightMode: "Светлая тема",
     newProject: "Новый проект",
-    projectA: "Проект A",
-    projectB: "Проект B",
     back: "Назад",
     close: "Закрыть",
     clear: "Очистить",
@@ -34,7 +33,6 @@ export default {
     clickToTest: "Выберите событие выше для тестирования.",
     noEvents: "Нет событий.",
     noLogs: "Нет логов.",
-    autoIncrement: "Автоинкремент",
     all: "Все",
     debug: "Отладка",
     info: "Информация",
@@ -66,12 +64,26 @@ export default {
     state: "Состояние",
     refresh: "Обновить",
     loading: "Загрузка...",
+    delete: "Удалить",
+    save: "Сохранить",
   },
   settings: {
     darkModeDescription: "Использовать тёмную цветовую схему.",
     languageDescription: "Выберите язык, который хотите использовать в приложении.",
     versionDescription: "Текущая версия приложения.",
     updateDescription: "Проверьте и установите последние обновления.",
+  },
+  projects: {
+    title: "Проекты",
+    empty: "Пока нет проектов",
+    create: "Создать проект",
+    notFound: "Проект не найден",
+    backToList: "Назад к проектам",
+    settingsTitle: "Настройки проекта",
+    name: "Название",
+    color: "Цвет",
+    nameRequired: "Название обязательно",
+    colorRequired: "Цвет обязателен",
   },
   events: {
     title: "События",
@@ -82,6 +94,7 @@ export default {
     "app-state": appStateEvents,
     updater: updaterEvents,
     schema: schemaEvents,
+    projects: projectsEvents,
   },
   logs: {
     title: "Логи",

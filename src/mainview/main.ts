@@ -5,6 +5,9 @@ import { createRouter, createWebHashHistory } from "vue-router"
 import { createI18n } from "vue-i18n"
 import { useColorMode } from "@vueuse/core"
 import App from "./App.vue"
+import ProjectsListPage from "@/modules/projects/components/ProjectsListPage.vue"
+import ProjectPage from "@/modules/projects/components/ProjectPage.vue"
+import ProjectSettingsPage from "@/modules/projects/components/ProjectSettingsPage.vue"
 import DebugLayout from "./pages/debug/DebugLayout.vue"
 import DebugEvents from "./pages/debug/DebugEvents.vue"
 import DebugLogs from "./pages/debug/DebugLogs.vue"
@@ -39,7 +42,10 @@ const app = createApp(App)
 
 const router = createRouter({
   routes: [
-    { path: "/", redirect: "/debug/logs" },
+    { path: "/", redirect: "/projects" },
+    { path: "/projects", component: ProjectsListPage },
+    { path: "/project/:id", component: ProjectPage },
+    { path: "/project/:id/settings", component: ProjectSettingsPage },
     {
       path: "/debug",
       component: DebugLayout,

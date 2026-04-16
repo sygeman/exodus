@@ -2,6 +2,7 @@ import { loggerEvents } from "@/modules/logger/i18n/de"
 import { appStateEvents } from "@/modules/app-state/i18n/de"
 import { updaterEvents } from "@/modules/updater/i18n/de"
 import { schemaEvents } from "@/modules/schema/i18n/de"
+import { projectsEvents } from "@/modules/projects/i18n/de"
 
 export default {
   common: {
@@ -11,8 +12,6 @@ export default {
     darkMode: "Dunkelmodus",
     lightMode: "Hellmodus",
     newProject: "Neues Projekt",
-    projectA: "Projekt A",
-    projectB: "Projekt B",
     back: "Zurück",
     close: "Schließen",
     clear: "Löschen",
@@ -34,7 +33,6 @@ export default {
     clickToTest: "Klicken Sie oben auf ein Ereignis, um es zu testen.",
     noEvents: "Keine Ereignisse.",
     noLogs: "Keine Protokolle.",
-    autoIncrement: "Auto-Inkrement",
     all: "Alle",
     debug: "Debug",
     info: "Info",
@@ -66,12 +64,26 @@ export default {
     state: "Zustand",
     refresh: "Aktualisieren",
     loading: "Laden...",
+    delete: "Löschen",
+    save: "Speichern",
   },
   settings: {
     darkModeDescription: "Ein dunkles Farbschema verwenden.",
     languageDescription: "Wählen Sie die Sprache aus, die Sie in der App verwenden möchten.",
     versionDescription: "Aktuelle App-Version.",
     updateDescription: "Prüfen und installieren Sie die neuesten Updates.",
+  },
+  projects: {
+    title: "Projekte",
+    empty: "Noch keine Projekte",
+    create: "Projekt erstellen",
+    notFound: "Projekt nicht gefunden",
+    backToList: "Zurück zu Projekten",
+    settingsTitle: "Projekteinstellungen",
+    name: "Name",
+    color: "Farbe",
+    nameRequired: "Name ist erforderlich",
+    colorRequired: "Farbe ist erforderlich",
   },
   events: {
     title: "Ereignisse",
@@ -82,6 +94,7 @@ export default {
     "app-state": appStateEvents,
     updater: updaterEvents,
     schema: schemaEvents,
+    projects: projectsEvents,
   },
   logs: {
     title: "Protokolle",

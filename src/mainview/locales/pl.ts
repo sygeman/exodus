@@ -2,6 +2,7 @@ import { loggerEvents } from "@/modules/logger/i18n/pl"
 import { appStateEvents } from "@/modules/app-state/i18n/pl"
 import { updaterEvents } from "@/modules/updater/i18n/pl"
 import { schemaEvents } from "@/modules/schema/i18n/pl"
+import { projectsEvents } from "@/modules/projects/i18n/pl"
 
 export default {
   common: {
@@ -11,8 +12,6 @@ export default {
     darkMode: "Tryb ciemny",
     lightMode: "Tryb jasny",
     newProject: "Nowy projekt",
-    projectA: "Projekt A",
-    projectB: "Projekt B",
     back: "Wstecz",
     close: "Zamknij",
     clear: "Wyczyść",
@@ -34,7 +33,6 @@ export default {
     clickToTest: "Kliknij zdarzenie powyżej, aby przetestować.",
     noEvents: "Brak zdarzeń.",
     noLogs: "Brak logów.",
-    autoIncrement: "Auto inkrementacja",
     all: "Wszystkie",
     debug: "Debug",
     info: "Info",
@@ -66,12 +64,26 @@ export default {
     state: "Stan",
     refresh: "Odśwież",
     loading: "Ładowanie...",
+    delete: "Usuń",
+    save: "Zapisz",
   },
   settings: {
     darkModeDescription: "Użyj ciemnej palety kolorów.",
     languageDescription: "Wybierz język, którego chcesz używać w aplikacji.",
     versionDescription: "Aktualna wersja aplikacji.",
     updateDescription: "Sprawdź i zainstaluj najnowsze aktualizacje.",
+  },
+  projects: {
+    title: "Projekty",
+    empty: "Brak projektów",
+    create: "Utwórz projekt",
+    notFound: "Nie znaleziono projektu",
+    backToList: "Wróć do projektów",
+    settingsTitle: "Ustawienia projektu",
+    name: "Nazwa",
+    color: "Kolor",
+    nameRequired: "Nazwa jest wymagana",
+    colorRequired: "Kolor jest wymagany",
   },
   events: {
     title: "Zdarzenia",
@@ -82,6 +94,7 @@ export default {
     "app-state": appStateEvents,
     updater: updaterEvents,
     schema: schemaEvents,
+    projects: projectsEvents,
   },
   logs: {
     title: "Logi",
