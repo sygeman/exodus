@@ -1,3 +1,12 @@
+# [0.24.0](https://github.com/sygeman/exodus/compare/v0.23.1...v0.24.0) (2026-04-16)
+
+
+### Features
+
+* add projects module with CRUD, settings page, and event-driven updates ([b14d17f](https://github.com/sygeman/exodus/commit/b14d17f58d8b8e0ff01aa9b8aa9fe32a1c869dde))
+
+
+
 ## [0.23.1](https://github.com/sygeman/exodus/compare/v0.23.0...v0.23.1) (2026-04-16)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * add i18n for event descriptions in playground ([817342d](https://github.com/sygeman/exodus/commit/817342dd439268199b3d7f27b22169858d80eb3b))
-
-
-
-# [0.21.0](https://github.com/sygeman/exodus/compare/v0.20.0...v0.21.0) (2026-04-15)
-
-
-### Features
-
-* split debug events and playground, add log deduplication with count ([83137b5](https://github.com/sygeman/exodus/commit/83137b565677226ac71fb2b988cfe32dc17d6d92))
 
 
 
