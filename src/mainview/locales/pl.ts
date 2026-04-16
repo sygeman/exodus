@@ -106,4 +106,9 @@ export default {
     pageOf: "strona {page} z {totalPages}",
     totalLogs: "{total} logów · {pageInfo}",
   },
+  notFound: {
+    title: "Nie znaleziono strony",
+    description: "Strona, której szukasz, nie istnieje.",
+    backHome: "Wróć do projektów",
+  },
 }

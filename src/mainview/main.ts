@@ -18,6 +18,7 @@ import SettingsLayout from "./pages/settings/SettingsLayout.vue"
 import SettingsAppearance from "./pages/settings/SettingsAppearance.vue"
 import SettingsLanguage from "./pages/settings/SettingsLanguage.vue"
 import SettingsAbout from "./pages/settings/SettingsAbout.vue"
+import NotFound from "./pages/NotFound.vue"
 import { evento, rpc } from "./evento"
 import { Electroview } from "electrobun/view"
 import { webviewLogger } from "@/modules/logger/webview"
@@ -75,6 +76,7 @@ const router = createRouter({
         { path: "about", component: SettingsAbout },
       ],
     },
+    { path: "/:pathMatch(.*)*", component: NotFound },
   ],
   history: createWebHashHistory(),
 })
