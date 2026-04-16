@@ -1,3 +1,12 @@
+## [0.23.1](https://github.com/sygeman/exodus/compare/v0.23.0...v0.23.1) (2026-04-16)
+
+
+### Bug Fixes
+
+* allow void request/response events to pass validation and catch async handle errors ([76942d7](https://github.com/sygeman/exodus/commit/76942d71d17f25d95c43bb3634bc73006b3b5821))
+
+
+
 # [0.23.0](https://github.com/sygeman/exodus/compare/v0.22.1...v0.23.0) (2026-04-15)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * split debug events and playground, add log deduplication with count ([83137b5](https://github.com/sygeman/exodus/commit/83137b565677226ac71fb2b988cfe32dc17d6d92))
-
-
-
-# [0.20.0](https://github.com/sygeman/exodus/compare/v0.19.0...v0.20.0) (2026-04-15)
-
-
-### Features
-
-* add debug state page showing app JSON state ([d1db786](https://github.com/sygeman/exodus/commit/d1db78640570e45acdab4cd94f35666dc5e77e56))
 
 
 
