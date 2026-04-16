@@ -1,0 +1,26 @@
+export const settingsMessages = {
+  common: {
+    settings: "Ustawienia",
+    appearance: "Wygląd",
+    about: "O aplikacji",
+    language: "Język",
+    theme: "Motyw",
+    darkMode: "Tryb ciemny",
+    version: "Wersja",
+    update: "Aktualizacja",
+    check: "Sprawdź",
+    install: "Zainstaluj",
+    updateAvailable: "Dostępna aktualizacja",
+    upToDate: "Aktualna wersja",
+    updateError: "Błąd",
+    checking: "Sprawdzanie...",
+    downloading: "Pobieranie...",
+    applying: "Instalowanie...",
+  },
+  settings: {
+    darkModeDescription: "Użyj ciemnej palety kolorów.",
+    languageDescription: "Wybierz język, którego chcesz używać w aplikacji.",
+    versionDescription: "Aktualna wersja aplikacji.",
+    updateDescription: "Sprawdź i zainstaluj najnowsze aktualizacje.",
+  },
+}

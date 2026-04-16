@@ -1,0 +1,26 @@
+export const settingsMessages = {
+  common: {
+    settings: "Настройки",
+    appearance: "Внешний вид",
+    about: "О приложении",
+    language: "Язык",
+    theme: "Тема",
+    darkMode: "Тёмная тема",
+    version: "Версия",
+    update: "Обновление",
+    check: "Проверить",
+    install: "Обновить",
+    updateAvailable: "Доступно обновление",
+    upToDate: "Актуальная версия",
+    updateError: "Ошибка",
+    checking: "Проверка...",
+    downloading: "Загрузка...",
+    applying: "Установка...",
+  },
+  settings: {
+    darkModeDescription: "Использовать тёмную цветовую схему.",
+    languageDescription: "Выберите язык, который хотите использовать в приложении.",
+    versionDescription: "Текущая версия приложения.",
+    updateDescription: "Проверьте и установите последние обновления.",
+  },
+}

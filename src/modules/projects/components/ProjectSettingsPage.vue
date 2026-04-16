@@ -5,7 +5,7 @@ import { useProjects } from "@/modules/projects/webview"
 import { computed, reactive, watch } from "vue"
 import { z } from "zod"
 import type { FormSubmitEvent } from "@nuxt/ui"
-import MenuLayout, { type MenuLayoutItem } from "@/mainview/components/MenuLayout.vue"
+import MenuLayout, { type MenuLayoutItem } from "@/core/components/MenuLayout.vue"
 import { PROJECT_COLORS } from "@/modules/projects/constants"
 
 const { t } = useI18n()

@@ -8,7 +8,6 @@ export default {
   common: {
     events: "Events",
     logs: "Logs",
-    settings: "Settings",
     darkMode: "Dark mode",
     lightMode: "Light mode",
     newProject: "New Project",
@@ -40,8 +39,6 @@ export default {
     error: "Error",
     bun: "Bun",
     webview: "Webview",
-    language: "Language",
-    version: "Version",
     update: "Update",
     check: "Check",
     install: "Install",
@@ -55,9 +52,6 @@ export default {
     updateAvailableDescription: "{current} → {latest}",
     updateNow: "Update now",
     updateLater: "Later",
-    appearance: "Appearance",
-    about: "About",
-    theme: "Theme",
     playground: "Playground",
     copy: "Copy",
     copied: "Copied",
@@ -67,12 +61,7 @@ export default {
     delete: "Delete",
     save: "Save",
   },
-  settings: {
-    darkModeDescription: "Use a dark color scheme.",
-    languageDescription: "Select the language you want to use in the app.",
-    versionDescription: "Current application version.",
-    updateDescription: "Check for and install the latest updates.",
-  },
+
   projects: {
     title: "Projects",
     empty: "No projects yet",

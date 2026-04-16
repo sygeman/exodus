@@ -1,0 +1,26 @@
+export const settingsMessages = {
+  common: {
+    settings: "设置",
+    appearance: "外观",
+    about: "关于",
+    language: "语言",
+    theme: "主题",
+    darkMode: "深色模式",
+    version: "版本",
+    update: "更新",
+    check: "检查",
+    install: "安装",
+    updateAvailable: "有可用更新",
+    upToDate: "已是最新",
+    updateError: "错误",
+    checking: "检查中...",
+    downloading: "下载中...",
+    applying: "安装中...",
+  },
+  settings: {
+    darkModeDescription: "使用深色配色方案。",
+    languageDescription: "选择要在应用中使用的语言。",
+    versionDescription: "当前应用版本。",
+    updateDescription: "检查并安装最新更新。",
+  },
+}

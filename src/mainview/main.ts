@@ -14,10 +14,7 @@ import DebugEvents from "./pages/debug/DebugEvents.vue"
 import DebugLogs from "./pages/debug/DebugLogs.vue"
 import DebugPlayground from "./pages/debug/DebugPlayground.vue"
 import DebugState from "./pages/debug/DebugState.vue"
-import SettingsLayout from "./pages/settings/SettingsLayout.vue"
-import SettingsAppearance from "./pages/settings/SettingsAppearance.vue"
-import SettingsLanguage from "./pages/settings/SettingsLanguage.vue"
-import SettingsAbout from "./pages/settings/SettingsAbout.vue"
+import { settingsRoutes } from "@/modules/settings/routes"
 import NotFound from "./pages/NotFound.vue"
 import { evento, rpc } from "./evento"
 import { Electroview } from "electrobun/view"
@@ -66,16 +63,7 @@ const router = createRouter({
         { path: "state", component: DebugState },
       ],
     },
-    {
-      path: "/settings",
-      component: SettingsLayout,
-      redirect: "/settings/appearance",
-      children: [
-        { path: "appearance", component: SettingsAppearance },
-        { path: "language", component: SettingsLanguage },
-        { path: "about", component: SettingsAbout },
-      ],
-    },
+    ...settingsRoutes,
     { path: "/:pathMatch(.*)*", component: NotFound },
   ],
   history: createWebHashHistory(),
