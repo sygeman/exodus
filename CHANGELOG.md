@@ -1,3 +1,12 @@
+# [0.25.0](https://github.com/sygeman/exodus/compare/v0.24.0...v0.25.0) (2026-04-16)
+
+
+### Features
+
+* **projects:** add project layout with overview and settings tabs ([6c75af3](https://github.com/sygeman/exodus/commit/6c75af3cf980f5ece54ef619448cbb436e40a759))
+
+
+
 # [0.24.0](https://github.com/sygeman/exodus/compare/v0.23.1...v0.24.0) (2026-04-16)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * correct counter auto event names and app-state i18n keys ([303606b](https://github.com/sygeman/exodus/commit/303606bc430970e26f0a128c58b7a1a51d07b3d0))
-
-
-
-# [0.22.0](https://github.com/sygeman/exodus/compare/v0.21.0...v0.22.0) (2026-04-15)
-
-
-### Features
-
-* add i18n for event descriptions in playground ([817342d](https://github.com/sygeman/exodus/commit/817342dd439268199b3d7f27b22169858d80eb3b))
 
 
 
