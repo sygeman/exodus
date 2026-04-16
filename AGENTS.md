@@ -72,6 +72,30 @@ BREAKING CHANGE: old settings schema is no longer supported"
 
 - **Do NOT use the `task` subagent tool.** Always use direct tool calls (`read`, `edit`, `bash`, `grep`, etc.) instead.
 
+## Module Boundaries
+
+- **Modules must not import from each other.** Each module is self-contained.
+- If multiple modules need the same code, extract it to `src/core/` or `src/composables/`.
+- Allowed imports inside a module:
+  - Within the same module (`./`, `../` inside `src/modules/<name>/`)
+  - From `src/core/`
+  - From `src/composables/`
+  - From third-party packages
+- Forbidden imports inside a module:
+  - `from "@/modules/<other-module>/..."`
+
+## Module i18n
+
+- **Each module must own its translations.** No module should rely on keys defined in `src/locales/*`.
+- Export naming: `export const <name>Messages = { ... }`
+- Structure:
+  - `common` — keys used **only** by this module (merged into global `common`)
+  - `<name>` — module-specific namespace (e.g., `settings`, `debug`, `projects`)
+  - `events` — event descriptions for the playground (optional)
+- **Do not use generic namespaces** (e.g., `logs`, `events`) for module-specific keys. Use the module name: `debug.searchLogs`, not `logs.searchLogs`.
+- Event descriptions live in `i18n/events/<locale>.ts` and are re-exported via `i18n/<locale>.ts`.
+- Global `src/locales/*.ts` should only contain **truly global** keys used across multiple modules or in `App.vue` / `AppSidebar.vue`.
+
 ## Event Naming Convention
 
 - **All event names must use kebab-case strictly.**
