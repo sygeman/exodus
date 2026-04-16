@@ -44,8 +44,8 @@ function getInitials(name: string): string {
         class="flex items-center gap-4 rounded-lg border border-[var(--ui-border)] p-4 transition-colors hover:bg-[var(--ui-bg-elevated)]"
       >
         <div
-          class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg font-semibold text-white"
-          :style="{ backgroundColor: project.color }"
+          class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border-2 border-solid bg-[var(--ui-bg-elevated)] font-semibold"
+          :style="{ color: project.color, borderColor: project.color }"
         >
           {{ getInitials(project.name) }}
         </div>
