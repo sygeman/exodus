@@ -6,6 +6,7 @@ import { createI18n } from "vue-i18n"
 import { useColorMode } from "@vueuse/core"
 import App from "./App.vue"
 import ProjectsListPage from "@/modules/projects/components/ProjectsListPage.vue"
+import ProjectLayout from "@/modules/projects/components/ProjectLayout.vue"
 import ProjectPage from "@/modules/projects/components/ProjectPage.vue"
 import ProjectSettingsPage from "@/modules/projects/components/ProjectSettingsPage.vue"
 import DebugLayout from "./pages/debug/DebugLayout.vue"
@@ -44,8 +45,15 @@ const router = createRouter({
   routes: [
     { path: "/", redirect: "/projects" },
     { path: "/projects", component: ProjectsListPage },
-    { path: "/project/:id", component: ProjectPage },
-    { path: "/project/:id/settings", component: ProjectSettingsPage },
+    {
+      path: "/project/:id",
+      component: ProjectLayout,
+      redirect: (to) => `/project/${to.params.id}/board`,
+      children: [
+        { path: "board", component: ProjectPage },
+        { path: "settings", component: ProjectSettingsPage },
+      ],
+    },
     {
       path: "/debug",
       component: DebugLayout,

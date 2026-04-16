@@ -42,7 +42,7 @@ watch(
 const navItems = computed<MenuLayoutItem[]>(() => [
   {
     to: `/project/${projectId.value}/settings`,
-    label: t("common.settings"),
+    label: t("projects.general"),
     icon: "i-lucide-settings",
   },
 ])
@@ -63,59 +63,37 @@ function handleDelete() {
 </script>
 
 <template>
-  <div v-if="project" class="flex h-full flex-col">
-    <header
-      class="flex h-12 flex-shrink-0 items-center justify-between border-b border-[var(--ui-border)] px-6"
-    >
-      <div class="flex items-center gap-4">
-        <UButton color="neutral" variant="ghost" :to="`/project/${project.id}`">
-          <UIcon name="i-lucide-arrow-left" class="h-4 w-4" />
-        </UButton>
-        <h1 class="text-lg font-semibold">{{ project.name }}</h1>
-      </div>
-    </header>
+  <div v-if="project" class="flex h-full">
+    <MenuLayout :title="t('common.settings')" :items="navItems" main-class="overflow-y-auto p-10">
+      <UForm :schema="schema" :state="state" class="mx-auto max-w-2xl space-y-8" @submit="onSubmit">
+        <UFormField :label="t('projects.name')" name="name">
+          <UInput v-model="state.name" />
+        </UFormField>
 
-    <div class="flex-1 overflow-hidden">
-      <MenuLayout
-        :title="t('projects.settingsTitle')"
-        :items="navItems"
-        main-class="overflow-y-auto p-10"
-      >
-        <UForm
-          :schema="schema"
-          :state="state"
-          class="mx-auto max-w-2xl space-y-8"
-          @submit="onSubmit"
-        >
-          <UFormField :label="t('projects.name')" name="name">
-            <UInput v-model="state.name" />
-          </UFormField>
-
-          <UFormField :label="t('projects.color')" name="color">
-            <div class="flex flex-wrap gap-2">
-              <button
-                v-for="c in PROJECT_COLORS"
-                :key="c"
-                type="button"
-                class="h-8 w-8 rounded-full transition-transform hover:scale-110 focus:ring-2 focus:ring-[var(--ui-primary)] focus:outline-none"
-                :style="{ backgroundColor: c }"
-                :class="{ 'ring-2 ring-[var(--ui-primary)]': state.color === c }"
-                @click="state.color = c"
-              />
-            </div>
-          </UFormField>
-
-          <div class="flex items-center gap-4 pt-2">
-            <UButton type="submit">{{ t("common.save") }}</UButton>
-
-            <UButton type="button" color="error" variant="outline" @click="handleDelete">
-              <UIcon name="i-lucide-trash-2" class="h-4 w-4" />
-              <span class="ml-2">{{ t("common.delete") }}</span>
-            </UButton>
+        <UFormField :label="t('projects.color')" name="color">
+          <div class="flex flex-wrap gap-2">
+            <button
+              v-for="c in PROJECT_COLORS"
+              :key="c"
+              type="button"
+              class="h-8 w-8 rounded-full transition-transform hover:scale-110 focus:ring-2 focus:ring-[var(--ui-primary)] focus:outline-none"
+              :style="{ backgroundColor: c }"
+              :class="{ 'ring-2 ring-[var(--ui-primary)]': state.color === c }"
+              @click="state.color = c"
+            />
           </div>
-        </UForm>
-      </MenuLayout>
-    </div>
+        </UFormField>
+
+        <div class="flex items-center gap-4 pt-2">
+          <UButton type="submit">{{ t("common.save") }}</UButton>
+
+          <UButton type="button" color="error" variant="outline" @click="handleDelete">
+            <UIcon name="i-lucide-trash-2" class="h-4 w-4" />
+            <span class="ml-2">{{ t("common.delete") }}</span>
+          </UButton>
+        </div>
+      </UForm>
+    </MenuLayout>
   </div>
 
   <div

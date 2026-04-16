@@ -36,7 +36,7 @@ function getInitials(name: string): string {
       :delay-duration="0"
     >
       <ULink
-        :to="`/project/${project.id}`"
+        :to="`/project/${project.id}/board`"
         class="flex h-10 w-10 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg font-semibold transition-all hover:opacity-90"
         :class="
           currentProjectId === project.id
