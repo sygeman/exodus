@@ -33,7 +33,7 @@ watch(selectedLocale, (value) => {
           v-for="l in locales"
           :key="l.value"
           type="button"
-          class="flex items-center gap-4 rounded-lg border p-4 text-left transition-all"
+          class="flex items-center gap-3 rounded-md border p-3 text-left text-sm transition-all"
           :class="{
             'border-[var(--ui-primary)] bg-[var(--ui-primary)]/10 text-[var(--ui-text)]':
               selectedLocale === l.value,
@@ -42,8 +42,8 @@ watch(selectedLocale, (value) => {
           }"
           @click="selectedLocale = l.value"
         >
-          <span class="text-3xl">{{ l.flag }}</span>
-          <span class="text-lg font-medium">{{ l.label }}</span>
+          <span class="text-2xl">{{ l.flag }}</span>
+          <span class="font-medium">{{ l.label }}</span>
         </button>
       </div>
     </div>
