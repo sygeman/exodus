@@ -19,7 +19,7 @@ const tooltipContent = {
     <!-- Лого -->
     <RouterLink
       to="/"
-      class="electrobun-webkit-app-region-no-drag my-2 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg"
+      class="electrobun-webkit-app-region-no-drag flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg"
     >
       <LogoSvg class="h-8 w-8" />
     </RouterLink>

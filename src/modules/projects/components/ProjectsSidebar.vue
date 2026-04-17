@@ -27,7 +27,9 @@ function getInitials(name: string): string {
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto select-none">
+  <div
+    class="scrollbar-hidden flex min-h-0 flex-1 flex-col items-center gap-2 overflow-y-auto pt-2 select-none"
+  >
     <UTooltip
       v-for="project in projects"
       :key="project.id"
@@ -37,7 +39,7 @@ function getInitials(name: string): string {
     >
       <ULink
         :to="`/project/${project.id}/board`"
-        class="electrobun-webkit-app-region-no-drag flex h-10 w-10 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg font-semibold transition-all hover:opacity-90"
+        class="electrobun-webkit-app-region-no-drag bg-default/50 flex h-10 w-10 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg font-semibold transition-all"
         :class="
           currentProjectId === project.id
             ? 'bg-[var(--ui-bg)]'
