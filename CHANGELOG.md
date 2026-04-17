@@ -1,3 +1,12 @@
+## [0.33.1](https://github.com/sygeman/exodus/compare/v0.33.0...v0.33.1) (2026-04-17)
+
+
+### Bug Fixes
+
+* skip missing platform files in patch-electrobun script ([f7e79cd](https://github.com/sygeman/exodus/commit/f7e79cd88d6cb2a48645b65ea738f61bd3bc929f))
+
+
+
 # [0.33.0](https://github.com/sygeman/exodus/compare/v0.32.0...v0.33.0) (2026-04-17)
 
 
@@ -38,17 +47,6 @@
 ### Bug Fixes
 
 * restrict window drag to sidebar and top menu empty areas ([d2f417d](https://github.com/sygeman/exodus/commit/d2f417dec36a8bcff0640f2724661034b15c0807))
-
-
-
-# [0.31.0](https://github.com/sygeman/exodus/compare/v0.30.0...v0.31.0) (2026-04-17)
-
-
-### Features
-
-* add AppTopMenu component with version badge ([32699a9](https://github.com/sygeman/exodus/commit/32699a9fc1820d5110a6bdc216790c99e983e299))
-* add back/forward navigation buttons to top menu ([7718937](https://github.com/sygeman/exodus/commit/77189378c0ca9e27f25adc2f711f39732b9bd114))
-* replace update toast with top-menu update button ([21569f8](https://github.com/sygeman/exodus/commit/21569f8de0c7feed345e0b53c3918f8e40021f71))
 
 
 
