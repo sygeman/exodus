@@ -1,3 +1,12 @@
+# [0.29.0](https://github.com/sygeman/exodus/compare/v0.28.0...v0.29.0) (2026-04-17)
+
+
+### Features
+
+* add project color gradient header and clickable title ([ecfe7c9](https://github.com/sygeman/exodus/commit/ecfe7c93146d31579097be769e87b48f1b813e55))
+
+
+
 # [0.28.0](https://github.com/sygeman/exodus/compare/v0.27.6...v0.28.0) (2026-04-17)
 
 
@@ -31,15 +40,6 @@
 ### Performance Improvements
 
 * **ci:** add bun cache and electrobun bundle caching; skip patch generation locally ([a296792](https://github.com/sygeman/exodus/commit/a296792d47016644134f55f5790b26379ba2e03c))
-
-
-
-## [0.27.3](https://github.com/sygeman/exodus/compare/v0.27.2...v0.27.3) (2026-04-17)
-
-
-### Bug Fixes
-
-* correct vite outDir to place dist inside project root ([3670eef](https://github.com/sygeman/exodus/commit/3670eef7292a4e7f2c1710c2d83fd3aca2fe7777))
 
 
 
