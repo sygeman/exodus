@@ -1,3 +1,14 @@
+# [0.31.0](https://github.com/sygeman/exodus/compare/v0.30.0...v0.31.0) (2026-04-17)
+
+
+### Features
+
+* add AppTopMenu component with version badge ([32699a9](https://github.com/sygeman/exodus/commit/32699a9fc1820d5110a6bdc216790c99e983e299))
+* add back/forward navigation buttons to top menu ([7718937](https://github.com/sygeman/exodus/commit/77189378c0ca9e27f25adc2f711f39732b9bd114))
+* replace update toast with top-menu update button ([21569f8](https://github.com/sygeman/exodus/commit/21569f8de0c7feed345e0b53c3918f8e40021f71))
+
+
+
 # [0.30.0](https://github.com/sygeman/exodus/compare/v0.29.0...v0.30.0) (2026-04-17)
 
 
@@ -31,15 +42,6 @@
 ### Bug Fixes
 
 * move mainview to subdirectory for correct views:// asset resolution ([51fca4b](https://github.com/sygeman/exodus/commit/51fca4bc6a090c6565e458ded8de825911948a3a))
-
-
-
-## [0.27.5](https://github.com/sygeman/exodus/compare/v0.27.4...v0.27.5) (2026-04-17)
-
-
-### Bug Fixes
-
-* use relative base path in vite config for electrobun file:// loading ([ffdcc03](https://github.com/sygeman/exodus/commit/ffdcc0360f53d224f1cd193933fc31302243ead2))
 
 
 
