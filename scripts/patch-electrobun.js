@@ -1,6 +1,33 @@
 import { readFileSync, writeFileSync } from "fs"
 import { join } from "path"
 
+/**
+ * Patches electrobun's compiled preload script to fix drag region behavior.
+ *
+ * Problem:
+ *   Electrobun's dragRegions.ts listens to mousedown/mouseup on document and
+ *   sends startWindowMove/stopWindowMove to the native layer without checking
+ *   which mouse button was pressed. This causes two issues:
+ *
+ *   1. Right-click (button=2) on a drag region triggers startWindowMove, which
+ *      starts an NSLocalEventMonitor for mouse movement. The window then sticks
+ *      to the cursor even though no button is held.
+ *
+ *   2. When a context menu is dismissed with a left-click, the mouseup event
+ *      (button=0) lands on the drag region and calls stopWindowMove. But if
+ *      startWindowMove was never called (e.g., the mousedown was on the menu),
+ *      the native isMovingWindow flag can get out of sync, leaving the window
+ *      stuck to the cursor.
+ *
+ * Fix:
+ *   - Only react to left-click (button === 0).
+ *   - Track isDragging state: stopWindowMove is only sent if startWindowMove
+ *     was actually sent for this drag sequence.
+ *
+ * Note: electrobun injects an inline compiled JS string (compiled.ts), not the
+ * raw dragRegions.ts source, so we patch the compiled string directly.
+ */
+
 const files = [
   "node_modules/electrobun/dist-macos-arm64/api/bun/preload/.generated/compiled.ts",
   "node_modules/electrobun/dist/api/bun/preload/.generated/compiled.ts",
