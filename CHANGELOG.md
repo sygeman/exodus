@@ -1,3 +1,12 @@
+# [0.28.0](https://github.com/sygeman/exodus/compare/v0.27.6...v0.28.0) (2026-04-17)
+
+
+### Features
+
+* unify settings layout, auto-save project settings, confirm delete with modal ([2565f12](https://github.com/sygeman/exodus/commit/2565f12146aaf731d2803992764465bb8d67bb20))
+
+
+
 ## [0.27.6](https://github.com/sygeman/exodus/compare/v0.27.5...v0.27.6) (2026-04-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * correct vite outDir to place dist inside project root ([3670eef](https://github.com/sygeman/exodus/commit/3670eef7292a4e7f2c1710c2d83fd3aca2fe7777))
-
-
-
-## [0.27.2](https://github.com/sygeman/exodus/compare/v0.27.1...v0.27.2) (2026-04-17)
-
-
-### Bug Fixes
-
-* **ci:** diagnose and fix web artifact upload path ([ff74347](https://github.com/sygeman/exodus/commit/ff74347d9790d2b78598cf421bf52700f962f7d9))
 
 
 
