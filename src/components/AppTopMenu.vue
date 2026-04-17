@@ -27,9 +27,11 @@ function goForward() {
 </script>
 
 <template>
-  <div class="electrobun-webkit-app-region-drag flex h-8 items-center justify-between px-3">
+  <div
+    class="electrobun-webkit-app-region-drag flex h-8 items-center justify-between px-3 select-none"
+  >
     <!-- Навигация назад/вперёд -->
-    <div class="electrobun-webkit-app-region-no-drag flex items-center">
+    <div class="electrobun-webkit-app-region-no-drag flex items-center select-none">
       <button
         class="flex h-6 w-6 items-center justify-center rounded text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg)] hover:text-[var(--ui-text)]"
         @click="goBack"
@@ -45,7 +47,7 @@ function goForward() {
     </div>
 
     <!-- Версия / Обновление -->
-    <div class="electrobun-webkit-app-region-no-drag">
+    <div class="electrobun-webkit-app-region-no-drag select-text">
       <UButton
         v-if="isUpdateAvailable"
         color="primary"

@@ -27,7 +27,7 @@ function getInitials(name: string): string {
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto">
+  <div class="flex min-h-0 flex-1 flex-col items-center gap-1 overflow-y-auto select-none">
     <UTooltip
       v-for="project in projects"
       :key="project.id"

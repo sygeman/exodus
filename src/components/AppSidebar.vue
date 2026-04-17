@@ -13,7 +13,9 @@ const tooltipContent = {
 </script>
 
 <template>
-  <aside class="electrobun-webkit-app-region-drag flex w-16 flex-col items-center select-none">
+  <aside
+    class="electrobun-webkit-app-region-drag flex w-16 flex-col items-center select-none [&&>*]:select-none"
+  >
     <!-- Лого -->
     <RouterLink
       to="/"
