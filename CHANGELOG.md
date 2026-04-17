@@ -1,3 +1,12 @@
+## [0.27.5](https://github.com/sygeman/exodus/compare/v0.27.4...v0.27.5) (2026-04-17)
+
+
+### Bug Fixes
+
+* use relative base path in vite config for electrobun file:// loading ([ffdcc03](https://github.com/sygeman/exodus/commit/ffdcc0360f53d224f1cd193933fc31302243ead2))
+
+
+
 ## [0.27.4](https://github.com/sygeman/exodus/compare/v0.27.3...v0.27.4) (2026-04-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * prevent web-dist index.html from leaking into GitHub release assets ([54737c1](https://github.com/sygeman/exodus/commit/54737c1d5291e41e78ad8f18a1b8ce3e990d0faf))
-
-
-
-# [0.27.0](https://github.com/sygeman/exodus/compare/v0.26.0...v0.27.0) (2026-04-16)
-
-
-### Features
-
-* **i18n:** add simplified chinese (zh) locale ([a99ff0f](https://github.com/sygeman/exodus/commit/a99ff0ffd9a3e21745472d05ffa32b5ce4d2f1b0))
 
 
 
