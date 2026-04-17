@@ -70,9 +70,6 @@ jobs:
       - name: Build web
         run: bun run build
 
-      - name: Verify dist output
-        run: ls -la dist/
-
       - name: Upload web artifacts
         uses: actions/upload-artifact@v7
         with:

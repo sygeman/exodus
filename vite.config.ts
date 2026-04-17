@@ -31,7 +31,7 @@ export default defineConfig({
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },
   build: {
-    outDir: "../../dist",
+    outDir: "../dist",
     emptyOutDir: true,
   },
   server: {
