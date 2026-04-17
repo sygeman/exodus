@@ -30,6 +30,7 @@ export default defineConfig({
   define: {
     __APP_VERSION__: JSON.stringify(packageJson.version),
   },
+  base: "./",
   build: {
     outDir: "../dist",
     emptyOutDir: true,
