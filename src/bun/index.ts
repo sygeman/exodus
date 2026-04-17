@@ -37,6 +37,7 @@ evento.register(globalRegistry)
 const { webview } = new BrowserWindow({
   title: "Exodus",
   url,
+  titleBarStyle: "hiddenInset",
   frame: { width: 1200, height: 800, x: 0, y: 0 },
   rpc,
 })

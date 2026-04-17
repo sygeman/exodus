@@ -28,14 +28,8 @@ const tabs = computed(() => [
 <template>
   <div v-if="project" class="flex h-full flex-col">
     <header
-      class="relative flex h-12 flex-shrink-0 items-center justify-between border-b border-[var(--ui-border)] px-6"
+      class="flex h-12 flex-shrink-0 items-center justify-between border-b border-[var(--ui-border)] px-6"
     >
-      <div
-        class="pointer-events-none absolute inset-0 opacity-[0.07]"
-        :style="{
-          background: `radial-gradient(ellipse 80% 160% at 0% 50%, ${project.color}, transparent)`,
-        }"
-      />
       <RouterLink
         :to="`/project/${projectId}/board`"
         class="text-lg font-semibold transition-colors hover:text-[var(--ui-primary)]"

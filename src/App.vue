@@ -13,11 +13,15 @@ const appLocale = computed(
 
 <template>
   <UApp :locale="appLocale">
-    <div class="flex h-screen">
-      <AppSidebar />
+    <div
+      class="electrobun-webkit-app-region-drag flex h-screen bg-[var(--ui-bg-elevated)] pt-8 pr-2 pb-2"
+    >
+      <AppSidebar class="electrobun-webkit-app-region-no-drag" />
 
       <!-- Основной контент -->
-      <main class="flex-1 overflow-auto">
+      <main
+        class="electrobun-webkit-app-region-no-drag flex-1 overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-bg)]"
+      >
         <RouterView />
       </main>
     </div>
