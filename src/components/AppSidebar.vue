@@ -28,7 +28,7 @@ const tooltipContent = {
     <ProjectsSidebar />
 
     <!-- Системная навигация -->
-    <div class="mt-2 flex flex-shrink-0 flex-col items-center gap-1">
+    <div class="my-2 flex flex-shrink-0 flex-col items-center gap-1">
       <UTooltip :text="t('common.settings')" :content="tooltipContent" :delay-duration="0">
         <RouterLink
           to="/settings"

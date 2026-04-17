@@ -21,7 +21,7 @@ const appLocale = computed(
 
         <!-- Основной контент -->
         <main
-          class="flex-1 overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-bg)]"
+          class="flex-1 overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-bg)] shadow-sm"
         >
           <RouterView />
         </main>
