@@ -19,5 +19,6 @@ export default {
     update: "Обновление",
     install: "Обновить",
     check: "Проверить",
+    updateTo: "Обновить до",
   },
 }

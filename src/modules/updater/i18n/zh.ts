@@ -19,5 +19,6 @@ export default {
     update: "更新",
     install: "安装",
     check: "检查",
+    updateTo: "更新至",
   },
 }

@@ -19,5 +19,6 @@ export default {
     update: "Update",
     install: "Installieren",
     check: "Prüfen",
+    updateTo: "Aktualisieren auf",
   },
 }

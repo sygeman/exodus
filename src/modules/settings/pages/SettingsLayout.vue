@@ -11,7 +11,6 @@ const route = useRoute()
 const navItems = computed<MenuLayoutItem[]>(() => [
   { to: "/settings/appearance", label: t("common.appearance"), icon: "i-lucide-palette" },
   { to: "/settings/language", label: t("common.language"), icon: "i-lucide-globe" },
-  { to: "/settings/about", label: t("common.about"), icon: "i-lucide-info" },
 ])
 
 const activeItem = computed(() => navItems.value.find((item) => route.path === item.to))
