@@ -170,11 +170,17 @@ jobs:
     if: needs.changelog.outputs.version != '' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
-      - name: Download all artifacts
+      - name: Download macOS artifacts
         uses: actions/download-artifact@v8
         with:
-          path: artifacts
-          merge-multiple: true
+          name: macos-artifacts
+          path: release-assets
+
+      - name: Download Linux artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: linux-artifacts
+          path: release-assets
 
       - name: Create Release
         uses: softprops/action-gh-release@v3
@@ -185,6 +191,6 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            artifacts/*
+            release-assets/*
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
