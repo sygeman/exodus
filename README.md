@@ -12,6 +12,10 @@ Exodus enables product evolution through controlled iterations, where user inten
 
 1. Download [**Exodus.dmg**](https://github.com/sygeman/exodus/releases/latest/download/stable-macos-arm64-Exodus.dmg) (Apple Silicon)
 2. Open the file and drag **Exodus** into the **Applications** folder
+3. Run in Terminal to remove the quarantine attribute:
+   ```bash
+   xattr -cr /Applications/Exodus.app
+   ```
 
 ### Linux
 
