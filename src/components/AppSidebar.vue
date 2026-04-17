@@ -29,16 +29,6 @@ const tooltipContent = {
 
     <!-- Системная навигация -->
     <div class="mt-2 flex flex-shrink-0 flex-col items-center gap-1">
-      <UTooltip :text="t('common.debug')" :content="tooltipContent" :delay-duration="0">
-        <RouterLink
-          to="/debug"
-          class="electrobun-webkit-app-region-no-drag relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg)] hover:text-[var(--ui-text)]"
-          active-class="bg-[var(--ui-bg)] text-[var(--ui-text)]"
-        >
-          <UIcon name="i-lucide-bug" class="h-5 w-5" />
-        </RouterLink>
-      </UTooltip>
-
       <UTooltip :text="t('common.settings')" :content="tooltipContent" :delay-duration="0">
         <RouterLink
           to="/settings"
