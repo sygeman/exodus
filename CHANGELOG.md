@@ -1,3 +1,12 @@
+## [0.31.2](https://github.com/sygeman/exodus/compare/v0.31.1...v0.31.2) (2026-04-17)
+
+
+### Bug Fixes
+
+* disable text selection in sidebar and top menu except version badge ([9b13fc1](https://github.com/sygeman/exodus/commit/9b13fc132328d8ddf0bce406dc0678eb7196d28e))
+
+
+
 ## [0.31.1](https://github.com/sygeman/exodus/compare/v0.31.0...v0.31.1) (2026-04-17)
 
 
@@ -33,15 +42,6 @@
 ### Features
 
 * add project color gradient header and clickable title ([ecfe7c9](https://github.com/sygeman/exodus/commit/ecfe7c93146d31579097be769e87b48f1b813e55))
-
-
-
-# [0.28.0](https://github.com/sygeman/exodus/compare/v0.27.6...v0.28.0) (2026-04-17)
-
-
-### Features
-
-* unify settings layout, auto-save project settings, confirm delete with modal ([2565f12](https://github.com/sygeman/exodus/commit/2565f12146aaf731d2803992764465bb8d67bb20))
 
 
 
