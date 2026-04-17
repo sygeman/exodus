@@ -12,14 +12,12 @@ const appLocale = computed(
 
 <template>
   <UApp :locale="appLocale">
-    <div
-      class="electrobun-webkit-app-region-drag flex h-screen bg-[var(--ui-bg-elevated)] pr-2 pb-2"
-    >
+    <div class="flex h-screen bg-[var(--ui-bg-elevated)] pr-2 pb-2">
       <AppSidebar class="pt-8" />
 
       <!-- Обёртка для top menu + main -->
       <div class="flex flex-1 flex-col overflow-hidden">
-        <AppTopMenu class="electrobun-webkit-app-region-drag" />
+        <AppTopMenu />
 
         <!-- Основной контент -->
         <main

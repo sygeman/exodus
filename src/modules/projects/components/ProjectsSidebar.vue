@@ -37,7 +37,7 @@ function getInitials(name: string): string {
     >
       <ULink
         :to="`/project/${project.id}/board`"
-        class="flex h-10 w-10 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg font-semibold transition-all hover:opacity-90"
+        class="electrobun-webkit-app-region-no-drag flex h-10 w-10 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg font-semibold transition-all hover:opacity-90"
         :class="
           currentProjectId === project.id
             ? 'bg-[var(--ui-bg)]'
@@ -60,7 +60,7 @@ function getInitials(name: string): string {
 
     <UTooltip :text="t('common.newProject')" :content="tooltipContent" :delay-duration="0">
       <button
-        class="flex h-10 w-10 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg)] hover:text-[var(--ui-text)]"
+        class="electrobun-webkit-app-region-no-drag flex h-10 w-10 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg)] hover:text-[var(--ui-text)]"
         @click="handleCreate"
       >
         <UIcon name="i-lucide-plus" class="h-5 w-5" />

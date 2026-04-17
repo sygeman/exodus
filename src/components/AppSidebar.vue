@@ -13,11 +13,11 @@ const tooltipContent = {
 </script>
 
 <template>
-  <aside class="flex w-16 flex-col items-center select-none">
+  <aside class="electrobun-webkit-app-region-drag flex w-16 flex-col items-center select-none">
     <!-- Лого -->
     <RouterLink
       to="/"
-      class="my-2 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg"
+      class="electrobun-webkit-app-region-no-drag my-2 flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg"
     >
       <LogoSvg class="h-8 w-8" />
     </RouterLink>
@@ -30,7 +30,7 @@ const tooltipContent = {
       <UTooltip :text="t('common.debug')" :content="tooltipContent" :delay-duration="0">
         <RouterLink
           to="/debug"
-          class="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg)] hover:text-[var(--ui-text)]"
+          class="electrobun-webkit-app-region-no-drag relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg)] hover:text-[var(--ui-text)]"
           active-class="bg-[var(--ui-bg)] text-[var(--ui-text)]"
         >
           <UIcon name="i-lucide-bug" class="h-5 w-5" />
@@ -40,7 +40,7 @@ const tooltipContent = {
       <UTooltip :text="t('common.settings')" :content="tooltipContent" :delay-duration="0">
         <RouterLink
           to="/settings"
-          class="relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg)] hover:text-[var(--ui-text)]"
+          class="electrobun-webkit-app-region-no-drag relative flex h-10 w-10 items-center justify-center rounded-lg text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg)] hover:text-[var(--ui-text)]"
           active-class="bg-[var(--ui-bg)] text-[var(--ui-text)]"
         >
           <UIcon name="i-lucide-settings" class="h-5 w-5" />
