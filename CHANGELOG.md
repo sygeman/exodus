@@ -1,3 +1,12 @@
+## [0.31.1](https://github.com/sygeman/exodus/compare/v0.31.0...v0.31.1) (2026-04-17)
+
+
+### Bug Fixes
+
+* restrict window drag to sidebar and top menu empty areas ([d2f417d](https://github.com/sygeman/exodus/commit/d2f417dec36a8bcff0640f2724661034b15c0807))
+
+
+
 # [0.31.0](https://github.com/sygeman/exodus/compare/v0.30.0...v0.31.0) (2026-04-17)
 
 
@@ -33,15 +42,6 @@
 ### Features
 
 * unify settings layout, auto-save project settings, confirm delete with modal ([2565f12](https://github.com/sygeman/exodus/commit/2565f12146aaf731d2803992764465bb8d67bb20))
-
-
-
-## [0.27.6](https://github.com/sygeman/exodus/compare/v0.27.5...v0.27.6) (2026-04-17)
-
-
-### Bug Fixes
-
-* move mainview to subdirectory for correct views:// asset resolution ([51fca4b](https://github.com/sygeman/exodus/commit/51fca4bc6a090c6565e458ded8de825911948a3a))
 
 
 
