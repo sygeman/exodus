@@ -25,6 +25,7 @@ export default {
   },
   release: {
     baseUrl: "https://github.com/sygeman/exodus/releases/latest/download",
+    generatePatch: process.env.CI === "true",
   },
   build: {
     bun: {

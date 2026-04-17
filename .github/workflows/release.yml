@@ -57,11 +57,27 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Cache dependencies
+      - name: Cache Bun install cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-cache-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-cache-
+
+      - name: Cache node_modules
         uses: actions/cache@v5
         with:
           path: node_modules
           key: ${{ runner.os }}-node-modules-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json') }}
+
+      - name: Cache electrobun previous bundle
+        uses: actions/cache@v5
+        with:
+          path: ~/Library/Application Support/exodus.sgmn.dev/stable/self-extraction
+          key: ${{ runner.os }}-electrobun-self-extraction-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-electrobun-self-extraction-
 
       - name: Install dependencies
         if: steps.cache.outputs.cache-hit != 'true'
@@ -96,11 +112,27 @@ jobs:
         with:
           bun-version: latest
 
-      - name: Cache dependencies
+      - name: Cache Bun install cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-bun-cache-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-bun-cache-
+
+      - name: Cache node_modules
         uses: actions/cache@v5
         with:
           path: node_modules
           key: ${{ runner.os }}-node-modules-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json') }}
+
+      - name: Cache electrobun previous bundle
+        uses: actions/cache@v5
+        with:
+          path: ~/.local/share/exodus.sgmn.dev/stable/self-extraction
+          key: ${{ runner.os }}-electrobun-self-extraction-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-electrobun-self-extraction-
 
       - name: Install dependencies
         if: steps.cache.outputs.cache-hit != 'true'
