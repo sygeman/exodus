@@ -76,7 +76,7 @@ const isLoading = computed(() =>
     </div>
 
     <!-- Обновление -->
-    <div class="flex items-start justify-between gap-4 border-b border-[var(--ui-border)] pb-8">
+    <div class="flex items-start justify-between gap-4">
       <div class="flex flex-col gap-1">
         <h3 class="text-base font-medium">{{ t("common.update") }}</h3>
         <p class="text-sm text-[var(--ui-text-muted)]">{{ t("settings.updateDescription") }}</p>

@@ -5,6 +5,7 @@ export const projectsMessages = {
     newProject: "Новый проект",
     save: "Сохранить",
     delete: "Удалить",
+    cancel: "Отмена",
   },
   projects: {
     title: "Проекты",
@@ -18,9 +19,17 @@ export const projectsMessages = {
     emptyBoard: "Доска пуста",
     emptyBoardDescription: "Содержимое проекта появится здесь позже.",
     name: "Название",
+    nameDescription: "Название проекта отображается в списке и боковом меню.",
     color: "Цвет",
+    colorDescription: "Цвет проекта используется для визуального выделения в списке.",
     nameRequired: "Название обязательно",
     colorRequired: "Цвет обязателен",
+    deleteTitle: "Удаление проекта",
+    deleteDescription:
+      "Это действие нельзя отменить. Все данные проекта будут безвозвратно удалены.",
+    deleteConfirmTitle: "Удалить проект?",
+    deleteConfirmDescription:
+      "Вы уверены, что хотите удалить этот проект? Это действие необратимо.",
   },
   events: {
     projects: projectsEvents,

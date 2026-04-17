@@ -21,19 +21,17 @@ watch(isDark, (value) => {
   evento.emitEvent("app-state:save-settings", { theme: value ? "dark" : "light" }, "webview")
 })
 
-const themeIcon = computed(() => (isDark.value ? "i-lucide-sun" : "i-lucide-moon"))
 const themeDescription = computed(() => t("settings.darkModeDescription"))
 </script>
 
 <template>
   <section class="flex flex-col gap-8">
-    <div class="flex items-start justify-between gap-4 border-b border-[var(--ui-border)] pb-8">
+    <div class="flex items-start justify-between gap-4">
       <div class="flex flex-col gap-1">
         <h3 class="text-base font-medium">{{ t("common.darkMode") }}</h3>
         <p class="text-sm text-[var(--ui-text-muted)]">{{ themeDescription }}</p>
       </div>
-      <div class="flex items-center gap-3">
-        <UIcon :name="themeIcon" class="h-5 w-5 text-[var(--ui-text-muted)]" />
+      <div class="flex items-center">
         <USwitch v-model="isDark" />
       </div>
     </div>

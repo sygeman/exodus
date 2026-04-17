@@ -17,7 +17,7 @@ const route = useRoute()
 </script>
 
 <template>
-  <div class="flex h-full">
+  <div class="flex h-full w-full">
     <!-- Левая панель -->
     <aside
       class="flex w-56 flex-col gap-6 border-r border-[var(--ui-border)] bg-[var(--ui-bg-elevated)]/50 p-4"
@@ -44,7 +44,7 @@ const route = useRoute()
     </aside>
 
     <!-- Правая панель -->
-    <main class="flex-1" :class="mainClass">
+    <main class="w-full flex-1" :class="mainClass">
       <slot />
     </main>
   </div>

@@ -2,10 +2,9 @@
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 import { useProjects } from "@/modules/projects/webview"
-import { computed, reactive, watch } from "vue"
-import { z } from "zod"
-import type { FormSubmitEvent } from "@nuxt/ui"
-import MenuLayout, { type MenuLayoutItem } from "@/core/components/MenuLayout.vue"
+import { computed, ref } from "vue"
+import SettingsLayout from "@/core/components/SettingsLayout.vue"
+import type { MenuLayoutItem } from "@/core/components/MenuLayout.vue"
 import { PROJECT_COLORS } from "@/modules/projects/constants"
 
 const { t } = useI18n()
@@ -16,28 +15,7 @@ const { projects, loading, update, remove } = useProjects()
 const projectId = computed(() => route.params.id as string)
 const project = computed(() => projects.value.find((p) => p.id === projectId.value))
 
-const schema = z.object({
-  name: z.string().min(1, t("projects.nameRequired")),
-  color: z.string().min(1, t("projects.colorRequired")),
-})
-
-type Schema = z.output<typeof schema>
-
-const state = reactive<Schema>({
-  name: "",
-  color: "",
-})
-
-watch(
-  project,
-  (val) => {
-    if (val) {
-      state.name = val.name
-      state.color = val.color
-    }
-  },
-  { immediate: true },
-)
+const deleteModalOpen = ref(false)
 
 const navItems = computed<MenuLayoutItem[]>(() => [
   {
@@ -47,30 +25,54 @@ const navItems = computed<MenuLayoutItem[]>(() => [
   },
 ])
 
-function onSubmit(event: FormSubmitEvent<Schema>) {
-  if (!project.value) return
-  update(project.value.id, {
-    name: event.data.name,
-    color: event.data.color,
-  })
+function updateName(name: string) {
+  if (!project.value || name.trim() === "" || name === project.value.name) return
+  update(project.value.id, { name })
 }
 
-function handleDelete() {
+function updateColor(color: string) {
+  if (!project.value || color === project.value.color) return
+  update(project.value.id, { color })
+}
+
+function openDeleteModal() {
+  deleteModalOpen.value = true
+}
+
+function confirmDelete() {
   if (!project.value) return
   remove(project.value.id)
+  deleteModalOpen.value = false
   router.push("/projects")
 }
 </script>
 
 <template>
   <div v-if="project" class="flex h-full">
-    <MenuLayout :title="t('common.settings')" :items="navItems" main-class="overflow-y-auto p-10">
-      <UForm :schema="schema" :state="state" class="mx-auto max-w-2xl space-y-8" @submit="onSubmit">
-        <UFormField :label="t('projects.name')" name="name">
-          <UInput v-model="state.name" />
-        </UFormField>
+    <SettingsLayout
+      :title="t('common.settings')"
+      :items="navItems"
+      :page-title="t('projects.settingsTitle')"
+    >
+      <section class="flex flex-col gap-8">
+        <div class="flex flex-col gap-4 border-b border-[var(--ui-border)] pb-8">
+          <div class="flex flex-col gap-1">
+            <h3 class="text-base font-medium">{{ t("projects.name") }}</h3>
+            <p class="text-sm text-[var(--ui-text-muted)]">{{ t("projects.nameDescription") }}</p>
+          </div>
+          <UInput
+            class="max-w-md"
+            :model-value="project?.name ?? ''"
+            @blur="(e: FocusEvent) => updateName((e.target as HTMLInputElement).value)"
+            @keyup.enter="(e: KeyboardEvent) => updateName((e.target as HTMLInputElement).value)"
+          />
+        </div>
 
-        <UFormField :label="t('projects.color')" name="color">
+        <div class="flex flex-col gap-4 border-b border-[var(--ui-border)] pb-8">
+          <div class="flex flex-col gap-1">
+            <h3 class="text-base font-medium">{{ t("projects.color") }}</h3>
+            <p class="text-sm text-[var(--ui-text-muted)]">{{ t("projects.colorDescription") }}</p>
+          </div>
           <div class="flex flex-wrap gap-2">
             <button
               v-for="c in PROJECT_COLORS"
@@ -78,22 +80,41 @@ function handleDelete() {
               type="button"
               class="h-8 w-8 rounded-full transition-transform hover:scale-110 focus:ring-2 focus:ring-[var(--ui-primary)] focus:outline-none"
               :style="{ backgroundColor: c }"
-              :class="{ 'ring-2 ring-[var(--ui-primary)]': state.color === c }"
-              @click="state.color = c"
+              :class="{ 'ring-2 ring-[var(--ui-primary)]': project?.color === c }"
+              @click="updateColor(c)"
             />
           </div>
-        </UFormField>
+        </div>
 
-        <div class="flex items-center gap-4 pt-2">
-          <UButton type="submit">{{ t("common.save") }}</UButton>
-
-          <UButton type="button" color="error" variant="outline" @click="handleDelete">
+        <div>
+          <h3 class="mb-2 text-base font-medium text-[var(--ui-error)]">
+            {{ t("projects.deleteTitle") }}
+          </h3>
+          <p class="mb-4 text-sm text-[var(--ui-text-muted)]">
+            {{ t("projects.deleteDescription") }}
+          </p>
+          <UButton color="error" variant="outline" @click="openDeleteModal">
             <UIcon name="i-lucide-trash-2" class="h-4 w-4" />
             <span class="ml-2">{{ t("common.delete") }}</span>
           </UButton>
         </div>
-      </UForm>
-    </MenuLayout>
+      </section>
+
+      <UModal
+        v-model:open="deleteModalOpen"
+        :title="t('projects.deleteConfirmTitle')"
+        :description="t('projects.deleteConfirmDescription')"
+      >
+        <template #footer>
+          <div class="flex w-full justify-end gap-3">
+            <UButton variant="ghost" @click="deleteModalOpen = false">{{
+              t("common.cancel")
+            }}</UButton>
+            <UButton color="error" @click="confirmDelete">{{ t("common.delete") }}</UButton>
+          </div>
+        </template>
+      </UModal>
+    </SettingsLayout>
   </div>
 
   <div
