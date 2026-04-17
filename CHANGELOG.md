@@ -1,3 +1,12 @@
+## [0.27.2](https://github.com/sygeman/exodus/compare/v0.27.1...v0.27.2) (2026-04-17)
+
+
+### Bug Fixes
+
+* **ci:** diagnose and fix web artifact upload path ([ff74347](https://github.com/sygeman/exodus/commit/ff74347d9790d2b78598cf421bf52700f962f7d9))
+
+
+
 ## [0.27.1](https://github.com/sygeman/exodus/compare/v0.27.0...v0.27.1) (2026-04-17)
 
 
@@ -36,15 +45,6 @@
 ### Features
 
 * **projects:** add project layout with overview and settings tabs ([6c75af3](https://github.com/sygeman/exodus/commit/6c75af3cf980f5ece54ef619448cbb436e40a759))
-
-
-
-# [0.24.0](https://github.com/sygeman/exodus/compare/v0.23.1...v0.24.0) (2026-04-16)
-
-
-### Features
-
-* add projects module with CRUD, settings page, and event-driven updates ([b14d17f](https://github.com/sygeman/exodus/commit/b14d17f58d8b8e0ff01aa9b8aa9fe32a1c869dde))
 
 
 
