@@ -5,26 +5,8 @@ import { schemaEvents } from "@/modules/schema/i18n/de"
 
 export default {
   common: {
-    darkMode: "Dunkelmodus",
-    lightMode: "Hellmodus",
-    back: "Zurück",
-    close: "Schließen",
-    search: "Suchen",
-    details: "Details",
     debug: "Debug",
-    update: "Update",
-    check: "Prüfen",
-    install: "Installieren",
-    updateAvailable: "Update verfügbar",
-    upToDate: "Aktuell",
-    updateError: "Fehler",
-    checking: "Prüfung läuft...",
-    downloading: "Herunterladen...",
-    applying: "Anwenden...",
-    updateAvailableTitle: "Update verfügbar",
-    updateAvailableDescription: "{current} → {latest}",
-    updateNow: "Jetzt aktualisieren",
-    updateLater: "Später",
+    settings: "Einstellungen",
   },
   events: {
     title: "Ereignisse",

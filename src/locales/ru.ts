@@ -5,26 +5,8 @@ import { schemaEvents } from "@/modules/schema/i18n/ru"
 
 export default {
   common: {
-    darkMode: "Тёмная тема",
-    lightMode: "Светлая тема",
-    back: "Назад",
-    close: "Закрыть",
-    search: "Поиск",
-    details: "Детали",
     debug: "Отладка",
-    update: "Обновление",
-    check: "Проверить",
-    install: "Обновить",
-    updateAvailable: "Доступно обновление",
-    upToDate: "Актуальная версия",
-    updateError: "Ошибка",
-    checking: "Проверка...",
-    downloading: "Загрузка...",
-    applying: "Установка...",
-    updateAvailableTitle: "Доступно обновление",
-    updateAvailableDescription: "{current} → {latest}",
-    updateNow: "Обновить",
-    updateLater: "Позже",
+    settings: "Настройки",
   },
   events: {
     title: "События",

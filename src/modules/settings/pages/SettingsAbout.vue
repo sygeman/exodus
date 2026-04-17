@@ -42,17 +42,17 @@ function startUpdate() {
 const statusText = computed(() => {
   switch (updateStatus.value) {
     case "checking":
-      return t("common.checking")
+      return t("updater.checking")
     case "available":
-      return t("common.updateAvailable")
+      return t("updater.updateAvailable")
     case "latest":
-      return t("common.upToDate")
+      return t("updater.upToDate")
     case "downloading":
-      return t("common.downloading")
+      return t("updater.downloading")
     case "applying":
-      return t("common.applying")
+      return t("updater.applying")
     case "error":
-      return t("common.updateError")
+      return t("updater.updateError")
     default:
       return ""
   }
@@ -78,7 +78,7 @@ const isLoading = computed(() =>
     <!-- Обновление -->
     <div class="flex items-start justify-between gap-4">
       <div class="flex flex-col gap-1">
-        <h3 class="text-base font-medium">{{ t("common.update") }}</h3>
+        <h3 class="text-base font-medium">{{ t("updater.update") }}</h3>
         <p class="text-sm text-[var(--ui-text-muted)]">{{ t("settings.updateDescription") }}</p>
       </div>
       <div class="flex min-w-0 flex-col items-end gap-3">
@@ -108,7 +108,7 @@ const isLoading = computed(() =>
         </div>
 
         <UButton v-if="showInstallButton" color="success" size="sm" @click="startUpdate">
-          {{ t("common.install") }}
+          {{ t("updater.install") }}
         </UButton>
         <UButton
           v-else
@@ -118,7 +118,7 @@ const isLoading = computed(() =>
           :disabled="isLoading"
           @click="checkForUpdate"
         >
-          {{ t("common.check") }}
+          {{ t("updater.check") }}
         </UButton>
 
         <div

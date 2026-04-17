@@ -2,12 +2,10 @@
 import { useI18n } from "vue-i18n"
 import LogoSvg from "@/assets/logo.svg"
 import ProjectsSidebar from "@/modules/projects/components/ProjectsSidebar.vue"
-
-defineProps<{
-  updateAvailable?: boolean
-}>()
+import { useUpdaterStatus } from "@/modules/updater/composables/useUpdaterStatus"
 
 const { t } = useI18n()
+const { updateStatus } = useUpdaterStatus()
 
 const tooltipContent = {
   align: "center" as const,
@@ -48,7 +46,7 @@ const tooltipContent = {
         >
           <UIcon name="i-lucide-settings" class="h-5 w-5" />
           <span
-            v-if="updateAvailable"
+            v-if="updateStatus === 'available'"
             class="absolute top-2 right-2 h-2 w-2 rounded-full bg-[var(--ui-primary)]"
           />
         </RouterLink>

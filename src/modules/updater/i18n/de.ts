@@ -3,3 +3,21 @@ export const updaterEvents = {
   "update-status": "Broadcast des App-Update-Status",
   "start-update": "Download starten und Update anwenden (fire and forget)",
 }
+
+export const updaterMessages = {
+  updater: {
+    updateAvailableTitle: "Update verfügbar",
+    updateAvailableDescription: "{current} → {latest}",
+    updateNow: "Jetzt aktualisieren",
+    updateLater: "Später",
+    downloading: "Herunterladen...",
+    applying: "Anwenden...",
+    checking: "Prüfung läuft...",
+    updateAvailable: "Update verfügbar",
+    upToDate: "Aktuell",
+    updateError: "Fehler",
+    update: "Update",
+    install: "Installieren",
+    check: "Prüfen",
+  },
+}

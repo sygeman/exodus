@@ -3,3 +3,21 @@ export const updaterEvents = {
   "update-status": "Трансляция статуса обновления приложения",
   "start-update": "Начать загрузку и применить обновление (fire and forget)",
 }
+
+export const updaterMessages = {
+  updater: {
+    updateAvailableTitle: "Доступно обновление",
+    updateAvailableDescription: "{current} → {latest}",
+    updateNow: "Обновить",
+    updateLater: "Позже",
+    downloading: "Загрузка...",
+    applying: "Установка...",
+    checking: "Проверка...",
+    updateAvailable: "Доступно обновление",
+    upToDate: "Актуальная версия",
+    updateError: "Ошибка",
+    update: "Обновление",
+    install: "Обновить",
+    check: "Проверить",
+  },
+}

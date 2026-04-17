@@ -18,31 +18,45 @@ import { projectsMessages as projectsDe } from "@/modules/projects/i18n/de"
 import { projectsMessages as projectsPl } from "@/modules/projects/i18n/pl"
 import { projectsMessages as projectsRu } from "@/modules/projects/i18n/ru"
 import { projectsMessages as projectsZh } from "@/modules/projects/i18n/zh"
+import { updaterMessages as updaterEn } from "@/modules/updater/i18n/en"
+import { updaterMessages as updaterDe } from "@/modules/updater/i18n/de"
+import { updaterMessages as updaterPl } from "@/modules/updater/i18n/pl"
+import { updaterMessages as updaterRu } from "@/modules/updater/i18n/ru"
+import { updaterMessages as updaterZh } from "@/modules/updater/i18n/zh"
+
+type BaseMessages = typeof en
+type SettingsMessages = typeof settingsEn
+type DebugMessages = typeof debugEn
+type ProjectsMessages = typeof projectsEn
+type UpdaterMessages = typeof updaterEn
 
 function mergeMessages(
-  base: typeof en,
-  settings: typeof settingsEn,
-  debug: typeof debugEn,
-  projects: typeof projectsEn,
-): typeof en & { settings: typeof settingsEn.settings } {
+  base: BaseMessages,
+  settings: SettingsMessages,
+  debug: DebugMessages,
+  projects: ProjectsMessages,
+  updater: UpdaterMessages,
+) {
   return {
     ...base,
     ...settings,
     ...debug,
     ...projects,
+    ...updater,
     common: { ...base.common, ...settings.common, ...debug.common, ...projects.common },
     settings: settings.settings,
     projects: projects.projects,
+    updater: updater.updater,
     events: { ...base.events, ...projects.events },
-  } as typeof en & { settings: typeof settingsEn.settings }
+  }
 }
 
 export const messages = {
-  de: mergeMessages(de, settingsDe, debugDe, projectsDe),
-  en: mergeMessages(en, settingsEn, debugEn, projectsEn),
-  pl: mergeMessages(pl, settingsPl, debugPl, projectsPl),
-  ru: mergeMessages(ru, settingsRu, debugRu, projectsRu),
-  zh: mergeMessages(zh, settingsZh, debugZh, projectsZh),
+  de: mergeMessages(de, settingsDe, debugDe, projectsDe, updaterDe),
+  en: mergeMessages(en, settingsEn, debugEn, projectsEn, updaterEn),
+  pl: mergeMessages(pl, settingsPl, debugPl, projectsPl, updaterPl),
+  ru: mergeMessages(ru, settingsRu, debugRu, projectsRu, updaterRu),
+  zh: mergeMessages(zh, settingsZh, debugZh, projectsZh, updaterZh),
 }
 
 export type Locale = "de" | "en" | "pl" | "ru" | "zh"
