@@ -1,4 +1,4 @@
-export const settingsMessages = {
+export default {
   common: {
     settings: "Settings",
     appearance: "Appearance",

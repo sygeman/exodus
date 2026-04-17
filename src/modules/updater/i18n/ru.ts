@@ -4,7 +4,7 @@ export const updaterEvents = {
   "start-update": "Начать загрузку и применить обновление (fire and forget)",
 }
 
-export const updaterMessages = {
+export default {
   updater: {
     updateAvailableTitle: "Доступно обновление",
     updateAvailableDescription: "{current} → {latest}",

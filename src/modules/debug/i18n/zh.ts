@@ -1,4 +1,4 @@
-export const debugMessages = {
+export default {
   common: {
     logs: "日志",
     events: "事件",

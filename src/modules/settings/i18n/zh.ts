@@ -1,4 +1,4 @@
-export const settingsMessages = {
+export default {
   common: {
     settings: "设置",
     appearance: "外观",

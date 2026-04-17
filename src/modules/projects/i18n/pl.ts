@@ -1,6 +1,6 @@
 import { projectsEvents } from "./events/pl"
 
-export const projectsMessages = {
+export default {
   common: {
     newProject: "Nowy projekt",
     save: "Zapisz",

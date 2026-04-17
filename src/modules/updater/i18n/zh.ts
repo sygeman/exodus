@@ -4,7 +4,7 @@ export const updaterEvents = {
   "start-update": "开始下载并应用更新（即发即弃）",
 }
 
-export const updaterMessages = {
+export default {
   updater: {
     updateAvailableTitle: "有可用更新",
     updateAvailableDescription: "{current} → {latest}",

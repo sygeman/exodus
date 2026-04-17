@@ -1,6 +1,6 @@
 import { projectsEvents } from "./events/zh"
 
-export const projectsMessages = {
+export default {
   common: {
     newProject: "新建项目",
     save: "保存",

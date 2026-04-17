@@ -1,6 +1,6 @@
 import { projectsEvents } from "./events/ru"
 
-export const projectsMessages = {
+export default {
   common: {
     newProject: "Новый проект",
     save: "Сохранить",

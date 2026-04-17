@@ -3,63 +3,46 @@ import en from "./en"
 import pl from "./pl"
 import ru from "./ru"
 import zh from "./zh"
-import { settingsMessages as settingsEn } from "@/modules/settings/i18n/en"
-import { settingsMessages as settingsDe } from "@/modules/settings/i18n/de"
-import { settingsMessages as settingsPl } from "@/modules/settings/i18n/pl"
-import { settingsMessages as settingsRu } from "@/modules/settings/i18n/ru"
-import { settingsMessages as settingsZh } from "@/modules/settings/i18n/zh"
-import { debugMessages as debugEn } from "@/modules/debug/i18n/en"
-import { debugMessages as debugDe } from "@/modules/debug/i18n/de"
-import { debugMessages as debugPl } from "@/modules/debug/i18n/pl"
-import { debugMessages as debugRu } from "@/modules/debug/i18n/ru"
-import { debugMessages as debugZh } from "@/modules/debug/i18n/zh"
-import { projectsMessages as projectsEn } from "@/modules/projects/i18n/en"
-import { projectsMessages as projectsDe } from "@/modules/projects/i18n/de"
-import { projectsMessages as projectsPl } from "@/modules/projects/i18n/pl"
-import { projectsMessages as projectsRu } from "@/modules/projects/i18n/ru"
-import { projectsMessages as projectsZh } from "@/modules/projects/i18n/zh"
-import { updaterMessages as updaterEn } from "@/modules/updater/i18n/en"
-import { updaterMessages as updaterDe } from "@/modules/updater/i18n/de"
-import { updaterMessages as updaterPl } from "@/modules/updater/i18n/pl"
-import { updaterMessages as updaterRu } from "@/modules/updater/i18n/ru"
-import { updaterMessages as updaterZh } from "@/modules/updater/i18n/zh"
+import settings from "@/modules/settings/i18n"
+import debug from "@/modules/debug/i18n"
+import projects from "@/modules/projects/i18n"
+import updater from "@/modules/updater/i18n"
 
-type BaseMessages = typeof en
-type SettingsMessages = typeof settingsEn
-type DebugMessages = typeof debugEn
-type ProjectsMessages = typeof projectsEn
-type UpdaterMessages = typeof updaterEn
+const base = { de, en, pl, ru, zh }
 
-function mergeMessages(
-  base: BaseMessages,
-  settings: SettingsMessages,
-  debug: DebugMessages,
-  projects: ProjectsMessages,
-  updater: UpdaterMessages,
-) {
-  return {
-    ...base,
-    ...settings,
-    ...debug,
-    ...projects,
-    ...updater,
-    common: { ...base.common, ...settings.common, ...debug.common, ...projects.common },
-    settings: settings.settings,
-    projects: projects.projects,
-    updater: updater.updater,
-    events: { ...base.events, ...projects.events },
+const modules = [settings, debug, projects, updater]
+
+type MessageShape = Record<string, Record<string, unknown>>
+
+function mergeForLocale(locale: keyof typeof base) {
+  const baseMessages = base[locale] as MessageShape
+  const moduleMessages = modules.map((m) => m[locale] as MessageShape)
+
+  const merged = {
+    ...baseMessages,
+    ...moduleMessages.reduce((acc, m) => ({ ...acc, ...m }), {}),
+    common: moduleMessages.reduce((acc, m) => ({ ...acc, ...m.common }), baseMessages.common),
+    events: moduleMessages.reduce((acc, m) => ({ ...acc, ...m.events }), baseMessages.events),
+    settings: moduleMessages.find((m) => m.settings)?.settings,
+    projects: moduleMessages.find((m) => m.projects)?.projects,
+    updater: moduleMessages.find((m) => m.updater)?.updater,
+    debug: moduleMessages.find((m) => m.debug)?.debug,
   }
+
+  return Object.fromEntries(
+    Object.entries(merged).filter(([, v]) => v !== undefined),
+  ) as MessageShape
 }
 
 export const messages = {
-  de: mergeMessages(de, settingsDe, debugDe, projectsDe, updaterDe),
-  en: mergeMessages(en, settingsEn, debugEn, projectsEn, updaterEn),
-  pl: mergeMessages(pl, settingsPl, debugPl, projectsPl, updaterPl),
-  ru: mergeMessages(ru, settingsRu, debugRu, projectsRu, updaterRu),
-  zh: mergeMessages(zh, settingsZh, debugZh, projectsZh, updaterZh),
+  de: mergeForLocale("de"),
+  en: mergeForLocale("en"),
+  pl: mergeForLocale("pl"),
+  ru: mergeForLocale("ru"),
+  zh: mergeForLocale("zh"),
 }
 
-export type Locale = "de" | "en" | "pl" | "ru" | "zh"
+export type Locale = keyof typeof messages
 export const defaultLocale: Locale = "en"
 export const locales: { value: Locale; label: string; flag: string }[] = [
   { value: "de", label: "Deutsch", flag: "🇩🇪" },
