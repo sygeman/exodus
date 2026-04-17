@@ -1,3 +1,18 @@
+# [0.33.0](https://github.com/sygeman/exodus/compare/v0.32.0...v0.33.0) (2026-04-17)
+
+
+### Bug Fixes
+
+* ignore non-left-clicks on drag regions and guard stopWindowMove with isDragging flag ([13f9d09](https://github.com/sygeman/exodus/commit/13f9d09075ba79aef22ac35908e634e800a568b9))
+
+
+### Features
+
+* add context menu to project items in sidebar ([d904f02](https://github.com/sygeman/exodus/commit/d904f02fc71978f8d7ac0eab1b614f2adf51e1da))
+* improve sidebar styling and scroll behavior ([8ab3c13](https://github.com/sygeman/exodus/commit/8ab3c13b47bb71bcf2a985dccf17986e67855a7d))
+
+
+
 # [0.32.0](https://github.com/sygeman/exodus/compare/v0.31.2...v0.32.0) (2026-04-17)
 
 
@@ -34,15 +49,6 @@
 * add AppTopMenu component with version badge ([32699a9](https://github.com/sygeman/exodus/commit/32699a9fc1820d5110a6bdc216790c99e983e299))
 * add back/forward navigation buttons to top menu ([7718937](https://github.com/sygeman/exodus/commit/77189378c0ca9e27f25adc2f711f39732b9bd114))
 * replace update toast with top-menu update button ([21569f8](https://github.com/sygeman/exodus/commit/21569f8de0c7feed345e0b53c3918f8e40021f71))
-
-
-
-# [0.30.0](https://github.com/sygeman/exodus/compare/v0.29.0...v0.30.0) (2026-04-17)
-
-
-### Features
-
-* hidden title bar, custom window chrome with drag region, updated sidebar styles ([34d35ac](https://github.com/sygeman/exodus/commit/34d35ac143ce2b11911b788d317fdb3306fd398f))
 
 
 
