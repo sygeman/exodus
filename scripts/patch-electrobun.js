@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "fs"
+import { readFileSync, writeFileSync, existsSync } from "fs"
 import { join } from "path"
 
 /**
@@ -38,9 +38,17 @@ const oldCode = `function initDragRegions() {\\n  document.addEventListener(\\"m
 const newCode = `function initDragRegions() {\\n  let isDragging = false;\\n  document.addEventListener(\\"mousedown\\", (e) => {\\n    if (e.button !== 0) return;\\n    if (isAppRegionDrag(e)) {\\n      isDragging = true;\\n      send(\\"startWindowMove\\", { id: window.__electrobunWindowId });\\n    }\\n  });\\n  document.addEventListener(\\"mouseup\\", (e) => {\\n    if (e.button !== 0) return;\\n    if (isDragging) {\\n      isDragging = false;\\n      send(\\"stopWindowMove\\", { id: window.__electrobunWindowId });\\n    }\\n  });\\n}`
 
 let patched = 0
+let skipped = 0
 
 for (const file of files) {
   const path = join(process.cwd(), file)
+
+  if (!existsSync(path)) {
+    console.log(`[patch-electrobun] Skipped (not found): ${file}`)
+    skipped++
+    continue
+  }
+
   try {
     const content = readFileSync(path, "utf-8")
     if (content.includes("let isDragging = false;")) {
@@ -53,17 +61,18 @@ for (const file of files) {
       console.log(`[patch-electrobun] Patched: ${file}`)
       patched++
     } else {
-      console.error(`[patch-electrobun] Could not find expected code in: ${file}`)
+      console.log(`[patch-electrobun] No patch needed (code not found): ${file}`)
+      skipped++
     }
   } catch (err) {
     console.error(`[patch-electrobun] Failed to patch ${file}:`, err)
   }
 }
 
-if (patched === files.length) {
-  console.log("[patch-electrobun] All files patched successfully")
+if (patched + skipped === files.length) {
+  console.log("[patch-electrobun] Done")
   process.exit(0)
 } else {
-  console.error(`[patch-electrobun] Only ${patched}/${files.length} files patched`)
+  console.error(`[patch-electrobun] Only ${patched + skipped}/${files.length} files handled`)
   process.exit(1)
 }

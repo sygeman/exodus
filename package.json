@@ -17,8 +17,7 @@
     "format:fix": "oxfmt src --write",
     "format:check": "oxfmt src --check",
     "check": "bun run lint && bun run typecheck && bun run format:check && bun test --coverage",
-    "prepare": "husky && bun scripts/patch-electrobun.js",
-    "postinstall": "bun scripts/patch-electrobun.js"
+    "prepare": "husky && bun scripts/patch-electrobun.js"
   },
   "dependencies": {
     "@nuxt/ui": "4.6.1",
