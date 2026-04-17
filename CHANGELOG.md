@@ -1,3 +1,12 @@
+## [0.27.3](https://github.com/sygeman/exodus/compare/v0.27.2...v0.27.3) (2026-04-17)
+
+
+### Bug Fixes
+
+* correct vite outDir to place dist inside project root ([3670eef](https://github.com/sygeman/exodus/commit/3670eef7292a4e7f2c1710c2d83fd3aca2fe7777))
+
+
+
 ## [0.27.2](https://github.com/sygeman/exodus/compare/v0.27.1...v0.27.2) (2026-04-17)
 
 
@@ -36,15 +45,6 @@
 ### Features
 
 * add 404 not found page with catch-all route ([78c1e70](https://github.com/sygeman/exodus/commit/78c1e7081ab0ac81e19a17515544649f9c79296d))
-
-
-
-# [0.25.0](https://github.com/sygeman/exodus/compare/v0.24.0...v0.25.0) (2026-04-16)
-
-
-### Features
-
-* **projects:** add project layout with overview and settings tabs ([6c75af3](https://github.com/sygeman/exodus/commit/6c75af3cf980f5ece54ef619448cbb436e40a759))
 
 
 
