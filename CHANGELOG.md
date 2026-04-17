@@ -1,3 +1,12 @@
+## [0.27.1](https://github.com/sygeman/exodus/compare/v0.27.0...v0.27.1) (2026-04-17)
+
+
+### Bug Fixes
+
+* prevent web-dist index.html from leaking into GitHub release assets ([54737c1](https://github.com/sygeman/exodus/commit/54737c1d5291e41e78ad8f18a1b8ce3e990d0faf))
+
+
+
 # [0.27.0](https://github.com/sygeman/exodus/compare/v0.26.0...v0.27.0) (2026-04-16)
 
 
@@ -36,15 +45,6 @@
 ### Features
 
 * add projects module with CRUD, settings page, and event-driven updates ([b14d17f](https://github.com/sygeman/exodus/commit/b14d17f58d8b8e0ff01aa9b8aa9fe32a1c869dde))
-
-
-
-## [0.23.1](https://github.com/sygeman/exodus/compare/v0.23.0...v0.23.1) (2026-04-16)
-
-
-### Bug Fixes
-
-* allow void request/response events to pass validation and catch async handle errors ([76942d7](https://github.com/sygeman/exodus/commit/76942d71d17f25d95c43bb3634bc73006b3b5821))
 
 
 
