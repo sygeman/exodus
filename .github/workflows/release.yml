@@ -41,8 +41,47 @@ jobs:
           skip-git-pull: true
           create-summary: true
 
-  build-web:
-    name: Build Web (Vite)
+  build-macos:
+    name: Build macOS
+    needs: changelog
+    if: needs.changelog.outputs.version != '' || github.event_name == 'workflow_dispatch'
+    runs-on: macos-14
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || format('v{0}', needs.changelog.outputs.version) }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache dependencies
+        uses: actions/cache@v5
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json') }}
+
+      - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Build web
+        run: bun run build
+
+      - name: Build app
+        run: bunx electrobun build --env=stable
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: macos-artifacts
+          path: artifacts/**
+          if-no-files-found: error
+
+  build-linux:
+    name: Build Linux
     needs: changelog
     if: needs.changelog.outputs.version != '' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -69,87 +108,6 @@ jobs:
 
       - name: Build web
         run: bun run build
-
-      - name: Upload web artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: web-dist
-          path: dist/
-          if-no-files-found: error
-
-  build-macos:
-    name: Build macOS
-    needs: [changelog, build-web]
-    if: needs.changelog.outputs.version != '' || github.event_name == 'workflow_dispatch'
-    runs-on: macos-14
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || format('v{0}', needs.changelog.outputs.version) }}
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache dependencies
-        uses: actions/cache@v5
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json') }}
-
-      - name: Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
-
-      - name: Download web artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: web-dist
-          path: dist
-
-      - name: Build app
-        run: bunx electrobun build --env=stable
-
-      - name: Upload artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: macos-artifacts
-          path: artifacts/**
-          if-no-files-found: error
-
-  build-linux:
-    name: Build Linux
-    needs: [changelog, build-web]
-    if: needs.changelog.outputs.version != '' || github.event_name == 'workflow_dispatch'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v5
-        with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || format('v{0}', needs.changelog.outputs.version) }}
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v2
-        with:
-          bun-version: latest
-
-      - name: Cache dependencies
-        uses: actions/cache@v5
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json') }}
-
-      - name: Install dependencies
-        if: steps.cache.outputs.cache-hit != 'true'
-        run: bun install --frozen-lockfile
-
-      - name: Download web artifacts
-        uses: actions/download-artifact@v8
-        with:
-          name: web-dist
-          path: dist
 
       - name: Build app
         run: bunx electrobun build --env=stable
