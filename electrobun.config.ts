@@ -1,21 +1,21 @@
-import type { ElectrobunConfig } from "electrobun";
-import path from "path";
-import { readFileSync } from "fs";
+import type { ElectrobunConfig } from "electrobun"
+import path from "path"
+import { readFileSync } from "fs"
 
-const packageJson = JSON.parse(readFileSync("./package.json", "utf-8"));
+const packageJson = JSON.parse(readFileSync("./package.json", "utf-8"))
 
 const aliasPlugin = {
   name: "alias-resolver",
   setup(build: any) {
     build.onResolve({ filter: /^@\// }, (args: any) => {
-      let resolved = path.resolve(process.cwd(), "src", args.path.slice(2));
+      let resolved = path.resolve(process.cwd(), "src", args.path.slice(2))
       if (!path.extname(resolved)) {
-        resolved += ".ts";
+        resolved += ".ts"
       }
-      return { path: resolved };
-    });
+      return { path: resolved }
+    })
   },
-};
+}
 
 export default {
   app: {
@@ -33,8 +33,8 @@ export default {
     },
     // Vite builds to dist/, we copy from there
     copy: {
-      "dist/index.html": "views/index.html",
-      "dist/assets": "views/assets",
+      "dist/index.html": "views/mainview/index.html",
+      "dist/assets": "views/mainview/assets",
     },
     watch: ["src/lib/**", "src/modules/**"],
     // Ignore Vite output in watch mode — HMR handles view rebuilds separately
@@ -48,4 +48,4 @@ export default {
       icon: "assets/linux/icon_256x256.png",
     },
   },
-} satisfies ElectrobunConfig;
+} satisfies ElectrobunConfig
