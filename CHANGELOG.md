@@ -1,3 +1,12 @@
+## [0.27.4](https://github.com/sygeman/exodus/compare/v0.27.3...v0.27.4) (2026-04-17)
+
+
+### Performance Improvements
+
+* **ci:** add bun cache and electrobun bundle caching; skip patch generation locally ([a296792](https://github.com/sygeman/exodus/commit/a296792d47016644134f55f5790b26379ba2e03c))
+
+
+
 ## [0.27.3](https://github.com/sygeman/exodus/compare/v0.27.2...v0.27.3) (2026-04-17)
 
 
@@ -31,20 +40,6 @@
 ### Features
 
 * **i18n:** add simplified chinese (zh) locale ([a99ff0f](https://github.com/sygeman/exodus/commit/a99ff0ffd9a3e21745472d05ffa32b5ce4d2f1b0))
-
-
-
-# [0.26.0](https://github.com/sygeman/exodus/compare/v0.25.0...v0.26.0) (2026-04-16)
-
-
-### Bug Fixes
-
-* **projects:** avoid flashing not-found and empty states during loading ([18549b6](https://github.com/sygeman/exodus/commit/18549b6be4802809bfe01451dd6166162cdf5f41))
-
-
-### Features
-
-* add 404 not found page with catch-all route ([78c1e70](https://github.com/sygeman/exodus/commit/78c1e7081ab0ac81e19a17515544649f9c79296d))
 
 
 
