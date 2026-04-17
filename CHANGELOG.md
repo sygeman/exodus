@@ -1,3 +1,12 @@
+## [0.27.6](https://github.com/sygeman/exodus/compare/v0.27.5...v0.27.6) (2026-04-17)
+
+
+### Bug Fixes
+
+* move mainview to subdirectory for correct views:// asset resolution ([51fca4b](https://github.com/sygeman/exodus/commit/51fca4bc6a090c6565e458ded8de825911948a3a))
+
+
+
 ## [0.27.5](https://github.com/sygeman/exodus/compare/v0.27.4...v0.27.5) (2026-04-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * **ci:** diagnose and fix web artifact upload path ([ff74347](https://github.com/sygeman/exodus/commit/ff74347d9790d2b78598cf421bf52700f962f7d9))
-
-
-
-## [0.27.1](https://github.com/sygeman/exodus/compare/v0.27.0...v0.27.1) (2026-04-17)
-
-
-### Bug Fixes
-
-* prevent web-dist index.html from leaking into GitHub release assets ([54737c1](https://github.com/sygeman/exodus/commit/54737c1d5291e41e78ad8f18a1b8ce3e990d0faf))
 
 
 
