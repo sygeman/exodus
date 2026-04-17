@@ -1,3 +1,12 @@
+# [0.30.0](https://github.com/sygeman/exodus/compare/v0.29.0...v0.30.0) (2026-04-17)
+
+
+### Features
+
+* hidden title bar, custom window chrome with drag region, updated sidebar styles ([34d35ac](https://github.com/sygeman/exodus/commit/34d35ac143ce2b11911b788d317fdb3306fd398f))
+
+
+
 # [0.29.0](https://github.com/sygeman/exodus/compare/v0.28.0...v0.29.0) (2026-04-17)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * use relative base path in vite config for electrobun file:// loading ([ffdcc03](https://github.com/sygeman/exodus/commit/ffdcc0360f53d224f1cd193933fc31302243ead2))
-
-
-
-## [0.27.4](https://github.com/sygeman/exodus/compare/v0.27.3...v0.27.4) (2026-04-17)
-
-
-### Performance Improvements
-
-* **ci:** add bun cache and electrobun bundle caching; skip patch generation locally ([a296792](https://github.com/sygeman/exodus/commit/a296792d47016644134f55f5790b26379ba2e03c))
 
 
 
