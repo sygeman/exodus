@@ -27,6 +27,8 @@ export default {
     deleteTitle: "Удаление проекта",
     deleteDescription:
       "Это действие нельзя отменить. Все данные проекта будут безвозвратно удалены.",
+    openProject: "Открыть проект",
+    projectSettings: "Настройки проекта",
     deleteConfirmTitle: "Удалить проект?",
     deleteConfirmDescription:
       "Вы уверены, что хотите удалить этот проект? Это действие необратимо.",

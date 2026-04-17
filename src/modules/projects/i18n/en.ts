@@ -27,6 +27,8 @@ export default {
     deleteTitle: "Delete project",
     deleteDescription:
       "This action cannot be undone. All project data will be permanently deleted.",
+    openProject: "Open project",
+    projectSettings: "Project settings",
     deleteConfirmTitle: "Delete project?",
     deleteConfirmDescription:
       "Are you sure you want to delete this project? This action cannot be undone.",
