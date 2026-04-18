@@ -1,3 +1,13 @@
+# [0.34.0](https://github.com/sygeman/exodus/compare/v0.33.1...v0.34.0) (2026-04-18)
+
+
+### Features
+
+* add update progress overlay with i18n support ([e5f3538](https://github.com/sygeman/exodus/commit/e5f35384b8d79e92707d5f73eea6683235b2da5a))
+* persist window frame and maximized state across sessions ([59bf55d](https://github.com/sygeman/exodus/commit/59bf55d14350badcd5a2043bfa321facd37f20a9))
+
+
+
 ## [0.33.1](https://github.com/sygeman/exodus/compare/v0.33.0...v0.33.1) (2026-04-17)
 
 
@@ -38,15 +48,6 @@
 ### Bug Fixes
 
 * disable text selection in sidebar and top menu except version badge ([9b13fc1](https://github.com/sygeman/exodus/commit/9b13fc132328d8ddf0bce406dc0678eb7196d28e))
-
-
-
-## [0.31.1](https://github.com/sygeman/exodus/compare/v0.31.0...v0.31.1) (2026-04-17)
-
-
-### Bug Fixes
-
-* restrict window drag to sidebar and top menu empty areas ([d2f417d](https://github.com/sygeman/exodus/commit/d2f417dec36a8bcff0640f2724661034b15c0807))
 
 
 
