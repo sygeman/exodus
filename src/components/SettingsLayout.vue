@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import MenuLayout, { type MenuLayoutItem } from "@/core/components/MenuLayout.vue"
+import MenuLayout, { type MenuLayoutItem } from "@/components/MenuLayout.vue"
 
 defineProps<{
   title: string

@@ -2,8 +2,8 @@
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRoute } from "vue-router"
-import SettingsLayout from "@/core/components/SettingsLayout.vue"
-import type { MenuLayoutItem } from "@/core/components/MenuLayout.vue"
+import SettingsLayout from "@/components/SettingsLayout.vue"
+import type { MenuLayoutItem } from "@/components/MenuLayout.vue"
 
 const { t } = useI18n()
 const route = useRoute()

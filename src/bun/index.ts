@@ -4,7 +4,7 @@ import { initUpdater } from "@/modules/updater/bun"
 import { initSchema } from "@/modules/schema/bun"
 import { initProjects } from "@/modules/projects/bun"
 import { bunLogger } from "@/modules/logger/bun"
-import { initAppState } from "@/modules/app-state/bun"
+import { initAppState, readState } from "@/modules/app-state/bun"
 import { globalRegistry } from "@/events"
 
 const DEV_SERVER_PORT = 5173
@@ -34,17 +34,27 @@ const { evento, rpc } = createEventoBun()
 
 evento.register(globalRegistry)
 
-const { webview } = new BrowserWindow({
+const savedState = readState()
+const defaultFrame = { width: 1200, height: 800, x: 0, y: 0 }
+const frame = savedState.windowFrame ?? defaultFrame
+
+const win = new BrowserWindow({
   title: "Exodus",
   url,
   titleBarStyle: "hiddenInset",
-  frame: { width: 1200, height: 800, x: 0, y: 0 },
+  frame,
   rpc,
 })
 
+if (savedState.windowMaximized) {
+  win.maximize()
+}
+
+const { webview } = win
+
 evento.sender = webview.rpc?.send?.emit
 
-initAppState(evento, (name, payload) => {
+initAppState(evento, win, (name, payload) => {
   evento.emitEvent(name, payload, "app:init")
 })
 

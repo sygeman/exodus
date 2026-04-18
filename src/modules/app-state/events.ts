@@ -14,6 +14,15 @@ export const appStateRegistry = createRegistry("app-state", {
       dismissed_update_version: z.string().nullable(),
       locale: z.string().nullable(),
       theme: z.enum(["dark", "light"]).nullable(),
+      window_frame: z
+        .object({
+          x: z.number(),
+          y: z.number(),
+          width: z.number(),
+          height: z.number(),
+        })
+        .nullable(),
+      window_maximized: z.boolean().nullable(),
     }),
   },
   "save-settings": {
@@ -38,6 +47,8 @@ export type AppStateEventMap = {
     dismissed_update_version: string | null
     locale: string | null
     theme: "dark" | "light" | null
+    window_frame: { x: number; y: number; width: number; height: number } | null
+    window_maximized: boolean | null
   }
   "app-state:save-settings": { locale?: string; theme?: "dark" | "light" }
   "app-state:dismiss-update": { version: string }

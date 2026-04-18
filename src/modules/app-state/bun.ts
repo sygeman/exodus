@@ -1,24 +1,45 @@
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs"
 import { join, dirname } from "path"
-import { Utils } from "electrobun/bun"
+import { Utils, type BrowserWindow } from "electrobun/bun"
 import type { EventoBun } from "@/bun/evento"
 
 const STATE_FILE = join(Utils.paths.userData, "app-state.json")
+
+interface WindowFrame {
+  x: number
+  y: number
+  width: number
+  height: number
+}
 
 interface AppState {
   lastRoute?: { hash: string }
   dismissedUpdate?: { version: string }
   locale?: string
   theme?: "dark" | "light"
+  windowFrame?: WindowFrame
+  windowMaximized?: boolean
 }
 
-function readState(): AppState {
+export function readState(): AppState {
   try {
     if (!existsSync(STATE_FILE)) return {}
     return JSON.parse(readFileSync(STATE_FILE, "utf-8")) as AppState
   } catch {
     return {}
   }
+}
+
+function saveWindowFrame(frame: WindowFrame) {
+  const state = readState()
+  state.windowFrame = frame
+  writeState(state)
+}
+
+function saveWindowMaximized(maximized: boolean) {
+  const state = readState()
+  state.windowMaximized = maximized
+  writeState(state)
 }
 
 function writeState(state: AppState) {
@@ -77,7 +98,11 @@ function getSystemTheme(): "dark" | "light" {
   return "light"
 }
 
-export function initAppState(evento: EventoBun, sender: (name: string, payload: unknown) => void) {
+export function initAppState(
+  evento: EventoBun,
+  win: BrowserWindow,
+  sender: (name: string, payload: unknown) => void,
+) {
   evento.on("app-state:route-changed", (ctx) => {
     const state = readState()
     state.lastRoute = { hash: ctx.payload.hash }
@@ -93,6 +118,8 @@ export function initAppState(evento: EventoBun, sender: (name: string, payload: 
       dismissed_update_version: state.dismissedUpdate?.version ?? null,
       locale: state.locale ?? systemLocale,
       theme: state.theme ?? systemTheme,
+      window_frame: state.windowFrame ?? null,
+      window_maximized: state.windowMaximized ?? null,
     })
   })
 
@@ -117,5 +144,40 @@ export function initAppState(evento: EventoBun, sender: (name: string, payload: 
     const state = readState()
     delete state.dismissedUpdate
     writeState(state)
+  })
+
+  let debounceTimer: ReturnType<typeof setTimeout> | null = null
+
+  function debouncedSaveWindowFrame(data: WindowFrame) {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer)
+    }
+    debounceTimer = setTimeout(() => {
+      saveWindowFrame(data)
+    }, 300)
+  }
+
+  win.on("resize", (event: unknown) => {
+    const e = event as { data?: { x: number; y: number; width: number; height: number } }
+    if (e.data) {
+      debouncedSaveWindowFrame(e.data)
+    }
+  })
+
+  win.on("move", (event: unknown) => {
+    const e = event as { data?: { x: number; y: number } }
+    if (e.data) {
+      const currentFrame = win.getFrame()
+      debouncedSaveWindowFrame(currentFrame)
+    }
+  })
+
+  win.on("close", () => {
+    if (debounceTimer) {
+      clearTimeout(debounceTimer)
+    }
+    const currentFrame = win.getFrame()
+    saveWindowFrame(currentFrame)
+    saveWindowMaximized(win.isMaximized())
   })
 }

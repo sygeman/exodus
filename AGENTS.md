@@ -75,10 +75,10 @@ BREAKING CHANGE: old settings schema is no longer supported"
 ## Module Boundaries
 
 - **Modules must not import from each other.** Each module is self-contained.
-- If multiple modules need the same code, extract it to `src/core/` or `src/composables/`.
+- If multiple modules need the same code, extract it to `src/components/` or `src/composables/`.
 - Allowed imports inside a module:
   - Within the same module (`./`, `../` inside `src/modules/<name>/`)
-  - From `src/core/`
+  - From `src/components/`
   - From `src/composables/`
   - From third-party packages
 - Forbidden imports inside a module:

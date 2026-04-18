@@ -3,8 +3,8 @@ import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 import { useProjects } from "@/modules/projects/webview"
 import { computed, ref } from "vue"
-import SettingsLayout from "@/core/components/SettingsLayout.vue"
-import type { MenuLayoutItem } from "@/core/components/MenuLayout.vue"
+import SettingsLayout from "@/components/SettingsLayout.vue"
+import type { MenuLayoutItem } from "@/components/MenuLayout.vue"
 import { PROJECT_COLORS } from "@/modules/projects/constants"
 
 const { t } = useI18n()

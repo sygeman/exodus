@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
-import MenuLayout, { type MenuLayoutItem } from "@/core/components/MenuLayout.vue"
+import MenuLayout, { type MenuLayoutItem } from "@/components/MenuLayout.vue"
 
 const { t } = useI18n()
 
