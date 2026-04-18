@@ -4,7 +4,7 @@ import { useI18n } from "vue-i18n"
 import { useUpdaterStatus } from "@/modules/updater/composables/useUpdaterStatus"
 
 const { t } = useI18n()
-const { updateStatus, latestVersion } = useUpdaterStatus()
+const { updateStatus } = useUpdaterStatus()
 
 const isUpdating = computed(
   () => updateStatus.value === "downloading" || updateStatus.value === "applying",
@@ -48,14 +48,9 @@ const statusText = computed(() => {
         </div>
 
         <!-- Заголовок -->
-        <h2 class="mb-2 text-xl font-semibold text-[var(--ui-text)]">
+        <h2 class="mb-6 text-xl font-semibold text-[var(--ui-text)]">
           {{ t("updater.updateInProgress") }}
         </h2>
-
-        <!-- Описание версии -->
-        <p class="mb-6 text-sm text-[var(--ui-text-muted)]">
-          {{ t("updater.updateInProgressDescription", { version: latestVersion }) }}
-        </p>
 
         <!-- Статус с индикатором -->
         <div class="flex items-center gap-3">
