@@ -21,6 +21,7 @@ jobs:
       version: ${{ steps.changelog.outputs.version }}
       release_notes: ${{ steps.changelog.outputs.clean_changelog }}
       tag: ${{ steps.changelog.outputs.tag }}
+      bumped: ${{ steps.check-bump.outputs.bumped }}
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -41,10 +42,20 @@ jobs:
           skip-git-pull: true
           create-summary: true
 
+      - name: Check if version was bumped
+        id: check-bump
+        run: |
+          TAG="v${{ steps.changelog.outputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+          fi
+
   build-macos:
     name: Build macOS
     needs: changelog
-    if: needs.changelog.outputs.version != '' || github.event_name == 'workflow_dispatch'
+    if: needs.changelog.outputs.bumped == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: macos-14
     steps:
       - name: Checkout
@@ -99,7 +110,7 @@ jobs:
   build-linux:
     name: Build Linux
     needs: changelog
-    if: needs.changelog.outputs.version != '' || github.event_name == 'workflow_dispatch'
+    if: needs.changelog.outputs.bumped == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -157,7 +168,7 @@ jobs:
   release:
     name: Create Release
     needs: [changelog, build-macos, build-linux]
-    if: needs.changelog.outputs.version != '' || github.event_name == 'workflow_dispatch'
+    if: needs.changelog.outputs.bumped == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - name: Download macOS artifacts
