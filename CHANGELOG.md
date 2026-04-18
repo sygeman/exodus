@@ -1,3 +1,12 @@
+## [0.36.3](https://github.com/sygeman/exodus/compare/v0.36.2...v0.36.3) (2026-04-18)
+
+
+### Bug Fixes
+
+* enable CEF bundling for Linux to resolve rendering issues ([8f1426f](https://github.com/sygeman/exodus/commit/8f1426f9e61255d8d8ad141c1d66bf383997ed0f))
+
+
+
 ## [0.36.2](https://github.com/sygeman/exodus/compare/v0.36.1...v0.36.2) (2026-04-18)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * add ideas management to projects ([8bd3a64](https://github.com/sygeman/exodus/commit/8bd3a640d94caad7c349af8b63c6968874303f9c))
-
-
-
-## [0.34.2](https://github.com/sygeman/exodus/compare/v0.34.1...v0.34.2) (2026-04-18)
-
-
-### Bug Fixes
-
-* remove empty version label from update overlay ([d1d175a](https://github.com/sygeman/exodus/commit/d1d175ac5e616ac4cab8bd8340fd4aeda5c93df6))
 
 
 
