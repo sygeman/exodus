@@ -1,6 +1,10 @@
 Exodus enables product evolution through controlled iterations, where user intent stabilizes, decisions centralize, execution isolates, and state remains consistent without degradation between steps.
 
 <p align="center">
+  <img src="exodus.png" alt="Exodus Screenshot" width="800">
+</p>
+
+<p align="center">
   <a href="https://github.com/sygeman/exodus/releases/latest/download/stable-macos-arm64-Exodus.dmg">
     <img src="https://img.shields.io/badge/Download-macOS%20(Apple%20Silicon)-000000?logo=apple" alt="Download for macOS">
   </a>
