@@ -1,3 +1,12 @@
+# [0.35.0](https://github.com/sygeman/exodus/compare/v0.34.2...v0.35.0) (2026-04-18)
+
+
+### Features
+
+* add ideas management to projects ([8bd3a64](https://github.com/sygeman/exodus/commit/8bd3a640d94caad7c349af8b63c6968874303f9c))
+
+
+
 ## [0.34.2](https://github.com/sygeman/exodus/compare/v0.34.1...v0.34.2) (2026-04-18)
 
 
@@ -32,21 +41,6 @@
 ### Bug Fixes
 
 * skip missing platform files in patch-electrobun script ([f7e79cd](https://github.com/sygeman/exodus/commit/f7e79cd88d6cb2a48645b65ea738f61bd3bc929f))
-
-
-
-# [0.33.0](https://github.com/sygeman/exodus/compare/v0.32.0...v0.33.0) (2026-04-17)
-
-
-### Bug Fixes
-
-* ignore non-left-clicks on drag regions and guard stopWindowMove with isDragging flag ([13f9d09](https://github.com/sygeman/exodus/commit/13f9d09075ba79aef22ac35908e634e800a568b9))
-
-
-### Features
-
-* add context menu to project items in sidebar ([d904f02](https://github.com/sygeman/exodus/commit/d904f02fc71978f8d7ac0eab1b614f2adf51e1da))
-* improve sidebar styling and scroll behavior ([8ab3c13](https://github.com/sygeman/exodus/commit/8ab3c13b47bb71bcf2a985dccf17986e67855a7d))
 
 
 
