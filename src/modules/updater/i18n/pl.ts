@@ -20,5 +20,7 @@ export default {
     install: "Zainstaluj",
     check: "Sprawdź",
     updateTo: "Zaktualizuj do",
+    updateInProgress: "Aktualizowanie aplikacji",
+    updateInProgressDescription: "Instalowanie wersji {version}. Nie zamykaj aplikacji.",
   },
 }

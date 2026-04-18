@@ -20,5 +20,8 @@ export default {
     install: "Install",
     check: "Check",
     updateTo: "Update to",
+    updateInProgress: "Updating application",
+    updateInProgressDescription:
+      "Installing version {version}. Please do not close the application.",
   },
 }

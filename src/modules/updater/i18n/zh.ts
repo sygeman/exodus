@@ -20,5 +20,7 @@ export default {
     install: "安装",
     check: "检查",
     updateTo: "更新至",
+    updateInProgress: "正在更新应用",
+    updateInProgressDescription: "正在安装版本 {version}。请勿关闭应用。",
   },
 }

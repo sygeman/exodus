@@ -20,5 +20,8 @@ export default {
     install: "Обновить",
     check: "Проверить",
     updateTo: "Обновить до",
+    updateInProgress: "Обновление приложения",
+    updateInProgressDescription:
+      "Установка версии {version}. Пожалуйста, не закрывайте приложение.",
   },
 }
