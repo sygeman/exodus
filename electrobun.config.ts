@@ -44,7 +44,7 @@ export default {
       icons: "assets/icon.iconset",
     },
     linux: {
-      bundleCEF: false,
+      bundleCEF: true,
       icon: "assets/linux/icon_256x256.png",
     },
   },
