@@ -1,11 +1,16 @@
 import type { EventoBun } from "@/bun/evento"
-import { projectsRegistry, type Project } from "@/modules/projects/events"
+import { projectsRegistry, ideasRegistry, type Project, type Idea } from "@/modules/projects/events"
 import {
   migrate,
   listProjects,
   createProject,
   updateProject,
   deleteProject,
+  listIdeas,
+  getIdeaById,
+  createIdea,
+  updateIdea,
+  deleteIdea,
 } from "@/modules/projects/db"
 import { PROJECT_COLORS } from "@/modules/projects/constants"
 
@@ -55,6 +60,55 @@ export function initProjects(evento: EventoBun) {
       evento.emitEvent("projects:deleted", { id: ctx.payload.id }, "bun")
     } catch (err) {
       console.error("[projects] delete failed:", err)
+    }
+  })
+
+  evento.register(ideasRegistry)
+
+  evento.handle("ideas:list", (ctx) => {
+    return { ideas: listIdeas(ctx.payload.project_id) }
+  })
+
+  evento.on("ideas:create", (ctx) => {
+    const now = Date.now()
+    const idea: Idea = {
+      id: crypto.randomUUID(),
+      project_id: ctx.payload.project_id,
+      title: ctx.payload.title,
+      description: ctx.payload.description,
+      level: ctx.payload.level,
+      type: ctx.payload.type,
+      status: "draft",
+      created_at: now,
+      updated_at: now,
+    }
+    try {
+      createIdea(idea)
+      evento.emitEvent("ideas:created", idea, "bun")
+    } catch (err) {
+      console.error("[ideas] create failed:", err)
+    }
+  })
+
+  evento.on("ideas:update", (ctx) => {
+    const { id, ...data } = ctx.payload
+    try {
+      updateIdea(id, data)
+      const updated = getIdeaById(id)
+      if (updated) {
+        evento.emitEvent("ideas:updated", updated, "bun")
+      }
+    } catch (err) {
+      console.error("[ideas] update failed:", err)
+    }
+  })
+
+  evento.on("ideas:delete", (ctx) => {
+    try {
+      deleteIdea(ctx.payload.id)
+      evento.emitEvent("ideas:deleted", { id: ctx.payload.id }, "bun")
+    } catch (err) {
+      console.error("[ideas] delete failed:", err)
     }
   })
 }

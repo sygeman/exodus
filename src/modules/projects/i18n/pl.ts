@@ -1,4 +1,4 @@
-import { projectsEvents } from "./events/pl"
+import { projectsEvents, ideasEvents } from "./events/pl"
 
 export default {
   common: {
@@ -6,6 +6,7 @@ export default {
     save: "Zapisz",
     delete: "Usuń",
     cancel: "Anuluj",
+    create: "Utwórz",
   },
   projects: {
     title: "Projekty",
@@ -15,9 +16,9 @@ export default {
     backToList: "Wróć do projektów",
     settingsTitle: "Ustawienia projektu",
     overview: "Przegląd",
+    ideas: "Pomysły",
     general: "Ogólne",
-    emptyBoard: "Tablica jest pusta",
-    emptyBoardDescription: "Zawartość projektu pojawi się tu wkrótce.",
+    recentIdeas: "Ostatnie pomysły",
     name: "Nazwa",
     nameDescription: "Nazwa projektu jest wyświetlana na liście i w panelu bocznym.",
     color: "Kolor",
@@ -29,8 +30,36 @@ export default {
       "Tej akcji nie można cofnąć. Wszystkie dane projektu zostaną trwale usunięte.",
     deleteConfirmTitle: "Usunąć projekt?",
     deleteConfirmDescription: "Czy na pewno chcesz usunąć ten projekt? Tej akcji nie można cofnąć.",
+    // Ideas
+    newIdea: "Nowy pomysł",
+    newIdeaTitle: "Nowy pomysł",
+    editIdeaTitle: "Edytuj pomysł",
+    ideaTitle: "Tytuł",
+    ideaTitlePlaceholder: "Tytuł pomysłu",
+    ideaDescription: "Opis",
+    ideaDescriptionPlaceholder: "Opis pomysłu (opcjonalnie)",
+    ideaLevel: "Poziom",
+    ideaType: "Typ",
+    ideaStatus: "Status",
+    levelNone: "Brak poziomu",
+    typeNone: "Brak typu",
+    allStatuses: "Wszystkie statusy",
+    allLevels: "Wszystkie poziomy",
+    statusDraft: "Szkic",
+    statusStabilized: "Stabilizowany",
+    emptyIdeas: "Brak pomysłów",
+    emptyIdeasDescription: "Utwórz swój pierwszy pomysł dla tego projektu.",
+    createFirstIdea: "Utwórz pierwszy pomysł",
+    noFilteredIdeas: "Brak pomysłów pasujących do wybranych filtrów",
+    ideaNotFound: "Pomysł nie znaleziony",
+    backToIdeas: "Wróć do pomysłów",
+    ideaTitleRequired: "Tytuł jest wymagany",
+    deleteIdeaConfirmTitle: "Usunąć pomysł?",
+    deleteIdeaConfirmDescription:
+      "Czy na pewno chcesz usunąć ten pomysł? Tej akcji nie można cofnąć.",
   },
   events: {
     projects: projectsEvents,
+    ideas: ideasEvents,
   },
 }

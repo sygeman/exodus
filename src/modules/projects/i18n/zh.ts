@@ -1,4 +1,4 @@
-import { projectsEvents } from "./events/zh"
+import { projectsEvents, ideasEvents } from "./events/zh"
 
 export default {
   common: {
@@ -6,6 +6,7 @@ export default {
     save: "保存",
     delete: "删除",
     cancel: "取消",
+    create: "创建",
   },
   projects: {
     title: "项目",
@@ -15,9 +16,9 @@ export default {
     backToList: "返回项目列表",
     settingsTitle: "项目设置",
     overview: "概览",
+    ideas: "想法",
     general: "通用",
-    emptyBoard: "看板为空",
-    emptyBoardDescription: "项目内容将很快显示在这里。",
+    recentIdeas: "最近的想法",
     name: "名称",
     nameDescription: "项目名称显示在列表和侧边栏中。",
     color: "颜色",
@@ -28,8 +29,35 @@ export default {
     deleteDescription: "此操作无法撤销。所有项目数据将被永久删除。",
     deleteConfirmTitle: "删除项目？",
     deleteConfirmDescription: "您确定要删除此项目吗？此操作无法撤销。",
+    // Ideas
+    newIdea: "新想法",
+    newIdeaTitle: "新想法",
+    editIdeaTitle: "编辑想法",
+    ideaTitle: "标题",
+    ideaTitlePlaceholder: "想法标题",
+    ideaDescription: "描述",
+    ideaDescriptionPlaceholder: "想法描述（可选）",
+    ideaLevel: "级别",
+    ideaType: "类型",
+    ideaStatus: "状态",
+    levelNone: "无级别",
+    typeNone: "无类型",
+    allStatuses: "所有状态",
+    allLevels: "所有级别",
+    statusDraft: "草稿",
+    statusStabilized: "已稳定",
+    emptyIdeas: "还没有想法",
+    emptyIdeasDescription: "为此项目创建您的第一个想法。",
+    createFirstIdea: "创建第一个想法",
+    noFilteredIdeas: "没有符合所选过滤条件的想法",
+    ideaNotFound: "想法未找到",
+    backToIdeas: "返回想法列表",
+    ideaTitleRequired: "标题必填",
+    deleteIdeaConfirmTitle: "删除想法？",
+    deleteIdeaConfirmDescription: "您确定要删除此想法吗？此操作无法撤销。",
   },
   events: {
     projects: projectsEvents,
+    ideas: ideasEvents,
   },
 }

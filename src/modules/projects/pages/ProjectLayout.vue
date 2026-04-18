@@ -18,6 +18,11 @@ const tabs = computed(() => [
     icon: "i-lucide-layout-grid",
   },
   {
+    to: `/project/${projectId.value}/ideas`,
+    label: t("projects.ideas"),
+    icon: "i-lucide-lightbulb",
+  },
+  {
     to: `/project/${projectId.value}/settings`,
     label: t("common.settings"),
     icon: "i-lucide-settings",
@@ -44,8 +49,10 @@ const tabs = computed(() => [
           :to="tab.to"
           class="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
           :class="{
-            'text-[var(--ui-primary)]': route.path === tab.to,
-            'text-[var(--ui-text-muted)] hover:text-[var(--ui-text)]': route.path !== tab.to,
+            'text-[var(--ui-primary)]': route.path.startsWith(tab.to),
+            'text-[var(--ui-text-muted)] hover:text-[var(--ui-text)]': !route.path.startsWith(
+              tab.to,
+            ),
           }"
         >
           <UIcon :name="tab.icon" class="h-4 w-4" />

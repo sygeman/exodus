@@ -1,4 +1,4 @@
-import { projectsEvents } from "./events/en"
+import { projectsEvents, ideasEvents } from "./events/en"
 
 export default {
   common: {
@@ -6,6 +6,7 @@ export default {
     save: "Save",
     delete: "Delete",
     cancel: "Cancel",
+    create: "Create",
   },
   projects: {
     title: "Projects",
@@ -15,9 +16,9 @@ export default {
     backToList: "Back to projects",
     settingsTitle: "Project Settings",
     overview: "Overview",
+    ideas: "Ideas",
     general: "General",
-    emptyBoard: "Board is empty",
-    emptyBoardDescription: "Project content will appear here soon.",
+    recentIdeas: "Recent ideas",
     name: "Name",
     nameDescription: "Project name is displayed in the list and sidebar.",
     color: "Color",
@@ -32,8 +33,36 @@ export default {
     deleteConfirmTitle: "Delete project?",
     deleteConfirmDescription:
       "Are you sure you want to delete this project? This action cannot be undone.",
+    // Ideas
+    newIdea: "New Idea",
+    newIdeaTitle: "New Idea",
+    editIdeaTitle: "Edit Idea",
+    ideaTitle: "Title",
+    ideaTitlePlaceholder: "Idea title",
+    ideaDescription: "Description",
+    ideaDescriptionPlaceholder: "Idea description (optional)",
+    ideaLevel: "Level",
+    ideaType: "Type",
+    ideaStatus: "Status",
+    levelNone: "No level",
+    typeNone: "No type",
+    allStatuses: "All statuses",
+    allLevels: "All levels",
+    statusDraft: "Draft",
+    statusStabilized: "Stabilized",
+    emptyIdeas: "No ideas yet",
+    emptyIdeasDescription: "Create your first idea for this project.",
+    createFirstIdea: "Create first idea",
+    noFilteredIdeas: "No ideas match the selected filters",
+    ideaNotFound: "Idea not found",
+    backToIdeas: "Back to ideas",
+    ideaTitleRequired: "Title is required",
+    deleteIdeaConfirmTitle: "Delete idea?",
+    deleteIdeaConfirmDescription:
+      "Are you sure you want to delete this idea? This action cannot be undone.",
   },
   events: {
     projects: projectsEvents,
+    ideas: ideasEvents,
   },
 }

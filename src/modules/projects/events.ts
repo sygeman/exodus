@@ -10,6 +10,20 @@ export const ProjectSchema = z.object({
 
 export type Project = z.infer<typeof ProjectSchema>
 
+export const IdeaSchema = z.object({
+  id: z.string(),
+  project_id: z.string(),
+  title: z.string(),
+  description: z.string().nullable().optional(),
+  level: z.string().nullable().optional(),
+  type: z.string().nullable().optional(),
+  status: z.string(),
+  created_at: z.number(),
+  updated_at: z.number(),
+})
+
+export type Idea = z.infer<typeof IdeaSchema>
+
 export const projectsRegistry = createRegistry("projects", {
   list: {
     schema: z.void(),
@@ -42,6 +56,44 @@ export const projectsRegistry = createRegistry("projects", {
   },
 })
 
+export const ideasRegistry = createRegistry("ideas", {
+  list: {
+    schema: z.object({ project_id: z.string() }),
+    response: z.object({ ideas: z.array(IdeaSchema) }),
+  },
+  create: {
+    schema: z.object({
+      project_id: z.string(),
+      title: z.string(),
+      description: z.string().optional(),
+      level: z.string().optional(),
+      type: z.string().optional(),
+    }),
+  },
+  update: {
+    schema: z.object({
+      id: z.string(),
+      title: z.string().optional(),
+      description: z.string().nullable().optional(),
+      level: z.string().nullable().optional(),
+      type: z.string().nullable().optional(),
+      status: z.string().optional(),
+    }),
+  },
+  delete: {
+    schema: z.object({ id: z.string() }),
+  },
+  created: {
+    schema: IdeaSchema,
+  },
+  updated: {
+    schema: IdeaSchema,
+  },
+  deleted: {
+    schema: z.object({ id: z.string() }),
+  },
+})
+
 export type ProjectsEventMap = {
   "projects:list": void
   "projects:list:response": { projects: Project[] }
@@ -51,4 +103,26 @@ export type ProjectsEventMap = {
   "projects:created": Project
   "projects:updated": Project
   "projects:deleted": { id: string }
+
+  "ideas:list": { project_id: string }
+  "ideas:list:response": { ideas: Idea[] }
+  "ideas:create": {
+    project_id: string
+    title: string
+    description?: string
+    level?: string
+    type?: string
+  }
+  "ideas:update": {
+    id: string
+    title?: string
+    description?: string
+    level?: string
+    type?: string
+    status?: string
+  }
+  "ideas:delete": { id: string }
+  "ideas:created": Idea
+  "ideas:updated": Idea
+  "ideas:deleted": { id: string }
 }

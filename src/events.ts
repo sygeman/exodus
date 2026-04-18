@@ -2,7 +2,7 @@ import { loggerRegistry, type LoggerEventMap } from "./modules/logger/events"
 import { updaterRegistry, type UpdaterEventMap } from "./modules/updater/events"
 import { schemaRegistry, type SchemaEventMap } from "./modules/schema/events"
 import { appStateRegistry, type AppStateEventMap } from "./modules/app-state/events"
-import { projectsRegistry, type ProjectsEventMap } from "./modules/projects/events"
+import { projectsRegistry, ideasRegistry, type ProjectsEventMap } from "./modules/projects/events"
 import type { EventoRegistry } from "./lib/evento/types"
 
 export type GlobalEventMap = LoggerEventMap &
@@ -17,4 +17,5 @@ export const globalRegistry: EventoRegistry = {
   ...schemaRegistry,
   ...appStateRegistry,
   ...projectsRegistry,
+  ...ideasRegistry,
 }

@@ -1,4 +1,4 @@
-import { projectsEvents } from "./events/de"
+import { projectsEvents, ideasEvents } from "./events/de"
 
 export default {
   common: {
@@ -6,6 +6,7 @@ export default {
     save: "Speichern",
     delete: "Löschen",
     cancel: "Abbrechen",
+    create: "Erstellen",
   },
   projects: {
     title: "Projekte",
@@ -15,9 +16,9 @@ export default {
     backToList: "Zurück zu Projekten",
     settingsTitle: "Projekteinstellungen",
     overview: "Übersicht",
+    ideas: "Ideen",
     general: "Allgemein",
-    emptyBoard: "Board ist leer",
-    emptyBoardDescription: "Projektinhalt wird bald hier erscheinen.",
+    recentIdeas: "Neueste Ideen",
     name: "Name",
     nameDescription: "Der Projektname wird in der Liste und in der Seitenleiste angezeigt.",
     color: "Farbe",
@@ -30,8 +31,36 @@ export default {
     deleteConfirmTitle: "Projekt löschen?",
     deleteConfirmDescription:
       "Sind Sie sicher, dass Sie dieses Projekt löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
+    // Ideas
+    newIdea: "Neue Idee",
+    newIdeaTitle: "Neue Idee",
+    editIdeaTitle: "Idee bearbeiten",
+    ideaTitle: "Titel",
+    ideaTitlePlaceholder: "Idee Titel",
+    ideaDescription: "Beschreibung",
+    ideaDescriptionPlaceholder: "Ideenbeschreibung (optional)",
+    ideaLevel: "Ebene",
+    ideaType: "Typ",
+    ideaStatus: "Status",
+    levelNone: "Keine Ebene",
+    typeNone: "Kein Typ",
+    allStatuses: "Alle Status",
+    allLevels: "Alle Ebenen",
+    statusDraft: "Entwurf",
+    statusStabilized: "Stabilisiert",
+    emptyIdeas: "Noch keine Ideen",
+    emptyIdeasDescription: "Erstellen Sie Ihre erste Idee für dieses Projekt.",
+    createFirstIdea: "Erste Idee erstellen",
+    noFilteredIdeas: "Keine Ideen entsprechen den ausgewählten Filtern",
+    ideaNotFound: "Idee nicht gefunden",
+    backToIdeas: "Zurück zu Ideen",
+    ideaTitleRequired: "Titel ist erforderlich",
+    deleteIdeaConfirmTitle: "Idee löschen?",
+    deleteIdeaConfirmDescription:
+      "Sind Sie sicher, dass Sie diese Idee löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.",
   },
   events: {
     projects: projectsEvents,
+    ideas: ideasEvents,
   },
 }

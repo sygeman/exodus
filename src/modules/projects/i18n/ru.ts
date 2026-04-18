@@ -1,4 +1,4 @@
-import { projectsEvents } from "./events/ru"
+import { projectsEvents, ideasEvents } from "./events/ru"
 
 export default {
   common: {
@@ -6,6 +6,7 @@ export default {
     save: "Сохранить",
     delete: "Удалить",
     cancel: "Отмена",
+    create: "Создать",
   },
   projects: {
     title: "Проекты",
@@ -15,9 +16,9 @@ export default {
     backToList: "Назад к проектам",
     settingsTitle: "Настройки проекта",
     overview: "Обзор",
+    ideas: "Идеи",
     general: "Общие",
-    emptyBoard: "Доска пуста",
-    emptyBoardDescription: "Содержимое проекта появится здесь позже.",
+    recentIdeas: "Последние идеи",
     name: "Название",
     nameDescription: "Название проекта отображается в списке и боковом меню.",
     color: "Цвет",
@@ -32,8 +33,36 @@ export default {
     deleteConfirmTitle: "Удалить проект?",
     deleteConfirmDescription:
       "Вы уверены, что хотите удалить этот проект? Это действие необратимо.",
+    // Ideas
+    newIdea: "Новая идея",
+    newIdeaTitle: "Новая идея",
+    editIdeaTitle: "Редактировать идею",
+    ideaTitle: "Название",
+    ideaTitlePlaceholder: "Название идеи",
+    ideaDescription: "Описание",
+    ideaDescriptionPlaceholder: "Описание идеи (опционально)",
+    ideaLevel: "Уровень",
+    ideaType: "Тип",
+    ideaStatus: "Статус",
+    levelNone: "Без уровня",
+    typeNone: "Без типа",
+    allStatuses: "Все статусы",
+    allLevels: "Все уровни",
+    statusDraft: "Черновик",
+    statusStabilized: "Стабилизирована",
+    emptyIdeas: "Пока нет идей",
+    emptyIdeasDescription: "Создайте первую идею для этого проекта.",
+    createFirstIdea: "Создать первую идею",
+    noFilteredIdeas: "Нет идей по выбранным фильтрам",
+    ideaNotFound: "Идея не найдена",
+    backToIdeas: "Назад к идеям",
+    ideaTitleRequired: "Название обязательно",
+    deleteIdeaConfirmTitle: "Удалить идею?",
+    deleteIdeaConfirmDescription:
+      "Вы уверены, что хотите удалить эту идею? Это действие необратимо.",
   },
   events: {
     projects: projectsEvents,
+    ideas: ideasEvents,
   },
 }

@@ -8,3 +8,14 @@ export const projectsEvents = {
   updated: "Project updated",
   deleted: "Project deleted",
 }
+
+export const ideasEvents = {
+  list: "List all ideas for a project",
+  "list:response": "Ideas list response",
+  create: "Create a new idea",
+  update: "Update an idea",
+  delete: "Delete an idea",
+  created: "Idea created",
+  updated: "Idea updated",
+  deleted: "Idea deleted",
+}
