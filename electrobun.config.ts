@@ -45,6 +45,7 @@ export default {
     },
     linux: {
       bundleCEF: true,
+      defaultRenderer: "cef",
       icon: "assets/linux/icon_256x256.png",
     },
   },
