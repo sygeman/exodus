@@ -7,6 +7,19 @@ import { bunLogger } from "@/modules/logger/bun"
 import { initAppState, readState } from "@/modules/app-state/bun"
 import { globalRegistry } from "@/events"
 
+// Workaround for WebKitGTK + NVIDIA + Wayland rendering issue.
+// The DMA-BUF renderer fails to create GBM buffers on NVIDIA in Wayland
+// sessions, resulting in a blank webview. Disabling it forces the fallback
+// to the shared-memory renderer which works correctly.
+// See: https://bugs.webkit.org/show_bug.cgi?id=261874
+if (process.platform === "linux") {
+  const wayland = process.env.WAYLAND_DISPLAY || process.env.XDG_SESSION_TYPE === "wayland"
+  if (wayland && !process.env.WEBKIT_DISABLE_DMABUF_RENDERER) {
+    process.env.WEBKIT_DISABLE_DMABUF_RENDERER = "1"
+    console.log("[linux] Wayland detected: WEBKIT_DISABLE_DMABUF_RENDERER=1")
+  }
+}
+
 const DEV_SERVER_PORT = 5173
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`
 
