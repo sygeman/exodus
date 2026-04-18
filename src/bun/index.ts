@@ -79,12 +79,25 @@ ApplicationMenu.setApplicationMenu([
     label: "Window",
     submenu: [{ role: "minimize" }, { role: "close" }],
   },
+  {
+    label: "Developer",
+    submenu: [
+      {
+        label: "Toggle DevTools",
+        accelerator: "Cmd+Option+I",
+        action: "toggle-devtools",
+      },
+    ],
+  },
 ])
 
 ApplicationMenu.on("application-menu-clicked", (event) => {
   const menuEvent = event as { data?: { action?: string } }
   if (menuEvent.data?.action === "quit") {
     process.exit(0)
+  }
+  if (menuEvent.data?.action === "toggle-devtools") {
+    webview.toggleDevTools()
   }
 })
 
