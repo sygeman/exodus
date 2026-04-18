@@ -74,7 +74,7 @@ function getInitials(name: string): string {
       <RouterLink
         v-for="project in projects"
         :key="project.id"
-        :to="`/project/${project.id}/board`"
+        :to="`/project/${project.id}/overview`"
         class="flex items-center gap-4 rounded-lg border border-[var(--ui-border)] p-4 transition-colors hover:bg-[var(--ui-bg-elevated)]"
       >
         <div

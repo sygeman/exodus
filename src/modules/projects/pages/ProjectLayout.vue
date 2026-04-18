@@ -13,7 +13,7 @@ const project = computed(() => projects.value.find((p) => p.id === projectId.val
 
 const tabs = computed(() => [
   {
-    to: `/project/${projectId.value}/board`,
+    to: `/project/${projectId.value}/overview`,
     label: t("projects.overview"),
     icon: "i-lucide-layout-grid",
   },
@@ -31,7 +31,7 @@ const tabs = computed(() => [
       class="flex h-12 flex-shrink-0 items-center justify-between border-b border-[var(--ui-border)] px-6"
     >
       <RouterLink
-        :to="`/project/${projectId}/board`"
+        :to="`/project/${projectId}/overview`"
         class="text-lg font-semibold transition-colors hover:text-[var(--ui-primary)]"
       >
         {{ project.name }}

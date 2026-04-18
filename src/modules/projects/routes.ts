@@ -9,9 +9,9 @@ export const projectsRoutes: RouteRecordRaw[] = [
   {
     path: "/project/:id",
     component: ProjectLayout,
-    redirect: (to) => `/project/${to.params.id}/board`,
+    redirect: (to) => `/project/${to.params.id}/overview`,
     children: [
-      { path: "board", component: ProjectPage },
+      { path: "overview", component: ProjectPage },
       { path: "settings", component: ProjectSettingsPage },
     ],
   },

@@ -76,7 +76,7 @@ export function useProjects() {
         unsub()
         const idx = unsubscribers.indexOf(unsub)
         if (idx !== -1) unsubscribers.splice(idx, 1)
-        router.push(`/project/${ctx.payload.id}/board`)
+        router.push(`/project/${ctx.payload.id}/overview`)
         resolve()
       })
 

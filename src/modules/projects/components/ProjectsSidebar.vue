@@ -70,7 +70,7 @@ function getInitials(name: string): string {
     >
       <UTooltip :text="project.name" :content="tooltipContent" :delay-duration="0">
         <ULink
-          :to="`/project/${project.id}/board`"
+          :to="`/project/${project.id}/overview`"
           class="electrobun-webkit-app-region-no-drag bg-default/50 flex h-10 w-10 flex-shrink-0 cursor-pointer items-center justify-center rounded-lg font-semibold transition-all"
           :class="
             currentProjectId === project.id
