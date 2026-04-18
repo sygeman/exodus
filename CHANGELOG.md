@@ -1,3 +1,12 @@
+## [0.34.1](https://github.com/sygeman/exodus/compare/v0.34.0...v0.34.1) (2026-04-18)
+
+
+### Bug Fixes
+
+* disable native context menu to prevent drag region stuck ([3dd93c3](https://github.com/sygeman/exodus/commit/3dd93c3d30c06e17788515c60669ae37077f20f0))
+
+
+
 # [0.34.0](https://github.com/sygeman/exodus/compare/v0.33.1...v0.34.0) (2026-04-18)
 
 
@@ -39,15 +48,6 @@
 
 * add subtle shadow to main content area ([3a77e41](https://github.com/sygeman/exodus/commit/3a77e416d0bbbff46b7c74e3c239e2b334b21040))
 * move debug link from sidebar to top menu ([faaf117](https://github.com/sygeman/exodus/commit/faaf117226999002ccc9e872d6f3ce430128957d))
-
-
-
-## [0.31.2](https://github.com/sygeman/exodus/compare/v0.31.1...v0.31.2) (2026-04-17)
-
-
-### Bug Fixes
-
-* disable text selection in sidebar and top menu except version badge ([9b13fc1](https://github.com/sygeman/exodus/commit/9b13fc132328d8ddf0bce406dc0678eb7196d28e))
 
 
 
