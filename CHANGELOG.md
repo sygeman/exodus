@@ -1,3 +1,12 @@
+## [0.36.1](https://github.com/sygeman/exodus/compare/v0.36.0...v0.36.1) (2026-04-18)
+
+
+### Bug Fixes
+
+* disable WebKit DMA-BUF renderer on Linux Wayland to fix blank screen on NVIDIA ([b602fcd](https://github.com/sygeman/exodus/commit/b602fcd4bac6b29b4d1f118b9297286c6ea748d1))
+
+
+
 # [0.36.0](https://github.com/sygeman/exodus/compare/v0.35.0...v0.36.0) (2026-04-18)
 
 
@@ -31,16 +40,6 @@
 ### Bug Fixes
 
 * disable native context menu to prevent drag region stuck ([3dd93c3](https://github.com/sygeman/exodus/commit/3dd93c3d30c06e17788515c60669ae37077f20f0))
-
-
-
-# [0.34.0](https://github.com/sygeman/exodus/compare/v0.33.1...v0.34.0) (2026-04-18)
-
-
-### Features
-
-* add update progress overlay with i18n support ([e5f3538](https://github.com/sygeman/exodus/commit/e5f35384b8d79e92707d5f73eea6683235b2da5a))
-* persist window frame and maximized state across sessions ([59bf55d](https://github.com/sygeman/exodus/commit/59bf55d14350badcd5a2043bfa321facd37f20a9))
 
 
 
