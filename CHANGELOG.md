@@ -1,3 +1,12 @@
+## [0.36.2](https://github.com/sygeman/exodus/compare/v0.36.1...v0.36.2) (2026-04-18)
+
+
+### Bug Fixes
+
+* enable CEF bundling for Linux to resolve rendering issues ([69827ed](https://github.com/sygeman/exodus/commit/69827edd0679ae834de405d60a4166bada31ad90))
+
+
+
 ## [0.36.1](https://github.com/sygeman/exodus/compare/v0.36.0...v0.36.1) (2026-04-18)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * remove empty version label from update overlay ([d1d175a](https://github.com/sygeman/exodus/commit/d1d175ac5e616ac4cab8bd8340fd4aeda5c93df6))
-
-
-
-## [0.34.1](https://github.com/sygeman/exodus/compare/v0.34.0...v0.34.1) (2026-04-18)
-
-
-### Bug Fixes
-
-* disable native context menu to prevent drag region stuck ([3dd93c3](https://github.com/sygeman/exodus/commit/3dd93c3d30c06e17788515c60669ae37077f20f0))
 
 
 
