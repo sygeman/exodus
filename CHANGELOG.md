@@ -1,3 +1,12 @@
+# [0.36.0](https://github.com/sygeman/exodus/compare/v0.35.0...v0.36.0) (2026-04-18)
+
+
+### Features
+
+* move idea badges to header next to back button ([7215eae](https://github.com/sygeman/exodus/commit/7215eae6e530822e03b6cc04696a561975baf9a7))
+
+
+
 # [0.35.0](https://github.com/sygeman/exodus/compare/v0.34.2...v0.35.0) (2026-04-18)
 
 
@@ -32,15 +41,6 @@
 
 * add update progress overlay with i18n support ([e5f3538](https://github.com/sygeman/exodus/commit/e5f35384b8d79e92707d5f73eea6683235b2da5a))
 * persist window frame and maximized state across sessions ([59bf55d](https://github.com/sygeman/exodus/commit/59bf55d14350badcd5a2043bfa321facd37f20a9))
-
-
-
-## [0.33.1](https://github.com/sygeman/exodus/compare/v0.33.0...v0.33.1) (2026-04-17)
-
-
-### Bug Fixes
-
-* skip missing platform files in patch-electrobun script ([f7e79cd](https://github.com/sygeman/exodus/commit/f7e79cd88d6cb2a48645b65ea738f61bd3bc929f))
 
 
 
