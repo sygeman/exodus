@@ -124,9 +124,31 @@ const statusItems = [
     <div v-else class="flex flex-1 flex-col gap-6 overflow-y-auto">
       <!-- Top bar -->
       <div class="flex items-center justify-between border-b border-[var(--ui-border)] px-6 py-3">
-        <UButton :to="backLink" variant="ghost" size="sm" icon="i-lucide-arrow-left">
-          {{ t("projects.backToIdeas") }}
-        </UButton>
+        <div class="flex items-center gap-3">
+          <UButton :to="backLink" variant="ghost" size="sm" icon="i-lucide-arrow-left">
+            {{ t("projects.backToIdeas") }}
+          </UButton>
+          <div class="flex flex-wrap items-center gap-2">
+            <UBadge
+              :label="idea.level || t('projects.levelNone')"
+              color="neutral"
+              variant="subtle"
+              :style="{
+                backgroundColor: getLevelColor(idea.level) + '20',
+                color: getLevelColor(idea.level),
+              }"
+              class="text-xs font-semibold"
+            />
+            <UBadge v-if="idea.type" :label="idea.type" color="neutral" variant="soft" size="sm" />
+            <UBadge
+              v-if="idea.status === 'stabilized'"
+              :label="t('projects.statusStabilized')"
+              color="success"
+              variant="subtle"
+              size="sm"
+            />
+          </div>
+        </div>
         <UButton
           color="error"
           variant="ghost"
@@ -140,28 +162,6 @@ const statusItems = [
 
       <!-- Content -->
       <div class="flex flex-col gap-6 px-6 pb-6">
-        <!-- Badges -->
-        <div class="flex flex-wrap items-center gap-2">
-          <UBadge
-            :label="idea.level || t('projects.levelNone')"
-            color="neutral"
-            variant="subtle"
-            :style="{
-              backgroundColor: getLevelColor(idea.level) + '20',
-              color: getLevelColor(idea.level),
-            }"
-            class="text-xs font-semibold"
-          />
-          <UBadge v-if="idea.type" :label="idea.type" color="neutral" variant="soft" size="sm" />
-          <UBadge
-            v-if="idea.status === 'stabilized'"
-            :label="t('projects.statusStabilized')"
-            color="success"
-            variant="subtle"
-            size="sm"
-          />
-        </div>
-
         <!-- Title -->
         <UInput
           v-model="title"
