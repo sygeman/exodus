@@ -1,3 +1,12 @@
+## [0.37.6](https://github.com/sygeman/exodus/compare/v0.37.5...v0.37.6) (2026-04-19)
+
+
+### Bug Fixes
+
+* align Linux uninstall path with Electrobun updater location ([59ebb33](https://github.com/sygeman/exodus/commit/59ebb330130d12f47c85997bea482965c02450ad))
+
+
+
 ## [0.37.5](https://github.com/sygeman/exodus/compare/v0.37.4...v0.37.5) (2026-04-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * remove CEF sandbox references from Linux install script ([a231f66](https://github.com/sygeman/exodus/commit/a231f66a57d699adaab1ba82b8c7b78e7d0cd3a5))
-
-
-
-## [0.37.1](https://github.com/sygeman/exodus/compare/v0.37.0...v0.37.1) (2026-04-19)
-
-
-### Bug Fixes
-
-* switch linux stable build from CEF to WebKitGTK ([cb80e79](https://github.com/sygeman/exodus/commit/cb80e7960d5a6c90bc420a83c8ef4c3ccacc1d26)), closes [#1](https://github.com/sygeman/exodus/issues/1)
 
 
 
