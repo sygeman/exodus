@@ -1,3 +1,12 @@
+## [0.37.1](https://github.com/sygeman/exodus/compare/v0.37.0...v0.37.1) (2026-04-19)
+
+
+### Bug Fixes
+
+* switch linux stable build from CEF to WebKitGTK ([cb80e79](https://github.com/sygeman/exodus/commit/cb80e7960d5a6c90bc420a83c8ef4c3ccacc1d26)), closes [#1](https://github.com/sygeman/exodus/issues/1)
+
+
+
 # [0.37.0](https://github.com/sygeman/exodus/compare/v0.36.6...v0.37.0) (2026-04-19)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * set setuid bit on chrome-sandbox in linux install script ([84eb5f2](https://github.com/sygeman/exodus/commit/84eb5f273a9b8b1cecd40db4a8d468ad93311ea2))
-
-
-
-## [0.36.3](https://github.com/sygeman/exodus/compare/v0.36.2...v0.36.3) (2026-04-18)
-
-
-### Bug Fixes
-
-* enable CEF bundling for Linux to resolve rendering issues ([8f1426f](https://github.com/sygeman/exodus/commit/8f1426f9e61255d8d8ad141c1d66bf383997ed0f))
 
 
 
