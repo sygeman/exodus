@@ -34,7 +34,7 @@ jobs:
         uses: TriPSs/conventional-changelog-action@v6
         with:
           github-token: ${{ secrets.GITHUB_TOKEN }}
-          version-file: "./package.json"
+          version-file: "./apps/exodus/package.json"
           version-path: "version"
           skip-version-file: false
           skip-commit: false
@@ -80,7 +80,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json') }}
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json', 'apps/exodus/package.json') }}
 
       - name: Cache electrobun previous bundle
         uses: actions/cache@v5
@@ -95,10 +95,10 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build web
-        run: bun run build
+        run: cd apps/exodus && bun run build
 
       - name: Build app
-        run: bunx electrobun build --env=stable
+        run: cd apps/exodus && bunx electrobun build --env=stable
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -135,7 +135,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json') }}
+          key: ${{ runner.os }}-node-modules-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json', 'apps/exodus/package.json') }}
 
       - name: Cache electrobun previous bundle
         uses: actions/cache@v5
@@ -150,13 +150,13 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build web
-        run: bun run build
+        run: cd apps/exodus && bun run build
 
       - name: Build app
-        run: bunx electrobun build --env=stable
+        run: cd apps/exodus && bunx electrobun build --env=stable
 
       - name: Copy Linux installer script
-        run: cp scripts/install-linux.sh artifacts/install-linux.sh
+        run: cp apps/exodus/scripts/install-linux.sh artifacts/install-linux.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -185,7 +185,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: ~/.bun/install/cache
-          key: ${{ runner.os }}-arm64-bun-cache-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json') }}
+          key: ${{ runner.os }}-arm64-bun-cache-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json', 'apps/exodus/package.json') }}
           restore-keys: |
             ${{ runner.os }}-arm64-bun-cache-
 
@@ -193,7 +193,7 @@ jobs:
         uses: actions/cache@v5
         with:
           path: node_modules
-          key: ${{ runner.os }}-arm64-node-modules-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json') }}
+          key: ${{ runner.os }}-arm64-node-modules-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json', 'apps/exodus/package.json') }}
 
       - name: Cache electrobun previous bundle
         uses: actions/cache@v5
@@ -208,13 +208,13 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build web
-        run: bun run build
+        run: cd apps/exodus && bun run build
 
       - name: Build app
-        run: bunx electrobun build --env=stable
+        run: cd apps/exodus && bunx electrobun build --env=stable
 
       - name: Copy Linux installer script
-        run: cp scripts/install-linux.sh artifacts/install-linux.sh
+        run: cp apps/exodus/scripts/install-linux.sh artifacts/install-linux.sh
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
