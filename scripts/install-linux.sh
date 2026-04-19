@@ -39,36 +39,15 @@ TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 APP_NAME="Exodus"
-OPT_DIR="/opt/Exodus"
-APPLICATIONS_DIR="/usr/share/applications"
-
-# Find a bin directory that is in user's PATH
-BIN_DIR=""
-for dir in /usr/local/bin /usr/bin /bin; do
-  if echo "$PATH" | grep -q "$dir"; then
-    BIN_DIR="$dir"
-    break
-  fi
-done
-
-# Fallback if none found
-if [ -z "$BIN_DIR" ]; then
-  BIN_DIR="/usr/local/bin"
-fi
-
-BIN_SYMLINK="$BIN_DIR/exodus"
+APP_DIR="$HOME/.local/share/Exodus"
+APPLICATIONS_DIR="$HOME/.local/share/applications"
+BIN_DIR="$HOME/.local/bin"
 
 echo ""
-log_info "Exodus Linux Installer"
-log_info "======================"
+log_info "Exodus Linux Installer (User)"
+log_info "============================="
 log_info "Architecture: $ARCH ($ARCH_NAME)"
 echo ""
-
-# ── Root check ─────────────────────────────────────────────────────────────
-if [ "$EUID" -ne 0 ]; then
-  error_exit "This installer must be run as root (e.g. sudo $0)"
-fi
-log_ok "Running as root"
 
 # ── Pre-flight checks ──────────────────────────────────────────────────────
 log_info "Checking dependencies..."
@@ -82,6 +61,10 @@ if ! command -v curl &>/dev/null; then
   error_exit "curl is required but not installed"
 fi
 log_ok "curl found"
+
+# ── Ensure directories exist ───────────────────────────────────────────────
+mkdir -p "$APPLICATIONS_DIR"
+mkdir -p "$BIN_DIR"
 
 # ── Download ───────────────────────────────────────────────────────────────
 log_info "Downloading $TARBALL..."
@@ -115,25 +98,25 @@ fi
 log_ok "Archive extracted and validated"
 
 # ── Install ────────────────────────────────────────────────────────────────
-log_info "Installing to $OPT_DIR..."
+log_info "Installing to $APP_DIR..."
 
-if [ -d "$OPT_DIR" ]; then
-  rm -rf "$OPT_DIR"
+if [ -d "$APP_DIR" ]; then
+  rm -rf "$APP_DIR"
   log_info "Removed previous installation"
 fi
 
-mv "$TMP_DIR/$APP_NAME" "$OPT_DIR"
+mv "$TMP_DIR/$APP_NAME" "$APP_DIR"
 log_ok "Installed application files"
 
 # ── Permissions ────────────────────────────────────────────────────────────
 log_info "Setting permissions..."
 
-chmod +x "$OPT_DIR/bin/launcher"
+chmod +x "$APP_DIR/bin/launcher"
 log_ok "launcher is executable"
 
 # ── Icon ───────────────────────────────────────────────────────────────────
 ICON_PATH=""
-for path in "$OPT_DIR/Resources/appIcon.png" "$OPT_DIR/Resources/app/icon.png"; do
+for path in "$APP_DIR/Resources/appIcon.png" "$APP_DIR/Resources/app/icon.png"; do
   if [ -f "$path" ]; then
     ICON_PATH="$path"
     break
@@ -155,9 +138,9 @@ Version=1.0
 Type=Application
 Name=Exodus
 Comment=Exodus application
-Exec=$OPT_DIR/bin/launcher %u
-TryExec=$OPT_DIR/bin/launcher
-Icon=${ICON_PATH:-$OPT_DIR/Resources/appIcon.png}
+Exec=$APP_DIR/bin/launcher %u
+TryExec=$APP_DIR/bin/launcher
+Icon=${ICON_PATH:-$APP_DIR/Resources/appIcon.png}
 Terminal=false
 StartupWMClass=Exodus
 StartupNotify=true
@@ -170,15 +153,13 @@ log_ok "Desktop entry created at $APPLICATIONS_DIR/exodus.desktop"
 # ── Symlink ────────────────────────────────────────────────────────────────
 log_info "Creating command-line symlink..."
 
-ln -sf "$OPT_DIR/bin/launcher" "$BIN_SYMLINK"
+ln -sf "$APP_DIR/bin/launcher" "$BIN_DIR/exodus"
 
-if [ -L "$BIN_SYMLINK" ] && [ -x "$BIN_SYMLINK" ]; then
-  log_ok "Symlink: $BIN_SYMLINK -> $OPT_DIR/bin/launcher"
+if [ -L "$BIN_DIR/exodus" ] && [ -x "$BIN_DIR/exodus" ]; then
+  log_ok "Symlink: $BIN_DIR/exodus -> $APP_DIR/bin/launcher"
 else
   log_warn "Symlink created but may not be accessible"
 fi
-
-
 
 # ── Update desktop database ────────────────────────────────────────────────
 if command -v update-desktop-database &>/dev/null; then
@@ -193,7 +174,7 @@ fi
 echo ""
 log_info "Running post-install validation..."
 
-if file "$OPT_DIR/bin/launcher" | grep -q "ELF"; then
+if file "$APP_DIR/bin/launcher" | grep -q "ELF"; then
   log_ok "Launcher is a valid ELF binary"
 else
   log_warn "Launcher may have issues (not a valid ELF binary)"
@@ -201,7 +182,7 @@ fi
 
 MISSING_LIBS=0
 for lib in libNativeWrapper.so libasar.so; do
-  if [ ! -f "$OPT_DIR/bin/$lib" ]; then
+  if [ ! -f "$APP_DIR/bin/$lib" ]; then
     log_warn "Missing library: $lib"
     MISSING_LIBS=$((MISSING_LIBS + 1))
   fi
@@ -212,7 +193,7 @@ if [ $MISSING_LIBS -eq 0 ]; then
 fi
 
 if command -v ldd &>/dev/null; then
-  MISSING_DEPS=$(ldd "$OPT_DIR/bin/launcher" 2>/dev/null | grep "not found" || true)
+  MISSING_DEPS=$(ldd "$APP_DIR/bin/launcher" 2>/dev/null | grep "not found" || true)
   if [ -n "$MISSING_DEPS" ]; then
     log_warn "Missing system dependencies:"
     echo "$MISSING_DEPS" | while read -r line; do
@@ -231,8 +212,9 @@ echo "  Run from terminal: ${BLUE}exodus${NC}"
 echo "  Or find it in your applications menu."
 echo ""
 
-if [ "$BIN_DIR" = "/usr/local/bin" ]; then
-  echo "  If 'exodus' command is not found, add to your shell config:"
-  echo "    ${YELLOW}export PATH=\"/usr/local/bin:\$PATH\"${NC}"
+if ! echo "$PATH" | grep -q "$BIN_DIR"; then
+  echo "  ${YELLOW}Warning:${NC} $BIN_DIR is not in your PATH."
+  echo "  Add to your shell config (e.g. ~/.bashrc or ~/.zshrc):"
+  echo "    ${YELLOW}export PATH=\"$BIN_DIR:\$PATH\"${NC}"
   echo ""
 fi
