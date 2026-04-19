@@ -39,7 +39,9 @@ TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
 APP_NAME="Exodus"
-APP_DIR="$HOME/.local/share/Exodus"
+# Install to the same path that Electrobun updater uses for auto-updates
+# identifier=exodus.sgmn.dev, channel=stable
+APP_DIR="$HOME/.local/share/exodus.sgmn.dev/stable/app"
 APPLICATIONS_DIR="$HOME/.local/share/applications"
 BIN_DIR="$HOME/.local/bin"
 
@@ -168,6 +170,14 @@ if command -v update-desktop-database &>/dev/null; then
   else
     log_warn "Failed to update desktop database"
   fi
+fi
+
+# ── Remove old installation ────────────────────────────────────────────────
+OLD_APP_DIR="$HOME/.local/share/Exodus"
+if [ -d "$OLD_APP_DIR" ] && [ "$OLD_APP_DIR" != "$APP_DIR" ]; then
+  log_info "Removing old installation from $OLD_APP_DIR..."
+  rm -rf "$OLD_APP_DIR"
+  log_ok "Old installation removed"
 fi
 
 # ── Post-install validation ────────────────────────────────────────────────
