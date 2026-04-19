@@ -1,3 +1,12 @@
+## [0.37.3](https://github.com/sygeman/exodus/compare/v0.37.2...v0.37.3) (2026-04-19)
+
+
+### Bug Fixes
+
+* remove root requirement from Linux uninstaller ([0b8e191](https://github.com/sygeman/exodus/commit/0b8e191dd9b4de5fea47886a9e42541135ac0b6a))
+
+
+
 ## [0.37.2](https://github.com/sygeman/exodus/compare/v0.37.1...v0.37.2) (2026-04-19)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * install to /opt/Exodus like Discord/VS Code ([1885979](https://github.com/sygeman/exodus/commit/1885979a7455afe28042a622f7d07844ae8b8cd2))
-
-
-
-## [0.36.5](https://github.com/sygeman/exodus/compare/v0.36.4...v0.36.5) (2026-04-19)
-
-
-### Bug Fixes
-
-* add validation and logging to linux install script ([906aebb](https://github.com/sygeman/exodus/commit/906aebb319825534726f35940bab59bf934c3f3e))
 
 
 
