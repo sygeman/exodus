@@ -12,6 +12,10 @@ import { globalRegistry } from "@/events"
 // sessions, resulting in a blank webview. Disabling it forces the fallback
 // to the shared-memory renderer which works correctly.
 // See: https://bugs.webkit.org/show_bug.cgi?id=261874
+//
+// NOTE: In production builds the launcher (main.js) sets this env var before
+// starting the GTK event loop, so this block is primarily a fallback for
+// dev mode where the app is run directly without the launcher.
 if (process.platform === "linux") {
   const wayland = process.env.WAYLAND_DISPLAY || process.env.XDG_SESSION_TYPE === "wayland"
   if (wayland && process.env.WEBKIT_DISABLE_DMABUF_RENDERER !== "1") {
