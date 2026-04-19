@@ -44,8 +44,8 @@ export default {
       icons: "assets/icon.iconset",
     },
     linux: {
-      bundleCEF: true,
-      defaultRenderer: "cef",
+      bundleCEF: false,
+      defaultRenderer: "webkit",
       icon: "assets/linux/icon_256x256.png",
     },
   },

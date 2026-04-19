@@ -30,7 +30,13 @@ export function readState(): AppState {
   }
 }
 
+const MIN_WINDOW_WIDTH = 400
+const MIN_WINDOW_HEIGHT = 300
+
 function saveWindowFrame(frame: WindowFrame) {
+  if (frame.width < MIN_WINDOW_WIDTH || frame.height < MIN_WINDOW_HEIGHT) {
+    return
+  }
   const state = readState()
   state.windowFrame = frame
   writeState(state)

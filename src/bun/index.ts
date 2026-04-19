@@ -14,7 +14,7 @@ import { globalRegistry } from "@/events"
 // See: https://bugs.webkit.org/show_bug.cgi?id=261874
 if (process.platform === "linux") {
   const wayland = process.env.WAYLAND_DISPLAY || process.env.XDG_SESSION_TYPE === "wayland"
-  if (wayland && !process.env.WEBKIT_DISABLE_DMABUF_RENDERER) {
+  if (wayland && process.env.WEBKIT_DISABLE_DMABUF_RENDERER !== "1") {
     process.env.WEBKIT_DISABLE_DMABUF_RENDERER = "1"
     console.log("[linux] Wayland detected: WEBKIT_DISABLE_DMABUF_RENDERER=1")
   }
