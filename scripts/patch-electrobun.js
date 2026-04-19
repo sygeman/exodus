@@ -1,35 +1,11 @@
 import { readFileSync, writeFileSync, existsSync } from "fs"
 import { join } from "path"
 
-/**
- * Patches electrobun's compiled preload script to fix drag region behavior.
- *
- * Problem:
- *   Electrobun's dragRegions.ts listens to mousedown/mouseup on document and
- *   sends startWindowMove/stopWindowMove to the native layer without checking
- *   which mouse button was pressed. This causes issues:
- *
- *   1. Right-click (button=2) on a drag region triggers startWindowMove, which
- *      starts an NSLocalEventMonitor for mouse movement. The window then sticks
- *      to the cursor even though no button is held.
- *
- *   2. Native context menu intercepts mouse events and breaks window drag when
- *      left+right mouse buttons are pressed simultaneously.
- *
- * Fix:
- *   - Only react to left-click (button === 0).
- *   - Track isDragging state: stopWindowMove is only sent if startWindowMove
- *     was actually sent for this drag sequence.
- *   - Guard against re-entrant mousedown: ignore if already dragging.
- *   - Listen to mouseup on window (not document) to catch release outside.
- *   - Reset state on window blur to prevent stuck drag when focus is lost.
- *   - Disable native contextmenu to prevent event interception.
- *
- * Note: electrobun injects an inline compiled JS string (compiled.ts), not the
- * raw dragRegions.ts source, so we patch the compiled string directly.
- */
+// ============================================================================
+// Patch 1: Fix drag region behavior in compiled preload script
+// ============================================================================
 
-const files = [
+const preloadFiles = [
   "node_modules/electrobun/dist-macos-arm64/api/bun/preload/.generated/compiled.ts",
   "node_modules/electrobun/dist/api/bun/preload/.generated/compiled.ts",
 ]
@@ -52,7 +28,7 @@ const newCode = `function initDragRegions() {\\n  let isDragging = false;\\n  wi
 let patched = 0
 let skipped = 0
 
-for (const file of files) {
+for (const file of preloadFiles) {
   const path = join(process.cwd(), file)
 
   if (!existsSync(path)) {
@@ -104,10 +80,70 @@ for (const file of files) {
   }
 }
 
-if (patched + skipped === files.length) {
+// ============================================================================
+// Patch 2: Fix WebKitGTK + NVIDIA + Wayland blank rendering
+// ============================================================================
+//
+// Problem:
+//   On Linux Wayland sessions with NVIDIA GPUs, WebKitGTK's DMA-BUF renderer
+//   fails to create GBM buffers, resulting in a completely blank webview.
+//   The env var WEBKIT_DISABLE_DMABUF_RENDERER=1 forces the fallback to the
+//   shared-memory renderer which works correctly.
+//
+//   Setting it in src/bun/index.ts is too late: the launcher starts the GTK
+//   event loop (startEventLoop) BEFORE the Bun Worker runs our app code.
+//   The env must be set in the launcher (main.js) before startEventLoop.
+//
+// See: https://bugs.webkit.org/show_bug.cgi?id=261874
+
+const launcherFiles = [
+  "node_modules/electrobun/dist-macos-arm64/main.js",
+  "node_modules/electrobun/dist/main.js",
+]
+
+// The existing linux block in main.js ends with the CEF/LD_PRELOAD check.
+// We insert the Wayland workaround right after that block but still inside
+// the `if (process.platform === "linux")`.
+const launcherOldCode = `      child.on("exit", (code) => process.exit(code ?? 1));\n      return;\n    }\n  }`
+
+const launcherNewCode = `      child.on("exit", (code) => process.exit(code ?? 1));\n      return;\n    }\n    const wayland = process.env.WAYLAND_DISPLAY || process.env.XDG_SESSION_TYPE === "wayland";\n    if (wayland && process.env.WEBKIT_DISABLE_DMABUF_RENDERER !== "1") {\n      process.env.WEBKIT_DISABLE_DMABUF_RENDERER = "1";\n      console.log("[LAUNCHER] Wayland detected: WEBKIT_DISABLE_DMABUF_RENDERER=1");\n    }\n  }`
+
+for (const file of launcherFiles) {
+  const path = join(process.cwd(), file)
+
+  if (!existsSync(path)) {
+    console.log(`[patch-electrobun] Skipped (not found): ${file}`)
+    skipped++
+    continue
+  }
+
+  try {
+    const content = readFileSync(path, "utf-8")
+
+    // Already patched?
+    if (content.includes("WEBKIT_DISABLE_DMABUF_RENDERER")) {
+      console.log(`[patch-electrobun] Already patched (wayland): ${file}`)
+      patched++
+      continue
+    }
+
+    if (content.includes(launcherOldCode)) {
+      writeFileSync(path, content.replace(launcherOldCode, launcherNewCode))
+      console.log(`[patch-electrobun] Patched wayland workaround: ${file}`)
+      patched++
+    } else {
+      console.log(`[patch-electrobun] No patch needed (code not found): ${file}`)
+      skipped++
+    }
+  } catch (err) {
+    console.error(`[patch-electrobun] Failed to patch ${file}:`, err)
+  }
+}
+
+if (patched + skipped === preloadFiles.length + launcherFiles.length) {
   console.log("[patch-electrobun] Done")
   process.exit(0)
 } else {
-  console.error(`[patch-electrobun] Only ${patched + skipped}/${files.length} files handled`)
+  console.error(`[patch-electrobun] Only ${patched + skipped}/${preloadFiles.length + launcherFiles.length} files handled`)
   process.exit(1)
 }
