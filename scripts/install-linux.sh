@@ -19,7 +19,22 @@ error_exit() {
 }
 
 RELEASE_URL="https://github.com/sygeman/exodus/releases/latest/download"
-TARBALL="stable-linux-x64-Exodus.tar.zst"
+
+# Detect architecture
+ARCH=$(uname -m)
+case "$ARCH" in
+  x86_64)
+    ARCH_NAME="x64"
+    ;;
+  aarch64|arm64)
+    ARCH_NAME="arm64"
+    ;;
+  *)
+    error_exit "Unsupported architecture: $ARCH (expected x86_64 or aarch64/arm64)"
+    ;;
+esac
+
+TARBALL="stable-linux-${ARCH_NAME}-Exodus.tar.zst"
 TMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TMP_DIR"' EXIT
 
@@ -46,6 +61,7 @@ BIN_SYMLINK="$BIN_DIR/exodus"
 echo ""
 log_info "Exodus Linux Installer"
 log_info "======================"
+log_info "Architecture: $ARCH ($ARCH_NAME)"
 echo ""
 
 # ── Root check ─────────────────────────────────────────────────────────────

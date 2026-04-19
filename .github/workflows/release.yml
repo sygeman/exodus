@@ -107,8 +107,8 @@ jobs:
           path: artifacts/**
           if-no-files-found: error
 
-  build-linux:
-    name: Build Linux
+  build-linux-x64:
+    name: Build Linux x64
     needs: changelog
     if: needs.changelog.outputs.bumped == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
@@ -161,13 +161,71 @@ jobs:
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
-          name: linux-artifacts
+          name: linux-x64-artifacts
+          path: artifacts/**
+          if-no-files-found: error
+
+  build-linux-arm64:
+    name: Build Linux ARM64
+    needs: changelog
+    if: needs.changelog.outputs.bumped == 'true' || github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || format('v{0}', needs.changelog.outputs.version) }}
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Cache Bun install cache
+        uses: actions/cache@v5
+        with:
+          path: ~/.bun/install/cache
+          key: ${{ runner.os }}-arm64-bun-cache-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json') }}
+          restore-keys: |
+            ${{ runner.os }}-arm64-bun-cache-
+
+      - name: Cache node_modules
+        uses: actions/cache@v5
+        with:
+          path: node_modules
+          key: ${{ runner.os }}-arm64-node-modules-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json') }}
+
+      - name: Cache electrobun previous bundle
+        uses: actions/cache@v5
+        with:
+          path: ~/.local/share/exodus.sgmn.dev/stable/self-extraction
+          key: ${{ runner.os }}-arm64-electrobun-self-extraction-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-arm64-electrobun-self-extraction-
+
+      - name: Install dependencies
+        if: steps.cache.outputs.cache-hit != 'true'
+        run: bun install --frozen-lockfile
+
+      - name: Build web
+        run: bun run build
+
+      - name: Build app
+        run: bunx electrobun build --env=stable
+
+      - name: Copy Linux installer script
+        run: cp scripts/install-linux.sh artifacts/install-linux.sh
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: linux-arm64-artifacts
           path: artifacts/**
           if-no-files-found: error
 
   release:
     name: Create Release
-    needs: [changelog, build-macos, build-linux]
+    needs: [changelog, build-macos, build-linux-x64, build-linux-arm64]
     if: needs.changelog.outputs.bumped == 'true' || github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
@@ -177,10 +235,16 @@ jobs:
           name: macos-artifacts
           path: release-assets
 
-      - name: Download Linux artifacts
+      - name: Download Linux x64 artifacts
         uses: actions/download-artifact@v8
         with:
-          name: linux-artifacts
+          name: linux-x64-artifacts
+          path: release-assets
+
+      - name: Download Linux ARM64 artifacts
+        uses: actions/download-artifact@v8
+        with:
+          name: linux-arm64-artifacts
           path: release-assets
 
       - name: Create Release
