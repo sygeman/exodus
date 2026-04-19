@@ -1,3 +1,12 @@
+## [0.36.4](https://github.com/sygeman/exodus/compare/v0.36.3...v0.36.4) (2026-04-19)
+
+
+### Bug Fixes
+
+* set setuid bit on chrome-sandbox in linux install script ([84eb5f2](https://github.com/sygeman/exodus/commit/84eb5f273a9b8b1cecd40db4a8d468ad93311ea2))
+
+
+
 ## [0.36.3](https://github.com/sygeman/exodus/compare/v0.36.2...v0.36.3) (2026-04-18)
 
 
@@ -31,15 +40,6 @@
 ### Features
 
 * move idea badges to header next to back button ([7215eae](https://github.com/sygeman/exodus/commit/7215eae6e530822e03b6cc04696a561975baf9a7))
-
-
-
-# [0.35.0](https://github.com/sygeman/exodus/compare/v0.34.2...v0.35.0) (2026-04-18)
-
-
-### Features
-
-* add ideas management to projects ([8bd3a64](https://github.com/sygeman/exodus/commit/8bd3a640d94caad7c349af8b63c6968874303f9c))
 
 
 
