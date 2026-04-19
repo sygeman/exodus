@@ -19,28 +19,23 @@ error_exit() {
 }
 
 APP_NAME="Exodus"
-OPT_DIR="/opt/Exodus"
-APPLICATIONS_DIR="/usr/share/applications"
+APP_DIR="$HOME/.local/share/Exodus"
+APPLICATIONS_DIR="$HOME/.local/share/applications"
+BIN_DIR="$HOME/.local/bin"
 
 echo ""
 log_info "Exodus Linux Uninstaller"
 log_info "========================"
 echo ""
 
-# ── Root check ─────────────────────────────────────────────────────────────
-if [ "$EUID" -ne 0 ]; then
-  error_exit "This uninstaller must be run as root (e.g. sudo $0)"
-fi
-log_ok "Running as root"
-
 # ── Remove application files ───────────────────────────────────────────────
 log_info "Removing application files..."
 
-if [ -d "$OPT_DIR" ]; then
-  rm -rf "$OPT_DIR"
-  log_ok "Removed $OPT_DIR"
+if [ -d "$APP_DIR" ]; then
+  rm -rf "$APP_DIR"
+  log_ok "Removed $APP_DIR"
 else
-  log_warn "$OPT_DIR not found — skipping"
+  log_warn "$APP_DIR not found — skipping"
 fi
 
 # ── Remove desktop entry ───────────────────────────────────────────────────
@@ -54,16 +49,16 @@ else
   log_warn "$DESKTOP_ENTRY not found — skipping"
 fi
 
-# ── Remove command-line symlinks ───────────────────────────────────────────
-log_info "Removing command-line symlinks..."
+# ── Remove command-line symlink ────────────────────────────────────────────
+log_info "Removing command-line symlink..."
 
-for dir in /usr/local/bin /usr/bin /bin; do
-  link="$dir/exodus"
-  if [ -L "$link" ]; then
-    rm -f "$link"
-    log_ok "Removed symlink $link"
-  fi
-done
+link="$BIN_DIR/exodus"
+if [ -L "$link" ]; then
+  rm -f "$link"
+  log_ok "Removed symlink $link"
+else
+  log_warn "$link not found — skipping"
+fi
 
 # ── Update desktop database ────────────────────────────────────────────────
 if command -v update-desktop-database &>/dev/null; then
@@ -79,5 +74,5 @@ echo ""
 echo -e "${GREEN}Exodus uninstalled successfully!${NC}"
 echo ""
 log_info "To remove user data as well, run:"
-echo "  ${YELLOW}rm -rf ~/.config/Exodus ~/.local/share/Exodus ~/.cache/Exodus${NC}"
+echo "  ${YELLOW}rm -rf ~/.config/Exodus ~/.cache/Exodus${NC}"
 echo ""
