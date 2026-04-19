@@ -1,3 +1,12 @@
+## [0.36.5](https://github.com/sygeman/exodus/compare/v0.36.4...v0.36.5) (2026-04-19)
+
+
+### Bug Fixes
+
+* add validation and logging to linux install script ([906aebb](https://github.com/sygeman/exodus/commit/906aebb319825534726f35940bab59bf934c3f3e))
+
+
+
 ## [0.36.4](https://github.com/sygeman/exodus/compare/v0.36.3...v0.36.4) (2026-04-19)
 
 
@@ -31,15 +40,6 @@
 ### Bug Fixes
 
 * disable WebKit DMA-BUF renderer on Linux Wayland to fix blank screen on NVIDIA ([b602fcd](https://github.com/sygeman/exodus/commit/b602fcd4bac6b29b4d1f118b9297286c6ea748d1))
-
-
-
-# [0.36.0](https://github.com/sygeman/exodus/compare/v0.35.0...v0.36.0) (2026-04-18)
-
-
-### Features
-
-* move idea badges to header next to back button ([7215eae](https://github.com/sygeman/exodus/commit/7215eae6e530822e03b6cc04696a561975baf9a7))
 
 
 
