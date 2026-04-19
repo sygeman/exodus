@@ -1,3 +1,17 @@
+# [0.37.0](https://github.com/sygeman/exodus/compare/v0.36.6...v0.37.0) (2026-04-19)
+
+
+### Bug Fixes
+
+* detect available bin directory for symlink ([0e0e4ff](https://github.com/sygeman/exodus/commit/0e0e4ff188f57b7f29cf92fd071f7a5253654759))
+
+
+### Features
+
+* add Linux ARM64 build support ([0fa048d](https://github.com/sygeman/exodus/commit/0fa048db58e4733c465c2d20ef035a064eb54f5a))
+
+
+
 ## [0.36.6](https://github.com/sygeman/exodus/compare/v0.36.5...v0.36.6) (2026-04-19)
 
 
@@ -31,15 +45,6 @@
 ### Bug Fixes
 
 * enable CEF bundling for Linux to resolve rendering issues ([8f1426f](https://github.com/sygeman/exodus/commit/8f1426f9e61255d8d8ad141c1d66bf383997ed0f))
-
-
-
-## [0.36.2](https://github.com/sygeman/exodus/compare/v0.36.1...v0.36.2) (2026-04-18)
-
-
-### Bug Fixes
-
-* enable CEF bundling for Linux to resolve rendering issues ([69827ed](https://github.com/sygeman/exodus/commit/69827edd0679ae834de405d60a4166bada31ad90))
 
 
 
