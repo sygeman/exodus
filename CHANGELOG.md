@@ -1,3 +1,12 @@
+## [0.37.2](https://github.com/sygeman/exodus/compare/v0.37.1...v0.37.2) (2026-04-19)
+
+
+### Bug Fixes
+
+* remove CEF sandbox references from Linux install script ([a231f66](https://github.com/sygeman/exodus/commit/a231f66a57d699adaab1ba82b8c7b78e7d0cd3a5))
+
+
+
 ## [0.37.1](https://github.com/sygeman/exodus/compare/v0.37.0...v0.37.1) (2026-04-19)
 
 
@@ -36,15 +45,6 @@
 ### Bug Fixes
 
 * add validation and logging to linux install script ([906aebb](https://github.com/sygeman/exodus/commit/906aebb319825534726f35940bab59bf934c3f3e))
-
-
-
-## [0.36.4](https://github.com/sygeman/exodus/compare/v0.36.3...v0.36.4) (2026-04-19)
-
-
-### Bug Fixes
-
-* set setuid bit on chrome-sandbox in linux install script ([84eb5f2](https://github.com/sygeman/exodus/commit/84eb5f273a9b8b1cecd40db4a8d468ad93311ea2))
 
 
 

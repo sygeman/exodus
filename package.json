@@ -1,6 +1,6 @@
 {
   "name": "exodus",
-  "version": "0.37.1",
+  "version": "0.37.2",
   "description": "Exodus App",
   "type": "module",
   "scripts": {
