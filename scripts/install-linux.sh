@@ -25,6 +25,19 @@ mv "$TMP_DIR/$APP_NAME" "$APP_DIR"
 # Ensure launcher is executable
 chmod +x "$APP_DIR/bin/launcher"
 
+# CEF sandbox requires setuid bit on chrome-sandbox for proper process isolation.
+# Without it the app silently fails on most modern Linux distributions.
+CHROME_SANDBOX="$APP_DIR/bin/chrome-sandbox"
+if [ -f "$CHROME_SANDBOX" ]; then
+  if chmod 4755 "$CHROME_SANDBOX" 2>/dev/null; then
+    echo "Set setuid bit on chrome-sandbox"
+  else
+    echo "WARNING: Could not set setuid bit on chrome-sandbox (requires root)."
+    echo "         The app may fail to start. Try running:"
+    echo "           sudo chmod 4755 $CHROME_SANDBOX"
+  fi
+fi
+
 # Find icon in app bundle
 ICON_PATH=""
 for path in "$APP_DIR/Resources/appIcon.png" "$APP_DIR/Resources/app/icon.png"; do
