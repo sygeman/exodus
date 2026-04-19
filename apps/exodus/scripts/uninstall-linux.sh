@@ -19,7 +19,9 @@ error_exit() {
 }
 
 APP_NAME="Exodus"
-APP_DIR="$HOME/.local/share/Exodus"
+# Aligned with Electrobun updater path: identifier=exodus.sgmn.dev, channel=stable
+APP_DIR="$HOME/.local/share/exodus.sgmn.dev/stable/app"
+OLD_APP_DIR="$HOME/.local/share/Exodus"
 APPLICATIONS_DIR="$HOME/.local/share/applications"
 BIN_DIR="$HOME/.local/bin"
 
@@ -36,6 +38,11 @@ if [ -d "$APP_DIR" ]; then
   log_ok "Removed $APP_DIR"
 else
   log_warn "$APP_DIR not found — skipping"
+fi
+
+if [ -d "$OLD_APP_DIR" ]; then
+  rm -rf "$OLD_APP_DIR"
+  log_ok "Removed old installation $OLD_APP_DIR"
 fi
 
 # ── Remove desktop entry ───────────────────────────────────────────────────
