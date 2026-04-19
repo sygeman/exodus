@@ -26,7 +26,22 @@ trap 'rm -rf "$TMP_DIR"' EXIT
 APP_NAME="Exodus"
 OPT_DIR="/opt/Exodus"
 APPLICATIONS_DIR="/usr/share/applications"
-BIN_SYMLINK="/usr/local/bin/exodus"
+
+# Find a bin directory that is in user's PATH
+BIN_DIR=""
+for dir in /usr/local/bin /usr/bin /bin; do
+  if echo "$PATH" | grep -q "$dir"; then
+    BIN_DIR="$dir"
+    break
+  fi
+done
+
+# Fallback if none found
+if [ -z "$BIN_DIR" ]; then
+  BIN_DIR="/usr/local/bin"
+fi
+
+BIN_SYMLINK="$BIN_DIR/exodus"
 
 echo ""
 log_info "Exodus Linux Installer"
@@ -149,7 +164,14 @@ log_ok "Desktop entry created at $APPLICATIONS_DIR/exodus.desktop"
 log_info "Creating command-line symlink..."
 
 ln -sf "$OPT_DIR/bin/launcher" "$BIN_SYMLINK"
-log_ok "Symlink: $BIN_SYMLINK -> $OPT_DIR/bin/launcher"
+
+if [ -L "$BIN_SYMLINK" ] && [ -x "$BIN_SYMLINK" ]; then
+  log_ok "Symlink: $BIN_SYMLINK -> $OPT_DIR/bin/launcher"
+else
+  log_warn "Symlink created but may not be accessible"
+fi
+
+
 
 # ── Update desktop database ────────────────────────────────────────────────
 if command -v update-desktop-database &>/dev/null; then
@@ -211,3 +233,9 @@ echo ""
 echo "  Run from terminal: ${BLUE}exodus${NC}"
 echo "  Or find it in your applications menu."
 echo ""
+
+if [ "$BIN_DIR" = "/usr/local/bin" ]; then
+  echo "  If 'exodus' command is not found, add to your shell config:"
+  echo "    ${YELLOW}export PATH=\"/usr/local/bin:\$PATH\"${NC}"
+  echo ""
+fi
