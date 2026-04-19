@@ -24,7 +24,21 @@ Exodus enables product evolution through controlled iterations, where user inten
 ### Linux
 
 ```bash
-curl -fsSL https://github.com/sygeman/exodus/releases/latest/download/install-linux.sh | bash
+curl -fsSL https://raw.githubusercontent.com/sygeman/exodus/main/scripts/install-linux.sh | bash
 ```
 
 After installation the app is available in the applications menu and via the `exodus` command in the terminal.
+
+### Uninstall
+
+#### macOS
+
+```bash
+rm -rf /Applications/Exodus.app
+```
+
+#### Linux
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/sygeman/exodus/main/scripts/uninstall-linux.sh | bash
+```
