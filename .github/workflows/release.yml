@@ -104,7 +104,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: macos-artifacts
-          path: artifacts/**
+          path: apps/exodus/artifacts/**
           if-no-files-found: error
 
   build-linux-x64:
@@ -155,14 +155,11 @@ jobs:
       - name: Build app
         run: cd apps/exodus && bunx electrobun build --env=stable
 
-      - name: Copy Linux installer script
-        run: cp apps/exodus/scripts/install-linux.sh artifacts/install-linux.sh
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: linux-x64-artifacts
-          path: artifacts/**
+          path: apps/exodus/artifacts/**
           if-no-files-found: error
 
   build-linux-arm64:
@@ -213,14 +210,11 @@ jobs:
       - name: Build app
         run: cd apps/exodus && bunx electrobun build --env=stable
 
-      - name: Copy Linux installer script
-        run: cp apps/exodus/scripts/install-linux.sh artifacts/install-linux.sh
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
         with:
           name: linux-arm64-artifacts
-          path: artifacts/**
+          path: apps/exodus/artifacts/**
           if-no-files-found: error
 
   release:
