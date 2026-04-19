@@ -29,15 +29,7 @@ curl -fsSL https://raw.githubusercontent.com/sygeman/exodus/main/scripts/install
 
 After installation the app is available in the applications menu and via the `exodus` command in the terminal.
 
-### Uninstall
-
-#### macOS
-
-```bash
-rm -rf /Applications/Exodus.app
-```
-
-#### Linux
+### Uninstall (Linux)
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sygeman/exodus/main/scripts/uninstall-linux.sh | bash
