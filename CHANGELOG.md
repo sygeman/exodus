@@ -1,9 +1,10 @@
-## 0.37.10 (2026-04-20)
+# 0.38.0 (2026-04-20)
 
 
-### Bug Fixes
+### Features
 
-* install missing @tailwindcss/node for oxlint-tailwindcss plugin ([4ad7b93](https://github.com/sygeman/exodus/commit/4ad7b933d070c64027485a3872e7360c1fe63fe1))
+* add Edem platform packages with documentation ([14c791d](https://github.com/sygeman/exodus/commit/14c791db8777e1177b76896af1aae98fa2ca83fc))
+* implement edem-core event bus and platform assembly ([2b9cbcb](https://github.com/sygeman/exodus/commit/2b9cbcb82368c877f5e039b14443affe1816ece4))
 
 
 
