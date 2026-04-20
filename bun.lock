@@ -13,7 +13,7 @@
     },
     "apps/exodus": {
       "name": "exodus",
-      "version": "0.37.6",
+      "version": "0.37.8",
       "dependencies": {
         "@exodus/evento": "workspace:*",
         "@exodus/typescript-config": "workspace:*",

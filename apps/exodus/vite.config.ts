@@ -12,8 +12,8 @@ export default defineConfig({
     vue(),
     svgLoader(),
     ui({
+      colorMode: true,
       ui: {
-        colorMode: true,
         colors: {
           primary: "amber",
           neutral: "neutral",
@@ -21,7 +21,6 @@ export default defineConfig({
       },
     }),
   ],
-  root: "src",
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
@@ -33,7 +32,7 @@ export default defineConfig({
   },
   base: "./",
   build: {
-    outDir: "../dist",
+    outDir: "dist",
     emptyOutDir: true,
   },
   server: {
