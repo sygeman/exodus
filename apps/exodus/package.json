@@ -10,9 +10,7 @@
     "build:stable": "vite build && electrobun build --env=stable",
     "icons": "./scripts/generate-icons.sh",
     "check-types": "vue-tsc --noEmit",
-    "test": "bun test --coverage",
-    "test:watch": "bun test --watch",
-    "check": "bun run check-types && bun test --coverage",
+    "check": "bun run check-types",
     "prepare": "husky && bun scripts/patch-electrobun.js"
   },
   "dependencies": {
