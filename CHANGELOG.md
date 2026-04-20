@@ -1,9 +1,9 @@
-## 0.37.9 (2026-04-20)
+## 0.37.10 (2026-04-20)
 
 
 ### Bug Fixes
 
-* move index.html to project root and correct vite build paths ([7211be6](https://github.com/sygeman/exodus/commit/7211be6660dbac067800646e92eac2025102d20b))
+* install missing @tailwindcss/node for oxlint-tailwindcss plugin ([4ad7b93](https://github.com/sygeman/exodus/commit/4ad7b933d070c64027485a3872e7360c1fe63fe1))
 
 
 
