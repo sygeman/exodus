@@ -102,7 +102,7 @@ const logRows = computed(() =>
   <UModal
     :open="!!selectedLog"
     @update:open="
-      (v) => {
+      (v: boolean) => {
         if (!v) selectedLog = null
       }
     "

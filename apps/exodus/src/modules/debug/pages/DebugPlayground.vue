@@ -276,20 +276,20 @@ onMounted(() => {
                   <UInput
                     v-if="fieldDef.type === 'string'"
                     :model-value="String(formValues[key] ?? '')"
-                    @update:model-value="(v) => (formValues[key] = v)"
+                    @update:model-value="(v: string) => (formValues[key] = v)"
                     size="sm"
                   />
                   <UInput
                     v-else-if="fieldDef.type === 'number'"
                     :model-value="String(formValues[key] ?? '')"
-                    @update:model-value="(v) => (formValues[key] = v)"
+                    @update:model-value="(v: string) => (formValues[key] = v)"
                     type="number"
                     size="sm"
                   />
                   <div v-else-if="fieldDef.type === 'boolean'" class="flex items-center gap-2">
                     <USwitch
                       :model-value="Boolean(formValues[key])"
-                      @update:model-value="(v) => (formValues[key] = v)"
+                      @update:model-value="(v: boolean) => (formValues[key] = v)"
                     />
                     <span class="text-xs text-[var(--ui-text-muted)]">
                       {{ formValues[key] ? "true" : "false" }}
@@ -298,7 +298,7 @@ onMounted(() => {
                   <UInput
                     v-else
                     :model-value="String(formValues[key] ?? '')"
-                    @update:model-value="(v) => (formValues[key] = v)"
+                    @update:model-value="(v: string) => (formValues[key] = v)"
                     size="sm"
                   />
                 </UFormField>

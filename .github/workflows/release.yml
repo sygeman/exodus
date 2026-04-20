@@ -106,7 +106,7 @@ jobs:
 
   build-macos:
     name: Build macOS
-    needs: changelog
+    needs: [changelog, quality]
     if: needs.changelog.outputs.bumped == 'true' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 15
     runs-on: macos-14
@@ -168,7 +168,7 @@ jobs:
 
   build-linux-x64:
     name: Build Linux x64
-    needs: changelog
+    needs: [changelog, quality]
     if: needs.changelog.outputs.bumped == 'true' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 15
     runs-on: ubuntu-latest
@@ -230,7 +230,7 @@ jobs:
 
   build-linux-arm64:
     name: Build Linux ARM64
-    needs: changelog
+    needs: [changelog, quality]
     if: needs.changelog.outputs.bumped == 'true' || github.event_name == 'workflow_dispatch'
     timeout-minutes: 15
     runs-on: ubuntu-24.04-arm
