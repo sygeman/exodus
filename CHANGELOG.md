@@ -1,9 +1,9 @@
-## 0.37.8 (2026-04-20)
+## 0.37.9 (2026-04-20)
 
 
 ### Bug Fixes
 
-* remove test script from exodus app to prevent empty test failure ([883e207](https://github.com/sygeman/exodus/commit/883e207ddf135a38f518be122a83cedfb73e6305))
+* move index.html to project root and correct vite build paths ([7211be6](https://github.com/sygeman/exodus/commit/7211be6660dbac067800646e92eac2025102d20b))
 
 
 
