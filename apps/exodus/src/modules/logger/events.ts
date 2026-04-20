@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { createRegistry } from "@/lib/evento/registry"
+import { createRegistry } from "@exodus/evento"
 
 export const LogLevelSchema = z.enum(["debug", "info", "warn", "error"])
 export type LogLevel = z.infer<typeof LogLevelSchema>

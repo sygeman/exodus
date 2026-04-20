@@ -25,6 +25,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "src"),
+      "@exodus/evento": path.resolve(__dirname, "../../packages/evento/src/index.ts"),
     },
   },
   define: {

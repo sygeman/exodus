@@ -5,7 +5,7 @@ Type-safe event bus для архитектуры Edem.
 ## API
 
 ```typescript
-import { Evento } from "./evento"
+import { Evento } from "@exodus/evento"
 
 const evento = new Evento<"bun", ["webview"]>("bun", "webview")
 ```
@@ -81,10 +81,10 @@ evento.on("settings:query", (ctx) => {
 
 ## Тесты = Требования
 
-Все тесты в `tests/` являются спецификацией поведения:
+Все тесты в `src/tests/` являются спецификацией поведения:
 
 ```bash
-bun test apps/exodus/src/lib/evento/tests/
+bun test
 ```
 
 ### Структура тестов
@@ -127,15 +127,19 @@ type EventoHandlerContext<E, P> = {
 
 ## Cross-Environment
 
-Для работы между bun и webview:
+Для работы между bun и webview создайте адаптеры в приложении:
 
 ```typescript
 // bun/evento.ts
-const { evento, rpc } = createEventoBun()
+import { Evento } from "@exodus/evento"
+
+const evento = new Evento<"bun", ["webview"]>("bun", "webview")
 evento.sender = webview.rpc?.send?.emit
 
-// mainview/evento.ts
-const { evento, rpc } = createEventoWebview()
+// webview/evento.ts  
+import { Evento } from "@exodus/evento"
+
+const evento = new Evento<"webview", ["bun"]>("webview", "bun")
 // RPC адаптер вызывает evento.emitLocal()
 ```
 

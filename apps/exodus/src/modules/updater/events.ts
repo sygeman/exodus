@@ -1,5 +1,5 @@
 import { z } from "zod"
-import { createRegistry } from "@/lib/evento/registry"
+import { createRegistry } from "@exodus/evento"
 
 export const updaterRegistry = createRegistry("updater", {
   "check-update": {

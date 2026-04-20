@@ -36,7 +36,7 @@ export default {
       "dist/index.html": "views/mainview/index.html",
       "dist/assets": "views/mainview/assets",
     },
-    watch: ["src/lib/**", "src/modules/**"],
+    watch: ["src/modules/**"],
     // Ignore Vite output in watch mode — HMR handles view rebuilds separately
     watchIgnore: ["dist/**"],
     mac: {
@@ -45,7 +45,6 @@ export default {
     },
     linux: {
       bundleCEF: false,
-      defaultRenderer: "webkit",
       icon: "assets/linux/icon_256x256.png",
     },
   },

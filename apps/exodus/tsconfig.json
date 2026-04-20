@@ -2,7 +2,7 @@
   "extends": "@exodus/typescript-config/tsconfig",
   "compilerOptions": {
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
     }
   },
   "include": [
