@@ -14,5 +14,8 @@
   },
   "devDependencies": {
     "@exodus/typescript-config": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test"
   }
 }
