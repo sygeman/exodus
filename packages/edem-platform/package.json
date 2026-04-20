@@ -1,0 +1,27 @@
+{
+  "name": "@exodus/edem-platform",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Edem platform runtime — in-memory Evento, module loader, integration tests",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@exodus/edem-core": "workspace:*",
+    "@exodus/edem-data": "workspace:*",
+    "@exodus/edem-flows": "workspace:*",
+    "@exodus/edem-mcp": "workspace:*",
+    "@exodus/edem-runners": "workspace:*",
+    "@exodus/edem-ui": "workspace:*"
+  },
+  "devDependencies": {
+    "@exodus/typescript-config": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test"
+  }
+}

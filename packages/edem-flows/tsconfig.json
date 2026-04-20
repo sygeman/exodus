@@ -1,0 +1,5 @@
+{
+  "extends": "@exodus/typescript-config/tsconfig",
+  "include": ["src/**/*.ts"],
+  "exclude": ["node_modules", "dist"]
+}

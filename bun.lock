@@ -6,6 +6,7 @@
       "name": "electrobun-vue",
       "devDependencies": {
         "@tailwindcss/node": "4.2.2",
+        "@types/bun": "1.3.12",
         "oxfmt": "0.45.0",
         "oxlint": "1.60.0",
         "oxlint-tailwindcss": "0.6.1",
@@ -82,6 +83,21 @@
       "dependencies": {
         "@exodus/edem-core": "workspace:*",
         "zod": "4.3.6",
+      },
+      "devDependencies": {
+        "@exodus/typescript-config": "workspace:*",
+      },
+    },
+    "packages/edem-platform": {
+      "name": "@exodus/edem-platform",
+      "version": "0.0.0",
+      "dependencies": {
+        "@exodus/edem-core": "workspace:*",
+        "@exodus/edem-data": "workspace:*",
+        "@exodus/edem-flows": "workspace:*",
+        "@exodus/edem-mcp": "workspace:*",
+        "@exodus/edem-runners": "workspace:*",
+        "@exodus/edem-ui": "workspace:*",
       },
       "devDependencies": {
         "@exodus/typescript-config": "workspace:*",
@@ -209,6 +225,8 @@
     "@exodus/edem-flows": ["@exodus/edem-flows@workspace:packages/edem-flows"],
 
     "@exodus/edem-mcp": ["@exodus/edem-mcp@workspace:packages/edem-mcp"],
+
+    "@exodus/edem-platform": ["@exodus/edem-platform@workspace:packages/edem-platform"],
 
     "@exodus/edem-runners": ["@exodus/edem-runners@workspace:packages/edem-runners"],
 
