@@ -5,6 +5,7 @@
     "": {
       "name": "electrobun-vue",
       "devDependencies": {
+        "@tailwindcss/node": "4.2.2",
         "oxfmt": "0.45.0",
         "oxlint": "1.60.0",
         "oxlint-tailwindcss": "0.6.1",
