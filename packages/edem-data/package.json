@@ -1,0 +1,24 @@
+{
+  "name": "@exodus/edem-data",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Edem Data Engine — collections, fields, items, query builder, and file storage",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@exodus/edem-core": "workspace:*",
+    "drizzle-orm": "0.45.2",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@exodus/typescript-config": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test"
+  }
+}

@@ -1,0 +1,23 @@
+{
+  "name": "@exodus/edem-mcp",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Edem MCP Gateway — JSON-RPC server, tool registry, and AI agent interface",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@exodus/edem-core": "workspace:*",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@exodus/typescript-config": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test"
+  }
+}

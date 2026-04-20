@@ -1,0 +1,22 @@
+{
+  "name": "@exodus/edem-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Edem runtime core — module loader, database manager, tracing, and error utilities",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@exodus/typescript-config": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "name": "@exodus/edem-ui",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Edem UI Engine — primitives, layouts, data binding, and theme system",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    }
+  },
+  "dependencies": {
+    "@exodus/edem-core": "workspace:*",
+    "@exodus/edem-data": "workspace:*",
+    "zod": "4.3.6"
+  },
+  "devDependencies": {
+    "@exodus/typescript-config": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test"
+  }
+}

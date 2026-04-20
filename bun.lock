@@ -14,7 +14,7 @@
     },
     "apps/exodus": {
       "name": "exodus",
-      "version": "0.37.8",
+      "version": "0.37.10",
       "dependencies": {
         "@exodus/evento": "workspace:*",
         "@exodus/typescript-config": "workspace:*",
@@ -40,6 +40,74 @@
         "vite-svg-loader": "5.1.1",
         "vue": "3.5.32",
         "vue-tsc": "3.2.6",
+      },
+    },
+    "packages/edem-core": {
+      "name": "@exodus/edem-core",
+      "version": "0.0.0",
+      "dependencies": {
+        "zod": "4.3.6",
+      },
+      "devDependencies": {
+        "@exodus/typescript-config": "workspace:*",
+      },
+    },
+    "packages/edem-data": {
+      "name": "@exodus/edem-data",
+      "version": "0.0.0",
+      "dependencies": {
+        "@exodus/edem-core": "workspace:*",
+        "drizzle-orm": "0.45.2",
+        "zod": "4.3.6",
+      },
+      "devDependencies": {
+        "@exodus/typescript-config": "workspace:*",
+      },
+    },
+    "packages/edem-flows": {
+      "name": "@exodus/edem-flows",
+      "version": "0.0.0",
+      "dependencies": {
+        "@exodus/edem-core": "workspace:*",
+        "@exodus/edem-data": "workspace:*",
+        "zod": "4.3.6",
+      },
+      "devDependencies": {
+        "@exodus/typescript-config": "workspace:*",
+      },
+    },
+    "packages/edem-mcp": {
+      "name": "@exodus/edem-mcp",
+      "version": "0.0.0",
+      "dependencies": {
+        "@exodus/edem-core": "workspace:*",
+        "zod": "4.3.6",
+      },
+      "devDependencies": {
+        "@exodus/typescript-config": "workspace:*",
+      },
+    },
+    "packages/edem-runners": {
+      "name": "@exodus/edem-runners",
+      "version": "0.0.0",
+      "dependencies": {
+        "@exodus/edem-core": "workspace:*",
+        "zod": "4.3.6",
+      },
+      "devDependencies": {
+        "@exodus/typescript-config": "workspace:*",
+      },
+    },
+    "packages/edem-ui": {
+      "name": "@exodus/edem-ui",
+      "version": "0.0.0",
+      "dependencies": {
+        "@exodus/edem-core": "workspace:*",
+        "@exodus/edem-data": "workspace:*",
+        "zod": "4.3.6",
+      },
+      "devDependencies": {
+        "@exodus/typescript-config": "workspace:*",
       },
     },
     "packages/evento": {
@@ -133,6 +201,18 @@
     "@esbuild/win32-ia32": ["@esbuild/win32-ia32@0.27.7", "", { "os": "win32", "cpu": "ia32" }, "sha512-SmwKXe6VHIyZYbBLJrhOoCJRB/Z1tckzmgTLfFYOfpMAx63BJEaL9ExI8x7v0oAO3Zh6D/Oi1gVxEYr5oUCFhw=="],
 
     "@esbuild/win32-x64": ["@esbuild/win32-x64@0.27.7", "", { "os": "win32", "cpu": "x64" }, "sha512-56hiAJPhwQ1R4i+21FVF7V8kSD5zZTdHcVuRFMW0hn753vVfQN8xlx4uOPT4xoGH0Z/oVATuR82AiqSTDIpaHg=="],
+
+    "@exodus/edem-core": ["@exodus/edem-core@workspace:packages/edem-core"],
+
+    "@exodus/edem-data": ["@exodus/edem-data@workspace:packages/edem-data"],
+
+    "@exodus/edem-flows": ["@exodus/edem-flows@workspace:packages/edem-flows"],
+
+    "@exodus/edem-mcp": ["@exodus/edem-mcp@workspace:packages/edem-mcp"],
+
+    "@exodus/edem-runners": ["@exodus/edem-runners@workspace:packages/edem-runners"],
+
+    "@exodus/edem-ui": ["@exodus/edem-ui@workspace:packages/edem-ui"],
 
     "@exodus/evento": ["@exodus/evento@workspace:packages/evento"],
 
