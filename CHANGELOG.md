@@ -1,9 +1,9 @@
-## 0.37.7 (2026-04-20)
+## 0.37.8 (2026-04-20)
 
 
 ### Bug Fixes
 
-* add explicit types to debug page event handlers ([6a63d71](https://github.com/sygeman/exodus/commit/6a63d71e789f810365d097814320aafb778eab20))
+* remove test script from exodus app to prevent empty test failure ([883e207](https://github.com/sygeman/exodus/commit/883e207ddf135a38f518be122a83cedfb73e6305))
 
 
 
