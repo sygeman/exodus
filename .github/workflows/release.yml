@@ -16,6 +16,7 @@ permissions:
 jobs:
   changelog:
     name: Generate Changelog
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     outputs:
       version: ${{ steps.changelog.outputs.version }}
@@ -24,9 +25,9 @@ jobs:
       bumped: ${{ steps.check-bump.outputs.bumped }}
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
-          fetch-depth: 0
+          fetch-depth: 2
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Generate Changelog
@@ -56,11 +57,13 @@ jobs:
     name: Build macOS
     needs: changelog
     if: needs.changelog.outputs.bumped == 'true' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 15
     runs-on: macos-14
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
+          fetch-depth: 2
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || format('v{0}', needs.changelog.outputs.version) }}
 
       - name: Setup Bun
@@ -81,6 +84,14 @@ jobs:
         with:
           path: node_modules
           key: ${{ runner.os }}-node-modules-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json', 'apps/exodus/package.json') }}
+
+      - name: Cache turbo build setup
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
 
       - name: Cache electrobun previous bundle
         uses: actions/cache@v5
@@ -94,11 +105,8 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
-      - name: Build web
-        run: cd apps/exodus && bun run build
-
-      - name: Build app
-        run: cd apps/exodus && bunx electrobun build --env=stable
+      - name: Build
+        run: bun run build:stable
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -111,11 +119,13 @@ jobs:
     name: Build Linux x64
     needs: changelog
     if: needs.changelog.outputs.bumped == 'true' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
+          fetch-depth: 2
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || format('v{0}', needs.changelog.outputs.version) }}
 
       - name: Setup Bun
@@ -137,6 +147,14 @@ jobs:
           path: node_modules
           key: ${{ runner.os }}-node-modules-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json', 'apps/exodus/package.json') }}
 
+      - name: Cache turbo build setup
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-turbo-
+
       - name: Cache electrobun previous bundle
         uses: actions/cache@v5
         with:
@@ -149,11 +167,8 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
-      - name: Build web
-        run: cd apps/exodus && bun run build
-
-      - name: Build app
-        run: cd apps/exodus && bunx electrobun build --env=stable
+      - name: Build
+        run: bun run build:stable
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -166,11 +181,13 @@ jobs:
     name: Build Linux ARM64
     needs: changelog
     if: needs.changelog.outputs.bumped == 'true' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 15
     runs-on: ubuntu-24.04-arm
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@v6
         with:
+          fetch-depth: 2
           ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.version || format('v{0}', needs.changelog.outputs.version) }}
 
       - name: Setup Bun
@@ -192,6 +209,14 @@ jobs:
           path: node_modules
           key: ${{ runner.os }}-arm64-node-modules-${{ hashFiles('bun.lockb', 'bun.lock', 'package.json', 'apps/exodus/package.json') }}
 
+      - name: Cache turbo build setup
+        uses: actions/cache@v5
+        with:
+          path: .turbo
+          key: ${{ runner.os }}-arm64-turbo-${{ github.sha }}
+          restore-keys: |
+            ${{ runner.os }}-arm64-turbo-
+
       - name: Cache electrobun previous bundle
         uses: actions/cache@v5
         with:
@@ -204,11 +229,8 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: bun install --frozen-lockfile
 
-      - name: Build web
-        run: cd apps/exodus && bun run build
-
-      - name: Build app
-        run: cd apps/exodus && bunx electrobun build --env=stable
+      - name: Build
+        run: bun run build:stable
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -221,6 +243,7 @@ jobs:
     name: Create Release
     needs: [changelog, build-macos, build-linux-x64, build-linux-arm64]
     if: needs.changelog.outputs.bumped == 'true' || github.event_name == 'workflow_dispatch'
+    timeout-minutes: 15
     runs-on: ubuntu-latest
     steps:
       - name: Download macOS artifacts
