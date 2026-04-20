@@ -51,11 +51,7 @@ export function createDataModule(): Module {
         const project: DataProject = { id, slug, name }
         projects.set(id, project)
 
-        evento.emit(
-          "data:project_created",
-          { projectId: id, slug, name },
-          nextDepth(ctx.meta),
-        )
+        evento.emit("data:project_created", { projectId: id, slug, name }, nextDepth(ctx.meta))
 
         return { projectId: id }
       })
@@ -104,11 +100,7 @@ export function createDataModule(): Module {
         const item: DataItem = { id, collectionId, data }
         items.set(id, item)
 
-        evento.emit(
-          "data:item_created",
-          { itemId: id, collectionId, data },
-          nextDepth(ctx.meta),
-        )
+        evento.emit("data:item_created", { itemId: id, collectionId, data }, nextDepth(ctx.meta))
 
         return { itemId: id }
       })
@@ -122,9 +114,7 @@ export function createDataModule(): Module {
 
       evento.handle("data:query_items", (ctx) => {
         const { collectionId } = ctx.payload as { collectionId: string }
-        const result = Array.from(items.values()).filter(
-          (i) => i.collectionId === collectionId,
-        )
+        const result = Array.from(items.values()).filter((i) => i.collectionId === collectionId)
         return { items: result, total: result.length }
       })
 

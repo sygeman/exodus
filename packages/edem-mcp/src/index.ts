@@ -37,11 +37,7 @@ export function createMcpModule(): Module {
           tools.set(tool.name, { ...tool, module })
         }
 
-        evento.emit(
-          "mcp:tools_registered",
-          { module, count: newTools.length },
-          nextDepth(ctx.meta),
-        )
+        evento.emit("mcp:tools_registered", { module, count: newTools.length }, nextDepth(ctx.meta))
 
         return { registered: newTools.length }
       })
@@ -56,11 +52,7 @@ export function createMcpModule(): Module {
         // Tool names use colon separator: "data:create_item"
         const result = await evento.request(name, args, nextDepth(ctx.meta))
 
-        evento.emit(
-          "mcp:tool_result",
-          { tool: name, result },
-          nextDepth(ctx.meta),
-        )
+        evento.emit("mcp:tool_result", { tool: name, result }, nextDepth(ctx.meta))
 
         return result
       })

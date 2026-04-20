@@ -259,9 +259,7 @@ describe("Core", () => {
     core.register({ name: "test", init: () => {} })
     await core.init()
 
-    expect(() => core.register({ name: "late", init: () => {} })).toThrow(
-      "Cannot register module",
-    )
+    expect(() => core.register({ name: "late", init: () => {} })).toThrow("Cannot register module")
   })
 
   it("throws on double init", async () => {

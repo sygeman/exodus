@@ -43,11 +43,7 @@ export function createRunnersModule(): Module {
         const runner: Runner = { id, name, tags, status: "online" }
         runners.set(id, runner)
 
-        evento.emit(
-          "runners:registered",
-          { runnerId: id, name, tags },
-          nextDepth(ctx.meta),
-        )
+        evento.emit("runners:registered", { runnerId: id, name, tags }, nextDepth(ctx.meta))
 
         return { runnerId: id }
       })
@@ -59,20 +55,12 @@ export function createRunnersModule(): Module {
         const task: Task = { id, type, input, status: "pending" }
         tasks.set(id, task)
 
-        evento.emit(
-          "tasks:created",
-          { taskId: id, type, input },
-          nextDepth(ctx.meta),
-        )
+        evento.emit("tasks:created", { taskId: id, type, input }, nextDepth(ctx.meta))
 
         // Simulate task execution
         setTimeout(() => {
           task.status = "running"
-          evento.emit(
-            "tasks:started",
-            { taskId: id, runnerId: "local" },
-            nextDepth(ctx.meta),
-          )
+          evento.emit("tasks:started", { taskId: id, runnerId: "local" }, nextDepth(ctx.meta))
 
           setTimeout(() => {
             task.status = "completed"

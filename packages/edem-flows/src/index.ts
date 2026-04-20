@@ -33,11 +33,7 @@ export function createFlowsModule(): Module {
         const flow: Flow = { id, name, trigger }
         flows.set(id, flow)
 
-        evento.emit(
-          "flows:flow_created",
-          { flowId: id, name, trigger },
-          nextDepth(ctx.meta),
-        )
+        evento.emit("flows:flow_created", { flowId: id, name, trigger }, nextDepth(ctx.meta))
 
         return { flowId: id }
       })
@@ -51,11 +47,7 @@ export function createFlowsModule(): Module {
         const runId = crypto.randomUUID()
 
         // Emit: run started
-        evento.emit(
-          "flows:run_started",
-          { flowId, runId },
-          nextDepth(ctx.meta),
-        )
+        evento.emit("flows:run_started", { flowId, runId }, nextDepth(ctx.meta))
 
         // Flow creates data via data module (request-response)
         await evento.request(

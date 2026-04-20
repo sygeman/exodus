@@ -39,11 +39,7 @@ export function createUiModule(): Module {
         const page: Page = { id, name, route }
         pages.set(id, page)
 
-        evento.emit(
-          "ui:page_created",
-          { pageId: id, name, route },
-          nextDepth(ctx.meta),
-        )
+        evento.emit("ui:page_created", { pageId: id, name, route }, nextDepth(ctx.meta))
 
         return { pageId: id }
       })
@@ -82,7 +78,10 @@ export function createUiModule(): Module {
       evento.on("data:item_created", (ctx) => {
         evento.emit(
           "ui:invalidate",
-          { reason: "data_changed", collectionId: (ctx.payload as { collectionId: string }).collectionId },
+          {
+            reason: "data_changed",
+            collectionId: (ctx.payload as { collectionId: string }).collectionId,
+          },
           nextDepth(ctx.meta),
         )
       })
