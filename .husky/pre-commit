@@ -1,4 +1,4 @@
 bun run lint
-bun run typecheck
+bun run check-types
 bun run format:fix
 git add -A

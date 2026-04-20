@@ -46,7 +46,7 @@
     "tailwindcss/no-restricted-classes": "off",
     "tailwindcss/no-arbitrary-value": "off"
   },
-  "ignorePatterns": ["node_modules", "dist", "*.config.ts", "*.test.ts"],
+  "ignorePatterns": ["node_modules", "dist", "build", "artifacts", ".agents", "*.config.ts", "*.test.ts", "*.d.ts"],
   "overrides": [
     {
       "files": ["*.test.ts", "*.spec.ts"],

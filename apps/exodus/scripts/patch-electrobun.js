@@ -40,7 +40,10 @@ for (const file of preloadFiles) {
   try {
     const content = readFileSync(path, "utf-8")
     // Check if v5 is already applied
-    if (content.includes("window.addEventListener(\\\"contextmenu\\\"") && !content.includes("dragTimeout = setTimeout")) {
+    if (
+      content.includes('window.addEventListener(\\"contextmenu\\"') &&
+      !content.includes("dragTimeout = setTimeout")
+    ) {
       console.log(`[patch-electrobun] Already patched (v5): ${file}`)
       patched++
       continue
@@ -53,7 +56,10 @@ for (const file of preloadFiles) {
       continue
     }
     // Upgrade from v2 to v5
-    if (content.includes("window.addEventListener(\\\"mouseup\\\"") && !content.includes("window.addEventListener(\\\"contextmenu\\\"")) {
+    if (
+      content.includes('window.addEventListener(\\"mouseup\\"') &&
+      !content.includes('window.addEventListener(\\"contextmenu\\"')
+    ) {
       writeFileSync(path, content.replace(oldCodeV2, newCode))
       console.log(`[patch-electrobun] Upgraded v2 → v5: ${file}`)
       patched++
@@ -144,6 +150,8 @@ if (patched + skipped === preloadFiles.length + launcherFiles.length) {
   console.log("[patch-electrobun] Done")
   process.exit(0)
 } else {
-  console.error(`[patch-electrobun] Only ${patched + skipped}/${preloadFiles.length + launcherFiles.length} files handled`)
+  console.error(
+    `[patch-electrobun] Only ${patched + skipped}/${preloadFiles.length + launcherFiles.length} files handled`,
+  )
   process.exit(1)
 }

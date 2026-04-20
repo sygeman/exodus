@@ -17,16 +17,29 @@
       "cache": false,
       "persistent": true
     },
-    "typecheck": {
-      "dependsOn": ["^build"]
+    "topo": {
+      "dependsOn": ["^topo"]
     },
-    "lint": {},
-    "lint:fix": {},
-    "format": {},
-    "format:fix": {},
-    "format:check": {},
+    "check-types": {
+      "dependsOn": ["topo"]
+    },
+    "//#quality": {
+      "dependsOn": ["//#lint", "//#format"]
+    },
+    "//#quality:fix": {
+      "dependsOn": ["//#lint:fix", "//#format:fix"]
+    },
+    "//#lint": {},
+    "//#lint:fix": {
+      "cache": false
+    },
+    "//#format": {},
+    "//#format:fix": {
+      "dependsOn": ["//#lint:fix"],
+      "cache": false
+    },
     "check": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["check-types", "test"]
     },
     "test": {
       "dependsOn": ["^build"]
