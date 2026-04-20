@@ -46,6 +46,11 @@
       "sourceType": "github",
       "computedHash": "c3dbbd219dc94e345faa0b5cc4c03638f4361f8b0efa9f34c7dfa2c6dba65a9d"
     },
+    "turborepo": {
+      "source": "vercel/turborepo",
+      "sourceType": "github",
+      "computedHash": "af51e16468977f0a5db2bad0baa50b6452f690318d81f3c0382f701830acdbdc"
+    },
     "vue": {
       "source": "antfu/skills",
       "sourceType": "github",
