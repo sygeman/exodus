@@ -6,6 +6,11 @@
       "sourceType": "well-known",
       "computedHash": "c20fe20eb84bb56fd5a96eae6e36c5fd8d38f989818a4944f8a08140fe5e7a5b"
     },
+    "caveman": {
+      "source": "juliusbrussee/caveman",
+      "sourceType": "github",
+      "computedHash": "a818cdc41dcfaa50dd891c5cb5e5705968338de02e7e37949ca56e8c30ad4176"
+    },
     "drizzle-migrations": {
       "source": "bobmatnyc/claude-mpm-skills",
       "sourceType": "github",
