@@ -4,7 +4,7 @@
  * Mock implementation for integration testing.
  */
 
-import { type Evento, type Module, nextDepth } from "@exodus/edem-core"
+import { type Edem } from "@exodus/edem-core"
 
 export interface Flow {
   id: string
@@ -20,51 +20,48 @@ export interface Flow {
  *   Facts:     flows:flow_created, flows:run_started, flows:run_completed
  *   Errors:    flows:error
  */
-export function createFlowsModule(): Module {
+export function createFlowsModule(edem: Edem) {
   const flows = new Map<string, Flow>()
 
-  return {
-    name: "flows",
-    init(evento: Evento) {
-      // Create flow
-      evento.handle("flows:create_flow", (ctx) => {
-        const { name, trigger } = ctx.payload as { name: string; trigger: string }
-        const id = crypto.randomUUID()
-        const flow: Flow = { id, name, trigger }
-        flows.set(id, flow)
+  // Create flow
+  edem.handle("flows:create_flow", (ctx) => {
+    const { name, trigger } = ctx.payload as { name: string; trigger: string }
+    const id = crypto.randomUUID()
+    const flow: Flow = { id, name, trigger }
+    flows.set(id, flow)
 
-        evento.emit("flows:flow_created", { flowId: id, name, trigger }, nextDepth(ctx.meta))
+    edem.emit("flows:flow_created", { flowId: id, name, trigger })
 
-        return { flowId: id }
-      })
+    return { flowId: id }
+  })
 
-      // Run flow
-      evento.handle("flows:run_flow", async (ctx) => {
-        const { flowId } = ctx.payload as { flowId: string }
-        const flow = flows.get(flowId)
-        if (!flow) throw new Error(`Flow ${flowId} not found`)
+  // Run flow
+  edem.handle("flows:run_flow", async (ctx) => {
+    const { flowId } = ctx.payload as { flowId: string }
+    const flow = flows.get(flowId)
+    if (!flow) throw new Error(`Flow ${flowId} not found`)
 
-        const runId = crypto.randomUUID()
+    const runId = crypto.randomUUID()
 
-        // Emit: run started
-        evento.emit("flows:run_started", { flowId, runId }, nextDepth(ctx.meta))
+    // Emit: run started
+    edem.emit("flows:run_started", { flowId, runId })
 
-        // Flow creates data via data module (request-response)
-        await evento.request(
-          "data:create_item",
-          { collectionId: "flows_output", data: { flowId, runId, result: "success" } },
-          nextDepth(ctx.meta),
-        )
+    // Flow creates data via data module (request-response)
+    await edem.request("data:create_item", {
+      collectionId: "flows_output",
+      data: { flowId, runId, result: "success" },
+    })
 
-        // Emit: run completed
-        evento.emit(
-          "flows:run_completed",
-          { flowId, runId, status: "success" },
-          nextDepth(ctx.meta),
-        )
+    // Emit: run completed
+    edem.emit("flows:run_completed", { flowId, runId, status: "success" })
 
-        return { runId, status: "success" }
-      })
-    },
+    return { runId, status: "success" }
+  })
+
+  // === Public API ===
+  edem.flows = {
+    createFlow: (params: { name: string; trigger: string }) =>
+      edem.request("flows:create_flow", params),
+    runFlow: (flowId: string) => edem.request("flows:run_flow", { flowId }),
   }
 }

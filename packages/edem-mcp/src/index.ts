@@ -4,7 +4,7 @@
  * Mock implementation for integration testing.
  */
 
-import { type Evento, type Module, nextDepth } from "@exodus/edem-core"
+import { type Edem } from "@exodus/edem-core"
 
 export interface McpTool {
   name: string
@@ -20,47 +20,50 @@ export interface McpTool {
  *   Facts:     mcp:tools_registered, mcp:tool_result
  *   Errors:    mcp:error
  */
-export function createMcpModule(): Module {
+export function createMcpModule(edem: Edem) {
   const tools = new Map<string, McpTool>()
 
-  return {
-    name: "mcp",
-    init(evento: Evento) {
-      // Register tools from modules
-      evento.handle("mcp:register_tools", (ctx) => {
-        const { module, tools: newTools } = ctx.payload as {
-          module: string
-          tools: McpTool[]
-        }
+  // Register tools from modules
+  edem.handle("mcp:register_tools", (ctx) => {
+    const { module, tools: newTools } = ctx.payload as {
+      module: string
+      tools: McpTool[]
+    }
 
-        for (const tool of newTools) {
-          tools.set(tool.name, { ...tool, module })
-        }
+    for (const tool of newTools) {
+      tools.set(tool.name, { ...tool, module })
+    }
 
-        evento.emit("mcp:tools_registered", { module, count: newTools.length }, nextDepth(ctx.meta))
+    edem.emit("mcp:tools_registered", { module, count: newTools.length })
 
-        return { registered: newTools.length }
-      })
+    return { registered: newTools.length }
+  })
 
-      // Call tool — proxies to module's event
-      evento.handle("mcp:call_tool", async (ctx) => {
-        const { name, args } = ctx.payload as { name: string; args: unknown }
-        const tool = tools.get(name)
-        if (!tool) throw new Error(`Tool ${name} not found`)
+  // Call tool — proxies to module's event
+  edem.handle("mcp:call_tool", async (ctx) => {
+    const { name, args } = ctx.payload as { name: string; args: unknown }
+    const tool = tools.get(name)
+    if (!tool) throw new Error(`Tool ${name} not found`)
 
-        // Proxy to the module's handler
-        // Tool names use colon separator: "data:create_item"
-        const result = await evento.request(name, args, nextDepth(ctx.meta))
+    // Proxy to the module's handler
+    // Tool names use colon separator: "data:create_item"
+    const result = await edem.request(name, args)
 
-        evento.emit("mcp:tool_result", { tool: name, result }, nextDepth(ctx.meta))
+    edem.emit("mcp:tool_result", { tool: name, result })
 
-        return result
-      })
+    return result
+  })
 
-      // List all registered tools
-      evento.handle("mcp:list_tools", () => {
-        return { tools: Array.from(tools.values()) }
-      })
-    },
+  // List all registered tools
+  edem.handle("mcp:list_tools", () => {
+    return { tools: Array.from(tools.values()) }
+  })
+
+  // === Public API ===
+  edem.mcp = {
+    registerTools: (params: { module: string; tools: McpTool[] }) =>
+      edem.request("mcp:register_tools", params),
+    callTool: (params: { name: string; args: unknown }) => edem.request("mcp:call_tool", params),
+    listTools: () => edem.request("mcp:list_tools", {}),
   }
 }

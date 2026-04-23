@@ -15,7 +15,7 @@
     },
     "apps/exodus": {
       "name": "exodus",
-      "version": "0.37.10",
+      "version": "0.38.0",
       "dependencies": {
         "@exodus/evento": "workspace:*",
         "@exodus/typescript-config": "workspace:*",
@@ -60,6 +60,19 @@
         "@exodus/edem-core": "workspace:*",
         "drizzle-orm": "0.45.2",
         "zod": "4.3.6",
+      },
+      "devDependencies": {
+        "@exodus/typescript-config": "workspace:*",
+      },
+    },
+    "packages/edem-electrobun": {
+      "name": "@exodus/edem-electrobun",
+      "version": "0.0.0",
+      "dependencies": {
+        "@exodus/edem-core": "workspace:*",
+        "@exodus/edem-platform": "workspace:*",
+        "@exodus/evento": "workspace:*",
+        "electrobun": "1.16.0",
       },
       "devDependencies": {
         "@exodus/typescript-config": "workspace:*",
@@ -221,6 +234,8 @@
     "@exodus/edem-core": ["@exodus/edem-core@workspace:packages/edem-core"],
 
     "@exodus/edem-data": ["@exodus/edem-data@workspace:packages/edem-data"],
+
+    "@exodus/edem-electrobun": ["@exodus/edem-electrobun@workspace:packages/edem-electrobun"],
 
     "@exodus/edem-flows": ["@exodus/edem-flows@workspace:packages/edem-flows"],
 

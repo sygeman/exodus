@@ -4,7 +4,7 @@
  * Mock implementation for integration testing.
  */
 
-import { type Evento, type Module, nextDepth } from "@exodus/edem-core"
+import { type Edem } from "@exodus/edem-core"
 
 export interface Runner {
   id: string
@@ -29,59 +29,59 @@ export interface Task {
  *   Facts:     runners:registered, tasks:created, tasks:started, tasks:completed
  *   Errors:    runners:error, tasks:error
  */
-export function createRunnersModule(): Module {
+export function createRunnersModule(edem: Edem) {
   const runners = new Map<string, Runner>()
   const tasks = new Map<string, Task>()
 
-  return {
-    name: "runners",
-    init(evento: Evento) {
-      // Register runner
-      evento.handle("runners:register", (ctx) => {
-        const { name, tags } = ctx.payload as { name: string; tags: string[] }
-        const id = crypto.randomUUID()
-        const runner: Runner = { id, name, tags, status: "online" }
-        runners.set(id, runner)
+  // Register runner
+  edem.handle("runners:register", (ctx) => {
+    const { name, tags } = ctx.payload as { name: string; tags: string[] }
+    const id = crypto.randomUUID()
+    const runner: Runner = { id, name, tags, status: "online" }
+    runners.set(id, runner)
 
-        evento.emit("runners:registered", { runnerId: id, name, tags }, nextDepth(ctx.meta))
+    edem.emit("runners:registered", { runnerId: id, name, tags })
 
-        return { runnerId: id }
-      })
+    return { runnerId: id }
+  })
 
-      // Create task
-      evento.handle("runners:create_task", (ctx) => {
-        const { type, input } = ctx.payload as { type: string; input: unknown }
-        const id = crypto.randomUUID()
-        const task: Task = { id, type, input, status: "pending" }
-        tasks.set(id, task)
+  // Create task
+  edem.handle("runners:create_task", (ctx) => {
+    const { type, input } = ctx.payload as { type: string; input: unknown }
+    const id = crypto.randomUUID()
+    const task: Task = { id, type, input, status: "pending" }
+    tasks.set(id, task)
 
-        evento.emit("tasks:created", { taskId: id, type, input }, nextDepth(ctx.meta))
+    edem.emit("tasks:created", { taskId: id, type, input })
 
-        // Simulate task execution
-        setTimeout(() => {
-          task.status = "running"
-          evento.emit("tasks:started", { taskId: id, runnerId: "local" }, nextDepth(ctx.meta))
+    // Simulate task execution
+    setTimeout(() => {
+      task.status = "running"
+      edem.emit("tasks:started", { taskId: id, runnerId: "local" })
 
-          setTimeout(() => {
-            task.status = "completed"
-            evento.emit(
-              "tasks:completed",
-              { taskId: id, output: { success: true } },
-              nextDepth(ctx.meta),
-            )
-          }, 10)
-        }, 10)
+      setTimeout(() => {
+        task.status = "completed"
+        edem.emit("tasks:completed", { taskId: id, output: { success: true } })
+      }, 10)
+    }, 10)
 
-        return { taskId: id }
-      })
+    return { taskId: id }
+  })
 
-      // Get task
-      evento.handle("runners:get_task", (ctx) => {
-        const { taskId } = ctx.payload as { taskId: string }
-        const task = tasks.get(taskId)
-        if (!task) throw new Error(`Task ${taskId} not found`)
-        return task
-      })
-    },
+  // Get task
+  edem.handle("runners:get_task", (ctx) => {
+    const { taskId } = ctx.payload as { taskId: string }
+    const task = tasks.get(taskId)
+    if (!task) throw new Error(`Task ${taskId} not found`)
+    return task
+  })
+
+  // === Public API ===
+  edem.runners = {
+    register: (params: { name: string; tags: string[] }) =>
+      edem.request("runners:register", params),
+    createTask: (params: { type: string; input: unknown }) =>
+      edem.request("runners:create_task", params),
+    getTask: (taskId: string) => edem.request("runners:get_task", { taskId }),
   }
 }

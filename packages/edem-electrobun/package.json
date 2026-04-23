@@ -1,0 +1,33 @@
+{
+  "name": "@exodus/edem-electrobun",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Edem Electrobun Integration — desktop runtime bridge for Edem modules",
+  "exports": {
+    ".": {
+      "types": "./src/index.ts",
+      "default": "./src/index.ts"
+    },
+    "./bun": {
+      "types": "./src/bun.ts",
+      "default": "./src/bun.ts"
+    },
+    "./webview": {
+      "types": "./src/webview.ts",
+      "default": "./src/webview.ts"
+    }
+  },
+  "dependencies": {
+    "@exodus/edem-core": "workspace:*",
+    "@exodus/edem-platform": "workspace:*",
+    "@exodus/evento": "workspace:*",
+    "electrobun": "1.16.0"
+  },
+  "devDependencies": {
+    "@exodus/typescript-config": "workspace:*"
+  },
+  "scripts": {
+    "test": "bun test"
+  }
+}
