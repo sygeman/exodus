@@ -143,16 +143,19 @@ export interface EdemModuleFn<TName extends string, TProcs extends ProcMap> {
   _name: TName
   _procs: TProcs
   _register: (builder: ModuleBuilderImpl) => void
-  _react: ((edem: Record<string, Record<string, unknown>>) => void) | null
+  _react: ((edem: unknown) => void) | null
 }
 
 // ── createEdemModule ──────────────────────────────────────────────────────────
 
-// oxlint-disable-next-line no-explicit-any
-export function createEdemModule<TName extends string, TProcs extends ProcMap>(
+export function createEdemModule<
+  TName extends string,
+  TProcs extends ProcMap,
+  TEdem = Record<string, Record<string, Function>>,
+>(
   name: TName,
   register: (module: ModuleBuilder<{}, {}>) => ModuleBuilder<Record<string, unknown>, TProcs>,
-  react?: (edem: Record<string, Record<string, unknown>>) => void,
+  react?: (edem: TEdem) => void,
 ): EdemModuleFn<TName, TProcs> {
   return {
     _name: name,
@@ -160,7 +163,7 @@ export function createEdemModule<TName extends string, TProcs extends ProcMap>(
     _register: (builder: ModuleBuilderImpl) => {
       register(builder as unknown as ModuleBuilder<{}, {}>)
     },
-    _react: react ?? null,
+    _react: react ? (edem: unknown) => react(edem as TEdem) : null,
   }
 }
 
