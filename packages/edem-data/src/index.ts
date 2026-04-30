@@ -1,133 +1,258 @@
-/**
- * Edem Data Engine — collections, fields, items, query builder, and file storage.
- *
- * Mock implementation for integration testing.
- * Will be replaced with full implementation based on tauri-plugin-data reference.
- */
+import { z } from "zod"
+import { createEdemModule } from "@exodus/edem-core"
 
-import { type Edem } from "@exodus/edem-core"
+export const fieldSchema = z.object({
+  id: z.string(),
+  collection_id: z.string(),
+  name: z.string(),
+  type: z.string(),
+  options: z.record(z.any()).optional(),
+  required: z.boolean().optional(),
+  default: z.any().optional(),
+  meta: z.record(z.any()).optional(),
+})
 
-export interface DataItem {
-  id: string
-  collectionId: string
-  data: unknown
-}
+export const collectionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  slug: z.string(),
+  fields: z.array(fieldSchema),
+  meta: z.record(z.any()).optional(),
+})
 
-export interface DataCollection {
-  id: string
-  projectId: string
-  slug: string
-  name: string
-}
+export const itemSchema = z.object({
+  id: z.string(),
+  collection_id: z.string(),
+  data: z.record(z.any()),
+  created_at: z.number(),
+  updated_at: z.number(),
+})
 
-export interface DataProject {
-  id: string
-  slug: string
-  name: string
-}
+export const dataModule = createEdemModule("data", (module) => {
+  return module
+    .context(async () => ({
+      store: {
+        collections: new Map<string, z.infer<typeof collectionSchema>>(),
+        items: new Map<string, z.infer<typeof itemSchema>>(),
+      },
+    }))
+    .subscription("collectionCreated", {
+      output: collectionSchema,
+    })
+    .subscription("collectionUpdated", {
+      output: collectionSchema,
+    })
+    .subscription("collectionDeleted", {
+      output: z.object({
+        collection_id: z.string(),
+      }),
+    })
+    .subscription("itemCreated", {
+      output: itemSchema,
+    })
+    .subscription("itemUpdated", {
+      output: itemSchema,
+    })
+    .subscription("itemDeleted", {
+      output: z.object({
+        item_id: z.string(),
+        collection_id: z.string(),
+      }),
+    })
+    .mutation("createCollection", {
+      input: z.object({
+        name: z.string(),
+        slug: z.string(),
+        fields: z.array(fieldSchema).optional(),
+        meta: z.record(z.any()).optional(),
+      }),
+      output: z.object({
+        id: z.string(),
+      }),
+      resolve: async ({ input, ctx, emit }) => {
+        const id = crypto.randomUUID()
+        const collection = {
+          id,
+          name: input.name,
+          slug: input.slug,
+          fields: input.fields ?? [],
+          meta: input.meta ?? {},
+        }
+        ctx.store.collections.set(id, collection)
+        await emit.collectionCreated(collection)
+        return { id }
+      },
+    })
+    .mutation("updateCollection", {
+      input: z.object({
+        collection_id: z.string(),
+        name: z.string().optional(),
+        slug: z.string().optional(),
+        fields: z.array(fieldSchema).optional(),
+        meta: z.record(z.any()).optional(),
+      }),
+      output: z.object({
+        id: z.string(),
+      }),
+      resolve: async ({ input, ctx, emit }) => {
+        const collection = ctx.store.collections.get(input.collection_id)
+        if (!collection) {
+          throw new Error(`Collection ${input.collection_id} not found`)
+        }
 
-/**
- * Create the Data module.
- *
- * Events:
- *   Commands:  data:create_item, data:get_item, data:query_items
- *              data:create_collection, data:get_collection
- *              data:create_project, data:get_project
- *   Facts:     data:item_created, data:collection_created, data:project_created
- *   Errors:    data:error
- */
-export function createDataModule(edem: Edem) {
-  const items = new Map<string, DataItem>()
-  const collections = new Map<string, DataCollection>()
-  const projects = new Map<string, DataProject>()
+        if (input.name !== undefined) collection.name = input.name
+        if (input.slug !== undefined) collection.slug = input.slug
+        if (input.fields !== undefined) collection.fields = input.fields
+        if (input.meta !== undefined) collection.meta = input.meta
 
-  // === Projects ===
-  edem.handle("data:create_project", (ctx) => {
-    const { slug, name } = ctx.payload as { slug: string; name: string }
-    const id = crypto.randomUUID()
-    const project: DataProject = { id, slug, name }
-    projects.set(id, project)
+        ctx.store.collections.set(input.collection_id, collection)
+        await emit.collectionUpdated(collection)
+        return { id: input.collection_id }
+      },
+    })
+    .mutation("deleteCollection", {
+      input: z.object({
+        collection_id: z.string(),
+      }),
+      output: z.object({
+        success: z.boolean(),
+      }),
+      resolve: async ({ input, ctx, emit }) => {
+        const collection = ctx.store.collections.get(input.collection_id)
+        if (!collection) {
+          throw new Error(`Collection ${input.collection_id} not found`)
+        }
 
-    edem.emit("data:project_created", { projectId: id, slug, name })
+        ctx.store.collections.delete(input.collection_id)
+        await emit.collectionDeleted({ collection_id: input.collection_id })
+        return { success: true }
+      },
+    })
+    .mutation("createItem", {
+      input: z.object({
+        collection_id: z.string(),
+        data: z.record(z.any()),
+      }),
+      output: z.object({
+        id: z.string(),
+      }),
+      resolve: async ({ input, ctx, emit }) => {
+        const id = crypto.randomUUID()
+        const now = Date.now()
+        const item = {
+          id,
+          collection_id: input.collection_id,
+          data: input.data,
+          created_at: now,
+          updated_at: now,
+        }
+        ctx.store.items.set(id, item)
+        await emit.itemCreated(item)
+        return { id }
+      },
+    })
+    .mutation("updateItem", {
+      input: z.object({
+        item_id: z.string(),
+        data: z.record(z.any()),
+      }),
+      output: z.object({
+        id: z.string(),
+      }),
+      resolve: async ({ input, ctx, emit }) => {
+        const item = ctx.store.items.get(input.item_id)
+        if (!item) {
+          throw new Error(`Item ${input.item_id} not found`)
+        }
 
-    return { projectId: id }
-  })
+        item.data = { ...item.data, ...input.data }
+        item.updated_at = Date.now()
 
-  edem.handle("data:get_project", (ctx) => {
-    const { projectId } = ctx.payload as { projectId: string }
-    const project = projects.get(projectId)
-    if (!project) throw new Error(`Project ${projectId} not found`)
-    return project
-  })
+        ctx.store.items.set(input.item_id, item)
+        await emit.itemUpdated(item)
+        return { id: input.item_id }
+      },
+    })
+    .mutation("deleteItem", {
+      input: z.object({
+        item_id: z.string(),
+      }),
+      output: z.object({
+        success: z.boolean(),
+      }),
+      resolve: async ({ input, ctx, emit }) => {
+        const item = ctx.store.items.get(input.item_id)
+        if (!item) {
+          throw new Error(`Item ${input.item_id} not found`)
+        }
 
-  // === Collections ===
-  edem.handle("data:create_collection", (ctx) => {
-    const { projectId, slug, name } = ctx.payload as {
-      projectId: string
-      slug: string
-      name: string
-    }
-    const id = crypto.randomUUID()
-    const collection: DataCollection = { id, projectId, slug, name }
-    collections.set(id, collection)
+        ctx.store.items.delete(input.item_id)
+        await emit.itemDeleted({ item_id: input.item_id, collection_id: item.collection_id })
+        return { success: true }
+      },
+    })
+    .query("getCollection", {
+      input: z.object({
+        collection_id: z.string(),
+      }),
+      output: z.object({
+        collection: collectionSchema.nullable(),
+      }),
+      resolve: async ({ input, ctx }) => {
+        const collection = ctx.store.collections.get(input.collection_id) ?? null
+        return { collection }
+      },
+    })
+    .query("listCollections", {
+      input: z.void(),
+      output: z.object({
+        collections: z.array(collectionSchema),
+      }),
+      resolve: async ({ ctx }) => {
+        return {
+          collections: Array.from(ctx.store.collections.values()),
+        }
+      },
+    })
+    .query("getItem", {
+      input: z.object({
+        item_id: z.string(),
+      }),
+      output: z.object({
+        item: itemSchema.nullable(),
+      }),
+      resolve: async ({ input, ctx }) => {
+        const item = ctx.store.items.get(input.item_id) ?? null
+        return { item }
+      },
+    })
+    .query("queryItems", {
+      input: z.object({
+        collection_id: z.string(),
+        filter: z.record(z.any()).optional(),
+        sort: z.array(z.string()).optional(),
+        limit: z.number().optional(),
+        offset: z.number().optional(),
+      }),
+      output: z.object({
+        items: z.array(itemSchema),
+        total: z.number(),
+      }),
+      resolve: async ({ input, ctx }) => {
+        let result = Array.from(ctx.store.items.values()).filter(
+          (i) => i.collection_id === input.collection_id,
+        )
 
-    edem.emit("data:collection_created", { collectionId: id, projectId, slug, name })
+        if (input.limit) {
+          result = result.slice(0, input.limit)
+        }
+        if (input.offset) {
+          result = result.slice(input.offset)
+        }
 
-    return { collectionId: id }
-  })
+        return { items: result, total: result.length }
+      },
+    })
+})
 
-  edem.handle("data:get_collection", (ctx) => {
-    const { collectionId } = ctx.payload as { collectionId: string }
-    const collection = collections.get(collectionId)
-    if (!collection) throw new Error(`Collection ${collectionId} not found`)
-    return collection
-  })
-
-  // === Items ===
-  edem.handle("data:create_item", (ctx) => {
-    const { collectionId, data } = ctx.payload as {
-      collectionId: string
-      data: unknown
-    }
-    const id = crypto.randomUUID()
-    const item: DataItem = { id, collectionId, data }
-    items.set(id, item)
-
-    edem.emit("data:item_created", { itemId: id, collectionId, data })
-
-    return { itemId: id }
-  })
-
-  edem.handle("data:get_item", (ctx) => {
-    const { itemId } = ctx.payload as { itemId: string }
-    const item = items.get(itemId)
-    if (!item) throw new Error(`Item ${itemId} not found`)
-    return item
-  })
-
-  edem.handle("data:query_items", (ctx) => {
-    const { collectionId } = ctx.payload as { collectionId: string }
-    const result = Array.from(items.values()).filter((i) => i.collectionId === collectionId)
-    return { items: result, total: result.length }
-  })
-
-  // === Cross-module: listen to flow completion for metrics ===
-  edem.on("flows:run_completed", (ctx) => {
-    const { flowId, status } = ctx.payload as { flowId: string; status: string }
-    edem.emit("metrics:record", { event: "flow_completed", flowId, status })
-  })
-
-  // === Public API ===
-  edem.data = {
-    createCollection: (params: { projectId: string; slug: string; name: string }) =>
-      edem.request("data:create_collection", params),
-    getCollection: (collectionId: string) => edem.request("data:get_collection", { collectionId }),
-    createItem: (params: { collectionId: string; data: unknown }) =>
-      edem.request("data:create_item", params),
-    getItem: (itemId: string) => edem.request("data:get_item", { itemId }),
-    queryItems: (collectionId: string) => edem.request("data:query_items", { collectionId }),
-    createProject: (params: { slug: string; name: string }) =>
-      edem.request("data:create_project", params),
-    getProject: (projectId: string) => edem.request("data:get_project", { projectId }),
-  }
-}
+export default dataModule

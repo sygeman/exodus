@@ -1,2 +1,2 @@
-export { Edem } from "./edem"
-export type { Module } from "./edem"
+export { createEdem, createEdemModule } from "./edem"
+export type { EdemModuleFn, ModuleBuilder } from "./edem"
