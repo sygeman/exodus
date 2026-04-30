@@ -1,15 +1,24 @@
-/**
- * Edem Electrobun — Webview-side adapter.
- *
- * Bridges Edem events between webview and bun process via Electrobun's Electroview RPC.
- */
-
 import { Electroview } from "electrobun/view"
 import type { RPCSchema } from "electrobun"
-import { Edem } from "@exodus/edem-core"
+
+type EventHandler = (payload: unknown) => void
+
+function createEventBus() {
+  const handlers = new Map<string, Set<EventHandler>>()
+
+  return {
+    on(name: string, handler: EventHandler) {
+      if (!handlers.has(name)) handlers.set(name, new Set())
+      handlers.get(name)!.add(handler)
+    },
+    emit(name: string, payload: unknown) {
+      for (const h of handlers.get(name) ?? []) h(payload)
+    },
+  }
+}
 
 export function createEdemWebview() {
-  const edem = new Edem("webview")
+  const bus = createEventBus()
 
   const rpc = Electroview.defineRPC<{
     bun: RPCSchema<{ messages: { emit: { name: string; payload: unknown } } }>
@@ -20,11 +29,11 @@ export function createEdemWebview() {
     handlers: {
       messages: {
         emit: (msg: { name: string; payload: unknown }) => {
-          edem.emit(msg.name, msg.payload)
+          bus.emit(msg.name, msg.payload)
         },
       },
     },
   })
 
-  return { edem, rpc }
+  return { rpc, bus }
 }

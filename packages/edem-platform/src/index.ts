@@ -9,18 +9,11 @@
 
 import { createEdem } from "@exodus/edem-core"
 import { dataModule } from "@exodus/edem-data"
-// TODO: migrate these modules to createEdemModule API
-// import { flowsModule } from "@exodus/edem-flows"
-// import { uiModule } from "@exodus/edem-ui"
-// import { runnersModule } from "@exodus/edem-runners"
-// import { mcpModule } from "@exodus/edem-mcp"
+import { flowsModule } from "@exodus/edem-flows"
+import { uiModule } from "@exodus/edem-ui"
+import { runnersModule } from "@exodus/edem-runners"
+import { mcpModule } from "@exodus/edem-mcp"
 
 export function createPlatform() {
-  return createEdem([
-    dataModule,
-    // flowsModule,
-    // uiModule,
-    // runnersModule,
-    // mcpModule,
-  ])
+  return createEdem([dataModule, flowsModule, uiModule, runnersModule, mcpModule])
 }

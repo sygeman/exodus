@@ -1,87 +1,78 @@
-/**
- * Edem UI Engine — primitives, layouts, data binding, and theme system.
- *
- * Mock implementation for integration testing.
- */
+import { z } from "zod"
+import { createEdemModule } from "@exodus/edem-core"
 
-import { type Edem } from "@exodus/edem-core"
+export const pageSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  route: z.string(),
+})
 
-export interface Page {
-  id: string
-  name: string
-  route: string
-}
+export const componentSchema = z.object({
+  id: z.string(),
+  type: z.string(),
+  props: z.record(z.string(), z.unknown()),
+})
 
-export interface Component {
-  id: string
-  type: string
-  props: Record<string, unknown>
-}
-
-/**
- * Create the UI module.
- *
- * Events:
- *   Commands:  ui:create_page, ui:get_page, ui:render_page
- *   Facts:     ui:page_created, ui:page_updated
- *   Errors:    ui:error
- */
-export function createUiModule(edem: Edem) {
-  const pages = new Map<string, Page>()
-
-  // Create page
-  edem.handle("ui:create_page", (ctx) => {
-    const { name, route } = ctx.payload as { name: string; route: string }
-    const id = crypto.randomUUID()
-    const page: Page = { id, name, route }
-    pages.set(id, page)
-
-    edem.emit("ui:page_created", { pageId: id, name, route })
-
-    return { pageId: id }
-  })
-
-  // Get page
-  edem.handle("ui:get_page", (ctx) => {
-    const { pageId } = ctx.payload as { pageId: string }
-    const page = pages.get(pageId)
-    if (!page) throw new Error(`Page ${pageId} not found`)
-    return page
-  })
-
-  // Render page (binds to data)
-  edem.handle("ui:render_page", async (ctx) => {
-    const { pageId, collectionId } = ctx.payload as {
-      pageId: string
-      collectionId: string
-    }
-    const page = pages.get(pageId)
-    if (!page) throw new Error(`Page ${pageId} not found`)
-
-    // Query data module for items
-    const result = (await edem.request("data:query_items", { collectionId })) as {
-      items: unknown[]
-    }
-
-    return {
-      page,
-      items: result.items,
-    }
-  })
-
-  // Listen to data changes to invalidate UI
-  edem.on("data:item_created", (ctx) => {
-    edem.emit("ui:invalidate", {
-      reason: "data_changed",
-      collectionId: (ctx.payload as { collectionId: string }).collectionId,
+export const uiModule = createEdemModule("ui", (module) => {
+  return module
+    .context(async () => ({
+      pages: new Map<string, z.infer<typeof pageSchema>>(),
+    }))
+    .subscription("pageCreated", {
+      output: z.object({
+        page_id: z.string(),
+        name: z.string(),
+        route: z.string(),
+      }),
     })
-  })
+    .subscription("pageUpdated", {
+      output: z.object({
+        page_id: z.string(),
+      }),
+    })
+    .subscription("invalidate", {
+      output: z.object({
+        reason: z.string(),
+        collection_id: z.string().optional(),
+      }),
+    })
+    .mutation("createPage", {
+      input: z.object({
+        name: z.string(),
+        route: z.string(),
+      }),
+      output: z.object({
+        page_id: z.string(),
+      }),
+      resolve: async ({ input, ctx, emit }) => {
+        const id = crypto.randomUUID()
+        const page = { id, name: input.name, route: input.route }
+        ctx.pages.set(id, page)
+        await emit.pageCreated({ page_id: id, name: input.name, route: input.route })
+        return { page_id: id }
+      },
+    })
+    .query("getPage", {
+      input: z.object({
+        page_id: z.string(),
+      }),
+      output: z.object({
+        page: pageSchema.nullable(),
+      }),
+      resolve: async ({ input, ctx }) => {
+        const page = ctx.pages.get(input.page_id) ?? null
+        return { page }
+      },
+    })
+    .query("listPages", {
+      input: z.void(),
+      output: z.object({
+        pages: z.array(pageSchema),
+      }),
+      resolve: async ({ ctx }) => {
+        return { pages: Array.from(ctx.pages.values()) }
+      },
+    })
+})
 
-  // === Public API ===
-  edem.ui = {
-    createPage: (params: { name: string; route: string }) => edem.request("ui:create_page", params),
-    getPage: (pageId: string) => edem.request("ui:get_page", { pageId }),
-    renderPage: (params: { pageId: string; collectionId: string }) =>
-      edem.request("ui:render_page", params),
-  }
-}
+export default uiModule

@@ -1,67 +1,93 @@
-/**
- * Edem Flow Engine — visual workflow runtime, node execution, and triggers.
- *
- * Mock implementation for integration testing.
- */
+import { z } from "zod"
+import { createEdemModule } from "@exodus/edem-core"
 
-import { type Edem } from "@exodus/edem-core"
+export const flowSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  trigger: z.string(),
+})
 
-export interface Flow {
-  id: string
-  name: string
-  trigger: string
-}
-
-/**
- * Create the Flows module.
- *
- * Events:
- *   Commands:  flows:create_flow, flows:run_flow
- *   Facts:     flows:flow_created, flows:run_started, flows:run_completed
- *   Errors:    flows:error
- */
-export function createFlowsModule(edem: Edem) {
-  const flows = new Map<string, Flow>()
-
-  // Create flow
-  edem.handle("flows:create_flow", (ctx) => {
-    const { name, trigger } = ctx.payload as { name: string; trigger: string }
-    const id = crypto.randomUUID()
-    const flow: Flow = { id, name, trigger }
-    flows.set(id, flow)
-
-    edem.emit("flows:flow_created", { flowId: id, name, trigger })
-
-    return { flowId: id }
-  })
-
-  // Run flow
-  edem.handle("flows:run_flow", async (ctx) => {
-    const { flowId } = ctx.payload as { flowId: string }
-    const flow = flows.get(flowId)
-    if (!flow) throw new Error(`Flow ${flowId} not found`)
-
-    const runId = crypto.randomUUID()
-
-    // Emit: run started
-    edem.emit("flows:run_started", { flowId, runId })
-
-    // Flow creates data via data module (request-response)
-    await edem.request("data:create_item", {
-      collectionId: "flows_output",
-      data: { flowId, runId, result: "success" },
+export const flowsModule = createEdemModule("flows", (module) => {
+  return module
+    .context(async () => ({
+      flows: new Map<string, z.infer<typeof flowSchema>>(),
+    }))
+    .subscription("flowCreated", {
+      output: z.object({
+        flow_id: z.string(),
+        name: z.string(),
+        trigger: z.string(),
+      }),
     })
+    .subscription("runStarted", {
+      output: z.object({
+        flow_id: z.string(),
+        run_id: z.string(),
+      }),
+    })
+    .subscription("runCompleted", {
+      output: z.object({
+        flow_id: z.string(),
+        run_id: z.string(),
+        status: z.string(),
+      }),
+    })
+    .mutation("createFlow", {
+      input: z.object({
+        name: z.string(),
+        trigger: z.string(),
+      }),
+      output: z.object({
+        flow_id: z.string(),
+      }),
+      resolve: async ({ input, ctx, emit }) => {
+        const id = crypto.randomUUID()
+        const flow = { id, name: input.name, trigger: input.trigger }
+        ctx.flows.set(id, flow)
+        await emit.flowCreated({ flow_id: id, name: input.name, trigger: input.trigger })
+        return { flow_id: id }
+      },
+    })
+    .mutation("runFlow", {
+      input: z.object({
+        flow_id: z.string(),
+      }),
+      output: z.object({
+        run_id: z.string(),
+        status: z.string(),
+      }),
+      resolve: async ({ input, ctx, emit }) => {
+        const flow = ctx.flows.get(input.flow_id)
+        if (!flow) throw new Error(`Flow ${input.flow_id} not found`)
 
-    // Emit: run completed
-    edem.emit("flows:run_completed", { flowId, runId, status: "success" })
+        const runId = crypto.randomUUID()
+        await emit.runStarted({ flow_id: input.flow_id, run_id: runId })
+        await emit.runCompleted({ flow_id: input.flow_id, run_id: runId, status: "success" })
 
-    return { runId, status: "success" }
-  })
+        return { run_id: runId, status: "success" }
+      },
+    })
+    .query("getFlow", {
+      input: z.object({
+        flow_id: z.string(),
+      }),
+      output: z.object({
+        flow: flowSchema.nullable(),
+      }),
+      resolve: async ({ input, ctx }) => {
+        const flow = ctx.flows.get(input.flow_id) ?? null
+        return { flow }
+      },
+    })
+    .query("listFlows", {
+      input: z.void(),
+      output: z.object({
+        flows: z.array(flowSchema),
+      }),
+      resolve: async ({ ctx }) => {
+        return { flows: Array.from(ctx.flows.values()) }
+      },
+    })
+})
 
-  // === Public API ===
-  edem.flows = {
-    createFlow: (params: { name: string; trigger: string }) =>
-      edem.request("flows:create_flow", params),
-    runFlow: (flowId: string) => edem.request("flows:run_flow", { flowId }),
-  }
-}
+export default flowsModule
