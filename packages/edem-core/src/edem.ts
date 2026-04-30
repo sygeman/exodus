@@ -83,6 +83,7 @@ type RuntimeHandler = (args: { event: unknown }) => Promise<void> | void
 
 interface RuntimeProc {
   kind: "query" | "mutation" | "subscription"
+  inputSchema?: AnyZod
   resolve?: (args: {
     input: unknown
     ctx: unknown
@@ -123,6 +124,7 @@ class ModuleBuilderImpl {
   mutation(name: string, def: MutationDef<AnyZod, AnyZod, unknown, unknown>): this {
     this._runtimeProcs.set(name, {
       kind: "mutation",
+      inputSchema: def.input,
       resolve: def.resolve as RuntimeProc["resolve"],
     })
     return this
@@ -131,6 +133,7 @@ class ModuleBuilderImpl {
   query(name: string, def: QueryDef<AnyZod, AnyZod, unknown>): this {
     this._runtimeProcs.set(name, {
       kind: "query",
+      inputSchema: def.input,
       resolve: def.resolve as RuntimeProc["resolve"],
     })
     return this
@@ -202,7 +205,15 @@ function buildProxy(builder: ModuleBuilderImpl): Record<string, unknown> {
   for (const [procName, proc] of runtimeProcs.entries()) {
     if (proc.kind === "query" || proc.kind === "mutation") {
       const resolve = proc.resolve!
+      const inputSchema = proc.inputSchema
       proxy[procName] = async (input: unknown): Promise<unknown> => {
+        if (inputSchema) {
+          const result = inputSchema.safeParse(input)
+          if (!result.success) {
+            throw new Error(`[edem] Invalid input for ${procName}: ${result.error.message}`)
+          }
+          input = result.data
+        }
         const ctx = await getCtx()
         return resolve({ input, ctx, emit: makeEmit() })
       }
@@ -218,6 +229,16 @@ function buildProxy(builder: ModuleBuilderImpl): Record<string, unknown> {
 
 // ── createEdem ────────────────────────────────────────────────────────────────
 
+export class EdemError extends Error {
+  constructor(
+    message: string,
+    public readonly cause?: unknown,
+  ) {
+    super(message)
+    this.name = "EdemError"
+  }
+}
+
 type MergeModules<T extends EdemModuleFn<string, ProcMap>[]> = {
   [K in T[number] as K["_name"]]: ModuleAPI<K["_procs"]>
 }
@@ -228,13 +249,23 @@ export function createEdem<const TModules extends EdemModuleFn<string, ProcMap>[
   const edem: Record<string, Record<string, unknown>> = {}
 
   for (const mod of modules) {
-    const builder = new ModuleBuilderImpl()
-    mod._register(builder)
-    edem[mod._name] = buildProxy(builder)
+    try {
+      const builder = new ModuleBuilderImpl()
+      mod._register(builder)
+      edem[mod._name] = buildProxy(builder)
+    } catch (cause) {
+      throw new EdemError(`Failed to register module "${mod._name}"`, cause)
+    }
   }
 
   for (const mod of modules) {
-    if (mod._react) mod._react(edem)
+    if (mod._react) {
+      try {
+        mod._react(edem)
+      } catch (cause) {
+        throw new EdemError(`Failed to initialize reactions for module "${mod._name}"`, cause)
+      }
+    }
   }
 
   return edem as MergeModules<TModules>

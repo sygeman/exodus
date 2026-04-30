@@ -56,7 +56,7 @@ const collectionModule = createEdemModule(
           id: z.string(),
         }),
         output: z.object({
-          collection: z.any(),
+          collection: z.object({ id: z.string(), name: z.string() }).nullable(),
         }),
         resolve: async ({ input, ctx }) => {
           return {
@@ -80,7 +80,7 @@ const flowsModule = createEdemModule("flows", (module) => {
       output: z.object({
         flowId: z.string(),
         name: z.string(),
-        result: z.any(),
+        result: z.object({ ok: z.boolean() }),
       }),
     })
     .mutation("runFlow", {
