@@ -6,10 +6,10 @@ export const fieldSchema = z.object({
   collection_id: z.string(),
   name: z.string(),
   type: z.string(),
-  options: z.record(z.any()).optional(),
+  options: z.record(z.string(), z.any()).optional(),
   required: z.boolean().optional(),
   default: z.any().optional(),
-  meta: z.record(z.any()).optional(),
+  meta: z.record(z.string(), z.any()).optional(),
 })
 
 export const collectionSchema = z.object({
@@ -17,13 +17,13 @@ export const collectionSchema = z.object({
   name: z.string(),
   slug: z.string(),
   fields: z.array(fieldSchema),
-  meta: z.record(z.any()).optional(),
+  meta: z.record(z.string(), z.any()).optional(),
 })
 
 export const itemSchema = z.object({
   id: z.string(),
   collection_id: z.string(),
-  data: z.record(z.any()),
+  data: z.record(z.string(), z.any()),
   created_at: z.number(),
   updated_at: z.number(),
 })
@@ -64,7 +64,7 @@ export const dataModule = createEdemModule("data", (module) => {
         name: z.string(),
         slug: z.string(),
         fields: z.array(fieldSchema).optional(),
-        meta: z.record(z.any()).optional(),
+        meta: z.record(z.string(), z.any()).optional(),
       }),
       output: z.object({
         id: z.string(),
@@ -89,7 +89,7 @@ export const dataModule = createEdemModule("data", (module) => {
         name: z.string().optional(),
         slug: z.string().optional(),
         fields: z.array(fieldSchema).optional(),
-        meta: z.record(z.any()).optional(),
+        meta: z.record(z.string(), z.any()).optional(),
       }),
       output: z.object({
         id: z.string(),
@@ -131,7 +131,7 @@ export const dataModule = createEdemModule("data", (module) => {
     .mutation("createItem", {
       input: z.object({
         collection_id: z.string(),
-        data: z.record(z.any()),
+        data: z.record(z.string(), z.any()),
       }),
       output: z.object({
         id: z.string(),
@@ -154,7 +154,7 @@ export const dataModule = createEdemModule("data", (module) => {
     .mutation("updateItem", {
       input: z.object({
         item_id: z.string(),
-        data: z.record(z.any()),
+        data: z.record(z.string(), z.any()),
       }),
       output: z.object({
         id: z.string(),
@@ -229,7 +229,7 @@ export const dataModule = createEdemModule("data", (module) => {
     .query("queryItems", {
       input: z.object({
         collection_id: z.string(),
-        filter: z.record(z.any()).optional(),
+        filter: z.record(z.string(), z.any()).optional(),
         sort: z.array(z.string()).optional(),
         limit: z.number().optional(),
         offset: z.number().optional(),
