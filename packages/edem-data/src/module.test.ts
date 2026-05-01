@@ -3,63 +3,137 @@ import { createEdem } from "@exodus/edem-core"
 import { dataModule } from "./module"
 
 describe("data module", () => {
-  it("should create and use data module", async () => {
-    const edem = createEdem([dataModule])
-
-    const createResult = await edem.data.createCollection({
-      name: "Projects",
-      slug: "projects",
-      fields: [],
-    })
-    expect(createResult.id).toBeDefined()
-
-    const { collection } = await edem.data.getCollection({
-      collection_id: createResult.id,
-    })
-    expect(collection).not.toBeNull()
-    expect(collection?.name).toBe("Projects")
-
-    const { collections } = await edem.data.listCollections()
-    expect(collections.length).toBe(1)
-    expect(collections[0].slug).toBe("projects")
-
-    const itemResult = await edem.data.createItem({
-      collection_id: createResult.id,
-      data: { title: "Test Project" },
-    })
-    expect(itemResult.id).toBeDefined()
-
-    const { items } = await edem.data.queryItems({
-      collection_id: createResult.id,
-    })
-    expect(items.length).toBe(1)
-    expect(items[0].data.title).toBe("Test Project")
-
-    await edem.data.updateItem({
-      item_id: itemResult.id,
-      data: { title: "Updated Project" },
+  describe("createCollection", () => {
+    it("should create a collection and return id", async () => {
+      const edem = createEdem([dataModule])
+      const result = await edem.data.createCollection({
+        name: "Projects",
+        slug: "projects",
+        fields: [],
+      })
+      expect(result.id).toBeDefined()
     })
 
-    const { item } = await edem.data.getItem({
-      item_id: itemResult.id,
-    })
-    expect(item?.data.title).toBe("Updated Project")
-
-    await edem.data.deleteItem({
-      item_id: itemResult.id,
-    })
-
-    const { item: deletedItem } = await edem.data.getItem({
-      item_id: itemResult.id,
-    })
-    expect(deletedItem).toBeNull()
-
-    await edem.data.deleteCollection({
-      collection_id: createResult.id,
+    it("should be retrievable via getCollection", async () => {
+      const edem = createEdem([dataModule])
+      const { id } = await edem.data.createCollection({
+        name: "Projects",
+        slug: "projects",
+      })
+      const { collection } = await edem.data.getCollection({ collection_id: id })
+      expect(collection).not.toBeNull()
+      expect(collection?.name).toBe("Projects")
+      expect(collection?.slug).toBe("projects")
     })
 
-    const { collections: empty } = await edem.data.listCollections()
-    expect(empty.length).toBe(0)
+    it("should appear in listCollections", async () => {
+      const edem = createEdem([dataModule])
+      await edem.data.createCollection({ name: "Projects", slug: "projects" })
+      const { collections } = await edem.data.listCollections()
+      expect(collections).toHaveLength(1)
+      expect(collections[0].slug).toBe("projects")
+    })
+  })
+
+  describe("createItem", () => {
+    it("should create an item and return id", async () => {
+      const edem = createEdem([dataModule])
+      const { id: colId } = await edem.data.createCollection({ name: "Test", slug: "test" })
+      const result = await edem.data.createItem({
+        collection_id: colId,
+        data: { title: "Test Project" },
+      })
+      expect(result.id).toBeDefined()
+    })
+
+    it("should be retrievable via queryItems", async () => {
+      const edem = createEdem([dataModule])
+      const { id: colId } = await edem.data.createCollection({ name: "Test", slug: "test" })
+      await edem.data.createItem({
+        collection_id: colId,
+        data: { title: "Test Project" },
+      })
+      const { items } = await edem.data.queryItems({ collection_id: colId })
+      expect(items).toHaveLength(1)
+      expect(items[0].data.title).toBe("Test Project")
+    })
+  })
+
+  describe("updateItem", () => {
+    it("should update item data", async () => {
+      const edem = createEdem([dataModule])
+      const { id: colId } = await edem.data.createCollection({ name: "Test", slug: "test" })
+      const { id: itemId } = await edem.data.createItem({
+        collection_id: colId,
+        data: { title: "Original" },
+      })
+
+      await edem.data.updateItem({ item_id: itemId, data: { title: "Updated" } })
+
+      const { item } = await edem.data.getItem({ item_id: itemId })
+      expect(item?.data.title).toBe("Updated")
+    })
+
+    it("should set updated_at greater than created_at", async () => {
+      const edem = createEdem([dataModule])
+      const { id: colId } = await edem.data.createCollection({ name: "Test", slug: "test" })
+      const { id: itemId } = await edem.data.createItem({
+        collection_id: colId,
+        data: { title: "Original" },
+      })
+
+      const { item: before } = await edem.data.getItem({ item_id: itemId })
+      const createdAt = before!.created_at
+
+      await edem.data.updateItem({ item_id: itemId, data: { title: "Updated" } })
+
+      const { item: after } = await edem.data.getItem({ item_id: itemId })
+      expect(after!.updated_at).toBeGreaterThanOrEqual(createdAt)
+    })
+
+    it("should allow update when collection is deleted", async () => {
+      const edem = createEdem([dataModule])
+      const { id: colId } = await edem.data.createCollection({ name: "Test", slug: "test" })
+      const { id: itemId } = await edem.data.createItem({
+        collection_id: colId,
+        data: { title: "Original" },
+      })
+
+      await edem.data.deleteCollection({ collection_id: colId })
+
+      await edem.data.updateItem({ item_id: itemId, data: { title: "Updated" } })
+
+      const { item } = await edem.data.getItem({ item_id: itemId })
+      expect(item?.data.title).toBe("Updated")
+    })
+  })
+
+  describe("deleteItem", () => {
+    it("should remove item from store", async () => {
+      const edem = createEdem([dataModule])
+      const { id: colId } = await edem.data.createCollection({ name: "Test", slug: "test" })
+      const { id: itemId } = await edem.data.createItem({
+        collection_id: colId,
+        data: { title: "To Delete" },
+      })
+
+      await edem.data.deleteItem({ item_id: itemId })
+
+      const { item } = await edem.data.getItem({ item_id: itemId })
+      expect(item).toBeNull()
+    })
+  })
+
+  describe("deleteCollection", () => {
+    it("should remove collection from store", async () => {
+      const edem = createEdem([dataModule])
+      const { id } = await edem.data.createCollection({ name: "Test", slug: "test" })
+
+      await edem.data.deleteCollection({ collection_id: id })
+
+      const { collections } = await edem.data.listCollections()
+      expect(collections).toHaveLength(0)
+    })
   })
 
   describe("updateCollection", () => {
@@ -356,11 +430,15 @@ describe("data module", () => {
         collection_id: colId,
         data: { title: "Item" },
       })
+
+      const { item: before } = await edem.data.getItem({ item_id: itemId })
+
       await edem.data.updateItem({ item_id: itemId, data: { title: "Updated" } })
 
       expect(events).toHaveLength(1)
       expect(events[0].id).toBe(itemId)
       expect(events[0].data.title).toBe("Updated")
+      expect(events[0].updated_at).toBeGreaterThanOrEqual(before!.created_at)
     })
 
     it("should emit itemDeleted with item_id and collection_id", async () => {

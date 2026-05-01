@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test"
-import { validateFieldValue, fieldTypes } from "./fields"
+import { validateFieldValue, fieldTypes, fieldSchema } from "./fields"
 
 describe("field types", () => {
   it("should have all field types defined", () => {
@@ -138,6 +138,11 @@ describe("validateFieldValue", () => {
       expect(validateFieldValue("json", 123)).toBe(false)
       expect(validateFieldValue("json", true)).toBe(false)
     })
+
+    it("should accept null as valid (null/undefined shortcut)", () => {
+      expect(validateFieldValue("json", null)).toBe(true)
+      expect(validateFieldValue("json", undefined)).toBe(true)
+    })
   })
 
   describe("collection", () => {
@@ -148,5 +153,71 @@ describe("validateFieldValue", () => {
       expect(validateFieldValue("collection", {})).toBe(true)
       expect(validateFieldValue("collection", [])).toBe(true)
     })
+  })
+})
+
+describe("fieldSchema", () => {
+  it("should validate a valid field", () => {
+    const result = fieldSchema.safeParse({
+      id: "1",
+      collection_id: "col1",
+      name: "email",
+      type: "string",
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it("should validate with optional properties", () => {
+    const result = fieldSchema.safeParse({
+      id: "1",
+      collection_id: "col1",
+      name: "email",
+      type: "string",
+      options: { maxLength: 255 },
+      required: true,
+      default: "test@example.com",
+      meta: { hint: "User email" },
+    })
+    expect(result.success).toBe(true)
+  })
+
+  it("should reject invalid type", () => {
+    const result = fieldSchema.safeParse({
+      id: "1",
+      collection_id: "col1",
+      name: "email",
+      type: "invalid_type",
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("should reject missing required fields", () => {
+    const result = fieldSchema.safeParse({
+      id: "1",
+      name: "email",
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("should reject non-string name", () => {
+    const result = fieldSchema.safeParse({
+      id: "1",
+      collection_id: "col1",
+      name: 123,
+      type: "string",
+    })
+    expect(result.success).toBe(false)
+  })
+
+  it("should validate all field types", () => {
+    for (const type of fieldTypes) {
+      const result = fieldSchema.safeParse({
+        id: "1",
+        collection_id: "col1",
+        name: "field",
+        type,
+      })
+      expect(result.success).toBe(true)
+    }
   })
 })

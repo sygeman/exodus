@@ -52,7 +52,7 @@ function matchOperator(value: unknown, op: string, expected: unknown): boolean {
       if (!Array.isArray(expected) || expected.length !== 2) return false
       return typeof value === "number" && value >= expected[0] && value <= expected[1]
     default:
-      return true
+      return false
   }
 }
 

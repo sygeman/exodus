@@ -248,6 +248,16 @@ describe("matchFilter", () => {
     })
   })
 
+  describe("unknown operator", () => {
+    it("should reject unknown operator", () => {
+      expect(matchFilter(data, { name: { _unknown: "value" } })).toBe(false)
+    })
+
+    it("should reject unknown operator even with matching value", () => {
+      expect(matchFilter(data, { name: { _foo: "Alice" } })).toBe(false)
+    })
+  })
+
   describe("edge cases", () => {
     it("should match with empty filter", () => {
       expect(matchFilter(data, {})).toBe(true)
