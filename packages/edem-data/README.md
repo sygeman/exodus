@@ -1,124 +1,221 @@
-# Edem Data Engine
+# Edem Data
 
-## Overview
+Data модуль для Edem — коллекции, элементы, CRUD операции.
 
-The foundation of the Edem system. Stores all user data: collections, items, files, templates.
+## Установка
 
-Reference: **Directus**
+```typescript
+import { dataModule } from "@exodus/edem-data"
+import { createEdem } from "@exodus/edem-core"
 
-## Concepts
+const edem = createEdem([dataModule])
+```
+
+## Схемы
 
 ### Collection
 
-A table in the database. User creates collections through a constructor.
-
 ```typescript
-type Collection = {
-  id: string
-  name: string
-  slug: string
-  fields: Field[]
-  meta?: object
-}
+import { collectionSchema } from "@exodus/edem-data"
+
+// { id, name, slug, fields, meta? }
 ```
 
 ### Field
 
-A column in a collection. Has a type that defines behavior.
-
 ```typescript
-type Field = {
-  id: string
-  collection_id: string
-  name: string
-  type: FieldType
-  options?: object
-  required?: boolean
-  default?: unknown
-  meta?: object
-}
+import { fieldSchema } from "@exodus/edem-data"
+
+// { id, collection_id, name, type, options?, required?, default?, meta? }
 ```
 
 ### Item
 
-A row in a collection. Stores actual data.
+```typescript
+import { itemSchema } from "@exodus/edem-data"
+
+// { id, collection_id, data, created_at, updated_at }
+```
+
+## API
+
+### Mutations
+
+#### `createCollection`
 
 ```typescript
-type Item = {
-  id: string
-  collection_id: string
-  data: object
-  created_at: number
-  updated_at: number
-}
+const { id } = await edem.data.createCollection({
+  name: "Games",
+  slug: "games",
+  fields: [],    // optional
+  meta: {},      // optional
+})
 ```
 
-## Field Types
-
-### Basic Types
-
-| Type | Storage | Description |
-|------|---------|-------------|
-| `string` | TEXT | Single-line text |
-| `text` | TEXT | Multi-line text |
-| `number` | REAL | Integer or float |
-| `boolean` | INTEGER | 0 or 1 |
-| `date` | TEXT | ISO 8601 date |
-| `datetime` | TEXT | ISO 8601 datetime |
-| `json` | TEXT | JSON object/array |
-
-### Media Types
-
-| Type | Storage | Description |
-|------|---------|-------------|
-| `file` | TEXT (hash) | Reference to file in storage |
-| `image` | TEXT (hash) | Image with variants |
-| `video` | TEXT (hash) | Video with thumbnails |
-
-### Relation Types
-
-| Type | Storage | Description |
-|------|---------|-------------|
-| `relation` | TEXT | Many-to-one to another collection |
-| `collection` | — | Virtual, defines child collection |
-
-### Special Types
-
-| Type | Storage | Description |
-|------|---------|-------------|
-| `uuid` | TEXT | Auto-generated UUID |
-| `timestamp` | INTEGER | Auto-generated timestamp |
-| `user` | TEXT | Current user (for multi-user future) |
-| `sort` | INTEGER | Manual sort order |
-
-## Events
-
-### Commands
+#### `updateCollection`
 
 ```typescript
-data:create_collection → data:collection_created
-data:update_collection → data:collection_updated
-data:delete_collection → data:collection_deleted
-data:create_item → data:item_created
-data:update_item → data:item_updated
-data:delete_item → data:item_deleted
-data:query_items → data:items_result
+const { id } = await edem.data.updateCollection({
+  collection_id: "...",
+  name: "New Name",   // optional
+  slug: "new-slug",   // optional
+  fields: [],          // optional
+  meta: {},            // optional
+})
 ```
 
-## File Storage
+#### `deleteCollection`
 
-Content-addressable storage based on SHA256 hash.
-
-```
-files/
-├── ab/
-│   └── cd/
-│       └── ef1234567890abcdef...
-└── 12/
-    └── 34/
-        └── 567890abcdef1234...
+```typescript
+const { success } = await edem.data.deleteCollection({
+  collection_id: "...",
+})
 ```
 
-## Documentation
+#### `createItem`
 
-- [Data Layer](./docs/data.md) — Full data layer specification
+```typescript
+const { id } = await edem.data.createItem({
+  collection_id: "...",
+  data: { title: "Elden Ring", rating: 10 },
+})
+```
+
+#### `updateItem`
+
+```typescript
+const { id } = await edem.data.updateItem({
+  item_id: "...",
+  data: { title: "Updated Title" },  // merged with existing data
+})
+```
+
+#### `deleteItem`
+
+```typescript
+const { success } = await edem.data.deleteItem({
+  item_id: "...",
+})
+```
+
+### Queries
+
+#### `getCollection`
+
+```typescript
+const { collection } = await edem.data.getCollection({
+  collection_id: "...",
+})
+// collection | null
+```
+
+#### `listCollections`
+
+```typescript
+const { collections } = await edem.data.listCollections()
+// Collection[]
+```
+
+#### `getItem`
+
+```typescript
+const { item } = await edem.data.getItem({
+  item_id: "...",
+})
+// item | null
+```
+
+#### `queryItems`
+
+```typescript
+const { items, total } = await edem.data.queryItems({
+  collection_id: "...",
+  filter: {},      // optional, reserved
+  sort: [],        // optional, reserved
+  limit: 10,       // optional
+  offset: 0,       // optional
+})
+```
+
+### Subscriptions
+
+#### `collectionCreated`
+
+```typescript
+edem.data.collectionCreated(async ({ event }) => {
+  console.log(event.id, event.name, event.slug)
+})
+```
+
+#### `collectionUpdated`
+
+```typescript
+edem.data.collectionUpdated(async ({ event }) => {
+  console.log(event.id, event.name)
+})
+```
+
+#### `collectionDeleted`
+
+```typescript
+edem.data.collectionDeleted(async ({ event }) => {
+  console.log(event.collection_id)
+})
+```
+
+#### `itemCreated`
+
+```typescript
+edem.data.itemCreated(async ({ event }) => {
+  console.log(event.id, event.data)
+})
+```
+
+#### `itemUpdated`
+
+```typescript
+edem.data.itemUpdated(async ({ event }) => {
+  console.log(event.id, event.data)
+})
+```
+
+#### `itemDeleted`
+
+```typescript
+edem.data.itemDeleted(async ({ event }) => {
+  console.log(event.item_id, event.collection_id)
+})
+```
+
+## Пример
+
+```typescript
+import { createEdem } from "@exodus/edem-core"
+import { dataModule } from "@exodus/edem-data"
+
+const edem = createEdem([dataModule])
+
+// Подписка на события
+edem.data.collectionCreated(async ({ event }) => {
+  console.log("Created:", event.name)
+})
+
+// Создание коллекции
+const { id } = await edem.data.createCollection({
+  name: "Games",
+  slug: "games",
+})
+
+// Создание элемента
+await edem.data.createItem({
+  collection_id: id,
+  data: { title: "Elden Ring" },
+})
+
+// Запрос элементов
+const { items } = await edem.data.queryItems({ collection_id: id })
+```
+
+## Видение
+
+Полная спецификация модуля данных: [docs/data.md](./docs/data.md)

@@ -1,8 +1,8 @@
-# Data Layer
+# Data Layer — Vision
 
 ## Overview
 
-The foundation of the system. Stores all user data: collections, items, files, templates.
+The foundation of the Edem system. Stores all user data: collections, items, files, templates.
 
 Reference: **Directus**
 
@@ -13,7 +13,6 @@ Reference: **Directus**
 A table in the database. User creates collections through a constructor.
 
 ```typescript
-// Collection definition
 type Collection = {
   id: string          // Unique identifier
   name: string        // Display name
