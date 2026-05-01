@@ -1,10 +1,10 @@
 import { join } from "path"
 import { z } from "zod"
-import { eq, and, desc, asc, isNull } from "drizzle-orm"
+import { eq, and, desc, asc, isNull, isNotNull } from "drizzle-orm"
 import { createEdemModule } from "@exodus/edem-core"
 import { createDataEngine, type DataEngine } from "./db"
 import * as schema from "./schema"
-import { fieldSchema, validateFieldValue, type FieldType } from "./fields"
+import { fieldSchema, fieldTypes, validateFieldValue, type FieldType } from "./fields"
 import { matchFilter, sortItems, filterSchema, sortSchema } from "./filters"
 
 function safeJsonParse<T>(value: string, context: string): T {
@@ -183,6 +183,22 @@ export const dataModule = createEdemModule("data", (module) => {
             .set({ deleted_at: Date.now() })
             .where(eq(schema.projects.id, input.project_id))
           await emit.projectDeleted({ project_id: input.project_id })
+          return { success: true }
+        },
+      })
+      .mutation("restoreProject", {
+        input: z.object({ project_id: z.string() }),
+        output: z.object({ success: z.boolean() }),
+        resolve: async ({ input, ctx }) => {
+          const project = await ctx.db.query.projects.findFirst({
+            where: eq(schema.projects.id, input.project_id),
+          })
+          if (!project) throw new Error(`Project ${input.project_id} not found`)
+
+          await ctx.db
+            .update(schema.projects)
+            .set({ deleted_at: null })
+            .where(eq(schema.projects.id, input.project_id))
           return { success: true }
         },
       })
@@ -369,6 +385,85 @@ export const dataModule = createEdemModule("data", (module) => {
           return { success: true }
         },
       })
+      .mutation("restoreCollection", {
+        input: z.object({ collection_id: z.string() }),
+        output: z.object({ success: z.boolean() }),
+        resolve: async ({ input, ctx }) => {
+          const collection = await ctx.db.query.collections.findFirst({
+            where: eq(schema.collections.id, input.collection_id),
+          })
+          if (!collection) throw new Error(`Collection ${input.collection_id} not found`)
+
+          await ctx.db
+            .update(schema.collections)
+            .set({ deleted_at: null })
+            .where(eq(schema.collections.id, input.collection_id))
+          return { success: true }
+        },
+      })
+      .mutation("emptyCollectionTrash", {
+        input: z.void(),
+        output: z.object({ deleted: z.number() }),
+        resolve: async ({ ctx }) => {
+          const deleted = await ctx.db.query.collections.findMany({
+            where: isNotNull(schema.collections.deleted_at),
+          })
+          if (deleted.length === 0) return { deleted: 0 }
+
+          for (const row of deleted) {
+            await ctx.db.delete(schema.collections).where(eq(schema.collections.id, row.id))
+          }
+          return { deleted: deleted.length }
+        },
+      })
+      .query("getDeletedCollections", {
+        input: z.object({ project_id: z.string().optional() }),
+        output: z.object({ collections: z.array(collectionSchema) }),
+        resolve: async ({ input, ctx }) => {
+          const conditions = [isNotNull(schema.collections.deleted_at)]
+          if (input.project_id) {
+            conditions.push(eq(schema.collections.project_id, input.project_id))
+          }
+
+          const rows = await ctx.db.query.collections.findMany({
+            where: and(...conditions),
+          })
+
+          const collections = await Promise.all(
+            rows.map(async (row) => {
+              const fields = await ctx.db.query.fields.findMany({
+                where: eq(schema.fields.collection_id, row.id),
+              })
+              return {
+                ...row,
+                meta: row.meta
+                  ? safeJsonParse<Record<string, unknown>>(row.meta, `collection ${row.id} meta`)
+                  : undefined,
+                fields: fields.map((f) => ({
+                  id: f.id,
+                  collection_id: f.collection_id,
+                  name: f.name,
+                  type: f.type as FieldType,
+                  options: f.interface_options
+                    ? safeJsonParse<Record<string, unknown>>(
+                        f.interface_options,
+                        `field ${f.id} options`,
+                      )
+                    : undefined,
+                  required: f.required ?? undefined,
+                  default: f.default_value
+                    ? safeJsonParse(f.default_value, `field ${f.id} default_value`)
+                    : undefined,
+                  meta: f.meta
+                    ? safeJsonParse<Record<string, unknown>>(f.meta, `field ${f.id} meta`)
+                    : undefined,
+                })),
+              }
+            }),
+          )
+          return { collections }
+        },
+      })
       .query("getCollection", {
         input: z.object({ collection_id: z.string() }),
         output: z.object({ collection: collectionSchema.nullable() }),
@@ -401,6 +496,186 @@ export const dataModule = createEdemModule("data", (module) => {
             rows.map((row) => getCollectionWithFields(ctx.db, row.id)),
           )
           return { collections: collections.filter(Boolean) as z.infer<typeof collectionSchema>[] }
+        },
+      })
+      // ── Fields ──────────────────────────────────────────────────────────────
+      .mutation("createField", {
+        input: z.object({
+          collection_id: z.string(),
+          name: z.string(),
+          type: z.enum(fieldTypes),
+          interface: z.string().optional(),
+          display: z.string().optional(),
+          required: z.boolean().optional(),
+          hidden: z.boolean().optional(),
+          readonly: z.boolean().optional(),
+          special: z.string().optional(),
+          default_value: z.any().optional(),
+          validation: z.record(z.string(), z.any()).optional(),
+          meta: z.record(z.string(), z.any()).optional(),
+        }),
+        output: z.object({ id: z.string() }),
+        resolve: async ({ input, ctx }) => {
+          const collection = await ctx.db.query.collections.findFirst({
+            where: eq(schema.collections.id, input.collection_id),
+          })
+          if (!collection) throw new Error(`Collection ${input.collection_id} not found`)
+
+          const id = crypto.randomUUID()
+          await ctx.db.insert(schema.fields).values({
+            id,
+            collection_id: input.collection_id,
+            name: input.name,
+            type: input.type,
+            interface: input.interface,
+            display: input.display,
+            required: input.required ?? false,
+            hidden: input.hidden ?? false,
+            readonly: input.readonly ?? false,
+            special: input.special,
+            default_value:
+              input.default_value !== undefined ? JSON.stringify(input.default_value) : null,
+            validation: input.validation ? JSON.stringify(input.validation) : null,
+            meta: input.meta ? JSON.stringify(input.meta) : null,
+          })
+
+          await ctx.db
+            .update(schema.collections)
+            .set({ updated_at: Date.now() })
+            .where(eq(schema.collections.id, input.collection_id))
+
+          return { id }
+        },
+      })
+      .mutation("updateField", {
+        input: z.object({
+          field_id: z.string(),
+          name: z.string().optional(),
+          type: z.enum(fieldTypes).optional(),
+          interface: z.string().optional(),
+          display: z.string().optional(),
+          required: z.boolean().optional(),
+          hidden: z.boolean().optional(),
+          readonly: z.boolean().optional(),
+          default_value: z.any().optional(),
+          validation: z.record(z.string(), z.any()).optional(),
+          meta: z.record(z.string(), z.any()).optional(),
+        }),
+        output: z.object({ id: z.string() }),
+        resolve: async ({ input, ctx }) => {
+          const { field_id, default_value, validation, meta, ...updates } = input
+
+          const field = await ctx.db.query.fields.findFirst({
+            where: eq(schema.fields.id, field_id),
+          })
+          if (!field) throw new Error(`Field ${field_id} not found`)
+
+          const updateData: Record<string, unknown> = { ...updates }
+          if (default_value !== undefined) updateData.default_value = JSON.stringify(default_value)
+          if (validation !== undefined) updateData.validation = JSON.stringify(validation)
+          if (meta !== undefined) updateData.meta = JSON.stringify(meta)
+
+          await ctx.db.update(schema.fields).set(updateData).where(eq(schema.fields.id, field_id))
+
+          await ctx.db
+            .update(schema.collections)
+            .set({ updated_at: Date.now() })
+            .where(eq(schema.collections.id, field.collection_id))
+
+          return { id: field_id }
+        },
+      })
+      .mutation("deleteField", {
+        input: z.object({ field_id: z.string() }),
+        output: z.object({ success: z.boolean() }),
+        resolve: async ({ input, ctx }) => {
+          const field = await ctx.db.query.fields.findFirst({
+            where: eq(schema.fields.id, input.field_id),
+          })
+          if (!field) throw new Error(`Field ${input.field_id} not found`)
+
+          await ctx.db.delete(schema.fields).where(eq(schema.fields.id, input.field_id))
+
+          await ctx.db
+            .update(schema.collections)
+            .set({ updated_at: Date.now() })
+            .where(eq(schema.collections.id, field.collection_id))
+
+          return { success: true }
+        },
+      })
+      .mutation("reorderFields", {
+        input: z.object({ field_ids: z.array(z.string()) }),
+        output: z.object({ success: z.boolean() }),
+        resolve: async ({ input, ctx }) => {
+          for (let i = 0; i < input.field_ids.length; i++) {
+            await ctx.db
+              .update(schema.fields)
+              .set({ group_name: String(i) })
+              .where(eq(schema.fields.id, input.field_ids[i]))
+          }
+          return { success: true }
+        },
+      })
+      .query("getFields", {
+        input: z.object({ collection_id: z.string() }),
+        output: z.object({ fields: z.array(fieldSchema) }),
+        resolve: async ({ input, ctx }) => {
+          const fields = await ctx.db.query.fields.findMany({
+            where: eq(schema.fields.collection_id, input.collection_id),
+          })
+          return {
+            fields: fields.map((f) => ({
+              id: f.id,
+              collection_id: f.collection_id,
+              name: f.name,
+              type: f.type as FieldType,
+              options: f.interface_options
+                ? safeJsonParse<Record<string, unknown>>(
+                    f.interface_options,
+                    `field ${f.id} options`,
+                  )
+                : undefined,
+              required: f.required ?? undefined,
+              default: f.default_value
+                ? safeJsonParse(f.default_value, `field ${f.id} default_value`)
+                : undefined,
+              meta: f.meta
+                ? safeJsonParse<Record<string, unknown>>(f.meta, `field ${f.id} meta`)
+                : undefined,
+            })),
+          }
+        },
+      })
+      .query("getField", {
+        input: z.object({ field_id: z.string() }),
+        output: z.object({ field: fieldSchema.nullable() }),
+        resolve: async ({ input, ctx }) => {
+          const f = await ctx.db.query.fields.findFirst({
+            where: eq(schema.fields.id, input.field_id),
+          })
+          if (!f) return { field: null }
+          return {
+            field: {
+              id: f.id,
+              collection_id: f.collection_id,
+              name: f.name,
+              type: f.type as FieldType,
+              options: f.interface_options
+                ? safeJsonParse<Record<string, unknown>>(
+                    f.interface_options,
+                    `field ${f.id} options`,
+                  )
+                : undefined,
+              required: f.required ?? undefined,
+              default: f.default_value
+                ? safeJsonParse(f.default_value, `field ${f.id} default_value`)
+                : undefined,
+              meta: f.meta
+                ? safeJsonParse<Record<string, unknown>>(f.meta, `field ${f.id} meta`)
+                : undefined,
+            },
+          }
         },
       })
       // ── Items ─────────────────────────────────────────────────────────────
@@ -549,6 +824,193 @@ export const dataModule = createEdemModule("data", (module) => {
           return { success: true }
         },
       })
+      .mutation("restoreItem", {
+        input: z.object({ item_id: z.string() }),
+        output: z.object({ success: z.boolean() }),
+        resolve: async ({ input, ctx }) => {
+          const item = await ctx.db.query.items.findFirst({
+            where: eq(schema.items.id, input.item_id),
+          })
+          if (!item) throw new Error(`Item ${input.item_id} not found`)
+
+          await ctx.db
+            .update(schema.items)
+            .set({ deleted_at: null })
+            .where(eq(schema.items.id, input.item_id))
+          return { success: true }
+        },
+      })
+      .mutation("deleteItems", {
+        input: z.object({ item_ids: z.array(z.string()) }),
+        output: z.object({ deleted: z.number() }),
+        resolve: async ({ input, ctx }) => {
+          let deleted = 0
+          for (const item_id of input.item_ids) {
+            const item = await ctx.db.query.items.findFirst({
+              where: eq(schema.items.id, item_id),
+            })
+            if (item) {
+              await ctx.db
+                .update(schema.items)
+                .set({ deleted_at: Date.now() })
+                .where(eq(schema.items.id, item_id))
+              deleted++
+            }
+          }
+          return { deleted }
+        },
+      })
+      .mutation("updateItems", {
+        input: z.object({
+          item_ids: z.array(z.string()),
+          data: z.record(z.string(), z.any()),
+          source: z.string().optional(),
+        }),
+        output: z.object({ updated: z.number() }),
+        resolve: async ({ input, ctx }) => {
+          let updated = 0
+          const now = Date.now()
+          for (const item_id of input.item_ids) {
+            const item = await ctx.db.query.items.findFirst({
+              where: eq(schema.items.id, item_id),
+            })
+            if (!item) continue
+
+            const currentData = safeJsonParse<Record<string, unknown>>(item.data, `item ${item_id}`)
+            const mergedData = { ...currentData, ...input.data }
+
+            await ctx.db
+              .update(schema.items)
+              .set({
+                data: JSON.stringify(mergedData),
+                source: input.source,
+                updated_at: now,
+              })
+              .where(eq(schema.items.id, item_id))
+            updated++
+          }
+          return { updated }
+        },
+      })
+      .mutation("updateItemsBatch", {
+        input: z.object({
+          updates: z.array(z.object({ item_id: z.string(), data: z.record(z.string(), z.any()) })),
+          source: z.string().optional(),
+        }),
+        output: z.object({ updated: z.number() }),
+        resolve: async ({ input, ctx }) => {
+          let updated = 0
+          const now = Date.now()
+          for (const { item_id, data } of input.updates) {
+            const item = await ctx.db.query.items.findFirst({
+              where: eq(schema.items.id, item_id),
+            })
+            if (!item) continue
+
+            const currentData = safeJsonParse<Record<string, unknown>>(item.data, `item ${item_id}`)
+            const mergedData = { ...currentData, ...data }
+
+            await ctx.db
+              .update(schema.items)
+              .set({
+                data: JSON.stringify(mergedData),
+                source: input.source,
+                updated_at: now,
+              })
+              .where(eq(schema.items.id, item_id))
+            updated++
+          }
+          return { updated }
+        },
+      })
+      .mutation("deleteItemsByFilter", {
+        input: z.object({
+          collection_id: z.string(),
+          filter: filterSchema,
+        }),
+        output: z.object({ deleted: z.number() }),
+        resolve: async ({ input, ctx }) => {
+          const rows = await ctx.db.query.items.findMany({
+            where: and(
+              eq(schema.items.collection_id, input.collection_id),
+              isNull(schema.items.deleted_at),
+            ),
+          })
+
+          const items = rows.map(parseItem)
+          const filtered = input.filter
+            ? items.filter((item) =>
+                matchFilter(item.data, input.filter as Record<string, unknown>),
+              )
+            : items
+
+          let deleted = 0
+          const now = Date.now()
+          for (const item of filtered) {
+            await ctx.db
+              .update(schema.items)
+              .set({ deleted_at: now })
+              .where(eq(schema.items.id, item.id))
+            deleted++
+          }
+          return { deleted }
+        },
+      })
+      .query("countItems", {
+        input: z.object({
+          collection_id: z.string(),
+          filter: filterSchema,
+        }),
+        output: z.object({ count: z.number() }),
+        resolve: async ({ input, ctx }) => {
+          const rows = await ctx.db.query.items.findMany({
+            where: and(
+              eq(schema.items.collection_id, input.collection_id),
+              isNull(schema.items.deleted_at),
+            ),
+          })
+
+          let items = rows.map(parseItem)
+          if (input.filter) {
+            items = items.filter((item) =>
+              matchFilter(item.data, input.filter as Record<string, unknown>),
+            )
+          }
+          return { count: items.length }
+        },
+      })
+      .query("getDeletedItems", {
+        input: z.object({ collection_id: z.string() }),
+        output: z.object({ items: z.array(itemSchema) }),
+        resolve: async ({ input, ctx }) => {
+          const rows = await ctx.db.query.items.findMany({
+            where: and(
+              eq(schema.items.collection_id, input.collection_id),
+              isNotNull(schema.items.deleted_at),
+            ),
+          })
+          return { items: rows.map(parseItem) }
+        },
+      })
+      .mutation("emptyItemsTrash", {
+        input: z.object({ collection_id: z.string() }),
+        output: z.object({ deleted: z.number() }),
+        resolve: async ({ input, ctx }) => {
+          const rows = await ctx.db.query.items.findMany({
+            where: and(
+              eq(schema.items.collection_id, input.collection_id),
+              isNotNull(schema.items.deleted_at),
+            ),
+          })
+
+          let deleted = 0
+          for (const row of rows) {
+            await ctx.db.delete(schema.items).where(eq(schema.items.id, row.id))
+            deleted++
+          }
+          return { deleted }
+        },
+      })
       .query("getItem", {
         input: z.object({ item_id: z.string() }),
         output: z.object({ item: itemSchema.nullable() }),
@@ -655,6 +1117,41 @@ export const dataModule = createEdemModule("data", (module) => {
           return { relations }
         },
       })
+      .mutation("reorderRelations", {
+        input: z.object({ relation_ids: z.array(z.string()) }),
+        output: z.object({ success: z.boolean() }),
+        resolve: async ({ input, ctx }) => {
+          for (let i = 0; i < input.relation_ids.length; i++) {
+            await ctx.db
+              .update(schema.relations)
+              .set({ sort_order: i })
+              .where(eq(schema.relations.id, input.relation_ids[i]))
+          }
+          return { success: true }
+        },
+      })
+      .query("getAllItemRelations", {
+        input: z.object({ item_id: z.string() }),
+        output: z.object({ relations: z.array(relationSchema) }),
+        resolve: async ({ input, ctx }) => {
+          const relations = await ctx.db.query.relations.findMany({
+            where: eq(schema.relations.source_item_id, input.item_id),
+            orderBy: asc(schema.relations.sort_order),
+          })
+          return { relations }
+        },
+      })
+      .query("getReverseRelations", {
+        input: z.object({ item_id: z.string() }),
+        output: z.object({ relations: z.array(relationSchema) }),
+        resolve: async ({ input, ctx }) => {
+          const relations = await ctx.db.query.relations.findMany({
+            where: eq(schema.relations.target_item_id, input.item_id),
+            orderBy: asc(schema.relations.sort_order),
+          })
+          return { relations }
+        },
+      })
       // ── Locks ─────────────────────────────────────────────────────────────
       .mutation("lockItem", {
         input: z.object({
@@ -715,6 +1212,52 @@ export const dataModule = createEdemModule("data", (module) => {
           return { success: true }
         },
       })
+      .mutation("forceUnlockItem", {
+        input: z.object({ item_id: z.string() }),
+        output: z.object({ success: z.boolean() }),
+        resolve: async ({ input, ctx }) => {
+          await ctx.db.delete(schema.itemLocks).where(eq(schema.itemLocks.item_id, input.item_id))
+          return { success: true }
+        },
+      })
+      .mutation("extendLock", {
+        input: z.object({
+          item_id: z.string(),
+          ttl_seconds: z.number().optional(),
+        }),
+        output: z.object({ success: z.boolean() }),
+        resolve: async ({ input, ctx }) => {
+          const lock = await ctx.db.query.itemLocks.findFirst({
+            where: eq(schema.itemLocks.item_id, input.item_id),
+          })
+          if (!lock) throw new Error(`No lock found for item ${input.item_id}`)
+
+          const ttl = input.ttl_seconds ?? 300
+          const newExpiry = Date.now() + ttl * 1000
+
+          await ctx.db
+            .update(schema.itemLocks)
+            .set({ expires_at: newExpiry })
+            .where(eq(schema.itemLocks.item_id, input.item_id))
+
+          return { success: true }
+        },
+      })
+      .query("isItemLocked", {
+        input: z.object({ item_id: z.string() }),
+        output: z.object({ locked: z.boolean() }),
+        resolve: async ({ input, ctx }) => {
+          const lock = await ctx.db.query.itemLocks.findFirst({
+            where: eq(schema.itemLocks.item_id, input.item_id),
+          })
+          if (!lock) return { locked: false }
+          if (lock.expires_at < Date.now()) {
+            await ctx.db.delete(schema.itemLocks).where(eq(schema.itemLocks.id, lock.id))
+            return { locked: false }
+          }
+          return { locked: true }
+        },
+      })
       .query("getItemLock", {
         input: z.object({ item_id: z.string() }),
         output: z.object({ lock: itemLockSchema.nullable() }),
@@ -739,6 +1282,27 @@ export const dataModule = createEdemModule("data", (module) => {
             orderBy: desc(schema.itemVersions.version),
           })
           return { versions: versions.map(parseVersion) }
+        },
+      })
+      .query("getItemVersion", {
+        input: z.object({ version_id: z.string() }),
+        output: z.object({ version: itemVersionSchema.nullable() }),
+        resolve: async ({ input, ctx }) => {
+          const version = await ctx.db.query.itemVersions.findFirst({
+            where: eq(schema.itemVersions.id, input.version_id),
+          })
+          if (!version) return { version: null }
+          return { version: parseVersion(version) }
+        },
+      })
+      .query("countVersions", {
+        input: z.object({ item_id: z.string() }),
+        output: z.object({ count: z.number() }),
+        resolve: async ({ input, ctx }) => {
+          const versions = await ctx.db.query.itemVersions.findMany({
+            where: eq(schema.itemVersions.item_id, input.item_id),
+          })
+          return { count: versions.length }
         },
       })
       .mutation("restoreItemVersion", {
@@ -787,7 +1351,7 @@ async function getCollectionWithFields(
   return {
     ...collection,
     meta: collection.meta
-      ? safeJsonParse(collection.meta, `collection ${collectionId} meta`)
+      ? safeJsonParse<Record<string, unknown>>(collection.meta, `collection ${collectionId} meta`)
       : undefined,
     fields: fields.map((f) => ({
       id: f.id,
@@ -795,13 +1359,15 @@ async function getCollectionWithFields(
       name: f.name,
       type: f.type as FieldType,
       options: f.interface_options
-        ? safeJsonParse(f.interface_options, `field ${f.id} options`)
+        ? safeJsonParse<Record<string, unknown>>(f.interface_options, `field ${f.id} options`)
         : undefined,
       required: f.required ?? undefined,
       default: f.default_value
         ? safeJsonParse(f.default_value, `field ${f.id} default_value`)
         : undefined,
-      meta: f.meta ? safeJsonParse(f.meta, `field ${f.id} meta`) : undefined,
+      meta: f.meta
+        ? safeJsonParse<Record<string, unknown>>(f.meta, `field ${f.id} meta`)
+        : undefined,
     })),
   }
 }
