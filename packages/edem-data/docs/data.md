@@ -479,11 +479,9 @@ edem.data.getThumbnailPath({ file_hash, size }): { path }
 
 ### Search
 
-```typescript
-// Mutations
-edem.data.reindexFts(): { success }
-edem.data.reindexCollectionFts({ collection_id }): { success }
+In-memory search via `_search` filter operator. Case-insensitive substring match across all string fields in item data.
 
+```typescript
 // Queries
 edem.data.searchItems({ collection_id, query, limit?, offset? }): { items, total }
 edem.data.countSearchResults({ collection_id, query }): { count }
@@ -544,6 +542,14 @@ Filter syntax inspired by Directus.
 { title: { _contains: "hello" } }
 { name: { _starts_with: "A" } }
 { email: { _ends_with: "@gmail.com" } }
+```
+
+### Search Operator
+
+Case-insensitive substring search across all string fields in item data.
+
+```typescript
+{ _search: "hello" }
 ```
 
 ### Set Operators
@@ -882,14 +888,6 @@ CREATE TABLE template_tags (
 );
 
 CREATE INDEX idx_template_tags_tag ON template_tags(tag);
-
--- FTS5 for full-text search
-CREATE VIRTUAL TABLE items_fts USING fts5(
-  collection_id,
-  data,
-  content=items,
-  content_rowid=rowid
-);
 ```
 
 When a collection is created:

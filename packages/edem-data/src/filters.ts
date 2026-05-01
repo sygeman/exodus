@@ -3,6 +3,19 @@ import type { itemSchema } from "./schemas"
 
 export type FilterCondition = Record<string, unknown>
 
+function searchInData(data: Record<string, unknown>, query: string): boolean {
+  const lowerQuery = query.toLowerCase()
+  for (const value of Object.values(data)) {
+    if (typeof value === "string" && value.toLowerCase().includes(lowerQuery)) {
+      return true
+    }
+    if (typeof value === "object" && value !== null && !Array.isArray(value)) {
+      if (searchInData(value as Record<string, unknown>, query)) return true
+    }
+  }
+  return false
+}
+
 export function matchFilter(data: Record<string, unknown>, filter: FilterCondition): boolean {
   for (const [key, condition] of Object.entries(filter)) {
     if (key === "_and" && Array.isArray(condition)) {
@@ -11,6 +24,10 @@ export function matchFilter(data: Record<string, unknown>, filter: FilterConditi
     }
     if (key === "_or" && Array.isArray(condition)) {
       if (!condition.some((sub: FilterCondition) => matchFilter(data, sub))) return false
+      continue
+    }
+    if (key === "_search" && typeof condition === "string") {
+      if (!searchInData(data, condition)) return false
       continue
     }
 

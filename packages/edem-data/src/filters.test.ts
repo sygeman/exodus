@@ -286,6 +286,43 @@ describe("matchFilter", () => {
       expect(matchFilter({ age: null }, { age: { _between: [0, 10] } })).toBe(false)
     })
   })
+
+  describe("_search", () => {
+    it("should match substring in string field", () => {
+      expect(matchFilter(data, { _search: "lic" })).toBe(true)
+    })
+
+    it("should be case insensitive", () => {
+      expect(matchFilter(data, { _search: "ALICE" })).toBe(true)
+      expect(matchFilter(data, { _search: "alice" })).toBe(true)
+    })
+
+    it("should reject non-matching query", () => {
+      expect(matchFilter(data, { _search: "bob" })).toBe(false)
+    })
+
+    it("should skip non-string fields", () => {
+      expect(matchFilter(data, { _search: "30" })).toBe(false)
+    })
+
+    it("should search in nested objects", () => {
+      const nested = { profile: { bio: "Hello world" }, name: "Test" }
+      expect(matchFilter(nested, { _search: "hello" })).toBe(true)
+    })
+
+    it("should match empty string against everything", () => {
+      expect(matchFilter(data, { _search: "" })).toBe(true)
+    })
+
+    it("should combine with other filters", () => {
+      expect(
+        matchFilter(data, { _and: [{ _search: "Alice" }, { status: { _eq: "active" } }] }),
+      ).toBe(true)
+      expect(
+        matchFilter(data, { _and: [{ _search: "Alice" }, { status: { _eq: "draft" } }] }),
+      ).toBe(false)
+    })
+  })
 })
 
 describe("sortItems", () => {

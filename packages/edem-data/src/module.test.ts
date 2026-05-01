@@ -715,4 +715,111 @@ describe("data module", () => {
       expect(items).toHaveLength(2)
     })
   })
+
+  describe("searchItems", () => {
+    it("should search items by query", async () => {
+      const { id: colId } = await edem.data.createCollection({
+        project_id: projectId,
+        name: "Products",
+        slug: "products",
+      })
+
+      await edem.data.createItem({
+        collection_id: colId,
+        data: { name: "iPhone 15", brand: "Apple" },
+      })
+      await edem.data.createItem({
+        collection_id: colId,
+        data: { name: "Galaxy S24", brand: "Samsung" },
+      })
+      await edem.data.createItem({
+        collection_id: colId,
+        data: { name: "Pixel 8", brand: "Google" },
+      })
+
+      const { items, total } = await edem.data.searchItems({
+        collection_id: colId,
+        query: "iphone",
+      })
+
+      expect(total).toBe(1)
+      expect(items).toHaveLength(1)
+      expect(items[0].data.name).toBe("iPhone 15")
+    })
+
+    it("should be case insensitive", async () => {
+      const { id: colId } = await edem.data.createCollection({
+        project_id: projectId,
+        name: "Products",
+        slug: "products",
+      })
+
+      await edem.data.createItem({
+        collection_id: colId,
+        data: { name: "Hello World" },
+      })
+
+      const { items } = await edem.data.searchItems({
+        collection_id: colId,
+        query: "HELLO",
+      })
+
+      expect(items).toHaveLength(1)
+    })
+
+    it("should support pagination", async () => {
+      const { id: colId } = await edem.data.createCollection({
+        project_id: projectId,
+        name: "Products",
+        slug: "products",
+      })
+
+      for (let i = 0; i < 5; i++) {
+        await edem.data.createItem({
+          collection_id: colId,
+          data: { name: `Item test ${i}` },
+        })
+      }
+
+      const { items, total } = await edem.data.searchItems({
+        collection_id: colId,
+        query: "test",
+        limit: 2,
+        offset: 1,
+      })
+
+      expect(total).toBe(5)
+      expect(items).toHaveLength(2)
+    })
+  })
+
+  describe("countSearchResults", () => {
+    it("should count matching items", async () => {
+      const { id: colId } = await edem.data.createCollection({
+        project_id: projectId,
+        name: "Products",
+        slug: "products",
+      })
+
+      await edem.data.createItem({
+        collection_id: colId,
+        data: { name: "iPhone 15" },
+      })
+      await edem.data.createItem({
+        collection_id: colId,
+        data: { name: "iPhone 16" },
+      })
+      await edem.data.createItem({
+        collection_id: colId,
+        data: { name: "Galaxy S24" },
+      })
+
+      const { count } = await edem.data.countSearchResults({
+        collection_id: colId,
+        query: "iphone",
+      })
+
+      expect(count).toBe(2)
+    })
+  })
 })

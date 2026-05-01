@@ -1067,6 +1067,60 @@ export const dataModule = createEdemModule("data", (module) => {
           return { items, total }
         },
       })
+      .query("searchItems", {
+        input: z.object({
+          collection_id: z.string(),
+          query: z.string(),
+          limit: z.number().optional(),
+          offset: z.number().optional(),
+        }),
+        output: z.object({
+          items: z.array(itemSchema),
+          total: z.number(),
+        }),
+        resolve: async ({ input, ctx }) => {
+          const rows = await ctx.db.query.items.findMany({
+            where: and(
+              eq(schema.items.collection_id, input.collection_id),
+              isNull(schema.items.deleted_at),
+            ),
+          })
+
+          let items = rows.map(parseItem)
+          items = items.filter((item) => matchFilter(item.data, { _search: input.query }))
+
+          const total = items.length
+
+          if (input.offset !== undefined) {
+            items = items.slice(input.offset)
+          }
+          if (input.limit !== undefined) {
+            items = items.slice(0, input.limit)
+          }
+
+          return { items, total }
+        },
+      })
+      .query("countSearchResults", {
+        input: z.object({
+          collection_id: z.string(),
+          query: z.string(),
+        }),
+        output: z.object({ count: z.number() }),
+        resolve: async ({ input, ctx }) => {
+          const rows = await ctx.db.query.items.findMany({
+            where: and(
+              eq(schema.items.collection_id, input.collection_id),
+              isNull(schema.items.deleted_at),
+            ),
+          })
+
+          const items = rows.filter((row) =>
+            matchFilter(parseItem(row).data, { _search: input.query }),
+          )
+          return { count: items.length }
+        },
+      })
       // ── Relations ─────────────────────────────────────────────────────────
       .mutation("addRelation", {
         input: z.object({
