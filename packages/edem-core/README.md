@@ -2,185 +2,210 @@
 
 ## Обзор
 
-Edem runtime core — система модулей и внутренняя шина событий.
+Edem runtime core — типизированная система модулей с внутренней шиной событий.
 
-Этот пакет предоставляет базовую инфраструктуру для платформы Edem:
+Этот пакет предоставляет:
+- **Module System** — создание модулей через builder паттерн
+- **Procedures** — query (чтение), mutation (запись), subscription (события)
 - **Event Bus** — внутренняя межмодульная коммуникация (скрыта от модулей)
-- **Module System** — регистрация модулей, lifecycle, агрегация API
-- **Plugin Architecture** — модули общаются только через события, без прямых импортов
+- **Type Safety** — полная типизация через Zod схемы
 
 ## Архитектура
 
 ```
-┌─────────────────────────────────────────┐
-│              Класс Edem                 │
-│  ┌─────────────────────────────────┐    │
-│  │         API модулей             │    │
-│  │  edem.data.createCollection()   │    │
-│  │  edem.flows.createFlow()        │    │
-│  │  edem.ui.createPage()           │    │
-│  └─────────────────────────────────┘    │
-│  ┌─────────────────────────────────┐    │
-│  │      Внутренняя шина событий    │    │
-│  │  (скрыта от публичного API)     │    │
-│  └─────────────────────────────────┘    │
-└─────────────────────────────────────────┘
-```
-
-## Принципы проектирования
-
-### 1. Event-Driven внутри
-
-Модули общаются **только через события**. Прямые импорты между модулями запрещены (`@/modules/<другой-модуль>` нельзя).
-
-Но шина событий **внутренняя**. Пользователи и модули видят типизированное API, а не сырые события.
-
-### 2. API появляется после регистрации
-
-До регистрации:
-```typescript
-const edem = new Edem("bun")
-// edem.data === undefined
-```
-
-После регистрации:
-```typescript
-edem.register(dataModule)
-// edem.data.createCollection(...) — теперь доступно
-```
-
-### 3. Модуль = Функция
-
-Модуль — это функция, получающая `Edem` и регистрирующая своё API:
-
-```typescript
-function dataModule(edem: Edem) {
-  // Регистрация обработчиков событий (внутреннее)
-  edem.on("data:create_collection", handleCreateCollection)
-  
-  // Экспорт публичного API
-  edem.data = {
-    createCollection: async (params) => {
-      return edem.request("data:create_collection", params)
-    },
-    getCollection: async (id) => {
-      return edem.request("data:get_collection", { id })
-    }
-  }
-}
-```
-
-### 4. Типобезопасность
-
-TypeScript знает какие API доступны после регистрации:
-
-```typescript
-const edem = new Edem("bun")
-  .register(dataModule)
-  .register(flowsModule)
-
-// edem.data — типизировано
-// edem.flows — типизировано
+┌─────────────────────────────────────────────────────┐
+│                    createEdem()                      │
+│                                                     │
+│  ┌──────────────┐  ┌──────────────┐  ┌────────────┐ │
+│  │  dataModule  │  │ flowsModule  │  │  uiModule  │ │
+│  │              │  │              │  │            │ │
+│  │ .query()     │  │ .mutation()  │  │ .query()   │ │
+│  │ .mutation()  │  │ .subscription│  │ .mutation()│ │
+│  │ .subscription│  │              │  │            │ │
+│  └──────────────┘  └──────────────┘  └────────────┘ │
+│                                                     │
+│  Внутренняя шина событий (скрыта)                   │
+└─────────────────────────────────────────────────────┘
 ```
 
 ## Публичный API
 
-### `new Edem(environment)`
+### `createEdemModule(name, register, react?)`
 
-Создаёт runtime Edem.
+Создаёт модуль.
 
 ```typescript
-const edem = new Edem("bun")
+import { createEdemModule } from "@exodus/edem-core"
+import { z } from "zod"
+
+const dataModule = createEdemModule(
+  "data",
+  (module) => {
+    return module
+      .context(async () => ({
+        store: new Map<string, { id: string; name: string }>(),
+      }))
+      .subscription("collectionCreated", {
+        output: z.object({ id: z.string(), name: z.string() }),
+      })
+      .mutation("createCollection", {
+        input: z.object({ name: z.string() }),
+        output: z.object({ id: z.string() }),
+        resolve: async ({ input, ctx, emit }) => {
+          const id = crypto.randomUUID()
+          ctx.store.set(id, { id, name: input.name })
+          await emit.collectionCreated({ id, name: input.name })
+          return { id }
+        },
+      })
+      .query("getCollection", {
+        input: z.object({ id: z.string() }),
+        output: z.object({ collection: z.object({ id: z.string(), name: z.string() }).nullable() }),
+        resolve: async ({ input, ctx }) => {
+          return { collection: ctx.store.get(input.id) ?? null }
+        },
+      })
+  },
+  // react — опциональная функция для межмодульного взаимодействия
+  (edem) => {
+    edem.flows.flowCompleted(async ({ event }) => {
+      await edem.data.createCollection({ name: `flow-${event.name}` })
+    })
+  },
+)
 ```
 
-### `edem.register(module)`
+**Параметры:**
+- `name` — имя модуля (становится ключом в `edem.<name>`)
+- `register` — builder callback, возвращает `ModuleBuilder` с цепочкой вызовов
+- `react` — опциональная функция, вызывается после регистрации всех модулей
 
-Регистрирует модуль. Возвращает `Edem` для чейнинга.
+### `createEdem(modules)`
+
+Собирает модули в единый объект `edem`.
 
 ```typescript
-edem.register(dataModule)
-edem.register(flowsModule)
+import { createEdem } from "@exodus/edem-core"
 
-// Или чейнинг:
-const edem = new Edem("bun")
-  .register(dataModule)
-  .register(flowsModule)
+const edem = createEdem([dataModule, flowsModule, uiModule])
+
+// Использование API
+await edem.data.createCollection({ name: "Games" })
+await edem.flows.runFlow({ name: "sync" })
+await edem.ui.createPage({ name: "Home", route: "/" })
 ```
 
-### API модулей
+### `ModuleBuilder`
 
-После регистрации API модуля доступно по адресу `edem.<имяМодуля>`:
+Fluent API для определения процедур модуля.
 
-```typescript
-// Data модуль
-edem.data.createCollection({ name: "Games" })
-edem.data.getCollection("games")
-edem.data.createItem({ collectionId: "games", data: { title: "Elden Ring" } })
+| Метод | Описание |
+|-------|----------|
+| `.context(fn)` | Задаёт async фабрику контекста. Контекст ленивый, кэшируется. |
+| `.subscription(name, def)` | Объявляет канал событий. `def.output` — Zod схема payload. |
+| `.mutation(name, def)` | Объявляет мутацию. `def.input`, `def.output` — Zod схемы, `def.resolve` — обработчик. |
+| `.query(name, def)` | Объявляет запрос. `def.input`, `def.output` — Zod схемы, `def.resolve` — обработчик. |
 
-// Flows модуль
-edem.flows.createFlow({ name: "Auto-tag", trigger: "event" })
-edem.flows.runFlow("flow-id")
+### `EdemError`
 
-// UI модуль
-edem.ui.createPage({ name: "Games", route: "/games" })
-edem.ui.renderPage("page-id")
-```
-
-## Реализация модуля
-
-### Базовый модуль
+Класс ошибок, выбрасывается при ошибках регистрации или инициализации реакций.
 
 ```typescript
-function dataModule(edem: Edem) {
-  // Внутреннее состояние
-  const collections = new Map()
-  
-  // Регистрация обработчиков событий
-  edem.handle("data:create_collection", (ctx) => {
-    const id = crypto.randomUUID()
-    collections.set(id, ctx.payload)
-    return { id }
-  })
-  
-  // Экспорт публичного API
-  edem.data = {
-    createCollection: (params) => edem.request("data:create_collection", params),
-    getCollection: (id) => edem.request("data:get_collection", { id })
+import { EdemError } from "@exodus/edem-core"
+
+try {
+  createEdem([brokenModule])
+} catch (e) {
+  if (e instanceof EdemError) {
+    console.error(e.message, e.cause)
   }
 }
 ```
 
-### Модуль с межмодульным взаимодействием
+## Procedures
+
+### Query (чтение)
 
 ```typescript
-function dataModule(edem: Edem) {
-  // Подписка на события от других модулей
-  edem.on("flows:run_completed", (ctx) => {
-    // Обновить данные когда flow завершился
-  })
-  
-  // Отправка событий для других модулей
-  edem.emit("data:collection_created", { id, name })
-}
+.query("getCollection", {
+  input: z.object({ id: z.string() }),
+  output: z.object({ collection: collectionSchema.nullable() }),
+  resolve: async ({ input, ctx }) => {
+    return { collection: ctx.store.get(input.id) ?? null }
+  },
+})
 ```
 
-## Система событий (внутренняя)
-
-### Именование событий
-
-- **Команды**: `{модуль}:{действие}` — входящие запросы (`data:create-collection`)
-- **Факты**: `{модуль}:{сущность}-{результат}` — исходящие уведомления (`data:collection-created`)
-- **Ошибки**: `{модуль}:error` — структурированные ошибки
-
-### Формат события
+### Mutation (запись)
 
 ```typescript
-{
-  source: string,     // "{origin}:{id}"
-  depth: number,      // 0-25 (защита от зацикливания)
-  trace_id: string,   // UUID связывающий цепочку событий
-  timestamp: number   // Unix ms
-}
+.mutation("createCollection", {
+  input: z.object({ name: z.string() }),
+  output: z.object({ id: z.string() }),
+  resolve: async ({ input, ctx, emit }) => {
+    const id = crypto.randomUUID()
+    ctx.store.set(id, { id, name: input.name })
+    await emit.collectionCreated({ id, name: input.name })
+    return { id }
+  },
+})
+```
+
+### Subscription (события)
+
+```typescript
+.subscription("collectionCreated", {
+  output: z.object({ id: z.string(), name: z.string() }),
+})
+```
+
+Подписка извне:
+
+```typescript
+edem.data.collectionCreated(async ({ event }) => {
+  console.log("Created:", event.name)
+})
+```
+
+## Межмодульное взаимодействие
+
+Модули общаются через `react` callback, который вызывается после регистрации всех модулей:
+
+```typescript
+const collectionModule = createEdemModule(
+  "collection",
+  (module) => { /* ... */ },
+  (edem) => {
+    // Подписываемся на события другого модуля
+    edem.flows.flowCompleted(async ({ event }) => {
+      await edem.collection.createCollection({ name: `flow-${event.name}` })
+    })
+  },
+)
+```
+
+## Пример: полная настройка
+
+```typescript
+import { createEdem } from "@exodus/edem-core"
+import { dataModule } from "@exodus/edem-data"
+import { flowsModule } from "@exodus/edem-flows"
+import { uiModule } from "@exodus/edem-ui"
+
+const edem = createEdem([dataModule, flowsModule, uiModule])
+
+// Мутации
+const { id } = await edem.data.createCollection({ name: "Games", slug: "games" })
+await edem.data.createItem({ collection_id: id, data: { title: "Elden Ring" } })
+
+// Запросы
+const { collections } = await edem.data.listCollections()
+const { items } = await edem.data.queryItems({ collection_id: id })
+
+// Подписки
+edem.data.collectionCreated(async ({ event }) => {
+  console.log("New collection:", event.name)
+})
 ```
 
 ## Границы модулей
@@ -188,45 +213,8 @@ function dataModule(edem: Edem) {
 ### Разрешено
 - Внутри одного модуля (`./`, `../`)
 - Сторонние пакеты
-- Edem core (`@exodus/edem-core`)
+- `@exodus/edem-core`
 
 ### Запрещено
-- `from "@/modules/<другой-модуль>"`
+- Прямые импорты между модулями
 - Прямой доступ к состоянию других модулей
-
-## Core модули
-
-| Модуль | Описание |
-|--------|-------------|
-| `data` | Коллекции, поля, элементы, файлы |
-| `ui` | Страницы, компоненты, привязки |
-| `flows` | Рабочие процессы, триггеры |
-| `tasks` | Очередь задач |
-| `runners` | Исполнители |
-| `settings` | Глобальные настройки |
-| `notifications` | Пользовательские уведомления |
-| `metrics` | Статистика выполнения |
-| `events` | Лог событий |
-| `mcp` | MCP шлюз |
-
-## Пример: полная настройка
-
-```typescript
-import { Edem } from "@exodus/edem-core"
-import { dataModule } from "@exodus/edem-data"
-import { flowsModule } from "@exodus/edem-flows"
-import { uiModule } from "@exodus/edem-ui"
-
-const edem = new Edem("bun")
-  .register(dataModule)
-  .register(flowsModule)
-  .register(uiModule)
-
-// Использование API
-const collection = await edem.data.createCollection({ name: "Games" })
-const page = await edem.ui.createPage({ 
-  name: "Games", 
-  route: "/games",
-  collectionId: collection.id 
-})
-```
