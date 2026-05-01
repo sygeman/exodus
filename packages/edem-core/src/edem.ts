@@ -56,10 +56,16 @@ interface SubscriptionDef<TOut extends AnyZod> {
   output: TOut
 }
 
+// ── EdemConfig ────────────────────────────────────────────────────────────────
+
+interface EdemConfig {
+  appData?: string
+}
+
 // ── ModuleBuilder ─────────────────────────────────────────────────────────────
 
 export interface ModuleBuilder<TCtx, TProcs extends ProcMap> {
-  context<C>(fn: () => Promise<C>): ModuleBuilder<C, TProcs>
+  context<C>(fn: (config: EdemConfig) => Promise<C>): ModuleBuilder<C, TProcs>
 
   subscription<TName extends string, TOut extends AnyZod>(
     name: TName,
@@ -95,6 +101,7 @@ interface RuntimeProc {
 
 class ModuleBuilderImpl {
   private _contextFn: (() => Promise<unknown>) | null = null
+  private _config: EdemConfig = {}
   private readonly _subHandlers: Map<string, RuntimeHandler[]> = new Map()
   private readonly _runtimeProcs: Map<string, RuntimeProc> = new Map()
 
@@ -110,8 +117,13 @@ class ModuleBuilderImpl {
     return this._runtimeProcs
   }
 
-  context(fn: () => Promise<unknown>): this {
-    this._contextFn = fn
+  setConfig(config: EdemConfig) {
+    this._config = config
+  }
+
+  context(fn: (config: EdemConfig) => Promise<unknown>): this {
+    const config = this._config
+    this._contextFn = () => fn(config)
     return this
   }
 
@@ -245,12 +257,14 @@ type MergeModules<T extends EdemModuleFn<string, ProcMap>[]> = {
 
 export function createEdem<const TModules extends EdemModuleFn<string, ProcMap>[]>(
   modules: [...TModules],
+  config?: EdemConfig,
 ): MergeModules<TModules> {
   const edem: Record<string, Record<string, unknown>> = {}
 
   for (const mod of modules) {
     try {
       const builder = new ModuleBuilderImpl()
+      builder.setConfig(config ?? {})
       mod._register(builder)
       edem[mod._name] = buildProxy(builder)
     } catch (cause) {

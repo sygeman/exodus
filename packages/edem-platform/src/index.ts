@@ -14,6 +14,6 @@ import { uiModule } from "@exodus/edem-ui"
 import { runnersModule } from "@exodus/edem-runners"
 import { mcpModule } from "@exodus/edem-mcp"
 
-export function createPlatform() {
-  return createEdem([dataModule, flowsModule, uiModule, runnersModule, mcpModule])
+export function createPlatform(config?: { appData?: string }) {
+  return createEdem([dataModule, flowsModule, uiModule, runnersModule, mcpModule], config)
 }

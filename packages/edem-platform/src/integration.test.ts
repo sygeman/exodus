@@ -1,11 +1,19 @@
-import { describe, expect, it } from "bun:test"
+import { describe, expect, it, beforeEach } from "bun:test"
 import { createPlatform } from "./index"
 
 describe("Platform — Data", () => {
-  it("creates a collection and item", async () => {
-    const edem = createPlatform()
+  let edem: ReturnType<typeof createPlatform>
+  let projectId: string
 
+  beforeEach(async () => {
+    edem = createPlatform()
+    const project = await edem.data.createProject({ name: "Test Project" })
+    projectId = project.id
+  })
+
+  it("creates a collection and item", async () => {
     const { id } = await edem.data.createCollection({
+      project_id: projectId,
       name: "Games",
       slug: "games",
     })
@@ -19,9 +27,8 @@ describe("Platform — Data", () => {
   })
 
   it("queries items by collection", async () => {
-    const edem = createPlatform()
-
     const { id: colId } = await edem.data.createCollection({
+      project_id: projectId,
       name: "Games",
       slug: "games",
     })
@@ -36,6 +43,7 @@ describe("Platform — Data", () => {
     })
 
     const { id: moviesId } = await edem.data.createCollection({
+      project_id: projectId,
       name: "Movies",
       slug: "movies",
     })
@@ -53,23 +61,21 @@ describe("Platform — Data", () => {
   })
 
   it("subscribes to events", async () => {
-    const edem = createPlatform()
     const names: string[] = []
 
     edem.data.collectionCreated(async ({ event }) => {
       names.push(event.name)
     })
 
-    await edem.data.createCollection({ name: "Games", slug: "games" })
-    await edem.data.createCollection({ name: "Movies", slug: "movies" })
+    await edem.data.createCollection({ project_id: projectId, name: "Games", slug: "games" })
+    await edem.data.createCollection({ project_id: projectId, name: "Movies", slug: "movies" })
 
     expect(names).toEqual(["Games", "Movies"])
   })
 
   it("updates and deletes items", async () => {
-    const edem = createPlatform()
-
     const { id: colId } = await edem.data.createCollection({
+      project_id: projectId,
       name: "Test",
       slug: "test",
     })

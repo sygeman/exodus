@@ -1,4 +1,4 @@
-import { BrowserView } from "electrobun/bun"
+import { BrowserView, Utils } from "electrobun/bun"
 import type { RPCSchema } from "electrobun"
 import { createPlatform } from "@exodus/edem-platform"
 
@@ -19,7 +19,7 @@ function createEventBus() {
 }
 
 export async function createEdemElectrobun() {
-  const edem = createPlatform()
+  const edem = createPlatform({ appData: Utils.paths.userData })
   const bus = createEventBus()
 
   const rpc = BrowserView.defineRPC<{
