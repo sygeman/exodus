@@ -1,12 +1,11 @@
 import { describe, it, expect } from "bun:test"
 import { createEdem } from "@exodus/edem-core"
-import { dataModule } from "./index"
+import { dataModule } from "./module"
 
-describe("edem-data module", () => {
+describe("data module", () => {
   it("should create and use data module", async () => {
     const edem = createEdem([dataModule])
 
-    // Create collection
     const createResult = await edem.data.createCollection({
       name: "Projects",
       slug: "projects",
@@ -14,33 +13,28 @@ describe("edem-data module", () => {
     })
     expect(createResult.id).toBeDefined()
 
-    // Get collection
     const { collection } = await edem.data.getCollection({
       collection_id: createResult.id,
     })
     expect(collection).not.toBeNull()
     expect(collection?.name).toBe("Projects")
 
-    // List collections
     const { collections } = await edem.data.listCollections()
     expect(collections.length).toBe(1)
     expect(collections[0].slug).toBe("projects")
 
-    // Create item
     const itemResult = await edem.data.createItem({
       collection_id: createResult.id,
       data: { title: "Test Project" },
     })
     expect(itemResult.id).toBeDefined()
 
-    // Query items
     const { items } = await edem.data.queryItems({
       collection_id: createResult.id,
     })
     expect(items.length).toBe(1)
     expect(items[0].data.title).toBe("Test Project")
 
-    // Update item
     await edem.data.updateItem({
       item_id: itemResult.id,
       data: { title: "Updated Project" },
@@ -51,7 +45,6 @@ describe("edem-data module", () => {
     })
     expect(item?.data.title).toBe("Updated Project")
 
-    // Delete item
     await edem.data.deleteItem({
       item_id: itemResult.id,
     })
@@ -61,7 +54,6 @@ describe("edem-data module", () => {
     })
     expect(deletedItem).toBeNull()
 
-    // Delete collection
     await edem.data.deleteCollection({
       collection_id: createResult.id,
     })
@@ -88,5 +80,49 @@ describe("edem-data module", () => {
     })
 
     expect(events).toContain("created:Test")
+  })
+
+  it("should reject invalid field values", async () => {
+    const edem = createEdem([dataModule])
+
+    const { id: colId } = await edem.data.createCollection({
+      name: "Users",
+      slug: "users",
+      fields: [
+        { id: "1", collection_id: "", name: "email", type: "string" },
+        { id: "2", collection_id: "", name: "age", type: "number" },
+      ],
+    })
+
+    await expect(
+      edem.data.createItem({
+        collection_id: colId,
+        data: { email: 123 },
+      }),
+    ).rejects.toThrow('Invalid value for field "email" of type "string"')
+
+    await expect(
+      edem.data.createItem({
+        collection_id: colId,
+        data: { age: "not a number" },
+      }),
+    ).rejects.toThrow('Invalid value for field "age" of type "number"')
+  })
+
+  it("should enforce required fields", async () => {
+    const edem = createEdem([dataModule])
+
+    const { id: colId } = await edem.data.createCollection({
+      name: "Users",
+      slug: "users",
+      fields: [{ id: "1", collection_id: "", name: "email", type: "string", required: true }],
+    })
+
+    await expect(
+      edem.data.createItem({
+        collection_id: colId,
+        data: {},
+      }),
+    ).rejects.toThrow('Field "email" is required')
   })
 })

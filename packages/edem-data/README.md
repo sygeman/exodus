@@ -1,6 +1,6 @@
 # Edem Data
 
-Data модуль для Edem — коллекции, элементы, CRUD операции.
+Data модуль для Edem — коллекции, элементы, CRUD операции, валидация, фильтрация.
 
 ## Установка
 
@@ -11,31 +11,26 @@ import { createEdem } from "@exodus/edem-core"
 const edem = createEdem([dataModule])
 ```
 
-## Схемы
+## Field Types
 
-### Collection
-
-```typescript
-import { collectionSchema } from "@exodus/edem-data"
-
-// { id, name, slug, fields, meta? }
-```
-
-### Field
-
-```typescript
-import { fieldSchema } from "@exodus/edem-data"
-
-// { id, collection_id, name, type, options?, required?, default?, meta? }
-```
-
-### Item
-
-```typescript
-import { itemSchema } from "@exodus/edem-data"
-
-// { id, collection_id, data, created_at, updated_at }
-```
+| Type | Описание | Пример значения |
+|------|----------|-----------------|
+| `string` | Однострочный текст | `"hello"` |
+| `text` | Многострочный текст | `"line1\nline2"` |
+| `number` | Число | `42`, `3.14` |
+| `boolean` | Логическое | `true`, `false` |
+| `date` | Дата ISO 8601 | `"2024-01-15"` |
+| `datetime` | Дата+время ISO 8601 | `"2024-01-15T10:30:00"` |
+| `json` | JSON объект/массив | `{ key: "value" }` |
+| `file` | Файл (hash) | `"abc123..."` |
+| `image` | Изображение (hash) | `"abc123..."` |
+| `video` | Видео (hash) | `"abc123..."` |
+| `relation` | Ссылка на другую коллекцию | `"item-id"` |
+| `collection` | Виртуальный, дочерняя коллекция | — |
+| `uuid` | UUID | `"550e8400-..."` |
+| `timestamp` | Timestamp ISO 8601 | `"2024-01-15T10:30:00"` |
+| `user` | Текущий пользователь | `"user-id"` |
+| `sort` | Порядок сортировки | `1`, `2`, `3` |
 
 ## API
 
@@ -47,8 +42,11 @@ import { itemSchema } from "@exodus/edem-data"
 const { id } = await edem.data.createCollection({
   name: "Games",
   slug: "games",
-  fields: [],    // optional
-  meta: {},      // optional
+  fields: [
+    { id: "1", collection_id: "", name: "title", type: "string", required: true },
+    { id: "2", collection_id: "", name: "rating", type: "number" },
+  ],
+  meta: {},
 })
 ```
 
@@ -57,10 +55,10 @@ const { id } = await edem.data.createCollection({
 ```typescript
 const { id } = await edem.data.updateCollection({
   collection_id: "...",
-  name: "New Name",   // optional
-  slug: "new-slug",   // optional
-  fields: [],          // optional
-  meta: {},            // optional
+  name: "New Name",
+  slug: "new-slug",
+  fields: [],
+  meta: {},
 })
 ```
 
@@ -74,6 +72,8 @@ const { success } = await edem.data.deleteCollection({
 
 #### `createItem`
 
+Валидирует данные по схеме полей коллекции.
+
 ```typescript
 const { id } = await edem.data.createItem({
   collection_id: "...",
@@ -83,10 +83,12 @@ const { id } = await edem.data.createItem({
 
 #### `updateItem`
 
+Валидирует обновляемые поля.
+
 ```typescript
 const { id } = await edem.data.updateItem({
   item_id: "...",
-  data: { title: "Updated Title" },  // merged with existing data
+  data: { title: "Updated Title" },
 })
 ```
 
@@ -130,14 +132,75 @@ const { item } = await edem.data.getItem({
 ```typescript
 const { items, total } = await edem.data.queryItems({
   collection_id: "...",
-  filter: {},      // optional, reserved
-  sort: [],        // optional, reserved
-  limit: 10,       // optional
-  offset: 0,       // optional
+  filter: { status: { _eq: "published" } },
+  sort: ["-created_at"],
+  limit: 10,
+  offset: 0,
 })
 ```
 
-### Subscriptions
+## Query Language
+
+### Фильтры
+
+| Оператор | Описание | Пример |
+|----------|----------|--------|
+| `_eq` | Равно | `{ status: { _eq: "published" } }` |
+| `_neq` | Не равно | `{ status: { _neq: "draft" } }` |
+| `_gt` | Больше | `{ price: { _gt: 10 } }` |
+| `_gte` | Больше или равно | `{ price: { _gte: 10 } }` |
+| `_lt` | Меньше | `{ price: { _lt: 100 } }` |
+| `_lte` | Меньше или равно | `{ price: { _lte: 100 } }` |
+| `_contains` | Содержит строку | `{ title: { _contains: "hello" } }` |
+| `_starts_with` | Начинается с | `{ name: { _starts_with: "A" } }` |
+| `_ends_with` | Заканчивается на | `{ name: { _ends_with: "z" } }` |
+| `_in` | В массиве | `{ category: { _in: ["books", "movies"] } }` |
+| `_between` | Между | `{ price: { _between: [10, 100] } }` |
+
+### Логические операторы
+
+```typescript
+// AND
+filter: {
+  _and: [
+    { status: { _eq: "published" } },
+    { price: { _gt: 10 } }
+  ]
+}
+
+// OR
+filter: {
+  _or: [
+    { category: { _eq: "books" } },
+    { category: { _eq: "movies" } }
+  ]
+}
+```
+
+### Сортировка
+
+```typescript
+// По возрастанию
+sort: ["price"]
+
+// По убыванию
+sort: ["-price"]
+
+// Несколько полей
+sort: ["category", "-price"]
+```
+
+### Пагинация
+
+```typescript
+// Первая страница
+limit: 10, offset: 0
+
+// Вторая страница
+limit: 10, offset: 10
+```
+
+## Subscriptions
 
 #### `collectionCreated`
 
@@ -195,25 +258,35 @@ import { dataModule } from "@exodus/edem-data"
 
 const edem = createEdem([dataModule])
 
-// Подписка на события
-edem.data.collectionCreated(async ({ event }) => {
-  console.log("Created:", event.name)
-})
-
-// Создание коллекции
+// Создание коллекции с полями
 const { id } = await edem.data.createCollection({
   name: "Games",
   slug: "games",
+  fields: [
+    { id: "1", collection_id: "", name: "title", type: "string", required: true },
+    { id: "2", collection_id: "", name: "rating", type: "number" },
+    { id: "3", collection_id: "", name: "status", type: "string" },
+  ],
 })
 
-// Создание элемента
-await edem.data.createItem({
+// Создание элементов
+await edem.data.createItem({ collection_id: id, data: { title: "Elden Ring", rating: 10, status: "published" } })
+await edem.data.createItem({ collection_id: id, data: { title: "Dark Souls", rating: 9, status: "published" } })
+await edem.data.createItem({ collection_id: id, data: { title: "Sekiro", rating: 8, status: "draft" } })
+
+// Запрос с фильтрацией, сортировкой, пагинацией
+const { items, total } = await edem.data.queryItems({
   collection_id: id,
-  data: { title: "Elden Ring" },
+  filter: { status: { _eq: "published" } },
+  sort: ["-rating"],
+  limit: 10,
+  offset: 0,
 })
 
-// Запрос элементов
-const { items } = await edem.data.queryItems({ collection_id: id })
+// Подписка на события
+edem.data.itemCreated(async ({ event }) => {
+  console.log("New item:", event.data.title)
+})
 ```
 
 ## Видение
