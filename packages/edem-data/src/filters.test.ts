@@ -1,8 +1,333 @@
 import { describe, it, expect } from "bun:test"
 import { createEdem } from "@exodus/edem-core"
 import { dataModule } from "./module"
+import { matchFilter, sortItems } from "./filters"
 
-describe("query language", () => {
+describe("matchFilter", () => {
+  const data = { name: "Alice", age: 30, status: "active", tag: "dev" }
+
+  describe("_eq", () => {
+    it("should match equal values", () => {
+      expect(matchFilter(data, { name: { _eq: "Alice" } })).toBe(true)
+    })
+
+    it("should reject non-equal values", () => {
+      expect(matchFilter(data, { name: { _eq: "Bob" } })).toBe(false)
+    })
+  })
+
+  describe("_neq", () => {
+    it("should match non-equal values", () => {
+      expect(matchFilter(data, { name: { _neq: "Bob" } })).toBe(true)
+    })
+
+    it("should reject equal values", () => {
+      expect(matchFilter(data, { name: { _neq: "Alice" } })).toBe(false)
+    })
+  })
+
+  describe("_gt", () => {
+    it("should match greater values", () => {
+      expect(matchFilter(data, { age: { _gt: 20 } })).toBe(true)
+    })
+
+    it("should reject equal or lesser values", () => {
+      expect(matchFilter(data, { age: { _gt: 30 } })).toBe(false)
+      expect(matchFilter(data, { age: { _gt: 40 } })).toBe(false)
+    })
+
+    it("should reject non-number values", () => {
+      expect(matchFilter(data, { name: { _gt: "a" } })).toBe(false)
+    })
+  })
+
+  describe("_gte", () => {
+    it("should match greater or equal values", () => {
+      expect(matchFilter(data, { age: { _gte: 30 } })).toBe(true)
+      expect(matchFilter(data, { age: { _gte: 20 } })).toBe(true)
+    })
+
+    it("should reject lesser values", () => {
+      expect(matchFilter(data, { age: { _gte: 40 } })).toBe(false)
+    })
+  })
+
+  describe("_lt", () => {
+    it("should match lesser values", () => {
+      expect(matchFilter(data, { age: { _lt: 40 } })).toBe(true)
+    })
+
+    it("should reject equal or greater values", () => {
+      expect(matchFilter(data, { age: { _lt: 30 } })).toBe(false)
+      expect(matchFilter(data, { age: { _lt: 20 } })).toBe(false)
+    })
+  })
+
+  describe("_lte", () => {
+    it("should match lesser or equal values", () => {
+      expect(matchFilter(data, { age: { _lte: 30 } })).toBe(true)
+      expect(matchFilter(data, { age: { _lte: 40 } })).toBe(true)
+    })
+
+    it("should reject greater values", () => {
+      expect(matchFilter(data, { age: { _lte: 20 } })).toBe(false)
+    })
+  })
+
+  describe("_contains", () => {
+    it("should match contained substrings", () => {
+      expect(matchFilter(data, { name: { _contains: "lic" } })).toBe(true)
+    })
+
+    it("should reject non-contained substrings", () => {
+      expect(matchFilter(data, { name: { _contains: "bob" } })).toBe(false)
+    })
+
+    it("should reject non-string values", () => {
+      expect(matchFilter(data, { age: { _contains: "3" } })).toBe(false)
+    })
+  })
+
+  describe("_starts_with", () => {
+    it("should match string prefixes", () => {
+      expect(matchFilter(data, { name: { _starts_with: "Al" } })).toBe(true)
+    })
+
+    it("should reject non-matching prefixes", () => {
+      expect(matchFilter(data, { name: { _starts_with: "Bo" } })).toBe(false)
+    })
+  })
+
+  describe("_ends_with", () => {
+    it("should match string suffixes", () => {
+      expect(matchFilter(data, { name: { _ends_with: "ce" } })).toBe(true)
+    })
+
+    it("should reject non-matching suffixes", () => {
+      expect(matchFilter(data, { name: { _ends_with: "ob" } })).toBe(false)
+    })
+  })
+
+  describe("_in", () => {
+    it("should match values in array", () => {
+      expect(matchFilter(data, { status: { _in: ["active", "pending"] } })).toBe(true)
+    })
+
+    it("should reject values not in array", () => {
+      expect(matchFilter(data, { status: { _in: ["draft", "archived"] } })).toBe(false)
+    })
+
+    it("should reject non-array expected", () => {
+      expect(matchFilter(data, { status: { _in: "active" as any } })).toBe(false)
+    })
+
+    it("should reject undefined value", () => {
+      expect(matchFilter(data, { missing: { _in: ["a", "b"] } })).toBe(false)
+    })
+  })
+
+  describe("_between", () => {
+    it("should match values within range (inclusive)", () => {
+      expect(matchFilter(data, { age: { _between: [20, 40] } })).toBe(true)
+      expect(matchFilter(data, { age: { _between: [30, 30] } })).toBe(true)
+    })
+
+    it("should reject values outside range", () => {
+      expect(matchFilter(data, { age: { _between: [31, 40] } })).toBe(false)
+    })
+
+    it("should reject invalid range spec", () => {
+      expect(matchFilter(data, { age: { _between: [30] } })).toBe(false)
+      expect(matchFilter(data, { age: { _between: "bad" as any } })).toBe(false)
+      expect(matchFilter(data, { age: { _between: [30, 40, 50] } })).toBe(false)
+      expect(matchFilter(data, { age: { _between: [] } })).toBe(false)
+    })
+  })
+
+  describe("multiple conditions on same field", () => {
+    it("should require all conditions to pass", () => {
+      expect(matchFilter(data, { age: { _gte: 25, _lte: 35 } })).toBe(true)
+      expect(matchFilter(data, { age: { _gte: 35, _lte: 40 } })).toBe(false)
+    })
+  })
+
+  describe("multiple fields", () => {
+    it("should require all fields to match", () => {
+      expect(matchFilter(data, { name: { _eq: "Alice" }, age: { _gt: 25 } })).toBe(true)
+      expect(matchFilter(data, { name: { _eq: "Bob" }, age: { _gt: 25 } })).toBe(false)
+    })
+  })
+
+  describe("_and", () => {
+    it("should match when all sub-filters match", () => {
+      expect(
+        matchFilter(data, { _and: [{ age: { _gt: 25 } }, { status: { _eq: "active" } }] }),
+      ).toBe(true)
+    })
+
+    it("should reject when any sub-filter fails", () => {
+      expect(
+        matchFilter(data, { _and: [{ age: { _gt: 25 } }, { status: { _eq: "draft" } }] }),
+      ).toBe(false)
+    })
+  })
+
+  describe("_or", () => {
+    it("should match when any sub-filter matches", () => {
+      expect(matchFilter(data, { _or: [{ name: { _eq: "Bob" } }, { age: { _eq: 30 } }] })).toBe(
+        true,
+      )
+    })
+
+    it("should reject when all sub-filters fail", () => {
+      expect(matchFilter(data, { _or: [{ name: { _eq: "Bob" } }, { age: { _eq: 99 } }] })).toBe(
+        false,
+      )
+    })
+  })
+
+  describe("_and with other fields", () => {
+    it("should require both _and and field conditions to pass", () => {
+      expect(
+        matchFilter(data, {
+          _and: [{ age: { _gt: 25 } }, { status: { _eq: "active" } }],
+          name: { _eq: "Alice" },
+        }),
+      ).toBe(true)
+    })
+
+    it("should fail when _and passes but field condition fails", () => {
+      expect(
+        matchFilter(data, {
+          _and: [{ age: { _gt: 25 } }, { status: { _eq: "active" } }],
+          name: { _eq: "Bob" },
+        }),
+      ).toBe(false)
+    })
+
+    it("should fail when field passes but _and fails", () => {
+      expect(
+        matchFilter(data, {
+          _and: [{ age: { _gt: 50 } }, { status: { _eq: "active" } }],
+          name: { _eq: "Alice" },
+        }),
+      ).toBe(false)
+    })
+  })
+
+  describe("_or with other fields", () => {
+    it("should require both _or and field conditions to pass", () => {
+      expect(
+        matchFilter(data, {
+          _or: [{ name: { _eq: "Bob" } }, { age: { _eq: 30 } }],
+          status: { _eq: "active" },
+        }),
+      ).toBe(true)
+    })
+
+    it("should fail when _or passes but field condition fails", () => {
+      expect(
+        matchFilter(data, {
+          _or: [{ name: { _eq: "Bob" } }, { age: { _eq: 30 } }],
+          status: { _eq: "draft" },
+        }),
+      ).toBe(false)
+    })
+  })
+
+  describe("nested _and/_or", () => {
+    it("should handle nested logical operators", () => {
+      expect(
+        matchFilter(data, {
+          _and: [
+            { _or: [{ name: { _eq: "Alice" } }, { name: { _eq: "Bob" } }] },
+            { age: { _gte: 30 } },
+          ],
+        }),
+      ).toBe(true)
+    })
+  })
+
+  describe("edge cases", () => {
+    it("should match with empty filter", () => {
+      expect(matchFilter(data, {})).toBe(true)
+    })
+
+    it("should not match on missing field", () => {
+      expect(matchFilter(data, { missing: { _eq: "value" } })).toBe(false)
+    })
+
+    it("should handle null values in data", () => {
+      expect(matchFilter({ name: null }, { name: { _eq: null } })).toBe(true)
+      expect(matchFilter({ name: null }, { name: { _neq: "x" } })).toBe(true)
+    })
+
+    it("should reject null values for string operators", () => {
+      expect(matchFilter({ name: null }, { name: { _contains: "x" } })).toBe(false)
+      expect(matchFilter({ name: null }, { name: { _starts_with: "x" } })).toBe(false)
+      expect(matchFilter({ name: null }, { name: { _ends_with: "x" } })).toBe(false)
+    })
+
+    it("should reject null values for number operators", () => {
+      expect(matchFilter({ age: null }, { age: { _gt: 0 } })).toBe(false)
+      expect(matchFilter({ age: null }, { age: { _gte: 0 } })).toBe(false)
+      expect(matchFilter({ age: null }, { age: { _lt: 0 } })).toBe(false)
+      expect(matchFilter({ age: null }, { age: { _lte: 0 } })).toBe(false)
+      expect(matchFilter({ age: null }, { age: { _between: [0, 10] } })).toBe(false)
+    })
+  })
+})
+
+describe("sortItems", () => {
+  const items = [
+    { id: "1", collection_id: "c", data: { name: "C", order: 3 }, created_at: 0, updated_at: 0 },
+    { id: "2", collection_id: "c", data: { name: "A", order: 1 }, created_at: 0, updated_at: 0 },
+    { id: "3", collection_id: "c", data: { name: "B", order: 2 }, created_at: 0, updated_at: 0 },
+  ]
+
+  it("should sort ascending by number", () => {
+    const sorted = sortItems(items, ["order"])
+    expect(sorted.map((i) => i.data.name)).toEqual(["A", "B", "C"])
+  })
+
+  it("should sort descending with - prefix", () => {
+    const sorted = sortItems(items, ["-order"])
+    expect(sorted.map((i) => i.data.name)).toEqual(["C", "B", "A"])
+  })
+
+  it("should sort by string", () => {
+    const sorted = sortItems(items, ["name"])
+    expect(sorted.map((i) => i.data.name)).toEqual(["A", "B", "C"])
+  })
+
+  it("should handle null/undefined values", () => {
+    const withNull = [
+      { id: "1", collection_id: "c", data: { val: 1 }, created_at: 0, updated_at: 0 },
+      { id: "2", collection_id: "c", data: { val: null }, created_at: 0, updated_at: 0 },
+      { id: "3", collection_id: "c", data: { val: 3 }, created_at: 0, updated_at: 0 },
+    ]
+    const sorted = sortItems(withNull, ["val"])
+    expect(sorted[0].data.val).toBeNull()
+    expect(sorted[1].data.val).toBe(1)
+    expect(sorted[2].data.val).toBe(3)
+  })
+
+  it("should handle multi-field sort", () => {
+    const multi = [
+      { id: "1", collection_id: "c", data: { group: "A", order: 2 }, created_at: 0, updated_at: 0 },
+      { id: "2", collection_id: "c", data: { group: "A", order: 1 }, created_at: 0, updated_at: 0 },
+      { id: "3", collection_id: "c", data: { group: "B", order: 1 }, created_at: 0, updated_at: 0 },
+    ]
+    const sorted = sortItems(multi, ["group", "order"])
+    expect(sorted.map((i) => `${i.data.group}:${i.data.order}`)).toEqual(["A:1", "A:2", "B:1"])
+  })
+
+  it("should return empty array as-is", () => {
+    expect(sortItems([], ["order"])).toEqual([])
+  })
+})
+
+describe("query language (integration)", () => {
   it("should filter items with _eq", async () => {
     const edem = createEdem([dataModule])
 

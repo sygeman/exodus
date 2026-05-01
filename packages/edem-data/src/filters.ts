@@ -6,75 +6,54 @@ export type FilterCondition = Record<string, unknown>
 export function matchFilter(data: Record<string, unknown>, filter: FilterCondition): boolean {
   for (const [key, condition] of Object.entries(filter)) {
     if (key === "_and" && Array.isArray(condition)) {
-      return condition.every((sub: FilterCondition) => matchFilter(data, sub))
+      if (!condition.every((sub: FilterCondition) => matchFilter(data, sub))) return false
+      continue
     }
     if (key === "_or" && Array.isArray(condition)) {
-      return condition.some((sub: FilterCondition) => matchFilter(data, sub))
+      if (!condition.some((sub: FilterCondition) => matchFilter(data, sub))) return false
+      continue
     }
 
     const value = data[key]
     if (typeof condition === "object" && condition !== null && !Array.isArray(condition)) {
       for (const [op, expected] of Object.entries(condition)) {
-        switch (op) {
-          case "_eq":
-            if (value !== expected) return false
-            break
-          case "_neq":
-            if (value === expected) return false
-            break
-          case "_gt":
-            if (typeof value !== "number" || typeof expected !== "number" || value <= expected)
-              return false
-            break
-          case "_gte":
-            if (typeof value !== "number" || typeof expected !== "number" || value < expected)
-              return false
-            break
-          case "_lt":
-            if (typeof value !== "number" || typeof expected !== "number" || value >= expected)
-              return false
-            break
-          case "_lte":
-            if (typeof value !== "number" || typeof expected !== "number" || value > expected)
-              return false
-            break
-          case "_contains":
-            if (
-              typeof value !== "string" ||
-              typeof expected !== "string" ||
-              !value.includes(expected)
-            )
-              return false
-            break
-          case "_starts_with":
-            if (
-              typeof value !== "string" ||
-              typeof expected !== "string" ||
-              !value.startsWith(expected)
-            )
-              return false
-            break
-          case "_ends_with":
-            if (
-              typeof value !== "string" ||
-              typeof expected !== "string" ||
-              !value.endsWith(expected)
-            )
-              return false
-            break
-          case "_in":
-            if (!Array.isArray(expected) || !expected.includes(value)) return false
-            break
-          case "_between":
-            if (!Array.isArray(expected) || expected.length !== 2) return false
-            if (typeof value !== "number" || value < expected[0] || value > expected[1])
-              return false
-            break
+        if (op.startsWith("_")) {
+          if (!matchOperator(value, op, expected)) return false
         }
       }
     }
   }
   return true
+}
+
+function matchOperator(value: unknown, op: string, expected: unknown): boolean {
+  switch (op) {
+    case "_eq":
+      return value === expected
+    case "_neq":
+      return value !== expected
+    case "_gt":
+      return typeof value === "number" && typeof expected === "number" && value > expected
+    case "_gte":
+      return typeof value === "number" && typeof expected === "number" && value >= expected
+    case "_lt":
+      return typeof value === "number" && typeof expected === "number" && value < expected
+    case "_lte":
+      return typeof value === "number" && typeof expected === "number" && value <= expected
+    case "_contains":
+      return typeof value === "string" && typeof expected === "string" && value.includes(expected)
+    case "_starts_with":
+      return typeof value === "string" && typeof expected === "string" && value.startsWith(expected)
+    case "_ends_with":
+      return typeof value === "string" && typeof expected === "string" && value.endsWith(expected)
+    case "_in":
+      return Array.isArray(expected) && expected.includes(value)
+    case "_between":
+      if (!Array.isArray(expected) || expected.length !== 2) return false
+      return typeof value === "number" && value >= expected[0] && value <= expected[1]
+    default:
+      return true
+  }
 }
 
 export function sortItems(

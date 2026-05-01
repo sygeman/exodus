@@ -158,10 +158,17 @@ export const dataModule = createEdemModule("data", (module) => {
 
         const collection = ctx.store.collections.get(item.collection_id)
         if (collection) {
+          const mergedData = { ...item.data, ...input.data }
           for (const field of collection.fields) {
             const value = input.data[field.name]
             if (value !== undefined && !validateFieldValue(field.type, value)) {
               throw new Error(`Invalid value for field "${field.name}" of type "${field.type}"`)
+            }
+            if (
+              field.required &&
+              (mergedData[field.name] === null || mergedData[field.name] === undefined)
+            ) {
+              throw new Error(`Field "${field.name}" is required`)
             }
           }
         }
@@ -256,10 +263,10 @@ export const dataModule = createEdemModule("data", (module) => {
           result = sortItems(result, input.sort)
         }
 
-        if (input.offset) {
+        if (input.offset !== undefined) {
           result = result.slice(input.offset)
         }
-        if (input.limit) {
+        if (input.limit !== undefined) {
           result = result.slice(0, input.limit)
         }
 
