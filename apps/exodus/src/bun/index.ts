@@ -1,5 +1,6 @@
 import { BrowserWindow, Updater, ApplicationMenu } from "electrobun/bun"
 import { createEventoBun } from "@/bun/evento"
+import { edem } from "@/bun/edem"
 import { initUpdater } from "@/modules/updater/bun"
 import { initSchema } from "@/modules/schema/bun"
 import { initProjects } from "@/modules/projects/bun"
@@ -125,4 +126,4 @@ initSchema(evento)
 
 console.log("Bun process started")
 
-export { evento }
+export { evento, edem }

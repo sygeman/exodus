@@ -19,9 +19,6 @@
     }
   },
   "dependencies": {
-    "@exodus/edem-core": "workspace:*",
-    "@exodus/edem-platform": "workspace:*",
-    "@exodus/evento": "workspace:*",
     "electrobun": "1.16.0"
   },
   "devDependencies": {

@@ -14,6 +14,9 @@
     "prepare": "husky && bun scripts/patch-electrobun.js"
   },
   "dependencies": {
+    "@exodus/edem-core": "workspace:*",
+    "@exodus/edem-data": "workspace:*",
+    "@exodus/edem-electrobun": "workspace:*",
     "@exodus/evento": "workspace:*",
     "@exodus/typescript-config": "workspace:*",
     "@nuxt/ui": "4.6.1",
