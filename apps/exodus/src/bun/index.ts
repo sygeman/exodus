@@ -1,12 +1,15 @@
-import { BrowserWindow, Updater, ApplicationMenu } from "electrobun/bun"
-import { createEventoBun } from "@/bun/evento"
-import { edem } from "@/bun/edem"
+import { BrowserWindow, BrowserView, Updater, ApplicationMenu } from "electrobun/bun"
+import type { RPCSchema } from "electrobun"
+import { Evento, type EventoMetaType } from "@exodus/evento"
+import { createBunEdemBridge } from "@exodus/edem-electrobun/bun"
+import type { EdemMsg } from "@exodus/edem-electrobun/types"
+import { edem, modules } from "@/bun/edem"
 import { initUpdater } from "@/modules/updater/bun"
 import { initSchema } from "@/modules/schema/bun"
 import { initProjects } from "@/modules/projects/bun"
 import { bunLogger } from "@/modules/logger/bun"
 import { initAppState, readState } from "@/modules/app-state/bun"
-import { globalRegistry } from "@/events"
+import { globalRegistry, type GlobalEventMap } from "@/events"
 
 // Workaround for WebKitGTK + NVIDIA + Wayland rendering issue.
 // The DMA-BUF renderer fails to create GBM buffers on NVIDIA in Wayland
@@ -48,9 +51,32 @@ async function getMainViewUrl(): Promise<string> {
 
 const url = await getMainViewUrl()
 
-const { evento, rpc } = createEventoBun()
-
+const evento = new Evento<"bun", ["webview"], GlobalEventMap>("bun", "webview")
 evento.register(globalRegistry)
+
+const edemBridge = createBunEdemBridge(edem, modules)
+
+type EventoMeta = EventoMetaType<typeof evento>
+
+const rpc = BrowserView.defineRPC<{
+  bun: RPCSchema<{
+    messages: { emit: { name: string; payload: unknown; meta: EventoMeta }; edem: EdemMsg }
+  }>
+  webview: RPCSchema<{
+    messages: { emit: { name: string; payload: unknown; meta: EventoMeta }; edem: EdemMsg }
+  }>
+}>({
+  handlers: {
+    messages: {
+      emit: (msg: { name: string; payload: unknown; meta: EventoMeta }) => {
+        evento.emitLocal(msg.name, msg.payload, msg.meta)
+      },
+      edem: (msg: EdemMsg) => {
+        edemBridge.handler(msg)
+      },
+    },
+  },
+})
 
 const savedState = readState()
 const defaultFrame = { width: 1200, height: 800, x: 0, y: 0 }
@@ -71,6 +97,7 @@ if (savedState.windowMaximized) {
 const { webview } = win
 
 evento.sender = webview.rpc?.send?.emit
+edemBridge.attachWebview(webview)
 
 initAppState(evento, win, (name, payload) => {
   evento.emitEvent(name, payload, "app:init")

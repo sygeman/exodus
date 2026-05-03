@@ -1,2 +1,14 @@
-export { createEdem, createEdemModule, createLocalEdemWorker } from "./edem"
-export type { EdemWorker, EdemWorkerFactory, EdemWorkerContext } from "./edem"
+export {
+  createEdem,
+  createEdemModule,
+  createLocalEdemWorker,
+  createEdemProxy,
+  getModuleSubscriptions,
+} from "./edem"
+export type {
+  EdemWorker,
+  EdemWorkerFactory,
+  EdemWorkerContext,
+  InferModuleAPI,
+  EdemModuleFn,
+} from "./edem"

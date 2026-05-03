@@ -225,6 +225,12 @@ export interface EdemModuleFn<TName extends string, TProcs extends ProcMap> {
 
 // ── createEdemModule ──────────────────────────────────────────────────────────
 
+export function getModuleSubscriptions(mod: EdemModuleFn<string, ProcMap>): string[] {
+  return Object.entries(mod._procs)
+    .filter(([, desc]) => desc.kind === "subscription")
+    .map(([name]) => name)
+}
+
 export function createEdemModule<
   TName extends string,
   TProcs extends ProcMap,
@@ -335,4 +341,45 @@ export function createEdem<const TModules extends EdemModuleFn<string, ProcMap>[
   }
 
   return edem as MergeModules<TModules>
+}
+
+// ── createEdemProxy ─────────────────────────────────────────────────────────
+
+export type InferModuleAPI<T> =
+  T extends EdemModuleFn<string, infer TProcs> ? ModuleAPI<TProcs> : never
+
+function buildModuleProxy(worker: EdemWorker): Record<string, unknown> {
+  return new Proxy(
+    {},
+    {
+      get(_target, procName: string) {
+        return (input: unknown): Promise<unknown> => worker.request(procName, input)
+      },
+    },
+  )
+}
+
+export function createEdemProxy<
+  T extends Record<string, Record<string, (...args: never[]) => unknown>>,
+>(workerFactory: EdemWorkerFactory): T {
+  const moduleWorkers = new Map<string, EdemWorker>()
+
+  const getWorker = (moduleName: string): EdemWorker => {
+    if (!moduleWorkers.has(moduleName)) {
+      const worker = workerFactory({
+        name: moduleName,
+        procs: new Map(),
+        subHandlers: new Map(),
+        getCtx: async () => ({}),
+      })
+      moduleWorkers.set(moduleName, worker)
+    }
+    return moduleWorkers.get(moduleName)!
+  }
+
+  return new Proxy({} as T, {
+    get(_target, moduleName: string) {
+      return buildModuleProxy(getWorker(moduleName))
+    },
+  })
 }

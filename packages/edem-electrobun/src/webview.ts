@@ -1,39 +1,91 @@
-import { Electroview } from "electrobun/view"
-import type { RPCSchema } from "electrobun"
+import type { EdemWorkerFactory } from "@exodus/edem-core"
+import type { EdemMsg } from "./types"
 
-type EventHandler = (payload: unknown) => void
+// ── Webview bridge ───────────────────────────────────────────────────────────
 
-function createEventBus() {
-  const handlers = new Map<string, Set<EventHandler>>()
+export function createWebviewEdemBridge() {
+  const pending = new Map<string, { resolve: (v: unknown) => void; reject: (e: Error) => void }>()
+  const eventHandlers = new Map<string, Map<string, ((event: unknown) => void)[]>>()
+
+  let sendToBun: ((msg: EdemMsg) => void) | null = null
+
+  let requestId = 0
+
+  const workerFactory: EdemWorkerFactory = (ctx) => {
+    const localHandlers = new Map<string, ((event: unknown) => void)[]>()
+
+    if (!eventHandlers.has(ctx.name)) {
+      eventHandlers.set(ctx.name, new Map())
+    }
+    const moduleHandlers = eventHandlers.get(ctx.name)!
+
+    return {
+      async request(proc: string, input: unknown): Promise<unknown> {
+        if (!sendToBun) throw new Error("[edem-rpc] Not connected to bun")
+
+        const id = `${ctx.name}:${proc}:${++requestId}`
+        return new Promise((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            pending.delete(id)
+            reject(new Error(`[edem-rpc] Timeout for ${ctx.name}.${proc}`))
+          }, 30_000)
+
+          pending.set(id, {
+            resolve: (v) => {
+              clearTimeout(timeout)
+              resolve(v)
+            },
+            reject: (e) => {
+              clearTimeout(timeout)
+              reject(e)
+            },
+          })
+
+          sendToBun!({ type: "request", module: ctx.name, proc, input, id })
+        })
+      },
+
+      async emit(name: string, event: unknown): Promise<void> {
+        if (!sendToBun) return
+        sendToBun({ type: "event", module: ctx.name, name, payload: event })
+      },
+
+      subscribe(name: string, handler: (event: unknown) => void): void {
+        if (!localHandlers.has(name)) localHandlers.set(name, [])
+        localHandlers.get(name)!.push(handler)
+
+        if (!moduleHandlers.has(name)) moduleHandlers.set(name, [])
+        moduleHandlers.get(name)!.push(handler)
+      },
+    }
+  }
 
   return {
-    on(name: string, handler: EventHandler) {
-      if (!handlers.has(name)) handlers.set(name, new Set())
-      handlers.get(name)!.add(handler)
+    workerFactory,
+    handler: (msg: EdemMsg) => {
+      if (msg.type === "response") {
+        const p = pending.get(msg.id)
+        if (p) {
+          pending.delete(msg.id)
+          if (msg.error) {
+            p.reject(new Error(msg.error))
+          } else {
+            p.resolve(msg.result)
+          }
+        }
+      }
+      if (msg.type === "event") {
+        const moduleHandlers = eventHandlers.get(msg.module)
+        if (moduleHandlers) {
+          const handlers = moduleHandlers.get(msg.name)
+          if (handlers) {
+            for (const h of handlers) h(msg.payload)
+          }
+        }
+      }
     },
-    emit(name: string, payload: unknown) {
-      for (const h of handlers.get(name) ?? []) h(payload)
+    attachBun(send: (msg: EdemMsg) => void) {
+      sendToBun = send
     },
   }
-}
-
-export function createEdemWebview() {
-  const bus = createEventBus()
-
-  const rpc = Electroview.defineRPC<{
-    bun: RPCSchema<{ messages: { emit: { name: string; payload: unknown } } }>
-    webview: RPCSchema<{
-      messages: { emit: { name: string; payload: unknown } }
-    }>
-  }>({
-    handlers: {
-      messages: {
-        emit: (msg: { name: string; payload: unknown }) => {
-          bus.emit(msg.name, msg.payload)
-        },
-      },
-    },
-  })
-
-  return { rpc, bus }
 }

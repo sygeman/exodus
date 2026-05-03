@@ -1,3 +1,7 @@
-// Webview-side edem: calls go through RPC to bun where the real edem lives.
-// Will be replaced with edem-electrobun/webview proxy once RPC wiring is done.
-export const edem = {} as Record<string, Record<string, (...args: unknown[]) => Promise<unknown>>>
+import { createEdemProxy, type InferModuleAPI } from "@exodus/edem-core"
+import type { dataModule } from "@exodus/edem-data"
+import { edemBridge } from "@/evento"
+
+type EdemAPI = { data: InferModuleAPI<typeof dataModule> }
+
+export const edem = createEdemProxy<EdemAPI>(edemBridge.workerFactory)

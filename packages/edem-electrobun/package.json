@@ -16,9 +16,14 @@
     "./webview": {
       "types": "./src/webview.ts",
       "default": "./src/webview.ts"
+    },
+    "./types": {
+      "types": "./src/types.ts",
+      "default": "./src/types.ts"
     }
   },
   "dependencies": {
+    "@exodus/edem-core": "workspace:*",
     "electrobun": "1.16.0"
   },
   "devDependencies": {
