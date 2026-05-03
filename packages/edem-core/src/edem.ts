@@ -97,12 +97,74 @@ interface RuntimeProc {
   }) => Promise<unknown>
 }
 
+// ── EdemWorker ────────────────────────────────────────────────────────────────
+
+export interface EdemWorker {
+  request(name: string, input: unknown): Promise<unknown>
+  emit(name: string, event: unknown): Promise<void>
+  subscribe(name: string, handler: (event: unknown) => Promise<void> | void): void
+}
+
+export interface EdemWorkerContext {
+  name: string
+  procs: Map<string, RuntimeProc>
+  subHandlers: Map<string, ((event: unknown) => void)[]>
+  getCtx: () => Promise<unknown>
+}
+
+export type EdemWorkerFactory = (ctx: EdemWorkerContext) => EdemWorker
+
+export function createLocalEdemWorker(ctx: EdemWorkerContext): EdemWorker {
+  const makeEmit = (): Record<string, (event: unknown) => Promise<void>> => {
+    const emit: Record<string, (event: unknown) => Promise<void>> = {}
+    for (const [subName, handlers] of ctx.subHandlers.entries()) {
+      emit[subName] = async (event: unknown) => {
+        for (const h of handlers) await h(event)
+      }
+    }
+    return emit
+  }
+
+  return {
+    async request(name: string, input: unknown): Promise<unknown> {
+      const proc = ctx.procs.get(name)
+      if (!proc || proc.kind === "subscription") {
+        throw new Error(`[edem] Unknown procedure "${name}" in module "${ctx.name}"`)
+      }
+
+      if (proc.inputSchema) {
+        const result = proc.inputSchema.safeParse(input)
+        if (!result.success) {
+          throw new Error(`[edem] Invalid input for ${name}: ${result.error.message}`)
+        }
+        input = result.data
+      }
+
+      const context = await ctx.getCtx()
+      return proc.resolve!({ input, ctx: context, emit: makeEmit() })
+    },
+
+    async emit(name: string, event: unknown): Promise<void> {
+      const handlers = ctx.subHandlers.get(name)
+      if (!handlers) return
+      for (const h of handlers) await h(event)
+    },
+
+    subscribe(name: string, handler: (event: unknown) => Promise<void> | void): void {
+      if (!ctx.subHandlers.has(name)) {
+        ctx.subHandlers.set(name, [])
+      }
+      ctx.subHandlers.get(name)!.push(handler)
+    },
+  }
+}
+
 // ── ModuleBuilderImpl ─────────────────────────────────────────────────────────
 
 class ModuleBuilderImpl {
   private _contextFn: (() => Promise<unknown>) | null = null
   private _config: EdemConfig = {}
-  private readonly _subHandlers: Map<string, RuntimeHandler[]> = new Map()
+  private readonly _subHandlers: Map<string, ((event: unknown) => void)[]> = new Map()
   private readonly _runtimeProcs: Map<string, RuntimeProc> = new Map()
 
   getContextFn() {
@@ -184,7 +246,11 @@ export function createEdemModule<
 
 // ── Helper: build proxy for a module ─────────────────────────────────────────
 
-function buildProxy(builder: ModuleBuilderImpl): Record<string, unknown> {
+function buildProxy(
+  moduleName: string,
+  builder: ModuleBuilderImpl,
+  workerFactory: EdemWorkerFactory,
+): Record<string, unknown> {
   const proxy: Record<string, unknown> = {}
   const runtimeProcs = builder.getRuntimeProcs()
   const subHandlers = builder.getSubHandlers()
@@ -204,34 +270,19 @@ function buildProxy(builder: ModuleBuilderImpl): Record<string, unknown> {
     return cachedCtx
   }
 
-  const makeEmit = (): Record<string, (event: unknown) => Promise<void>> => {
-    const emit: Record<string, (event: unknown) => Promise<void>> = {}
-    for (const [subName, handlers] of subHandlers.entries()) {
-      emit[subName] = async (event: unknown) => {
-        for (const h of handlers) await h({ event })
-      }
-    }
-    return emit
-  }
+  const worker = workerFactory({
+    name: moduleName,
+    procs: runtimeProcs,
+    subHandlers,
+    getCtx,
+  })
 
   for (const [procName, proc] of runtimeProcs.entries()) {
     if (proc.kind === "query" || proc.kind === "mutation") {
-      const resolve = proc.resolve!
-      const inputSchema = proc.inputSchema
-      proxy[procName] = async (input: unknown): Promise<unknown> => {
-        if (inputSchema) {
-          const result = inputSchema.safeParse(input)
-          if (!result.success) {
-            throw new Error(`[edem] Invalid input for ${procName}: ${result.error.message}`)
-          }
-          input = result.data
-        }
-        const ctx = await getCtx()
-        return resolve({ input, ctx, emit: makeEmit() })
-      }
+      proxy[procName] = (input: unknown): Promise<unknown> => worker.request(procName, input)
     } else {
       proxy[procName] = (handler: RuntimeHandler): void => {
-        subHandlers.get(procName)!.push(handler)
+        worker.subscribe(procName, (event: unknown) => handler({ event }))
       }
     }
   }
@@ -258,6 +309,7 @@ type MergeModules<T extends EdemModuleFn<string, ProcMap>[]> = {
 export function createEdem<const TModules extends EdemModuleFn<string, ProcMap>[]>(
   modules: [...TModules],
   config?: EdemConfig,
+  workerFactory: EdemWorkerFactory = createLocalEdemWorker,
 ): MergeModules<TModules> {
   const edem: Record<string, Record<string, unknown>> = {}
 
@@ -266,7 +318,7 @@ export function createEdem<const TModules extends EdemModuleFn<string, ProcMap>[
       const builder = new ModuleBuilderImpl()
       builder.setConfig(config ?? {})
       mod._register(builder)
-      edem[mod._name] = buildProxy(builder)
+      edem[mod._name] = buildProxy(mod._name, builder, workerFactory)
     } catch (cause) {
       throw new EdemError(`Failed to register module "${mod._name}"`, cause)
     }
