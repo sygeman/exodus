@@ -50,12 +50,25 @@ export function createWebviewEdemBridge() {
         sendToBun({ type: "event", module: ctx.name, name, payload: event })
       },
 
-      subscribe(name: string, handler: (event: unknown) => void): void {
+      subscribe(name: string, handler: (event: unknown) => void): () => void {
         if (!localHandlers.has(name)) localHandlers.set(name, [])
         localHandlers.get(name)!.push(handler)
 
         if (!moduleHandlers.has(name)) moduleHandlers.set(name, [])
         moduleHandlers.get(name)!.push(handler)
+
+        return () => {
+          const local = localHandlers.get(name)
+          if (local) {
+            const idx = local.indexOf(handler)
+            if (idx !== -1) local.splice(idx, 1)
+          }
+          const mod = moduleHandlers.get(name)
+          if (mod) {
+            const idx = mod.indexOf(handler)
+            if (idx !== -1) mod.splice(idx, 1)
+          }
+        }
       },
     }
   }

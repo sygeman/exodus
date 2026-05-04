@@ -32,6 +32,8 @@ export const fieldSchema = z.object({
   meta: z.record(z.string(), z.any()).optional(),
 })
 
+export const fieldInputSchema = fieldSchema.omit({ id: true, collection_id: true })
+
 const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/
 const isoDatetimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
 

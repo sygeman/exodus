@@ -1,9 +1,8 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
-import { useProjects } from "@/modules/projects/webview"
+import { useProjects, type Project } from "@/modules/projects/webview"
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref } from "vue"
-import type { Project } from "@/modules/projects/events"
 
 const { t } = useI18n()
 const { projects, createAndOpen, remove } = useProjects()

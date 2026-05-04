@@ -165,7 +165,7 @@ describe("EdemWorker", () => {
         },
         subscribe(name, handler) {
           calls.push(`subscribe:${name}`)
-          local.subscribe(name, handler)
+          return local.subscribe(name, handler)
         },
       }
     }
@@ -216,7 +216,7 @@ describe("EdemWorker", () => {
           return local.emit(name, event)
         },
         subscribe(name, handler) {
-          local.subscribe(name, handler)
+          return local.subscribe(name, handler)
         },
       }
     }

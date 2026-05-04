@@ -198,8 +198,8 @@ describe("data module", () => {
       await edem.data.updateCollection({
         collection_id: id,
         fields: [
-          { id: "1", collection_id: id, name: "email", type: "string" },
-          { id: "2", collection_id: id, name: "age", type: "number" },
+          { name: "email", type: "string" },
+          { name: "age", type: "number" },
         ],
       })
 
@@ -258,8 +258,8 @@ describe("data module", () => {
         name: "Users",
         slug: "users",
         fields: [
-          { id: "1", collection_id: "", name: "email", type: "string" },
-          { id: "2", collection_id: "", name: "age", type: "number" },
+          { name: "email", type: "string" },
+          { name: "age", type: "number" },
         ],
       })
 
@@ -283,7 +283,7 @@ describe("data module", () => {
         project_id: projectId,
         name: "Users",
         slug: "users",
-        fields: [{ id: "1", collection_id: "", name: "email", type: "string", required: true }],
+        fields: [{ name: "email", type: "string", required: true }],
       })
 
       await expect(
@@ -310,7 +310,7 @@ describe("data module", () => {
         project_id: projectId,
         name: "Users",
         slug: "users",
-        fields: [{ id: "1", collection_id: "", name: "age", type: "number" }],
+        fields: [{ name: "age", type: "number" }],
       })
 
       const { id: itemId } = await edem.data.createItem({
@@ -579,14 +579,14 @@ describe("data module", () => {
         project_id: projectId,
         name: "Test",
         slug: "test",
-        fields: [{ id: "1", collection_id: "", name: "title", type: "string" }],
+        fields: [{ name: "title", type: "string" }],
       })
 
       await edem.data.createItem({ collection_id: colId, data: { title: "Old Item" } })
 
       await edem.data.updateCollection({
         collection_id: colId,
-        fields: [{ id: "2", collection_id: colId, name: "name", type: "string" }],
+        fields: [{ name: "name", type: "string" }],
       })
 
       const { items } = await edem.data.queryItems({ collection_id: colId })
@@ -599,7 +599,7 @@ describe("data module", () => {
         project_id: projectId,
         name: "Test",
         slug: "test",
-        fields: [{ id: "1", collection_id: "", name: "title", type: "string" }],
+        fields: [{ name: "title", type: "string" }],
       })
 
       await edem.data.createItem({ collection_id: colId, data: { title: "Old Item" } })
@@ -607,8 +607,8 @@ describe("data module", () => {
       await edem.data.updateCollection({
         collection_id: colId,
         fields: [
-          { id: "1", collection_id: colId, name: "title", type: "string" },
-          { id: "2", collection_id: colId, name: "description", type: "text" },
+          { name: "title", type: "string" },
+          { name: "description", type: "text" },
         ],
       })
 
@@ -622,14 +622,14 @@ describe("data module", () => {
         project_id: projectId,
         name: "Test",
         slug: "test",
-        fields: [{ id: "1", collection_id: "", name: "title", type: "string" }],
+        fields: [{ name: "title", type: "string" }],
       })
 
       await edem.data.updateCollection({
         collection_id: colId,
         fields: [
-          { id: "1", collection_id: colId, name: "title", type: "string" },
-          { id: "2", collection_id: colId, name: "description", type: "text" },
+          { name: "title", type: "string" },
+          { name: "description", type: "text" },
         ],
       })
 
@@ -648,7 +648,7 @@ describe("data module", () => {
         project_id: projectId,
         name: "Test",
         slug: "test",
-        fields: [{ id: "1", collection_id: "", name: "title", type: "string" }],
+        fields: [{ name: "title", type: "string" }],
       })
 
       await edem.data.createItem({ collection_id: colId, data: { title: "Old Item" } })
@@ -656,10 +656,8 @@ describe("data module", () => {
       await edem.data.updateCollection({
         collection_id: colId,
         fields: [
-          { id: "1", collection_id: colId, name: "title", type: "string" },
+          { name: "title", type: "string" },
           {
-            id: "2",
-            collection_id: colId,
             name: "status",
             type: "string",
             required: true,
@@ -679,14 +677,14 @@ describe("data module", () => {
         project_id: projectId,
         name: "Test",
         slug: "test",
-        fields: [{ id: "1", collection_id: "", name: "title", type: "string" }],
+        fields: [{ name: "title", type: "string" }],
       })
 
       await edem.data.updateCollection({
         collection_id: colId,
         fields: [
-          { id: "1", collection_id: colId, name: "title", type: "string" },
-          { id: "2", collection_id: colId, name: "description", type: "text" },
+          { name: "title", type: "string" },
+          { name: "description", type: "text" },
         ],
       })
 
@@ -699,14 +697,14 @@ describe("data module", () => {
         project_id: projectId,
         name: "Test",
         slug: "test",
-        fields: [{ id: "1", collection_id: "", name: "value", type: "string" }],
+        fields: [{ name: "value", type: "string" }],
       })
 
       await edem.data.createItem({ collection_id: colId, data: { value: "old text" } })
 
       await edem.data.updateCollection({
         collection_id: colId,
-        fields: [{ id: "2", collection_id: colId, name: "value", type: "number" }],
+        fields: [{ name: "value", type: "number" }],
       })
 
       await edem.data.createItem({ collection_id: colId, data: { value: 42 } })

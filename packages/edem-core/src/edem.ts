@@ -22,7 +22,7 @@ type ProcAPI<P> = P extends {
 }
   ? (input: z.infer<TIn>) => Promise<z.infer<TOut>>
   : P extends { kind: "subscription"; output: infer TOut extends AnyZod }
-    ? (handler: (args: { event: z.infer<TOut> }) => Promise<void> | void) => void
+    ? (handler: (args: { event: z.infer<TOut> }) => Promise<void> | void) => () => void
     : never
 
 type ModuleAPI<TProcs extends ProcMap> = { [K in keyof TProcs]: ProcAPI<TProcs[K]> }
@@ -102,7 +102,7 @@ interface RuntimeProc {
 export interface EdemWorker {
   request(name: string, input: unknown): Promise<unknown>
   emit(name: string, event: unknown): Promise<void>
-  subscribe(name: string, handler: (event: unknown) => Promise<void> | void): void
+  subscribe(name: string, handler: (event: unknown) => Promise<void> | void): () => void
 }
 
 export interface EdemWorkerContext {
@@ -150,11 +150,16 @@ export function createLocalEdemWorker(ctx: EdemWorkerContext): EdemWorker {
       for (const h of handlers) await h(event)
     },
 
-    subscribe(name: string, handler: (event: unknown) => Promise<void> | void): void {
+    subscribe(name: string, handler: (event: unknown) => Promise<void> | void): () => void {
       if (!ctx.subHandlers.has(name)) {
         ctx.subHandlers.set(name, [])
       }
-      ctx.subHandlers.get(name)!.push(handler)
+      const handlers = ctx.subHandlers.get(name)!
+      handlers.push(handler)
+      return () => {
+        const idx = handlers.indexOf(handler)
+        if (idx !== -1) handlers.splice(idx, 1)
+      }
     },
   }
 }
@@ -240,14 +245,21 @@ export function createEdemModule<
   register: (module: ModuleBuilder<{}, {}>) => ModuleBuilder<Record<string, unknown>, TProcs>,
   react?: (edem: TEdem) => void,
 ): EdemModuleFn<TName, TProcs> {
-  return {
+  const mod: EdemModuleFn<TName, TProcs> = {
     _name: name,
     _procs: {} as TProcs,
     _register: (builder: ModuleBuilderImpl) => {
-      register(builder as unknown as ModuleBuilder<{}, {}>)
+      const result = register(builder as unknown as ModuleBuilder<{}, {}>)
+      const built = result as unknown as { _runtimeProcs?: Map<string, RuntimeProc> }
+      if (built._runtimeProcs) {
+        for (const [key, val] of built._runtimeProcs) {
+          ;(mod._procs as Record<string, RuntimeProc>)[key] = val
+        }
+      }
     },
     _react: react ? (edem: unknown) => react(edem as TEdem) : null,
   }
+  return mod
 }
 
 // ── Helper: build proxy for a module ─────────────────────────────────────────
@@ -287,8 +299,8 @@ function buildProxy(
     if (proc.kind === "query" || proc.kind === "mutation") {
       proxy[procName] = (input: unknown): Promise<unknown> => worker.request(procName, input)
     } else {
-      proxy[procName] = (handler: RuntimeHandler): void => {
-        worker.subscribe(procName, (event: unknown) => handler({ event }))
+      proxy[procName] = (handler: RuntimeHandler): (() => void) => {
+        return worker.subscribe(procName, (event: unknown) => handler({ event }))
       }
     }
   }
@@ -353,7 +365,13 @@ function buildModuleProxy(worker: EdemWorker): Record<string, unknown> {
     {},
     {
       get(_target, procName: string) {
-        return (input: unknown): Promise<unknown> => worker.request(procName, input)
+        return (arg: unknown): unknown => {
+          if (typeof arg === "function") {
+            const handler = arg as (args: { event: unknown }) => void
+            return worker.subscribe(procName, (event: unknown) => handler({ event }))
+          }
+          return worker.request(procName, arg)
+        }
       },
     },
   )

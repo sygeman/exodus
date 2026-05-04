@@ -79,7 +79,7 @@ function getInitials(name: string): string {
       >
         <div
           class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border-2 border-solid bg-[var(--ui-bg-elevated)] font-semibold"
-          :style="{ color: project.color, borderColor: project.color }"
+          :style="{ color: project.color ?? undefined, borderColor: project.color ?? undefined }"
         >
           {{ getInitials(project.name) }}
         </div>

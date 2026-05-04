@@ -1,18 +1,76 @@
-import { evento } from "@/evento"
+import { edem } from "@/edem"
 import type { Router } from "vue-router"
 import { ref, onMounted, onUnmounted, watch, type ComputedRef, type Ref } from "vue"
-import type { Project, Idea } from "@/modules/projects/events"
 
-const DEFAULT_PROJECT_NAME = "Untitled"
+export interface Project {
+  id: string
+  slug: string
+  name: string
+  description?: string | null
+  icon?: string | null
+  color?: string | null
+  is_default?: boolean | null
+  sort_order?: number | null
+  created_at: number
+  updated_at: number
+  deleted_at?: number | null
+}
+
+export interface Idea {
+  id: string
+  collection_id: string
+  title: string
+  description: string | null
+  level: string | null
+  type: string | null
+  status: string
+  created_at: number
+  updated_at: number
+}
+
+const PROJECT_COLORS = [
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#06b6d4",
+  "#3b82f6",
+  "#a855f7",
+  "#ec4899",
+]
+
+function getRandomColor(): string {
+  return PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)]
+}
+
+function toIdea(item: {
+  id: string
+  collection_id: string
+  data: Record<string, unknown>
+  created_at: number
+  updated_at: number
+}): Idea {
+  return {
+    id: item.id,
+    collection_id: item.collection_id,
+    title: String(item.data.title ?? ""),
+    description: (item.data.description as string) ?? null,
+    level: (item.data.level as string) ?? null,
+    type: (item.data.type as string) ?? null,
+    status: (item.data.status as string) ?? "draft",
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+  }
+}
 
 export function useProjects() {
   const projects = ref<Project[]>([])
   const loading = ref(true)
-  let unsubscribers: (() => void)[] = []
+  const unsubs: (() => void)[] = []
 
   onMounted(async () => {
     try {
-      const res = await evento.request("projects:list", undefined, { timeout: 2000 })
+      const res = await edem.data.listProjects()
       projects.value = res.projects
     } catch (err) {
       console.error("[projects] failed to load list:", err)
@@ -20,18 +78,16 @@ export function useProjects() {
       loading.value = false
     }
 
-    unsubscribers.push(
-      evento.on("projects:created", (ctx) => {
-        const project = ctx.payload
+    unsubs.push(
+      edem.data.projectCreated(async ({ event: project }) => {
         if (!projects.value.some((p) => p.id === project.id)) {
           projects.value.push(project)
         }
       }),
     )
 
-    unsubscribers.push(
-      evento.on("projects:updated", (ctx) => {
-        const project = ctx.payload
+    unsubs.push(
+      edem.data.projectUpdated(async ({ event: project }) => {
         const idx = projects.value.findIndex((p) => p.id === project.id)
         if (idx !== -1) {
           projects.value[idx] = project
@@ -39,69 +95,48 @@ export function useProjects() {
       }),
     )
 
-    unsubscribers.push(
-      evento.on("projects:deleted", (ctx) => {
-        const { id } = ctx.payload
-        projects.value = projects.value.filter((p) => p.id !== id)
+    unsubs.push(
+      edem.data.projectDeleted(async ({ event }) => {
+        projects.value = projects.value.filter((p) => p.id !== event.project_id)
       }),
     )
   })
 
   onUnmounted(() => {
-    unsubscribers.forEach((unsub) => unsub())
-    unsubscribers = []
+    for (const unsub of unsubs) unsub()
+    unsubs.length = 0
   })
 
-  function create(name: string = DEFAULT_PROJECT_NAME, color?: string) {
-    evento.emitEvent("projects:create", { name, color }, "user:ui")
+  async function create(name: string = "Untitled", color?: string) {
+    const id = crypto.randomUUID()
+    const slug = `${name.toLowerCase().replace(/\s+/g, "-")}-${id.slice(0, 8)}`
+    const result = await edem.data.createProject({ name, slug, color: color ?? getRandomColor() })
+    return result.id
   }
 
-  function update(id: string, data: { name?: string; color?: string }) {
-    evento.emitEvent("projects:update", { id, ...data }, "user:ui")
+  async function update(id: string, data: { name?: string; color?: string }) {
+    await edem.data.updateProject({ project_id: id, ...data })
   }
 
-  function remove(id: string) {
-    evento.emitEvent("projects:delete", { id }, "user:ui")
+  async function remove(id: string) {
+    await edem.data.deleteProject({ project_id: id })
   }
 
   async function createAndOpen(router: Router) {
-    evento.emitEvent("projects:create", { name: DEFAULT_PROJECT_NAME }, "user:ui")
-
-    return new Promise<void>((resolve) => {
-      let resolved = false
-
-      const unsub = evento.on("projects:created", (ctx) => {
-        if (resolved) return
-        resolved = true
-        unsub()
-        const idx = unsubscribers.indexOf(unsub)
-        if (idx !== -1) unsubscribers.splice(idx, 1)
-        router.push(`/project/${ctx.payload.id}/overview`)
-        resolve()
-      })
-
-      unsubscribers.push(unsub)
-
-      setTimeout(() => {
-        if (resolved) return
-        resolved = true
-        unsub()
-        const idx = unsubscribers.indexOf(unsub)
-        if (idx !== -1) unsubscribers.splice(idx, 1)
-        resolve()
-      }, 3000)
-    })
+    const id = await create()
+    router.push(`/project/${id}/overview`)
   }
 
   return { projects, loading, create, update, remove, createAndOpen }
 }
 
-export function useProject(id: string) {
+export function useProject(id: string | Ref<string>) {
   const { projects } = useProjects()
 
   return {
     get project() {
-      return projects.value.find((p) => p.id === id) ?? null
+      const projectId = typeof id === "string" ? id : id.value
+      return projects.value.find((p) => p.id === projectId) ?? null
     },
   }
 }
@@ -109,18 +144,37 @@ export function useProject(id: string) {
 export function useIdeas(projectId: ComputedRef<string> | Ref<string>) {
   const ideas = ref<Idea[]>([])
   const loading = ref(true)
-  let unsubscribers: (() => void)[] = []
+  let ideasCollectionId: string | null = null
+  const unsubs: (() => void)[] = []
+
+  async function resolveCollectionId(): Promise<string | null> {
+    if (ideasCollectionId) return ideasCollectionId
+    try {
+      const { collections } = await edem.data.listCollections({})
+      const col = collections.find((c) => c.slug === "ideas")
+      if (col) {
+        ideasCollectionId = col.id
+        return col.id
+      }
+    } catch (err) {
+      console.error("[ideas] failed to resolve collection:", err)
+    }
+    return null
+  }
 
   async function load() {
-    if (loading.value) return
     loading.value = true
     try {
-      const res = await evento.request(
-        "ideas:list",
-        { project_id: projectId.value },
-        { timeout: 2000 },
-      )
-      ideas.value = res.ideas
+      const colId = await resolveCollectionId()
+      if (!colId) {
+        ideas.value = []
+        return
+      }
+      const { items } = await edem.data.queryItems({
+        collection_id: colId,
+        filter: { project_id: { _eq: projectId.value } },
+      })
+      ideas.value = items.map(toIdea).toSorted((a, b) => b.created_at - a.created_at)
     } catch (err) {
       console.error("[ideas] failed to load list:", err)
     } finally {
@@ -128,46 +182,43 @@ export function useIdeas(projectId: ComputedRef<string> | Ref<string>) {
     }
   }
 
-  onMounted(async () => {
-    try {
-      const res = await evento.request(
-        "ideas:list",
-        { project_id: projectId.value },
-        { timeout: 2000 },
-      )
-      ideas.value = res.ideas
-    } catch (err) {
-      console.error("[ideas] failed to load list:", err)
-    } finally {
-      loading.value = false
-    }
-
-    unsubscribers.push(
-      evento.on("ideas:created", (ctx) => {
-        const idea = ctx.payload
-        if (idea.project_id !== projectId.value) return
-        if (ideas.value.some((i) => i.id === idea.id)) return
-        ideas.value.unshift(idea)
+  function subscribe() {
+    unsubs.push(
+      edem.data.itemCreated(async ({ event: item }) => {
+        if (item.data.project_id !== projectId.value) return
+        if (ideas.value.some((i) => i.id === item.id)) return
+        ideas.value.unshift(toIdea(item))
       }),
     )
 
-    unsubscribers.push(
-      evento.on("ideas:updated", (ctx) => {
-        const idea = ctx.payload
-        if (idea.project_id !== projectId.value) return
-        const idx = ideas.value.findIndex((i) => i.id === idea.id)
+    unsubs.push(
+      edem.data.itemUpdated(async ({ event: item }) => {
+        if (item.data.project_id !== projectId.value) return
+        const idx = ideas.value.findIndex((i) => i.id === item.id)
         if (idx !== -1) {
-          ideas.value[idx] = idea
+          ideas.value[idx] = toIdea(item)
         }
       }),
     )
 
-    unsubscribers.push(
-      evento.on("ideas:deleted", (ctx) => {
-        const { id } = ctx.payload
-        ideas.value = ideas.value.filter((i) => i.id !== id)
+    unsubs.push(
+      edem.data.itemDeleted(async ({ event: payload }) => {
+        const item = ideas.value.find((i) => i.id === payload.item_id)
+        if (item) {
+          ideas.value = ideas.value.filter((i) => i.id !== payload.item_id)
+        }
       }),
     )
+  }
+
+  onMounted(async () => {
+    await load()
+    subscribe()
+  })
+
+  onUnmounted(() => {
+    for (const unsub of unsubs) unsub()
+    unsubs.length = 0
   })
 
   watch(
@@ -177,55 +228,47 @@ export function useIdeas(projectId: ComputedRef<string> | Ref<string>) {
     },
   )
 
-  onUnmounted(() => {
-    unsubscribers.forEach((unsub) => unsub())
-    unsubscribers = []
-  })
+  async function create(data: {
+    title: string
+    description?: string
+    level?: string
+    type?: string
+  }) {
+    const colId = await resolveCollectionId()
+    if (!colId) throw new Error("[ideas] ideas collection not found")
 
-  function create(data: { title: string; description?: string; level?: string; type?: string }) {
-    evento.emitEvent("ideas:create", { project_id: projectId.value, ...data }, "user:ui")
+    await edem.data.createItem({
+      collection_id: colId,
+      data: { project_id: projectId.value, ...data, status: "draft" },
+    })
   }
 
-  function update(
+  async function update(
     id: string,
-    data: Partial<Omit<Idea, "id" | "project_id" | "created_at" | "updated_at">>,
+    data: Partial<{
+      title: string
+      description: string | null
+      level: string | null
+      type: string | null
+      status: string
+    }>,
   ) {
-    evento.emitEvent("ideas:update", { id, ...data }, "user:ui")
+    await edem.data.updateItem({ item_id: id, data })
   }
 
-  function remove(id: string) {
-    evento.emitEvent("ideas:delete", { id }, "user:ui")
+  async function remove(id: string) {
+    await edem.data.deleteItem({ item_id: id })
   }
 
   async function createAndOpen(router: Router, projectIdValue: string) {
-    evento.emitEvent("ideas:create", { project_id: projectIdValue, title: "Untitled" }, "user:ui")
+    const colId = await resolveCollectionId()
+    if (!colId) throw new Error("[ideas] ideas collection not found")
 
-    return new Promise<void>((resolve) => {
-      let resolved = false
-
-      const unsub = evento.on("ideas:created", (ctx) => {
-        const idea = ctx.payload
-        if (idea.project_id !== projectIdValue) return
-        if (resolved) return
-        resolved = true
-        unsub()
-        const idx = unsubscribers.indexOf(unsub)
-        if (idx !== -1) unsubscribers.splice(idx, 1)
-        router.push(`/project/${projectIdValue}/ideas/${idea.id}`)
-        resolve()
-      })
-
-      unsubscribers.push(unsub)
-
-      setTimeout(() => {
-        if (resolved) return
-        resolved = true
-        unsub()
-        const idx = unsubscribers.indexOf(unsub)
-        if (idx !== -1) unsubscribers.splice(idx, 1)
-        resolve()
-      }, 3000)
+    const { id } = await edem.data.createItem({
+      collection_id: colId,
+      data: { project_id: projectIdValue, title: "Untitled", status: "draft" },
     })
+    router.push(`/project/${projectIdValue}/ideas/${id}`)
   }
 
   return { ideas, loading, create, update, remove, createAndOpen, reload: load }

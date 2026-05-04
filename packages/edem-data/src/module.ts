@@ -4,7 +4,13 @@ import { eq, and, desc, asc, isNull, isNotNull } from "drizzle-orm"
 import { createEdemModule } from "@exodus/edem-core"
 import { createDataEngine, type DataEngine } from "./db"
 import * as schema from "./schema"
-import { fieldSchema, fieldTypes, validateFieldValue, type FieldType } from "./fields"
+import {
+  fieldSchema,
+  fieldInputSchema,
+  fieldTypes,
+  validateFieldValue,
+  type FieldType,
+} from "./fields"
 import { matchFilter, sortItems, filterSchema, sortSchema } from "./filters"
 
 function safeJsonParse<T>(value: string, context: string): T {
@@ -260,7 +266,7 @@ export const dataModule = createEdemModule("data", (module) => {
           description: z.string().optional(),
           icon: z.string().optional(),
           singleton: z.boolean().optional(),
-          fields: z.array(fieldSchema).optional(),
+          fields: z.array(fieldInputSchema).optional(),
           meta: z.record(z.string(), z.any()).optional(),
         }),
         output: z.object({ id: z.string() }),
@@ -285,7 +291,7 @@ export const dataModule = createEdemModule("data", (module) => {
           if (input.fields) {
             for (const field of input.fields) {
               await ctx.db.insert(schema.fields).values({
-                id: field.id,
+                id: crypto.randomUUID(),
                 collection_id: id,
                 name: field.name,
                 type: field.type,
@@ -314,7 +320,7 @@ export const dataModule = createEdemModule("data", (module) => {
           description: z.string().optional(),
           icon: z.string().optional(),
           singleton: z.boolean().optional(),
-          fields: z.array(fieldSchema).optional(),
+          fields: z.array(fieldInputSchema).optional(),
           default_sort_field: z.string().optional(),
           default_sort_dir: z.enum(["asc", "desc"]).optional(),
           meta: z.record(z.string(), z.any()).optional(),
@@ -344,7 +350,7 @@ export const dataModule = createEdemModule("data", (module) => {
               await tx.delete(schema.fields).where(eq(schema.fields.collection_id, collection_id))
               for (const field of newFields) {
                 await tx.insert(schema.fields).values({
-                  id: field.id,
+                  id: crypto.randomUUID(),
                   collection_id,
                   name: field.name,
                   type: field.type,

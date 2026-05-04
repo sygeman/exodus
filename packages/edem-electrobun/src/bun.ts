@@ -22,8 +22,9 @@ export function createBunEdemBridge(
 
     for (const subName of subscriptions) {
       moduleProxy[subName]((event: unknown) => {
+        const payload = (event as { event: unknown }).event ?? event
         for (const send of sendToWebview) {
-          send({ type: "event", module: mod._name, name: subName, payload: event })
+          send({ type: "event", module: mod._name, name: subName, payload })
         }
       })
     }
