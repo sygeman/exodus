@@ -1,7 +1,6 @@
-import type { EventoBun } from "@/bun/evento"
-import { type LogLevel } from "@/modules/logger/events"
 import type { dataModule } from "@exodus/edem-data"
 import type { InferModuleAPI } from "@exodus/edem-core"
+import type { LogLevel } from "@/modules/logger/types"
 
 type EdemData = InferModuleAPI<typeof dataModule>
 
@@ -33,8 +32,8 @@ class BunLogger {
   private recentLogs = new Map<string, number>()
   private pendingDedups = new Map<string, DedupState>()
 
-  attach(_evento: EventoBun, data?: EdemData) {
-    if (data) edemData = data
+  attach(data: EdemData) {
+    edemData = data
     this.patchConsole()
   }
 

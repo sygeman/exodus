@@ -1,17 +1,49 @@
 import { Updater } from "electrobun/bun"
 import type { EventoBun } from "@/bun/evento"
-import type { UpdaterEventMap } from "./events"
+import type { dataModule } from "@exodus/edem-data"
+import type { InferModuleAPI } from "@exodus/edem-core"
+
+type EdemData = InferModuleAPI<typeof dataModule>
 
 const CHECK_INTERVAL_MS = 15 * 60 * 1000 // 15 minutes
+const COLLECTION_ID = "updater_status"
 
-export function initUpdater(evento: EventoBun) {
-  function sendStatus(payload: UpdaterEventMap["updater:update-status"]) {
-    evento.emitEvent("updater:update-status", payload, "bun")
+let statusItemId: string | null = null
+
+async function ensureStatusItem(data: EdemData): Promise<string> {
+  if (statusItemId) return statusItemId
+  const { items } = await data.queryItems({ collection_id: COLLECTION_ID })
+  if (items.length > 0) {
+    statusItemId = items[0].id
+    return statusItemId
   }
+  const { id } = await data.createItem({
+    collection_id: COLLECTION_ID,
+    data: { status: "idle" },
+  })
+  statusItemId = id
+  return id
+}
+
+async function sendStatus(
+  data: EdemData,
+  payload: {
+    status: "idle" | "checking" | "available" | "latest" | "error" | "downloading" | "applying"
+    current_version?: string
+    latest_version?: string
+    error?: string
+  },
+) {
+  const id = await ensureStatusItem(data)
+  await data.updateItem({ item_id: id, data: payload })
+}
+
+export async function initUpdater(evento: EventoBun, edemData: EdemData) {
+  await ensureStatusItem(edemData)
 
   async function checkForUpdate() {
     try {
-      sendStatus({ status: "checking" })
+      await sendStatus(edemData, { status: "checking" })
       const result = await Updater.checkForUpdate()
       const currentVersion = await Updater.localInfo.version()
       const currentHash = await Updater.localInfo.hash()
@@ -20,25 +52,22 @@ export function initUpdater(evento: EventoBun) {
         result.updateAvailable && result.version !== currentVersion && result.hash !== currentHash
 
       if (result.error) {
-        sendStatus({ status: "error", error: result.error })
-        evento.emitEvent("app-state:clear-dismissed-update", "bun")
+        await sendStatus(edemData, { status: "error", error: result.error })
       } else if (isActuallyAvailable) {
-        sendStatus({
+        await sendStatus(edemData, {
           status: "available",
           current_version: currentVersion,
           latest_version: result.version,
         })
       } else {
-        sendStatus({ status: "latest", current_version: currentVersion })
-        evento.emitEvent("app-state:clear-dismissed-update", "bun")
+        await sendStatus(edemData, { status: "latest", current_version: currentVersion })
       }
     } catch (err) {
       console.error("[updater] checkUpdate error:", err)
-      sendStatus({
+      await sendStatus(edemData, {
         status: "error",
         error: (err as Error).message || String(err),
       })
-      evento.emitEvent("app-state:clear-dismissed-update", "bun")
     }
   }
 
@@ -46,22 +75,19 @@ export function initUpdater(evento: EventoBun) {
 
   evento.on("updater:start-update", async () => {
     try {
-      sendStatus({ status: "downloading" })
+      await sendStatus(edemData, { status: "downloading" })
       await Updater.downloadUpdate()
-      sendStatus({ status: "applying" })
+      await sendStatus(edemData, { status: "applying" })
       await Updater.applyUpdate()
     } catch (err) {
       console.error("[updater] update failed:", err)
-      sendStatus({
+      await sendStatus(edemData, {
         status: "error",
         error: (err as Error).message || String(err),
       })
     }
   })
 
-  // Check immediately on startup
   checkForUpdate()
-
-  // Periodic background check every 15 minutes
   setInterval(checkForUpdate, CHECK_INTERVAL_MS)
 }

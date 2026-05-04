@@ -1,6 +1,6 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue"
 import { webviewLogger } from "@/modules/logger/webview"
-import type { LogEntry } from "@/modules/logger/events"
+import type { LogEntry } from "@/modules/logger/types"
 
 const PAGE_SIZE = 100
 

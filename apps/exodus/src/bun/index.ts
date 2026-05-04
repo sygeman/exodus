@@ -8,7 +8,7 @@ import { initUpdater } from "@/modules/updater/bun"
 import { initSchema } from "@/modules/schema/bun"
 import { ensureCollections } from "@/modules/projects/init"
 import { bunLogger } from "@/modules/logger/bun"
-import { initAppState, readState } from "@/modules/app-state/bun"
+import { initAppState, initStateDefaults } from "@/modules/app-state/bun"
 import { globalRegistry, type GlobalEventMap } from "@/events"
 
 // Workaround for WebKitGTK + NVIDIA + Wayland rendering issue.
@@ -78,19 +78,33 @@ const rpc = BrowserView.defineRPC<{
   },
 })
 
-const savedState = readState()
+await ensureCollections(edem.data)
+await initStateDefaults(edem.data)
+
 const defaultFrame = { width: 1200, height: 800, x: 0, y: 0 }
-const frame = savedState.windowFrame ?? defaultFrame
+let savedFrame = defaultFrame
+let savedMaximized = false
+try {
+  const { items } = await edem.data.queryItems({ collection_id: "app_state" })
+  if (items.length > 0) {
+    if (items[0].data.window_frame) {
+      savedFrame = items[0].data.window_frame as typeof defaultFrame
+    }
+    savedMaximized = (items[0].data.window_maximized as boolean) ?? false
+  }
+} catch {
+  // use defaults
+}
 
 const win = new BrowserWindow({
   title: "Exodus",
   url,
   titleBarStyle: "hiddenInset",
-  frame,
+  frame: savedFrame,
   rpc,
 })
 
-if (savedState.windowMaximized) {
+if (savedMaximized) {
   win.maximize()
 }
 
@@ -99,9 +113,7 @@ const { webview } = win
 evento.sender = webview.rpc?.send?.emit
 edemBridge.attachWebview(webview)
 
-initAppState(evento, win, (name, payload) => {
-  evento.emitEvent(name, payload, "app:init")
-})
+initAppState(edem.data, win)
 
 ApplicationMenu.setApplicationMenu([
   {
@@ -146,9 +158,8 @@ ApplicationMenu.on("application-menu-clicked", (event) => {
   }
 })
 
-bunLogger.attach(evento, edem.data)
-await ensureCollections(edem.data)
-initUpdater(evento)
+bunLogger.attach(edem.data)
+await initUpdater(evento, edem.data)
 initSchema(evento)
 
 console.log("Bun process started")

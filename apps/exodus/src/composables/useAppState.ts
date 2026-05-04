@@ -1,9 +1,10 @@
 import { ref } from "vue"
 import type { Router } from "vue-router"
-import { evento } from "@/evento"
+import { edem } from "@/edem"
+
+const COLLECTION_ID = "app_state"
 
 export function useAppState(router: Router) {
-  const dismissedUpdateVersion = ref<string | null>(null)
   const systemLocale = ref<string | null>(null)
   const systemTheme = ref<"dark" | "light" | null>(null)
   let savedHash: string | null = null
@@ -21,16 +22,27 @@ export function useAppState(router: Router) {
     }
   }
 
-  function startWatching() {
-    evento.on("app-state:restore-state", (ctx) => {
-      savedHash = ctx.payload.hash
-      dismissedUpdateVersion.value = ctx.payload.dismissed_update_version
-      systemLocale.value = ctx.payload.locale
-      systemTheme.value = ctx.payload.theme
-      restoreReceived = true
-      if (isRouterReady) {
-        restore(savedHash)
+  async function startWatching() {
+    try {
+      const { items } = await edem.data.queryItems({ collection_id: COLLECTION_ID })
+      if (items.length > 0) {
+        const item = items[0]
+        savedHash = item.data.last_route?.hash ?? null
+        systemLocale.value = (item.data.locale as string) ?? null
+        systemTheme.value = (item.data.theme as "dark" | "light") ?? null
+        restoreReceived = true
+        if (isRouterReady) {
+          restore(savedHash)
+        }
       }
+    } catch {
+      // ignore
+    }
+
+    edem.data.itemUpdated(async ({ event: item }) => {
+      if (item.collection_id !== COLLECTION_ID) return
+      systemLocale.value = (item.data.locale as string) ?? null
+      systemTheme.value = (item.data.theme as "dark" | "light") ?? null
     })
 
     router.isReady().then(() => {
@@ -41,16 +53,23 @@ export function useAppState(router: Router) {
     })
 
     router.afterEach(() => {
-      evento.emitEvent("app-state:route-changed", { hash: window.location.hash }, "webview")
+      edem.data
+        .queryItems({ collection_id: COLLECTION_ID })
+        .then(({ items }) => {
+          if (items.length > 0) {
+            edem.data.updateItem({
+              item_id: items[0].id,
+              data: { last_route: { hash: window.location.hash } },
+            })
+          }
+        })
+        .catch(() => {})
     })
-
-    evento.emitEvent("app-state:request-state", "webview")
   }
 
   return {
     restore,
     startWatching,
-    dismissedUpdateVersion,
     systemLocale,
     systemTheme,
   }

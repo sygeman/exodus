@@ -2,7 +2,7 @@
 import { computed, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useColorMode } from "@vueuse/core"
-import { evento } from "@/evento"
+import { saveAppSettings } from "@/modules/app-state/settings"
 
 const { t } = useI18n()
 
@@ -18,7 +18,7 @@ const isDark = computed({
 })
 
 watch(isDark, (value) => {
-  evento.emitEvent("app-state:save-settings", { theme: value ? "dark" : "light" }, "webview")
+  saveAppSettings({ theme: value ? "dark" : "light" }).catch(() => {})
 })
 
 const themeDescription = computed(() => t("settings.darkModeDescription"))

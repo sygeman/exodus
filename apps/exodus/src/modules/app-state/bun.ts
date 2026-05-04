@@ -1,9 +1,8 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync } from "fs"
-import { join, dirname } from "path"
-import { Utils, type BrowserWindow } from "electrobun/bun"
-import type { EventoBun } from "@/bun/evento"
+import { type BrowserWindow } from "electrobun/bun"
+import type { dataModule } from "@exodus/edem-data"
+import type { InferModuleAPI } from "@exodus/edem-core"
 
-const STATE_FILE = join(Utils.paths.userData, "app-state.json")
+type EdemData = InferModuleAPI<typeof dataModule>
 
 interface WindowFrame {
   x: number
@@ -12,49 +11,34 @@ interface WindowFrame {
   height: number
 }
 
-interface AppState {
-  lastRoute?: { hash: string }
-  dismissedUpdate?: { version: string }
-  locale?: string
-  theme?: "dark" | "light"
-  windowFrame?: WindowFrame
-  windowMaximized?: boolean
-}
-
-export function readState(): AppState {
-  try {
-    if (!existsSync(STATE_FILE)) return {}
-    return JSON.parse(readFileSync(STATE_FILE, "utf-8")) as AppState
-  } catch {
-    return {}
-  }
-}
-
 const MIN_WINDOW_WIDTH = 400
 const MIN_WINDOW_HEIGHT = 300
 
-function saveWindowFrame(frame: WindowFrame) {
-  if (frame.width < MIN_WINDOW_WIDTH || frame.height < MIN_WINDOW_HEIGHT) {
-    return
+const COLLECTION_ID = "app_state"
+
+let stateItemId: string | null = null
+
+async function ensureStateItem(data: EdemData): Promise<string> {
+  if (stateItemId) return stateItemId
+  const { items } = await data.queryItems({ collection_id: COLLECTION_ID })
+  if (items.length > 0) {
+    stateItemId = items[0].id
+    return stateItemId
   }
-  const state = readState()
-  state.windowFrame = frame
-  writeState(state)
+  const { id } = await data.createItem({
+    collection_id: COLLECTION_ID,
+    data: {
+      window_frame: null,
+      window_maximized: false,
+    },
+  })
+  stateItemId = id
+  return id
 }
 
-function saveWindowMaximized(maximized: boolean) {
-  const state = readState()
-  state.windowMaximized = maximized
-  writeState(state)
-}
-
-function writeState(state: AppState) {
-  try {
-    mkdirSync(dirname(STATE_FILE), { recursive: true })
-    writeFileSync(STATE_FILE, JSON.stringify(state))
-  } catch {
-    // ignore
-  }
+async function updateState(data: EdemData, patch: Record<string, unknown>) {
+  const id = await ensureStateItem(data)
+  await data.updateItem({ item_id: id, data: patch })
 }
 
 function getSystemLocale(): string {
@@ -104,62 +88,34 @@ function getSystemTheme(): "dark" | "light" {
   return "light"
 }
 
-export function initAppState(
-  evento: EventoBun,
-  win: BrowserWindow,
-  sender: (name: string, payload: unknown) => void,
-) {
-  evento.on("app-state:route-changed", (ctx) => {
-    const state = readState()
-    state.lastRoute = { hash: ctx.payload.hash }
-    writeState(state)
-  })
+export async function initStateDefaults(data: EdemData) {
+  const id = await ensureStateItem(data)
+  const { items } = await data.queryItems({ collection_id: COLLECTION_ID })
+  const item = items[0]
+  const patch: Record<string, unknown> = {}
 
-  evento.on("app-state:request-state", () => {
-    const state = readState()
-    const systemLocale = getSystemLocale()
-    const systemTheme = getSystemTheme()
-    sender("app-state:restore-state", {
-      hash: state.lastRoute?.hash ?? null,
-      dismissed_update_version: state.dismissedUpdate?.version ?? null,
-      locale: state.locale ?? systemLocale,
-      theme: state.theme ?? systemTheme,
-      window_frame: state.windowFrame ?? null,
-      window_maximized: state.windowMaximized ?? null,
-    })
-  })
+  if (!item.data.locale) {
+    patch.locale = getSystemLocale()
+  }
+  if (!item.data.theme) {
+    patch.theme = getSystemTheme()
+  }
 
-  evento.on("app-state:save-settings", (ctx) => {
-    const state = readState()
-    if (ctx.payload.locale !== undefined) {
-      state.locale = ctx.payload.locale
-    }
-    if (ctx.payload.theme !== undefined) {
-      state.theme = ctx.payload.theme
-    }
-    writeState(state)
-  })
+  if (Object.keys(patch).length > 0) {
+    await data.updateItem({ item_id: id, data: patch })
+  }
+}
 
-  evento.on("app-state:dismiss-update", (ctx) => {
-    const state = readState()
-    state.dismissedUpdate = { version: ctx.payload.version }
-    writeState(state)
-  })
-
-  evento.on("app-state:clear-dismissed-update", () => {
-    const state = readState()
-    delete state.dismissedUpdate
-    writeState(state)
-  })
-
+export function initAppState(edemData: EdemData, win: BrowserWindow) {
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-  function debouncedSaveWindowFrame(data: WindowFrame) {
+  function debouncedSaveWindowFrame(frame: WindowFrame) {
     if (debounceTimer) {
       clearTimeout(debounceTimer)
     }
     debounceTimer = setTimeout(() => {
-      saveWindowFrame(data)
+      if (frame.width < MIN_WINDOW_WIDTH || frame.height < MIN_WINDOW_HEIGHT) return
+      updateState(edemData, { window_frame: frame }).catch(() => {})
     }, 300)
   }
 
@@ -170,12 +126,9 @@ export function initAppState(
     }
   })
 
-  win.on("move", (event: unknown) => {
-    const e = event as { data?: { x: number; y: number } }
-    if (e.data) {
-      const currentFrame = win.getFrame()
-      debouncedSaveWindowFrame(currentFrame)
-    }
+  win.on("move", () => {
+    const currentFrame = win.getFrame()
+    debouncedSaveWindowFrame(currentFrame)
   })
 
   win.on("close", () => {
@@ -183,7 +136,9 @@ export function initAppState(
       clearTimeout(debounceTimer)
     }
     const currentFrame = win.getFrame()
-    saveWindowFrame(currentFrame)
-    saveWindowMaximized(win.isMaximized())
+    updateState(edemData, {
+      window_frame: currentFrame,
+      window_maximized: win.isMaximized(),
+    }).catch(() => {})
   })
 }

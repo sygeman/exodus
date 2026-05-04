@@ -2,7 +2,7 @@
 import { computed, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { locales, type Locale } from "@/locales"
-import { evento } from "@/evento"
+import { saveAppSettings } from "@/modules/app-state/settings"
 
 const { t, locale } = useI18n()
 
@@ -16,7 +16,7 @@ const selectedLocale = computed<Locale>({
 })
 
 watch(selectedLocale, (value) => {
-  evento.emitEvent("app-state:save-settings", { locale: value }, "webview")
+  saveAppSettings({ locale: value }).catch(() => {})
 })
 </script>
 

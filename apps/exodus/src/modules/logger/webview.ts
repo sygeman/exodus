@@ -1,5 +1,5 @@
 import { edem } from "@/edem"
-import type { LogEntry, LogLevel } from "@/modules/logger/events"
+import type { LogEntry, LogLevel } from "@/modules/logger/types"
 
 interface DedupState {
   count: number

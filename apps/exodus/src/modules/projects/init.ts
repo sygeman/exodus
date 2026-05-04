@@ -41,6 +41,29 @@ const SYSTEM_MANIFEST: Manifest = {
         { name: "count", type: "number" },
       ],
     },
+    {
+      id: "app_state",
+      name: "App State",
+      singleton: true,
+      fields: [
+        { name: "last_route", type: "json" },
+        { name: "locale", type: "string" },
+        { name: "theme", type: "string" },
+        { name: "window_frame", type: "json" },
+        { name: "window_maximized", type: "boolean", default: false },
+      ],
+    },
+    {
+      id: "updater_status",
+      name: "Updater Status",
+      singleton: true,
+      fields: [
+        { name: "status", type: "string", required: true, default: "idle" },
+        { name: "current_version", type: "string" },
+        { name: "latest_version", type: "string" },
+        { name: "error", type: "string" },
+      ],
+    },
   ],
 }
 

@@ -1,31 +1,29 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from "vue"
+import { ref, onMounted } from "vue"
 import { useI18n } from "vue-i18n"
-import { evento } from "@/evento"
+import { edem } from "@/edem"
 
 const { t } = useI18n()
 
 const appState = ref<Record<string, unknown> | null>(null)
 const loading = ref(false)
 
-let unsubscribe: (() => void) | null = null
-
-function fetchAppState() {
+async function fetchAppState() {
   loading.value = true
-  evento.emitEvent("app-state:request-state", "webview")
+  try {
+    const { items } = await edem.data.queryItems({ collection_id: "app_state" })
+    if (items.length > 0) {
+      appState.value = { ...items[0].data }
+    }
+  } catch {
+    // ignore
+  } finally {
+    loading.value = false
+  }
 }
 
 onMounted(() => {
-  unsubscribe = evento.on("app-state:restore-state", (ctx) => {
-    appState.value = { ...ctx.payload }
-    loading.value = false
-  })
-
   fetchAppState()
-})
-
-onUnmounted(() => {
-  unsubscribe?.()
 })
 
 function formatJson(data: unknown) {
