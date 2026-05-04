@@ -1,45 +1,159 @@
 # Exodus Architecture
 
-## What is Exodus
+## Vision
 
-Exodus is an IDE for building applications on the Edem architecture. Exodus itself is an Edem application.
+Edem is a framework for **declarative applications**. Instead of writing code, developers describe what an application should do through manifests: schema, flows, and UI. A universal runtime interprets these manifests.
 
-This creates a self-referential architecture: Exodus reads its own schema from SQLite, builds itself, and the result is the same application. `build(exodus) = exodus`.
+Exodus is an IDE for building Edem applications. Exodus itself is an Edem application — self-referential by design.
+
+```
+build(exodus) = exodus
+```
 
 ## Core Principle
 
-All Edem artifacts are **declarative manifests**. Nothing is compiled into code. The same runtime interprets all projects.
+```
+Traditional development:
+  Code → Compilation → Application
+
+Edem development:
+  Manifests (schema + flows + UI) → Runtime → Application
+```
+
+The developer **declares**, never codes:
+- **Schema** — what data exists, what fields, what relations
+- **Flows** — what happens when (triggers → actions)
+- **UI** — how it looks, what binds to what
+
+The runtime **interprets** manifests. The same runtime for all applications.
+
+## Artifact
 
 ```
-Artifact = Schema manifest (JSON) + Flows manifest (JSON) + UI manifest (JSON) + Runtime + Environment
+Artifact = Schema manifest + Flows manifest + UI manifest + Runtime + Environment
 ```
 
-| Component | Format | Example |
-|-----------|--------|---------|
+| Component | Format | Description |
+|-----------|--------|-------------|
 | Schema | Declarative JSON | Collections, fields, relations, validations |
 | Flows | Declarative JSON | Graph of nodes, triggers, connections |
 | UI | Declarative JSON | Pages, components, bindings to data/flows |
-| Runtime | JS bundle | `edem-core` + `edem-data` — same for all projects |
+| Runtime | JS bundle | edem-core + edem modules — same for all apps |
 | Environment | Platform wrapper | Electrobun (desktop), browser (web), CLI |
 
-## Project Types
+## Three Base Modules
 
-A project has a **type** that determines the build output:
+Everything in an Edem application is built on three meta-modules:
 
-| Type | Environment | Output |
-|------|-------------|--------|
-| Desktop app | Electrobun | Native `.app` with embedded edem |
-| Web app | Browser | HTML/JS bundle served as static files |
-| CLI | Node/Bun | Executable script |
-| Library | NPM package | Published package |
+| Module | Role | Status |
+|--------|------|--------|
+| **edem-data** | Schema + data storage (meta-level) | Working |
+| **edem-flows** | Business logic engine | Stub |
+| **edem-ui** | Rendering engine | Stub |
 
-Exodus itself is a **desktop app** (Electrobun).
+All application features (logger, settings, app-state, etc.) are NOT separate modules. They are **collections + flows + UI** defined through the three base modules.
+
+```
+Logger:
+  data:   collection "logs" { level, message, timestamp, source }
+  flow:   on "log:entry" → insert item in "logs"
+  ui:     page "/debug/logs" → list component bound to "logs"
+
+Settings:
+  data:   collection "settings" { key, value, type }
+  flow:   on "setting:changed" → update item in "settings"
+  ui:     page "/settings" → form component bound to "settings"
+```
+
+## Edem Packages
+
+| Package | Role | Status |
+|---------|------|--------|
+| edem-core | Module system, RPC, worker abstraction | Working |
+| edem-data | Collections, items, fields — the meta-level | Working |
+| edem-flows | Triggers, nodes, actions | Stub (in-memory) |
+| edem-ui | Pages, components, rendering | Stub (in-memory) |
+| edem-mcp | MCP tools integration | Stub |
+| edem-runners | Distributed task execution | Stub |
+| edem-electrobun | Bun ↔ Webview bridge | Working |
+
+## edem-data as Meta-Level
+
+edem-data is the foundation. It is self-describing — it stores its own schema using its own tables.
+
+### Bootstrap tables (hardcoded in edem-data)
+
+These tables exist at the meta-level. They are not collections — they define what collections ARE.
+
+| Table | Purpose |
+|-------|---------|
+| projects | Container for collections (grouping, build target) |
+| collections | Meta-schema: what collections exist |
+| fields | Meta-schema: what fields each collection has |
+| items | Data storage: items in collections |
+
+### System capabilities (in edem-data)
+
+These are built-in mechanisms, not collections. They operate on items.
+
+| Table | Purpose |
+|-------|---------|
+| relations | Links between items across collections |
+| itemVersions | Version history for items |
+| itemLocks | Pessimistic locking for concurrent editing |
+| files | Content-addressed file storage |
+| itemFiles | Junction between items and files |
+| fieldMigrations | Schema evolution tracking |
+| templates | Predefined project/collection configurations |
+
+### Projects
+
+Projects are a core concept in edem-data. A project is a container for collections and serves as the unit of build.
+
+- Every collection belongs to a project
+- Flows and UI are collections within a project
+- Build reads a project and produces an artifact
+- Projects have a `type` that determines the environment (desktop/web/cli)
+
+## Development vs Runtime
+
+edem-data operates in two modes:
+
+### Development mode (inside Exodus)
+
+Like Directus — dynamic schema, full CRUD on meta-level:
+
+- Create/modify/delete collections and fields
+- Add/remove items in any collection
+- Schema changes are instant (no ALTER TABLE)
+- All manifests stored in SQLite as data
+- Data editor, Flow editor, UI editor are CRUD interfaces
+
+### Runtime mode (built application)
+
+Schema is fixed, only data operations:
+
+- Schema loaded from manifest — cannot be changed
+- Only CRUD on items within existing collections
+- Validates data against fixed schema
+- No dynamic collection creation
+- SQLite for user data only
+
+```
+DEVELOPMENT                          RUNTIME
+┌─────────────────────┐              ┌─────────────────────┐
+│ Dynamic schema       │    BUILD    │ Fixed schema         │
+│ Full CRUD            │ ──────────→ │ Data CRUD only       │
+│ Manifests in SQLite  │             │ Manifests in JSON    │
+│ edem-data = engine   │             │ edem-data = validator│
+└─────────────────────┘              └─────────────────────┘
+```
 
 ## Lifecycle
 
 ### 1. Development (inside Exodus)
 
-All manifests live in SQLite as data. The edem-data module stores everything:
+All manifests live in SQLite as data:
 
 ```
 SQLite (edem-data)
@@ -61,8 +175,6 @@ SQLite (edem-data)
         └── "/task/:id" { components: [detail, form, ...] }
 ```
 
-Flows and UI are stored as **items in dedicated collections**. They are data, not code. The Data editor, Flow editor, and UI editor are all CRUD interfaces on these collections.
-
 ### 2. Build
 
 Read manifests from SQLite, package into artifact:
@@ -73,18 +185,11 @@ output: dist/
         ├── schema.json    ← collections + fields + relations
         ├── flows.json     ← flow graphs
         ├── ui.json        ← pages + components
-        ├── runtime.js     ← edem-core + edem-data bundle
-        └── app            ← environment wrapper (Electrobun app / HTML / etc.)
+        ├── runtime.js     ← edem bundle
+        └── app            ← environment wrapper
 ```
 
 ### 3. Runtime (on user's machine)
-
-The built application runs with:
-
-- **Manifests** baked into the build (schema, flows, UI)
-- **Runtime** interprets manifests — renders UI, validates data, executes flows
-- **Data SQLite** created on first launch — empty database matching the schema
-- **Updates** deliver new manifests → runtime hot-reloads or restarts
 
 ```
 Runtime
@@ -122,59 +227,85 @@ When Exodus builds itself:
 3. Packages with edem runtime + Electrobun
 4. Result = same Exodus application
 
-This means:
-- **Bootstrap**: First version has hardcoded initial schema in `init.ts`
-- **Self-modification**: User can modify Exodus's schema → next build includes changes
-- **Chicken-and-egg**: `init.ts` creates the initial structure that the rest of the app reads
+## Current State
 
-## Current State vs Target
+Exodus is a hybrid — partially on edem, partially traditional:
 
-### Current
+| Module | System | Storage |
+|--------|--------|---------|
+| projects | Edem | edem-data (SQLite) |
+| logger | Evento | Own SQLite (Drizzle) |
+| app-state | Evento | JSON file |
+| updater | Evento | Electrobun API |
+| schema | Evento | No storage (introspection) |
+| settings | Evento | via app-state |
+| debug | Evento | No storage (UI only) |
 
-- `edem-data` has `projects` as first-class entity with CRUD
-- `collections` / `fields` define schema, stored in SQLite
-- `items` store data as JSON blobs
-- `templates` table exists but no CRUD
-- `modules/projects/webview.ts` uses edem directly
-- No flow editor, no UI editor
-- Build produces Electrobun app via hardcoded config
+Only `projects` uses edem-data. Everything else uses evento + separate storage.
 
-### Target
+## Migration Plan
 
-- `edem-data` is the universal manifest store
-- `projects` is a core concept (every manifest set belongs to a project)
-- Flows and UI are items in system collections
-- Build reads manifests from SQLite, produces artifact
-- Runtime interprets manifests (no code generation)
-- Exodus is a project in itself
+Incremental migration. Mix old and new, gradually transform Exodus into a full Edem application.
+
+### Phase 1: edem-flows → data backend
+
+- edem-flows reads/writes flows as items in collection "flows"
+- Remove in-memory Map from edem-flows
+- edem-flows depends on edem-data
+
+### Phase 2: edem-ui → data backend
+
+- edem-ui reads/writes pages as items in collection "pages"
+- Remove in-memory Map from edem-ui
+- edem-ui depends on edem-data
+
+### Phase 3: Exodus modules → edem collections
+
+Migrate modules one by one. Parallel operation (evento + edem), then switch off evento.
+
+1. `app-state` → collection `app_state` (simplest, key-value)
+2. `logger` → collection `logs` (isolated, clear schema)
+3. `settings` → collection `settings` (follows app-state)
+4. `updater` → config in edem, API stays Electrobun
+
+### Phase 4: Exodus bootstrap
+
+Expand `init.ts` to create full Exodus project structure:
+- project "exodus" (type: desktop)
+- system collections: logs, settings, app_state, flows, pages
+- system flows: logging, state persistence
+- system pages: settings, debug, logger
+
+### Phase 5: Notes app
+
+Second project. Build in Exodus using data/flows/ui editors.
+- project "Notes" (type: desktop)
+- collections: notes, folders, tags
+- flows: auto-slug, trash
+- UI: list, editor, sidebar
+
+### Phase 6: Build pipeline
+
+Exodus can build projects into standalone apps.
+- Read project from edem-data
+- Export schema/flows/ui manifests as JSON
+- Package with edem runtime + environment
+- → standalone Electrobun app
 
 ## Open Questions
 
-1. **Schema manifest format**: How exactly are collections/fields serialized to JSON? Current `schema.ts` Drizzle definitions vs runtime JSON?
+1. **Runtime data storage**: JSON blobs with schema validation? Or real SQL columns from manifest?
 
-2. **UI manifest format**: What does a page/component JSON look like? How are bindings to data expressed?
+2. **edem-data modes**: Should edem-data explicitly split into `mode: "development"` (dynamic) and `mode: "runtime"` (static)?
 
-3. **Flows manifest format**: What does a flow graph JSON look like? What node types exist?
+3. **Bootstrap tables**: Current 11 tables — which stay as bootstrap, which become collections?
 
-4. **Runtime rendering**: How does the runtime render UI from JSON? Vue components generated at runtime? Custom renderer?
+4. **edem-data size**: 1459 lines, 52 procedures. Should it be split into sub-modules (edem-relations, edem-versions, edem-locks, edem-files)?
 
-5. **Flow execution**: How does the runtime execute flows? Interpreter for the node graph? Or compile to JS at build time?
+5. **UI rendering**: Vue at runtime? Custom renderer from JSON manifest?
 
-6. **Data migration**: When schema changes between builds, how are existing user databases migrated?
+6. **Flow execution**: Interpreter for node graph? Or compile to JS?
 
-7. **Exodus protection**: Should certain collections in the Exodus project be protected from user modification?
+7. **Data migration**: Schema changes between builds — how to migrate existing user databases?
 
-8. **Multiple projects**: Can multiple projects share data? Cross-project relations?
-
-## Implementation Path
-
-Rough order of work:
-
-1. **Define manifest formats** — JSON schemas for schema, flows, UI
-2. **Manifest storage** — ensure edem-data can store manifests as items in system collections
-3. **Build pipeline** — read manifests from SQLite, produce JSON files
-4. **Runtime manifest loader** — runtime reads JSON manifests on startup
-5. **UI renderer** — render pages/components from UI manifest
-6. **Flow engine** — execute flow graphs from flows manifest
-7. **Exodus self-build** — Exodus builds itself from its own manifests
-8. **Editors** — Data editor (done), Flow editor, UI editor
+8. **Exodus protection**: Should certain collections be protected from user modification?
