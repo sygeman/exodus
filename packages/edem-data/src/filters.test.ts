@@ -376,17 +376,13 @@ describe("sortItems", () => {
 
 describe("query language (integration)", () => {
   let edem: ReturnType<typeof createEdem<[typeof dataModule]>>
-  let projectId: string
 
   beforeEach(async () => {
     edem = createEdem([dataModule])
-    const project = await edem.data.createProject({ name: "Test Project" })
-    projectId = project.id
   })
 
   it("should filter items with _eq", async () => {
     const { id: colId } = await edem.data.createCollection({
-      project_id: projectId,
       name: "Test",
       slug: "test",
     })
@@ -406,7 +402,6 @@ describe("query language (integration)", () => {
 
   it("should filter items with _gt and _lt", async () => {
     const { id: colId } = await edem.data.createCollection({
-      project_id: projectId,
       name: "Products",
       slug: "products",
     })
@@ -426,7 +421,6 @@ describe("query language (integration)", () => {
 
   it("should filter items with _contains", async () => {
     const { id: colId } = await edem.data.createCollection({
-      project_id: projectId,
       name: "Posts",
       slug: "posts",
     })
@@ -445,7 +439,6 @@ describe("query language (integration)", () => {
 
   it("should filter items with _in", async () => {
     const { id: colId } = await edem.data.createCollection({
-      project_id: projectId,
       name: "Items",
       slug: "items",
     })
@@ -464,7 +457,6 @@ describe("query language (integration)", () => {
 
   it("should sort items", async () => {
     const { id: colId } = await edem.data.createCollection({
-      project_id: projectId,
       name: "Items",
       slug: "items",
     })
@@ -490,7 +482,6 @@ describe("query language (integration)", () => {
 
   it("should paginate items", async () => {
     const { id: colId } = await edem.data.createCollection({
-      project_id: projectId,
       name: "Items",
       slug: "items",
     })
@@ -520,7 +511,6 @@ describe("query language (integration)", () => {
 
   it("should combine filter, sort, and pagination", async () => {
     const { id: colId } = await edem.data.createCollection({
-      project_id: projectId,
       name: "Products",
       slug: "products",
     })

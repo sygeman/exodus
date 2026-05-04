@@ -4,18 +4,14 @@ import { dataModule } from "./module"
 
 describe("data module", () => {
   let edem: ReturnType<typeof createEdem<[typeof dataModule]>>
-  let projectId: string
 
   beforeEach(async () => {
     edem = createEdem([dataModule])
-    const project = await edem.data.createProject({ name: "Test Project" })
-    projectId = project.id
   })
 
   describe("createCollection", () => {
     it("should create a collection and return id", async () => {
       const result = await edem.data.createCollection({
-        project_id: projectId,
         name: "Projects",
         slug: "projects",
         fields: [],
@@ -25,7 +21,6 @@ describe("data module", () => {
 
     it("should be retrievable via getCollection", async () => {
       const { id } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Projects",
         slug: "projects",
       })
@@ -37,11 +32,10 @@ describe("data module", () => {
 
     it("should appear in listCollections", async () => {
       await edem.data.createCollection({
-        project_id: projectId,
         name: "Projects",
         slug: "projects",
       })
-      const { collections } = await edem.data.listCollections({ project_id: projectId })
+      const { collections } = await edem.data.listCollections({})
       expect(collections).toHaveLength(1)
       expect(collections[0].slug).toBe("projects")
     })
@@ -50,7 +44,6 @@ describe("data module", () => {
   describe("createItem", () => {
     it("should create an item and return id", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -63,7 +56,6 @@ describe("data module", () => {
 
     it("should be retrievable via queryItems", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -80,7 +72,6 @@ describe("data module", () => {
   describe("updateItem", () => {
     it("should update item data", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -97,7 +88,6 @@ describe("data module", () => {
 
     it("should set updated_at greater than created_at", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -117,7 +107,6 @@ describe("data module", () => {
 
     it("should allow update when collection is deleted", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -138,7 +127,6 @@ describe("data module", () => {
   describe("deleteItem", () => {
     it("should remove item from store", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -157,14 +145,13 @@ describe("data module", () => {
   describe("deleteCollection", () => {
     it("should remove collection from store", async () => {
       const { id } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
 
       await edem.data.deleteCollection({ collection_id: id })
 
-      const { collections } = await edem.data.listCollections({ project_id: projectId })
+      const { collections } = await edem.data.listCollections({})
       expect(collections).toHaveLength(0)
     })
   })
@@ -172,7 +159,6 @@ describe("data module", () => {
   describe("updateCollection", () => {
     it("should update collection name and slug", async () => {
       const { id } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Old Name",
         slug: "old-slug",
       })
@@ -190,7 +176,6 @@ describe("data module", () => {
 
     it("should update collection fields", async () => {
       const { id } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Users",
         slug: "users",
       })
@@ -254,7 +239,6 @@ describe("data module", () => {
 
     it("should validate field types on create", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Users",
         slug: "users",
         fields: [
@@ -280,7 +264,6 @@ describe("data module", () => {
 
     it("should enforce required fields", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Users",
         slug: "users",
         fields: [{ name: "email", type: "string", required: true }],
@@ -307,7 +290,6 @@ describe("data module", () => {
 
     it("should validate field types on update", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Users",
         slug: "users",
         fields: [{ name: "age", type: "number" }],
@@ -336,7 +318,6 @@ describe("data module", () => {
   describe("queryItems", () => {
     it("should filter items by data", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -353,7 +334,6 @@ describe("data module", () => {
 
     it("should sort items", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -370,7 +350,6 @@ describe("data module", () => {
 
     it("should sort items descending", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -387,7 +366,6 @@ describe("data module", () => {
 
     it("should return total count", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -405,7 +383,6 @@ describe("data module", () => {
 
     it("should handle offset", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -424,7 +401,6 @@ describe("data module", () => {
 
     it("should filter with _gt operator", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -441,7 +417,6 @@ describe("data module", () => {
 
     it("should filter with _contains operator", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -457,7 +432,6 @@ describe("data module", () => {
 
     it("should filter with _and operator", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -477,7 +451,6 @@ describe("data module", () => {
 
     it("should filter with _or operator", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -496,7 +469,6 @@ describe("data module", () => {
 
     it("should filter with _in operator", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -513,7 +485,6 @@ describe("data module", () => {
 
     it("should filter with _between operator", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -532,7 +503,6 @@ describe("data module", () => {
 
     it("should sort by created_at by default", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -555,7 +525,6 @@ describe("data module", () => {
 
     it("should handle multiple sort fields", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
       })
@@ -576,7 +545,6 @@ describe("data module", () => {
   describe("schema migration", () => {
     it("should not break queries when fields are removed", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
         fields: [{ name: "title", type: "string" }],
@@ -596,7 +564,6 @@ describe("data module", () => {
 
     it("should not break queries when fields are added", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
         fields: [{ name: "title", type: "string" }],
@@ -619,7 +586,6 @@ describe("data module", () => {
 
     it("should allow creating items with new fields after schema change", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
         fields: [{ name: "title", type: "string" }],
@@ -645,7 +611,6 @@ describe("data module", () => {
 
     it("should preserve old data when new required field is added", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
         fields: [{ name: "title", type: "string" }],
@@ -674,7 +639,6 @@ describe("data module", () => {
 
     it("should track schema version", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
         fields: [{ name: "title", type: "string" }],
@@ -694,7 +658,6 @@ describe("data module", () => {
 
     it("should keep old items queryable after field type change", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Test",
         slug: "test",
         fields: [{ name: "value", type: "string" }],
@@ -717,7 +680,6 @@ describe("data module", () => {
   describe("searchItems", () => {
     it("should search items by query", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Products",
         slug: "products",
       })
@@ -747,7 +709,6 @@ describe("data module", () => {
 
     it("should be case insensitive", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Products",
         slug: "products",
       })
@@ -767,7 +728,6 @@ describe("data module", () => {
 
     it("should support pagination", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Products",
         slug: "products",
       })
@@ -794,7 +754,6 @@ describe("data module", () => {
   describe("countSearchResults", () => {
     it("should count matching items", async () => {
       const { id: colId } = await edem.data.createCollection({
-        project_id: projectId,
         name: "Products",
         slug: "products",
       })

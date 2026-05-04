@@ -1,28 +1,9 @@
 import { sqliteTable, text, integer, real, index } from "drizzle-orm/sqlite-core"
 
-// ── Projects ──────────────────────────────────────────────────────────────────
-
-export const projects = sqliteTable("projects", {
-  id: text("id").primaryKey(),
-  slug: text("slug").notNull().unique(),
-  name: text("name").notNull(),
-  description: text("description"),
-  icon: text("icon"),
-  color: text("color"),
-  is_default: integer("is_default", { mode: "boolean" }).default(false),
-  sort_order: integer("sort_order").default(0),
-  created_at: integer("created_at").notNull(),
-  updated_at: integer("updated_at").notNull(),
-  deleted_at: integer("deleted_at"),
-})
-
 // ── Collections ───────────────────────────────────────────────────────────────
 
 export const collections = sqliteTable("collections", {
   id: text("id").primaryKey(),
-  project_id: text("project_id")
-    .notNull()
-    .references(() => projects.id, { onDelete: "cascade" }),
   parent_id: text("parent_id"),
   template_id: text("template_id"),
   slug: text("slug").notNull().unique(),

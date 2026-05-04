@@ -6,7 +6,7 @@ import type { EdemMsg } from "@exodus/edem-electrobun/types"
 import { edem, modules } from "@/bun/edem"
 import { initUpdater } from "@/modules/updater/bun"
 import { initSchema } from "@/modules/schema/bun"
-import { ensureIdeasCollection } from "@/modules/projects/init"
+import { ensureCollections } from "@/modules/projects/init"
 import { bunLogger } from "@/modules/logger/bun"
 import { initAppState, readState } from "@/modules/app-state/bun"
 import { globalRegistry, type GlobalEventMap } from "@/events"
@@ -147,7 +147,7 @@ ApplicationMenu.on("application-menu-clicked", (event) => {
 })
 
 bunLogger.attach(evento)
-await ensureIdeasCollection(edem.data)
+await ensureCollections(edem.data)
 initUpdater(evento)
 initSchema(evento)
 

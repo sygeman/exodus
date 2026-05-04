@@ -4,7 +4,6 @@ import * as schema from "./schema"
 
 const INIT_SQL = `CREATE TABLE IF NOT EXISTS "collections" (
 	"id" text PRIMARY KEY NOT NULL,
-	"project_id" text NOT NULL,
 	"parent_id" text,
 	"template_id" text,
 	"slug" text NOT NULL,
@@ -19,8 +18,7 @@ const INIT_SQL = `CREATE TABLE IF NOT EXISTS "collections" (
 	"meta" text,
 	"created_at" integer NOT NULL,
 	"updated_at" integer NOT NULL,
-	"deleted_at" integer,
-	FOREIGN KEY ("project_id") REFERENCES "projects"("id") ON UPDATE no action ON DELETE cascade
+	"deleted_at" integer
 );
 CREATE UNIQUE INDEX IF NOT EXISTS "collections_slug_unique" ON "collections" ("slug");
 CREATE TABLE IF NOT EXISTS "field_migrations" (
@@ -139,20 +137,6 @@ CREATE TABLE IF NOT EXISTS "items" (
 );
 CREATE INDEX IF NOT EXISTS "idx_items_collection" ON "items" ("collection_id");
 CREATE INDEX IF NOT EXISTS "idx_items_deleted" ON "items" ("deleted_at");
-CREATE TABLE IF NOT EXISTS "projects" (
-	"id" text PRIMARY KEY NOT NULL,
-	"slug" text NOT NULL,
-	"name" text NOT NULL,
-	"description" text,
-	"icon" text,
-	"color" text,
-	"is_default" integer DEFAULT false,
-	"sort_order" integer DEFAULT 0,
-	"created_at" integer NOT NULL,
-	"updated_at" integer NOT NULL,
-	"deleted_at" integer
-);
-CREATE UNIQUE INDEX IF NOT EXISTS "projects_slug_unique" ON "projects" ("slug");
 CREATE TABLE IF NOT EXISTS "relations" (
 	"id" text PRIMARY KEY NOT NULL,
 	"source_item_id" text NOT NULL,
@@ -205,9 +189,52 @@ export function createDataEngine(options: DataEngineOptions) {
 
   sqlite.exec(INIT_SQL)
 
+  migrateCollectionsProjectId(sqlite)
+
   const db = drizzle(sqlite, { schema })
 
   return { db, sqlite }
+}
+
+function migrateCollectionsProjectId(sqlite: Database) {
+  const columns = sqlite.query("PRAGMA table_info(collections)").all() as Array<{
+    name: string
+    notnull: number
+  }>
+  const projectIdCol = columns.find((c) => c.name === "project_id")
+  if (projectIdCol && projectIdCol.notnull === 1) {
+    sqlite.exec(`
+      CREATE TABLE collections_new (
+        "id" text PRIMARY KEY NOT NULL,
+        "parent_id" text,
+        "template_id" text,
+        "slug" text NOT NULL,
+        "name" text NOT NULL,
+        "description" text,
+        "icon" text,
+        "singleton" integer DEFAULT false,
+        "system" integer DEFAULT false,
+        "schema_version" integer DEFAULT 1,
+        "default_sort_field" text,
+        "default_sort_dir" text DEFAULT 'asc',
+        "meta" text,
+        "created_at" integer NOT NULL,
+        "updated_at" integer NOT NULL,
+        "deleted_at" integer
+      );
+      INSERT INTO collections_new ("id", "parent_id", "template_id", "slug", "name", "description", "icon", "singleton", "system", "schema_version", "default_sort_field", "default_sort_dir", "meta", "created_at", "updated_at", "deleted_at") SELECT "id", "parent_id", "template_id", "slug", "name", "description", "icon", "singleton", "system", "schema_version", "default_sort_field", "default_sort_dir", "meta", "created_at", "updated_at", "deleted_at" FROM collections;
+      DROP TABLE collections;
+      ALTER TABLE collections_new RENAME TO collections;
+      CREATE UNIQUE INDEX IF NOT EXISTS "collections_slug_unique" ON "collections" ("slug");
+    `)
+  }
+
+  try {
+    sqlite.exec('SELECT id FROM "projects" LIMIT 0')
+    sqlite.exec("DROP TABLE projects")
+  } catch {
+    // projects table doesn't exist, nothing to do
+  }
 }
 
 export type DataEngine = ReturnType<typeof createDataEngine>

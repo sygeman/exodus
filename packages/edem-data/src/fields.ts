@@ -34,6 +34,32 @@ export const fieldSchema = z.object({
 
 export const fieldInputSchema = fieldSchema.omit({ id: true, collection_id: true })
 
+export const manifestFieldSchema = z.object({
+  name: z.string(),
+  type: z.enum(fieldTypes),
+  required: z.boolean().optional(),
+  default: z.any().optional(),
+  options: z.record(z.string(), z.any()).optional(),
+  meta: z.record(z.string(), z.any()).optional(),
+})
+
+export const manifestCollectionSchema = z.object({
+  slug: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  icon: z.string().optional(),
+  singleton: z.boolean().optional(),
+  fields: z.array(manifestFieldSchema),
+})
+
+export const manifestSchema = z.object({
+  collections: z.array(manifestCollectionSchema),
+})
+
+export type Manifest = z.infer<typeof manifestSchema>
+export type ManifestCollection = z.infer<typeof manifestCollectionSchema>
+export type ManifestField = z.infer<typeof manifestFieldSchema>
+
 const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/
 const isoDatetimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
 

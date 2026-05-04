@@ -9,6 +9,7 @@ import {
   fieldInputSchema,
   fieldTypes,
   validateFieldValue,
+  manifestSchema,
   type FieldType,
 } from "./fields"
 import { matchFilter, sortItems, filterSchema, sortSchema } from "./filters"
@@ -23,7 +24,6 @@ function safeJsonParse<T>(value: string, context: string): T {
 
 const collectionSchema = z.object({
   id: z.string(),
-  project_id: z.string(),
   name: z.string(),
   slug: z.string(),
   description: z.string().nullable().optional(),
@@ -46,20 +46,6 @@ const itemSchema = z.object({
   schema_version: z.number().nullable().optional(),
   source: z.string().nullable().optional(),
   data: z.record(z.string(), z.any()),
-  created_at: z.number(),
-  updated_at: z.number(),
-  deleted_at: z.number().nullable().optional(),
-})
-
-const projectSchema = z.object({
-  id: z.string(),
-  slug: z.string(),
-  name: z.string(),
-  description: z.string().nullable().optional(),
-  icon: z.string().nullable().optional(),
-  color: z.string().nullable().optional(),
-  is_default: z.boolean().nullable().optional(),
-  sort_order: z.number().nullable().optional(),
   created_at: z.number(),
   updated_at: z.number(),
   deleted_at: z.number().nullable().optional(),
@@ -102,9 +88,6 @@ export const dataModule = createEdemModule("data", (module) => {
         return { db: engine.db, engine }
       })
       // ── Subscriptions ──────────────────────────────────────────────────────
-      .subscription("projectCreated", { output: projectSchema })
-      .subscription("projectUpdated", { output: projectSchema })
-      .subscription("projectDeleted", { output: z.object({ project_id: z.string() }) })
       .subscription("collectionCreated", { output: collectionSchema })
       .subscription("collectionUpdated", { output: collectionSchema })
       .subscription("collectionDeleted", { output: z.object({ collection_id: z.string() }) })
@@ -118,148 +101,9 @@ export const dataModule = createEdemModule("data", (module) => {
       .subscription("itemLocked", { output: itemLockSchema })
       .subscription("itemUnlocked", { output: z.object({ item_id: z.string() }) })
       .subscription("versionRestored", { output: itemVersionSchema })
-      // ── Projects ──────────────────────────────────────────────────────────
-      .mutation("createProject", {
-        input: z.object({
-          name: z.string(),
-          slug: z.string().optional(),
-          description: z.string().optional(),
-          icon: z.string().optional(),
-          color: z.string().optional(),
-        }),
-        output: z.object({ id: z.string() }),
-        resolve: async ({ input, ctx, emit }) => {
-          const id = crypto.randomUUID()
-          const now = Date.now()
-          const slug = input.slug ?? input.name.toLowerCase().replace(/\s+/g, "-")
-
-          await ctx.db.insert(schema.projects).values({
-            id,
-            slug,
-            name: input.name,
-            description: input.description,
-            icon: input.icon,
-            color: input.color,
-            created_at: now,
-            updated_at: now,
-          })
-
-          const project = await ctx.db.query.projects.findFirst({
-            where: eq(schema.projects.id, id),
-          })
-          if (!project) throw new Error(`Project ${id} not found after creation`)
-          await emit.projectCreated(project)
-          return { id }
-        },
-      })
-      .mutation("updateProject", {
-        input: z.object({
-          project_id: z.string(),
-          name: z.string().optional(),
-          slug: z.string().optional(),
-          description: z.string().optional(),
-          icon: z.string().optional(),
-          color: z.string().optional(),
-          sort_order: z.number().optional(),
-        }),
-        output: z.object({ id: z.string() }),
-        resolve: async ({ input, ctx, emit }) => {
-          const { project_id, ...updates } = input
-          const now = Date.now()
-
-          await ctx.db
-            .update(schema.projects)
-            .set({ ...updates, updated_at: now })
-            .where(eq(schema.projects.id, project_id))
-
-          const project = await ctx.db.query.projects.findFirst({
-            where: eq(schema.projects.id, project_id),
-          })
-          if (!project) throw new Error(`Project ${project_id} not found`)
-          await emit.projectUpdated(project)
-          return { id: project_id }
-        },
-      })
-      .mutation("deleteProject", {
-        input: z.object({ project_id: z.string() }),
-        output: z.object({ success: z.boolean() }),
-        resolve: async ({ input, ctx, emit }) => {
-          await ctx.db
-            .update(schema.projects)
-            .set({ deleted_at: Date.now() })
-            .where(eq(schema.projects.id, input.project_id))
-          await emit.projectDeleted({ project_id: input.project_id })
-          return { success: true }
-        },
-      })
-      .mutation("restoreProject", {
-        input: z.object({ project_id: z.string() }),
-        output: z.object({ success: z.boolean() }),
-        resolve: async ({ input, ctx }) => {
-          const project = await ctx.db.query.projects.findFirst({
-            where: eq(schema.projects.id, input.project_id),
-          })
-          if (!project) throw new Error(`Project ${input.project_id} not found`)
-
-          await ctx.db
-            .update(schema.projects)
-            .set({ deleted_at: null })
-            .where(eq(schema.projects.id, input.project_id))
-          return { success: true }
-        },
-      })
-      .mutation("setDefaultProject", {
-        input: z.object({ project_id: z.string() }),
-        output: z.object({ success: z.boolean() }),
-        resolve: async ({ input, ctx }) => {
-          await ctx.db.transaction(async (tx) => {
-            await tx.update(schema.projects).set({ is_default: false })
-            await tx
-              .update(schema.projects)
-              .set({ is_default: true })
-              .where(eq(schema.projects.id, input.project_id))
-          })
-          return { success: true }
-        },
-      })
-      .query("getProject", {
-        input: z.object({ project_id: z.string() }),
-        output: z.object({ project: projectSchema.nullable() }),
-        resolve: async ({ input, ctx }) => {
-          const project = await ctx.db.query.projects.findFirst({
-            where: and(
-              eq(schema.projects.id, input.project_id),
-              isNull(schema.projects.deleted_at),
-            ),
-          })
-          return { project: project ?? null }
-        },
-      })
-      .query("listProjects", {
-        input: z.void(),
-        output: z.object({ projects: z.array(projectSchema) }),
-        resolve: async ({ ctx }) => {
-          const projects = await ctx.db.query.projects.findMany({
-            where: isNull(schema.projects.deleted_at),
-            orderBy: asc(schema.projects.sort_order),
-          })
-          return { projects }
-        },
-      })
-      .query("getDefaultProject", {
-        input: z.void(),
-        output: z.object({ project: projectSchema.nullable() }),
-        resolve: async ({ ctx }) => {
-          const project = await ctx.db.query.projects.findFirst({
-            where: and(eq(schema.projects.is_default, true), isNull(schema.projects.deleted_at)),
-          })
-          return { project: project ?? null }
-        },
-      })
       // ── Collections ───────────────────────────────────────────────────────
       .mutation("createCollection", {
         input: z.object({
-          project_id: z.string(),
           name: z.string(),
           slug: z.string(),
           parent_id: z.string().optional(),
@@ -276,7 +120,6 @@ export const dataModule = createEdemModule("data", (module) => {
 
           await ctx.db.insert(schema.collections).values({
             id,
-            project_id: input.project_id,
             parent_id: input.parent_id,
             slug: input.slug,
             name: input.name,
@@ -423,16 +266,11 @@ export const dataModule = createEdemModule("data", (module) => {
         },
       })
       .query("getDeletedCollections", {
-        input: z.object({ project_id: z.string().optional() }),
+        input: z.void(),
         output: z.object({ collections: z.array(collectionSchema) }),
-        resolve: async ({ input, ctx }) => {
-          const conditions = [isNotNull(schema.collections.deleted_at)]
-          if (input.project_id) {
-            conditions.push(eq(schema.collections.project_id, input.project_id))
-          }
-
+        resolve: async ({ ctx }) => {
           const rows = await ctx.db.query.collections.findMany({
-            where: and(...conditions),
+            where: isNotNull(schema.collections.deleted_at),
           })
 
           const collections = await Promise.all(
@@ -480,15 +318,11 @@ export const dataModule = createEdemModule("data", (module) => {
       })
       .query("listCollections", {
         input: z.object({
-          project_id: z.string().optional(),
           parent_id: z.string().optional(),
         }),
         output: z.object({ collections: z.array(collectionSchema) }),
         resolve: async ({ input, ctx }) => {
           const conditions = [isNull(schema.collections.deleted_at)]
-          if (input.project_id) {
-            conditions.push(eq(schema.collections.project_id, input.project_id))
-          }
           if (input.parent_id) {
             conditions.push(eq(schema.collections.parent_id, input.parent_id))
           }
@@ -1390,6 +1224,149 @@ export const dataModule = createEdemModule("data", (module) => {
 
           await emit.versionRestored(parseVersion(version))
           return { success: true }
+        },
+      })
+      // ── Manifest ──────────────────────────────────────────────────────────
+      .query("getManifest", {
+        input: z.void(),
+        output: manifestSchema,
+        resolve: async ({ ctx }) => {
+          const rows = await ctx.db.query.collections.findMany({
+            where: isNull(schema.collections.deleted_at),
+            orderBy: asc(schema.collections.name),
+          })
+
+          const collections = await Promise.all(
+            rows.map(async (row) => {
+              const fields = await ctx.db.query.fields.findMany({
+                where: eq(schema.fields.collection_id, row.id),
+              })
+              return {
+                slug: row.slug,
+                name: row.name,
+                description: row.description ?? undefined,
+                icon: row.icon ?? undefined,
+                singleton: row.singleton ?? undefined,
+                fields: fields.map((f) => ({
+                  name: f.name,
+                  type: f.type as FieldType,
+                  required: f.required ?? undefined,
+                  default: f.default_value
+                    ? safeJsonParse(f.default_value, `field ${f.id} default`)
+                    : undefined,
+                  options: f.interface_options
+                    ? safeJsonParse<Record<string, unknown>>(
+                        f.interface_options,
+                        `field ${f.id} options`,
+                      )
+                    : undefined,
+                  meta: f.meta
+                    ? safeJsonParse<Record<string, unknown>>(f.meta, `field ${f.id} meta`)
+                    : undefined,
+                })),
+              }
+            }),
+          )
+
+          return { collections }
+        },
+      })
+      .mutation("applyManifest", {
+        input: z.object({
+          manifest: manifestSchema,
+        }),
+        output: z.object({
+          created: z.array(z.string()),
+          updated: z.array(z.string()),
+          skipped: z.array(z.string()),
+        }),
+        resolve: async ({ input, ctx, emit }) => {
+          const { manifest } = input
+          const now = Date.now()
+
+          const created: string[] = []
+          const updated: string[] = []
+          const skipped: string[] = []
+
+          for (const colDef of manifest.collections) {
+            const existing = await ctx.db.query.collections.findFirst({
+              where: and(
+                eq(schema.collections.slug, colDef.slug),
+                isNull(schema.collections.deleted_at),
+              ),
+            })
+
+            if (existing) {
+              const existingFields = await ctx.db.query.fields.findMany({
+                where: eq(schema.fields.collection_id, existing.id),
+              })
+              const existingFieldNames = new Set(existingFields.map((f) => f.name))
+
+              let fieldsChanged = false
+              for (const fieldDef of colDef.fields) {
+                if (!existingFieldNames.has(fieldDef.name)) {
+                  await ctx.db.insert(schema.fields).values({
+                    id: crypto.randomUUID(),
+                    collection_id: existing.id,
+                    name: fieldDef.name,
+                    type: fieldDef.type,
+                    required: fieldDef.required ?? false,
+                    default_value:
+                      fieldDef.default !== null && fieldDef.default !== undefined
+                        ? JSON.stringify(fieldDef.default)
+                        : null,
+                    interface_options: fieldDef.options ? JSON.stringify(fieldDef.options) : null,
+                    meta: fieldDef.meta ? JSON.stringify(fieldDef.meta) : null,
+                  })
+                  fieldsChanged = true
+                }
+              }
+
+              if (fieldsChanged) {
+                await ctx.db
+                  .update(schema.collections)
+                  .set({ updated_at: now })
+                  .where(eq(schema.collections.id, existing.id))
+                updated.push(colDef.slug)
+              } else {
+                skipped.push(colDef.slug)
+              }
+            } else {
+              const id = crypto.randomUUID()
+              await ctx.db.insert(schema.collections).values({
+                id,
+                slug: colDef.slug,
+                name: colDef.name,
+                description: colDef.description,
+                icon: colDef.icon,
+                singleton: colDef.singleton,
+                created_at: now,
+                updated_at: now,
+              })
+
+              for (const fieldDef of colDef.fields) {
+                await ctx.db.insert(schema.fields).values({
+                  id: crypto.randomUUID(),
+                  collection_id: id,
+                  name: fieldDef.name,
+                  type: fieldDef.type,
+                  required: fieldDef.required ?? false,
+                  default_value:
+                    fieldDef.default !== null && fieldDef.default !== undefined
+                      ? JSON.stringify(fieldDef.default)
+                      : null,
+                  interface_options: fieldDef.options ? JSON.stringify(fieldDef.options) : null,
+                  meta: fieldDef.meta ? JSON.stringify(fieldDef.meta) : null,
+                })
+              }
+
+              const collection = await getCollectionWithFields(ctx.db, id)
+              if (collection) await emit.collectionCreated(collection)
+              created.push(colDef.slug)
+            }
+          }
+
+          return { created, updated, skipped }
         },
       })
   )
