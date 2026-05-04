@@ -1,5 +1,5 @@
-import { evento } from "@/evento"
-import { loggerRegistry, type LogEntry, type LogLevel } from "@/modules/logger/events"
+import { edem } from "@/edem"
+import type { LogEntry, LogLevel } from "@/modules/logger/events"
 
 interface DedupState {
   count: number
@@ -16,7 +16,6 @@ class WebviewLogger {
   init() {
     if (this.patched) return
     this.patched = true
-    evento.register(loggerRegistry)
     this.patchConsole()
   }
 
@@ -52,7 +51,6 @@ class WebviewLogger {
       return true
     }
     this.recentLogs.set(key, now)
-    // Cleanup old entries periodically
     if (this.recentLogs.size > 1000) {
       const cutoff = now - this.dedupWindow
       for (const [k, v] of this.recentLogs) {
@@ -62,31 +60,31 @@ class WebviewLogger {
     return false
   }
 
-  private flushDedup(key: string, level: LogLevel, baseMessage: string) {
+  private async flushDedup(key: string, level: LogLevel, baseMessage: string) {
     const state = this.pendingDedups.get(key)
     if (!state || state.count <= 0) {
       this.pendingDedups.delete(key)
       return
     }
 
-    const entry: LogEntry = {
-      id: crypto.randomUUID(),
-      timestamp: Date.now(),
-      level,
-      source: "webview",
-      message: baseMessage,
-      args: state.lastArgs.map((a) => {
-        try {
-          return typeof a === "object" && a !== null ? JSON.parse(JSON.stringify(a)) : a
-        } catch {
-          return String(a)
-        }
-      }),
-      count: state.count,
-    }
+    await edem.data.createItem({
+      collection_id: "logs",
+      data: {
+        level,
+        message: baseMessage,
+        source: "webview",
+        args: state.lastArgs.map((a) => {
+          try {
+            return typeof a === "object" && a !== null ? JSON.parse(JSON.stringify(a)) : a
+          } catch {
+            return String(a)
+          }
+        }),
+        count: state.count,
+      },
+    })
 
     this.pendingDedups.delete(key)
-    evento.emitEvent("logger:entry", entry, "webview:logger")
   }
 
   private add(level: LogLevel, args: unknown[]) {
@@ -109,49 +107,88 @@ class WebviewLogger {
         existing.lastArgs = args
       } else {
         const timeout = setTimeout(() => {
-          this.flushDedup(key, level, message)
+          this.flushDedup(key, level, message).catch(() => {})
         }, this.dedupWindow)
         this.pendingDedups.set(key, { count: 1, lastArgs: args, timeout })
       }
       return
     }
 
-    const entry: LogEntry = {
-      id: crypto.randomUUID(),
-      timestamp: Date.now(),
-      level,
-      source: "webview",
-      message,
-      args: args.map((a) => {
-        try {
-          return typeof a === "object" && a !== null ? JSON.parse(JSON.stringify(a)) : a
-        } catch {
-          return String(a)
-        }
-      }),
-    }
-
-    evento.emitEvent("logger:entry", entry, "webview:logger")
+    edem.data
+      .createItem({
+        collection_id: "logs",
+        data: {
+          level,
+          message,
+          source: "webview",
+          args: args.map((a) => {
+            try {
+              return typeof a === "object" && a !== null ? JSON.parse(JSON.stringify(a)) : a
+            } catch {
+              return String(a)
+            }
+          }),
+        },
+      })
+      .catch(() => {})
   }
 
-  clear(source: "bun" | "webview" | "all" = "all") {
-    evento.emitEvent("logger:clear", { source }, "user:ui")
+  async clear(source: "bun" | "webview" | "all" = "all") {
+    const { items } = await edem.data.queryItems({
+      collection_id: "logs",
+      filter: source !== "all" ? { source: { _eq: source } } : undefined,
+    })
+    for (const item of items) {
+      await edem.data.deleteItem({ item_id: item.id })
+    }
   }
 
   async query(q: {
     level?: string
     source?: string
     search?: string
-    from?: number
-    to?: number
     limit?: number
     offset?: number
   }): Promise<{ logs: LogEntry[]; total: number }> {
-    return evento.request("logger:query", q, { timeout: 5000 })
+    const filter: Record<string, unknown> = {}
+    if (q.level && q.level !== "all") filter.level = { _eq: q.level }
+    if (q.source && q.source !== "all") filter.source = { _eq: q.source }
+    if (q.search?.trim()) filter.message = { _contains: q.search.trim() }
+
+    const { items, total } = await edem.data.queryItems({
+      collection_id: "logs",
+      filter: Object.keys(filter).length > 0 ? filter : undefined,
+      sort: ["-created_at"],
+      limit: q.limit ?? 500,
+      offset: q.offset ?? 0,
+    })
+
+    const logs = items.map((item) => ({
+      id: item.id,
+      timestamp: item.created_at,
+      level: item.data.level as LogLevel,
+      source: item.data.source as "bun" | "webview",
+      message: item.data.message as string,
+      args: (item.data.args as unknown[]) ?? [],
+      count: item.data.count as number | undefined,
+    }))
+
+    return { logs, total }
   }
 
   async stats(): Promise<{ debug: number; info: number; warn: number; error: number }> {
-    return evento.request("logger:stats", undefined, { timeout: 2000 })
+    const [debug, info, warn, error] = await Promise.all(
+      (["debug", "info", "warn", "error"] as const).map((level) =>
+        edem.data
+          .queryItems({
+            collection_id: "logs",
+            filter: { level: { _eq: level } },
+            limit: 1,
+          })
+          .then(({ total }) => total),
+      ),
+    )
+    return { debug, info, warn, error }
   }
 }
 

@@ -146,7 +146,7 @@ ApplicationMenu.on("application-menu-clicked", (event) => {
   }
 })
 
-bunLogger.attach(evento)
+bunLogger.attach(evento, edem.data)
 await ensureCollections(edem.data)
 initUpdater(evento)
 initSchema(evento)

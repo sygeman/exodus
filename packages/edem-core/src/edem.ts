@@ -283,9 +283,14 @@ function buildProxy(
     if (!ctxPromise) {
       ctxPromise = contextFn ? contextFn() : Promise.resolve({})
     }
-    cachedCtx = await ctxPromise
-    ctxInitialized = true
-    return cachedCtx
+    try {
+      cachedCtx = await ctxPromise
+      ctxInitialized = true
+      return cachedCtx
+    } catch (err) {
+      ctxPromise = null
+      throw err
+    }
   }
 
   const worker = workerFactory({

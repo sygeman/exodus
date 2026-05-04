@@ -1,18 +1,9 @@
 import type { EventoBun } from "@/bun/evento"
-import {
-  loggerRegistry,
-  LogEntrySchema,
-  type LogEntry,
-  type LogLevel,
-} from "@/modules/logger/events"
-import {
-  insertLog,
-  queryLogs,
-  countLogs,
-  clearLogs,
-  getStats,
-  migrate,
-} from "@/modules/logger/db/index"
+import { type LogLevel } from "@/modules/logger/events"
+import type { dataModule } from "@exodus/edem-data"
+import type { InferModuleAPI } from "@exodus/edem-core"
+
+type EdemData = InferModuleAPI<typeof dataModule>
 
 interface DedupState {
   count: number
@@ -20,46 +11,30 @@ interface DedupState {
   timeout: ReturnType<typeof setTimeout>
 }
 
+let edemData: EdemData | null = null
+
+async function insertLog(data: {
+  level: LogLevel
+  message: string
+  source: "bun"
+  args: unknown[]
+  count?: number
+}) {
+  if (!edemData) return
+  try {
+    await edemData.createItem({ collection_id: "logs", data })
+  } catch {
+    // ignore storage errors
+  }
+}
+
 class BunLogger {
-  private evento?: EventoBun
   private dedupWindow = 1000
   private recentLogs = new Map<string, number>()
   private pendingDedups = new Map<string, DedupState>()
 
-  attach(evento: EventoBun) {
-    migrate()
-    this.evento = evento
-    evento.register(loggerRegistry)
-
-    evento.on("logger:entry", (ctx) => {
-      const parsed = LogEntrySchema.safeParse(ctx.payload)
-      if (!parsed.success) {
-        console.warn("[bunLogger] Invalid logger:entry payload:", parsed.error)
-        return
-      }
-      const entry = parsed.data
-      if (ctx.meta.source === "bun:logger") return
-      insertLog(entry)
-      // broadcast to webview so UI can show live updates
-      this.evento?.emitEvent("logger:entry", entry, "bun:logger")
-    })
-
-    evento.on("logger:clear", (ctx) => {
-      const source = (ctx.payload as { source: "bun" | "webview" | "all" }).source
-      clearLogs(source)
-    })
-
-    evento.handle("logger:query", (ctx) => {
-      const q = ctx.payload as Parameters<typeof queryLogs>[0]
-      const rows = queryLogs(q)
-      const total = countLogs(q)
-      return { logs: rows, total }
-    })
-
-    evento.handle("logger:stats", () => {
-      return getStats()
-    })
-
+  attach(_evento: EventoBun, data?: EdemData) {
+    if (data) edemData = data
     this.patchConsole()
   }
 
@@ -95,7 +70,6 @@ class BunLogger {
       return true
     }
     this.recentLogs.set(key, now)
-    // Cleanup old entries periodically
     if (this.recentLogs.size > 1000) {
       const cutoff = now - this.dedupWindow
       for (const [k, v] of this.recentLogs) {
@@ -112,21 +86,17 @@ class BunLogger {
       return
     }
 
-    const entry: LogEntry = {
-      id: crypto.randomUUID(),
-      timestamp: Date.now(),
+    insertLog({
       level,
-      source: "bun",
       message: baseMessage,
+      source: "bun",
       args: state.lastArgs.map((a) =>
         typeof a === "object" && a !== null ? JSON.parse(JSON.stringify(a)) : a,
       ),
       count: state.count,
-    }
+    })
 
     this.pendingDedups.delete(key)
-    insertLog(entry)
-    this.evento?.emitEvent("logger:entry", entry, "bun:logger")
   }
 
   private add(level: LogLevel, args: unknown[]) {
@@ -156,19 +126,14 @@ class BunLogger {
       return
     }
 
-    const entry: LogEntry = {
-      id: crypto.randomUUID(),
-      timestamp: Date.now(),
+    insertLog({
       level,
-      source: "bun",
       message,
+      source: "bun",
       args: args.map((a) =>
         typeof a === "object" && a !== null ? JSON.parse(JSON.stringify(a)) : a,
       ),
-    }
-
-    insertLog(entry)
-    this.evento?.emitEvent("logger:entry", entry, "bun:logger")
+    })
   }
 }
 

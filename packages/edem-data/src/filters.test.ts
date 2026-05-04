@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test"
 import { createEdem } from "@exodus/edem-core"
 import { dataModule } from "./module"
+import { resetDataEngine } from "./db"
 import { matchFilter, sortItems } from "./filters"
 
 describe("matchFilter", () => {
@@ -372,19 +373,50 @@ describe("sortItems", () => {
   it("should return empty array as-is", () => {
     expect(sortItems([], ["order"])).toEqual([])
   })
+
+  it("should sort by top-level created_at ascending", () => {
+    const items = [
+      { id: "1", collection_id: "c", data: { name: "A" }, created_at: 300, updated_at: 0 },
+      { id: "2", collection_id: "c", data: { name: "B" }, created_at: 100, updated_at: 0 },
+      { id: "3", collection_id: "c", data: { name: "C" }, created_at: 200, updated_at: 0 },
+    ]
+    const sorted = sortItems(items, ["created_at"])
+    expect(sorted.map((i) => i.id)).toEqual(["2", "3", "1"])
+  })
+
+  it("should sort by top-level created_at descending", () => {
+    const items = [
+      { id: "1", collection_id: "c", data: { name: "A" }, created_at: 300, updated_at: 0 },
+      { id: "2", collection_id: "c", data: { name: "B" }, created_at: 100, updated_at: 0 },
+      { id: "3", collection_id: "c", data: { name: "C" }, created_at: 200, updated_at: 0 },
+    ]
+    const sorted = sortItems(items, ["-created_at"])
+    expect(sorted.map((i) => i.id)).toEqual(["1", "3", "2"])
+  })
+
+  it("should sort by top-level updated_at", () => {
+    const items = [
+      { id: "1", collection_id: "c", data: {}, created_at: 0, updated_at: 50 },
+      { id: "2", collection_id: "c", data: {}, created_at: 0, updated_at: 150 },
+      { id: "3", collection_id: "c", data: {}, created_at: 0, updated_at: 100 },
+    ]
+    const sorted = sortItems(items, ["-updated_at"])
+    expect(sorted.map((i) => i.id)).toEqual(["2", "3", "1"])
+  })
 })
 
 describe("query language (integration)", () => {
   let edem: ReturnType<typeof createEdem<[typeof dataModule]>>
 
   beforeEach(async () => {
+    resetDataEngine()
     edem = createEdem([dataModule])
   })
 
   it("should filter items with _eq", async () => {
     const { id: colId } = await edem.data.createCollection({
       name: "Test",
-      slug: "test",
+      id: "test",
     })
 
     await edem.data.createItem({ collection_id: colId, data: { status: "published", title: "A" } })
@@ -403,7 +435,7 @@ describe("query language (integration)", () => {
   it("should filter items with _gt and _lt", async () => {
     const { id: colId } = await edem.data.createCollection({
       name: "Products",
-      slug: "products",
+      id: "products",
     })
 
     await edem.data.createItem({ collection_id: colId, data: { price: 10 } })
@@ -422,7 +454,7 @@ describe("query language (integration)", () => {
   it("should filter items with _contains", async () => {
     const { id: colId } = await edem.data.createCollection({
       name: "Posts",
-      slug: "posts",
+      id: "posts",
     })
 
     await edem.data.createItem({ collection_id: colId, data: { title: "Hello World" } })
@@ -440,7 +472,7 @@ describe("query language (integration)", () => {
   it("should filter items with _in", async () => {
     const { id: colId } = await edem.data.createCollection({
       name: "Items",
-      slug: "items",
+      id: "items",
     })
 
     await edem.data.createItem({ collection_id: colId, data: { category: "books" } })
@@ -458,7 +490,7 @@ describe("query language (integration)", () => {
   it("should sort items", async () => {
     const { id: colId } = await edem.data.createCollection({
       name: "Items",
-      slug: "items",
+      id: "items",
     })
 
     await edem.data.createItem({ collection_id: colId, data: { name: "C", order: 3 } })
@@ -483,7 +515,7 @@ describe("query language (integration)", () => {
   it("should paginate items", async () => {
     const { id: colId } = await edem.data.createCollection({
       name: "Items",
-      slug: "items",
+      id: "items",
     })
 
     for (let i = 1; i <= 5; i++) {
@@ -512,7 +544,7 @@ describe("query language (integration)", () => {
   it("should combine filter, sort, and pagination", async () => {
     const { id: colId } = await edem.data.createCollection({
       name: "Products",
-      slug: "products",
+      id: "products",
     })
 
     await edem.data.createItem({

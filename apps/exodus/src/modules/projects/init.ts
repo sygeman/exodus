@@ -6,7 +6,7 @@ type EdemData = InferModuleAPI<typeof dataModule>
 const SYSTEM_MANIFEST: Manifest = {
   collections: [
     {
-      slug: "projects",
+      id: "projects",
       name: "Projects",
       fields: [
         { name: "name", type: "string", required: true },
@@ -19,7 +19,7 @@ const SYSTEM_MANIFEST: Manifest = {
       ],
     },
     {
-      slug: "ideas",
+      id: "ideas",
       name: "Ideas",
       fields: [
         { name: "project_id", type: "uuid", required: true },
@@ -28,6 +28,17 @@ const SYSTEM_MANIFEST: Manifest = {
         { name: "level", type: "string" },
         { name: "type", type: "string" },
         { name: "status", type: "string", default: "draft" },
+      ],
+    },
+    {
+      id: "logs",
+      name: "Logs",
+      fields: [
+        { name: "level", type: "string", required: true },
+        { name: "message", type: "text", required: true },
+        { name: "source", type: "string", required: true },
+        { name: "args", type: "json" },
+        { name: "count", type: "number" },
       ],
     },
   ],

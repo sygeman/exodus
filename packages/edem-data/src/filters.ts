@@ -81,8 +81,8 @@ export function sortItems(
     for (const field of sort) {
       const desc = field.startsWith("-")
       const key = desc ? field.slice(1) : field
-      const aVal = a.data[key]
-      const bVal = b.data[key]
+      const aVal = key in a ? a[key as keyof typeof a] : a.data[key]
+      const bVal = key in b ? b[key as keyof typeof b] : b.data[key]
 
       if (aVal === bVal) continue
       if (aVal === undefined || aVal === null) return desc ? 1 : -1

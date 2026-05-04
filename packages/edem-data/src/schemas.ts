@@ -4,7 +4,6 @@ import { fieldSchema } from "./fields"
 export const collectionSchema = z.object({
   id: z.string(),
   name: z.string(),
-  slug: z.string(),
   fields: z.array(fieldSchema),
   meta: z.record(z.string(), z.any()).optional(),
 })

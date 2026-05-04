@@ -6,7 +6,6 @@ export const collections = sqliteTable("collections", {
   id: text("id").primaryKey(),
   parent_id: text("parent_id"),
   template_id: text("template_id"),
-  slug: text("slug").notNull().unique(),
   name: text("name").notNull(),
   description: text("description"),
   icon: text("icon"),

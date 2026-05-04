@@ -1,12 +1,20 @@
+import { mkdirSync } from "fs"
+import { dirname } from "path"
 import { Database } from "bun:sqlite"
 import { drizzle } from "drizzle-orm/bun-sqlite"
 import * as schema from "./schema"
+
+export type DrizzleDB = ReturnType<typeof drizzle<typeof schema>>
+
+export interface DataEngine {
+  db: DrizzleDB
+  sqlite: Database
+}
 
 const INIT_SQL = `CREATE TABLE IF NOT EXISTS "collections" (
 	"id" text PRIMARY KEY NOT NULL,
 	"parent_id" text,
 	"template_id" text,
-	"slug" text NOT NULL,
 	"name" text NOT NULL,
 	"description" text,
 	"icon" text,
@@ -20,21 +28,6 @@ const INIT_SQL = `CREATE TABLE IF NOT EXISTS "collections" (
 	"updated_at" integer NOT NULL,
 	"deleted_at" integer
 );
-CREATE UNIQUE INDEX IF NOT EXISTS "collections_slug_unique" ON "collections" ("slug");
-CREATE TABLE IF NOT EXISTS "field_migrations" (
-	"id" text PRIMARY KEY NOT NULL,
-	"collection_id" text NOT NULL,
-	"schema_version" integer NOT NULL,
-	"operation" text NOT NULL,
-	"field_name" text NOT NULL,
-	"old_field_name" text,
-	"old_field_type" text,
-	"new_field_type" text,
-	"default_value" text,
-	"created_at" integer NOT NULL,
-	FOREIGN KEY ("collection_id") REFERENCES "collections"("id") ON UPDATE no action ON DELETE cascade
-);
-CREATE INDEX IF NOT EXISTS "idx_field_migrations_collection" ON "field_migrations" ("collection_id");
 CREATE TABLE IF NOT EXISTS "fields" (
 	"id" text PRIMARY KEY NOT NULL,
 	"collection_id" text NOT NULL,
@@ -59,18 +52,54 @@ CREATE TABLE IF NOT EXISTS "fields" (
 	"meta" text,
 	FOREIGN KEY ("collection_id") REFERENCES "collections"("id") ON UPDATE no action ON DELETE cascade
 );
-CREATE TABLE IF NOT EXISTS "file_thumbnails" (
+CREATE TABLE IF NOT EXISTS "items" (
 	"id" text PRIMARY KEY NOT NULL,
-	"file_hash" text NOT NULL,
-	"size_name" text NOT NULL,
-	"width" integer NOT NULL,
-	"height" integer NOT NULL,
-	"format" text DEFAULT 'webp',
-	"storage_path" text NOT NULL,
+	"collection_id" text NOT NULL,
+	"schema_version" integer DEFAULT 1,
+	"source" text,
+	"data" text NOT NULL,
 	"created_at" integer NOT NULL,
-	FOREIGN KEY ("file_hash") REFERENCES "files"("hash") ON UPDATE no action ON DELETE cascade
+	"updated_at" integer NOT NULL,
+	"deleted_at" integer,
+	FOREIGN KEY ("collection_id") REFERENCES "collections"("id") ON UPDATE no action ON DELETE cascade
 );
-CREATE INDEX IF NOT EXISTS "idx_file_thumbnails_hash" ON "file_thumbnails" ("file_hash");
+CREATE INDEX IF NOT EXISTS "idx_items_collection" ON "items" ("collection_id");
+CREATE INDEX IF NOT EXISTS "idx_items_deleted" ON "items" ("deleted_at");
+CREATE TABLE IF NOT EXISTS "relations" (
+	"id" text PRIMARY KEY NOT NULL,
+	"source_item_id" text NOT NULL,
+	"source_field_id" text NOT NULL,
+	"target_item_id" text NOT NULL,
+	"target_collection_id" text NOT NULL,
+	"sort_order" integer DEFAULT 0,
+	"created_at" integer NOT NULL,
+	FOREIGN KEY ("source_item_id") REFERENCES "items"("id") ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY ("source_field_id") REFERENCES "fields"("id") ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY ("target_item_id") REFERENCES "items"("id") ON UPDATE no action ON DELETE cascade,
+	FOREIGN KEY ("target_collection_id") REFERENCES "collections"("id") ON UPDATE no action ON DELETE cascade
+);
+CREATE INDEX IF NOT EXISTS "idx_relations_source" ON "relations" ("source_item_id","source_field_id");
+CREATE INDEX IF NOT EXISTS "idx_relations_target" ON "relations" ("target_item_id");
+CREATE TABLE IF NOT EXISTS "item_versions" (
+	"id" text PRIMARY KEY NOT NULL,
+	"item_id" text NOT NULL,
+	"version" integer NOT NULL,
+	"data" text NOT NULL,
+	"source" text,
+	"created_at" integer NOT NULL,
+	FOREIGN KEY ("item_id") REFERENCES "items"("id") ON UPDATE no action ON DELETE cascade
+);
+CREATE INDEX IF NOT EXISTS "idx_item_versions_item" ON "item_versions" ("item_id");
+CREATE TABLE IF NOT EXISTS "item_locks" (
+	"id" text PRIMARY KEY NOT NULL,
+	"item_id" text NOT NULL,
+	"locked_by" text NOT NULL,
+	"reason" text,
+	"expires_at" integer NOT NULL,
+	"created_at" integer NOT NULL,
+	FOREIGN KEY ("item_id") REFERENCES "items"("id") ON UPDATE no action ON DELETE cascade
+);
+CREATE UNIQUE INDEX IF NOT EXISTS "item_locks_item_id_unique" ON "item_locks" ("item_id");
 CREATE TABLE IF NOT EXISTS "files" (
 	"hash" text PRIMARY KEY NOT NULL,
 	"original_name" text NOT NULL,
@@ -104,62 +133,32 @@ CREATE TABLE IF NOT EXISTS "item_files" (
 	FOREIGN KEY ("file_hash") REFERENCES "files"("hash") ON UPDATE no action ON DELETE cascade
 );
 CREATE INDEX IF NOT EXISTS "idx_item_files_item" ON "item_files" ("item_id");
-CREATE TABLE IF NOT EXISTS "item_locks" (
+CREATE TABLE IF NOT EXISTS "file_thumbnails" (
 	"id" text PRIMARY KEY NOT NULL,
-	"item_id" text NOT NULL,
-	"locked_by" text NOT NULL,
-	"reason" text,
-	"expires_at" integer NOT NULL,
+	"file_hash" text NOT NULL,
+	"size_name" text NOT NULL,
+	"width" integer NOT NULL,
+	"height" integer NOT NULL,
+	"format" text DEFAULT 'webp',
+	"storage_path" text NOT NULL,
 	"created_at" integer NOT NULL,
-	FOREIGN KEY ("item_id") REFERENCES "items"("id") ON UPDATE no action ON DELETE cascade
+	FOREIGN KEY ("file_hash") REFERENCES "files"("hash") ON UPDATE no action ON DELETE cascade
 );
-CREATE UNIQUE INDEX IF NOT EXISTS "item_locks_item_id_unique" ON "item_locks" ("item_id");
-CREATE TABLE IF NOT EXISTS "item_versions" (
-	"id" text PRIMARY KEY NOT NULL,
-	"item_id" text NOT NULL,
-	"version" integer NOT NULL,
-	"data" text NOT NULL,
-	"source" text,
-	"created_at" integer NOT NULL,
-	FOREIGN KEY ("item_id") REFERENCES "items"("id") ON UPDATE no action ON DELETE cascade
-);
-CREATE INDEX IF NOT EXISTS "idx_item_versions_item" ON "item_versions" ("item_id");
-CREATE TABLE IF NOT EXISTS "items" (
+CREATE INDEX IF NOT EXISTS "idx_file_thumbnails_hash" ON "file_thumbnails" ("file_hash");
+CREATE TABLE IF NOT EXISTS "field_migrations" (
 	"id" text PRIMARY KEY NOT NULL,
 	"collection_id" text NOT NULL,
-	"schema_version" integer DEFAULT 1,
-	"source" text,
-	"data" text NOT NULL,
+	"schema_version" integer NOT NULL,
+	"operation" text NOT NULL,
+	"field_name" text NOT NULL,
+	"old_field_name" text,
+	"old_field_type" text,
+	"new_field_type" text,
+	"default_value" text,
 	"created_at" integer NOT NULL,
-	"updated_at" integer NOT NULL,
-	"deleted_at" integer,
 	FOREIGN KEY ("collection_id") REFERENCES "collections"("id") ON UPDATE no action ON DELETE cascade
 );
-CREATE INDEX IF NOT EXISTS "idx_items_collection" ON "items" ("collection_id");
-CREATE INDEX IF NOT EXISTS "idx_items_deleted" ON "items" ("deleted_at");
-CREATE TABLE IF NOT EXISTS "relations" (
-	"id" text PRIMARY KEY NOT NULL,
-	"source_item_id" text NOT NULL,
-	"source_field_id" text NOT NULL,
-	"target_item_id" text NOT NULL,
-	"target_collection_id" text NOT NULL,
-	"sort_order" integer DEFAULT 0,
-	"created_at" integer NOT NULL,
-	FOREIGN KEY ("source_item_id") REFERENCES "items"("id") ON UPDATE no action ON DELETE cascade,
-	FOREIGN KEY ("source_field_id") REFERENCES "fields"("id") ON UPDATE no action ON DELETE cascade,
-	FOREIGN KEY ("target_item_id") REFERENCES "items"("id") ON UPDATE no action ON DELETE cascade,
-	FOREIGN KEY ("target_collection_id") REFERENCES "collections"("id") ON UPDATE no action ON DELETE cascade
-);
-CREATE INDEX IF NOT EXISTS "idx_relations_source" ON "relations" ("source_item_id","source_field_id");
-CREATE INDEX IF NOT EXISTS "idx_relations_target" ON "relations" ("target_item_id");
-CREATE TABLE IF NOT EXISTS "template_tags" (
-	"id" text PRIMARY KEY NOT NULL,
-	"template_type" text NOT NULL,
-	"template_id" text NOT NULL,
-	"tag" text NOT NULL,
-	FOREIGN KEY ("template_id") REFERENCES "templates"("id") ON UPDATE no action ON DELETE cascade
-);
-CREATE INDEX IF NOT EXISTS "idx_template_tags_tag" ON "template_tags" ("tag");
+CREATE INDEX IF NOT EXISTS "idx_field_migrations_collection" ON "field_migrations" ("collection_id");
 CREATE TABLE IF NOT EXISTS "templates" (
 	"id" text PRIMARY KEY NOT NULL,
 	"type" text NOT NULL,
@@ -174,14 +173,26 @@ CREATE TABLE IF NOT EXISTS "templates" (
 	"author" text,
 	"config" text NOT NULL,
 	"created_at" integer NOT NULL
-);`
+);
+CREATE TABLE IF NOT EXISTS "template_tags" (
+	"id" text PRIMARY KEY NOT NULL,
+	"template_type" text NOT NULL,
+	"template_id" text NOT NULL,
+	"tag" text NOT NULL,
+	FOREIGN KEY ("template_id") REFERENCES "templates"("id") ON UPDATE no action ON DELETE cascade
+);
+CREATE INDEX IF NOT EXISTS "idx_template_tags_tag" ON "template_tags" ("tag");`
 
 export interface DataEngineOptions {
   dbPath: string
 }
 
-export function createDataEngine(options: DataEngineOptions) {
+let sharedEngine: DataEngine | null = null
+
+export function createDataEngine(options: DataEngineOptions): DataEngine {
+  if (sharedEngine) return sharedEngine
   const { dbPath } = options
+  mkdirSync(dirname(dbPath), { recursive: true })
   const sqlite = new Database(dbPath)
 
   sqlite.exec("PRAGMA journal_mode = WAL")
@@ -189,52 +200,14 @@ export function createDataEngine(options: DataEngineOptions) {
 
   sqlite.exec(INIT_SQL)
 
-  migrateCollectionsProjectId(sqlite)
-
   const db = drizzle(sqlite, { schema })
-
-  return { db, sqlite }
+  sharedEngine = { db, sqlite }
+  return sharedEngine
 }
 
-function migrateCollectionsProjectId(sqlite: Database) {
-  const columns = sqlite.query("PRAGMA table_info(collections)").all() as Array<{
-    name: string
-    notnull: number
-  }>
-  const projectIdCol = columns.find((c) => c.name === "project_id")
-  if (projectIdCol && projectIdCol.notnull === 1) {
-    sqlite.exec(`
-      CREATE TABLE collections_new (
-        "id" text PRIMARY KEY NOT NULL,
-        "parent_id" text,
-        "template_id" text,
-        "slug" text NOT NULL,
-        "name" text NOT NULL,
-        "description" text,
-        "icon" text,
-        "singleton" integer DEFAULT false,
-        "system" integer DEFAULT false,
-        "schema_version" integer DEFAULT 1,
-        "default_sort_field" text,
-        "default_sort_dir" text DEFAULT 'asc',
-        "meta" text,
-        "created_at" integer NOT NULL,
-        "updated_at" integer NOT NULL,
-        "deleted_at" integer
-      );
-      INSERT INTO collections_new ("id", "parent_id", "template_id", "slug", "name", "description", "icon", "singleton", "system", "schema_version", "default_sort_field", "default_sort_dir", "meta", "created_at", "updated_at", "deleted_at") SELECT "id", "parent_id", "template_id", "slug", "name", "description", "icon", "singleton", "system", "schema_version", "default_sort_field", "default_sort_dir", "meta", "created_at", "updated_at", "deleted_at" FROM collections;
-      DROP TABLE collections;
-      ALTER TABLE collections_new RENAME TO collections;
-      CREATE UNIQUE INDEX IF NOT EXISTS "collections_slug_unique" ON "collections" ("slug");
-    `)
-  }
-
-  try {
-    sqlite.exec('SELECT id FROM "projects" LIMIT 0')
-    sqlite.exec("DROP TABLE projects")
-  } catch {
-    // projects table doesn't exist, nothing to do
+export function resetDataEngine() {
+  if (sharedEngine) {
+    sharedEngine.sqlite.close()
+    sharedEngine = null
   }
 }
-
-export type DataEngine = ReturnType<typeof createDataEngine>

@@ -25,7 +25,6 @@ function safeJsonParse<T>(value: string, context: string): T {
 const collectionSchema = z.object({
   id: z.string(),
   name: z.string(),
-  slug: z.string(),
   description: z.string().nullable().optional(),
   icon: z.string().nullable().optional(),
   singleton: z.boolean().nullable().optional(),
@@ -104,8 +103,8 @@ export const dataModule = createEdemModule("data", (module) => {
       // ── Collections ───────────────────────────────────────────────────────
       .mutation("createCollection", {
         input: z.object({
+          id: z.string(),
           name: z.string(),
-          slug: z.string(),
           parent_id: z.string().optional(),
           description: z.string().optional(),
           icon: z.string().optional(),
@@ -115,13 +114,11 @@ export const dataModule = createEdemModule("data", (module) => {
         }),
         output: z.object({ id: z.string() }),
         resolve: async ({ input, ctx, emit }) => {
-          const id = crypto.randomUUID()
           const now = Date.now()
 
           await ctx.db.insert(schema.collections).values({
-            id,
+            id: input.id,
             parent_id: input.parent_id,
-            slug: input.slug,
             name: input.name,
             description: input.description,
             icon: input.icon,
@@ -135,7 +132,7 @@ export const dataModule = createEdemModule("data", (module) => {
             for (const field of input.fields) {
               await ctx.db.insert(schema.fields).values({
                 id: crypto.randomUUID(),
-                collection_id: id,
+                collection_id: input.id,
                 name: field.name,
                 type: field.type,
                 required: field.required,
@@ -149,17 +146,16 @@ export const dataModule = createEdemModule("data", (module) => {
             }
           }
 
-          const collection = await getCollectionWithFields(ctx.db, id)
-          if (!collection) throw new Error(`Collection ${id} not found after creation`)
+          const collection = await getCollectionWithFields(ctx.db, input.id)
+          if (!collection) throw new Error(`Collection ${input.id} not found after creation`)
           await emit.collectionCreated(collection)
-          return { id }
+          return { id: input.id }
         },
       })
       .mutation("updateCollection", {
         input: z.object({
           collection_id: z.string(),
           name: z.string().optional(),
-          slug: z.string().optional(),
           description: z.string().optional(),
           icon: z.string().optional(),
           singleton: z.boolean().optional(),
@@ -1242,7 +1238,7 @@ export const dataModule = createEdemModule("data", (module) => {
                 where: eq(schema.fields.collection_id, row.id),
               })
               return {
-                slug: row.slug,
+                id: row.id,
                 name: row.name,
                 description: row.description ?? undefined,
                 icon: row.icon ?? undefined,
@@ -1291,7 +1287,7 @@ export const dataModule = createEdemModule("data", (module) => {
           for (const colDef of manifest.collections) {
             const existing = await ctx.db.query.collections.findFirst({
               where: and(
-                eq(schema.collections.slug, colDef.slug),
+                eq(schema.collections.id, colDef.id),
                 isNull(schema.collections.deleted_at),
               ),
             })
@@ -1327,15 +1323,13 @@ export const dataModule = createEdemModule("data", (module) => {
                   .update(schema.collections)
                   .set({ updated_at: now })
                   .where(eq(schema.collections.id, existing.id))
-                updated.push(colDef.slug)
+                updated.push(colDef.id)
               } else {
-                skipped.push(colDef.slug)
+                skipped.push(colDef.id)
               }
             } else {
-              const id = crypto.randomUUID()
               await ctx.db.insert(schema.collections).values({
-                id,
-                slug: colDef.slug,
+                id: colDef.id,
                 name: colDef.name,
                 description: colDef.description,
                 icon: colDef.icon,
@@ -1347,7 +1341,7 @@ export const dataModule = createEdemModule("data", (module) => {
               for (const fieldDef of colDef.fields) {
                 await ctx.db.insert(schema.fields).values({
                   id: crypto.randomUUID(),
-                  collection_id: id,
+                  collection_id: colDef.id,
                   name: fieldDef.name,
                   type: fieldDef.type,
                   required: fieldDef.required ?? false,
@@ -1360,9 +1354,9 @@ export const dataModule = createEdemModule("data", (module) => {
                 })
               }
 
-              const collection = await getCollectionWithFields(ctx.db, id)
+              const collection = await getCollectionWithFields(ctx.db, colDef.id)
               if (collection) await emit.collectionCreated(collection)
-              created.push(colDef.slug)
+              created.push(colDef.id)
             }
           }
 
@@ -1420,8 +1414,14 @@ function parseItem(item: {
   source: string | null
 }): z.infer<typeof itemSchema> {
   return {
-    ...item,
+    id: item.id,
+    collection_id: item.collection_id,
     data: safeJsonParse(item.data, `item ${item.id}`),
+    created_at: item.created_at,
+    updated_at: item.updated_at,
+    deleted_at: item.deleted_at,
+    schema_version: item.schema_version,
+    source: item.source,
   }
 }
 

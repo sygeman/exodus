@@ -82,33 +82,14 @@ function toIdea(item: {
   }
 }
 
-async function resolveCollectionId(slug: string): Promise<string | null> {
-  try {
-    const { collections } = await edem.data.listCollections({})
-    const col = collections.find((c) => c.slug === slug)
-    if (col) return col.id
-  } catch (err) {
-    console.error(`[projects] failed to resolve collection "${slug}":`, err)
-  }
-  return null
-}
-
 export function useProjects() {
   const projects = ref<Project[]>([])
   const loading = ref(true)
   const unsubs: (() => void)[] = []
-  let projectsCollectionId: string | null = null
 
   onMounted(async () => {
     try {
-      projectsCollectionId = await resolveCollectionId("projects")
-      if (!projectsCollectionId) {
-        projects.value = []
-        return
-      }
-      const { items } = await edem.data.queryItems({
-        collection_id: projectsCollectionId,
-      })
+      const { items } = await edem.data.queryItems({ collection_id: "projects" })
       projects.value = items.map(toProject)
     } catch (err) {
       console.error("[projects] failed to load list:", err)
@@ -118,7 +99,7 @@ export function useProjects() {
 
     unsubs.push(
       edem.data.itemCreated(async ({ event: item }) => {
-        if (item.collection_id !== projectsCollectionId) return
+        if (item.collection_id !== "projects") return
         if (projects.value.some((p) => p.id === item.id)) return
         projects.value.push(toProject(item))
       }),
@@ -126,7 +107,7 @@ export function useProjects() {
 
     unsubs.push(
       edem.data.itemUpdated(async ({ event: item }) => {
-        if (item.collection_id !== projectsCollectionId) return
+        if (item.collection_id !== "projects") return
         const idx = projects.value.findIndex((p) => p.id === item.id)
         if (idx !== -1) {
           projects.value[idx] = toProject(item)
@@ -147,12 +128,9 @@ export function useProjects() {
   })
 
   async function create(name: string = "Untitled", color?: string) {
-    const colId = projectsCollectionId ?? (await resolveCollectionId("projects"))
-    if (!colId) throw new Error("[projects] projects collection not found")
-
     const slug = `${name.toLowerCase().replace(/\s+/g, "-")}-${crypto.randomUUID().slice(0, 8)}`
     const { id } = await edem.data.createItem({
-      collection_id: colId,
+      collection_id: "projects",
       data: {
         name,
         slug,
@@ -194,25 +172,13 @@ export function useProject(id: string | Ref<string>) {
 export function useIdeas(projectId: ComputedRef<string> | Ref<string>) {
   const ideas = ref<Idea[]>([])
   const loading = ref(true)
-  let ideasCollectionId: string | null = null
   const unsubs: (() => void)[] = []
-
-  async function resolveIdeasCollectionId(): Promise<string | null> {
-    if (ideasCollectionId) return ideasCollectionId
-    ideasCollectionId = await resolveCollectionId("ideas")
-    return ideasCollectionId
-  }
 
   async function load() {
     loading.value = true
     try {
-      const colId = await resolveIdeasCollectionId()
-      if (!colId) {
-        ideas.value = []
-        return
-      }
       const { items } = await edem.data.queryItems({
-        collection_id: colId,
+        collection_id: "ideas",
         filter: { project_id: { _eq: projectId.value } },
       })
       ideas.value = items.map(toIdea).toSorted((a, b) => b.created_at - a.created_at)
@@ -226,6 +192,7 @@ export function useIdeas(projectId: ComputedRef<string> | Ref<string>) {
   function subscribe() {
     unsubs.push(
       edem.data.itemCreated(async ({ event: item }) => {
+        if (item.collection_id !== "ideas") return
         if (item.data.project_id !== projectId.value) return
         if (ideas.value.some((i) => i.id === item.id)) return
         ideas.value.unshift(toIdea(item))
@@ -234,6 +201,7 @@ export function useIdeas(projectId: ComputedRef<string> | Ref<string>) {
 
     unsubs.push(
       edem.data.itemUpdated(async ({ event: item }) => {
+        if (item.collection_id !== "ideas") return
         if (item.data.project_id !== projectId.value) return
         const idx = ideas.value.findIndex((i) => i.id === item.id)
         if (idx !== -1) {
@@ -244,10 +212,7 @@ export function useIdeas(projectId: ComputedRef<string> | Ref<string>) {
 
     unsubs.push(
       edem.data.itemDeleted(async ({ event: payload }) => {
-        const item = ideas.value.find((i) => i.id === payload.item_id)
-        if (item) {
-          ideas.value = ideas.value.filter((i) => i.id !== payload.item_id)
-        }
+        ideas.value = ideas.value.filter((i) => i.id !== payload.item_id)
       }),
     )
   }
@@ -275,11 +240,8 @@ export function useIdeas(projectId: ComputedRef<string> | Ref<string>) {
     level?: string
     type?: string
   }) {
-    const colId = await resolveIdeasCollectionId()
-    if (!colId) throw new Error("[ideas] ideas collection not found")
-
     await edem.data.createItem({
-      collection_id: colId,
+      collection_id: "ideas",
       data: { project_id: projectId.value, ...data, status: "draft" },
     })
   }
@@ -302,11 +264,8 @@ export function useIdeas(projectId: ComputedRef<string> | Ref<string>) {
   }
 
   async function createAndOpen(router: Router, projectIdValue: string) {
-    const colId = await resolveIdeasCollectionId()
-    if (!colId) throw new Error("[ideas] ideas collection not found")
-
     const { id } = await edem.data.createItem({
-      collection_id: colId,
+      collection_id: "ideas",
       data: { project_id: projectIdValue, title: "Untitled", status: "draft" },
     })
     router.push(`/project/${projectIdValue}/ideas/${id}`)

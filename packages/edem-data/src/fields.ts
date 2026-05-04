@@ -44,7 +44,7 @@ export const manifestFieldSchema = z.object({
 })
 
 export const manifestCollectionSchema = z.object({
-  slug: z.string(),
+  id: z.string(),
   name: z.string(),
   description: z.string().optional(),
   icon: z.string().optional(),
