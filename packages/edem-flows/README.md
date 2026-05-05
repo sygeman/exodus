@@ -231,6 +231,75 @@ edem.flows.runUpdated(async ({ event }) => {
 })
 ```
 
+## Manifest
+
+Manifest — декларативное описание flows для bootstrap и version control.
+
+### `applyManifest`
+
+Создаёт или обновляет flows из manifest. Сравнивает по `manifest_id`.
+
+```typescript
+const { created, updated, skipped } = await edem.flows.applyManifest({
+  manifest: {
+    flows: [
+      {
+        id: "my-flow",
+        name: "My Flow",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+          { id: "n2", type: "transform", position: { x: 100, y: 0 }, data: { field: "x", operation: "add", value: 1 } },
+        ],
+        edges: [{ id: "e1", source: "n1", target: "n2" }],
+      },
+    ],
+  },
+})
+// created: ["my-flow"] | updated: [] | skipped: []
+```
+
+### `getManifest`
+
+Экспорт всех flows как manifest JSON.
+
+```typescript
+const { flows } = await edem.flows.getManifest()
+// FlowsManifest
+```
+
+### System Flows
+
+Для bootstrap системных flows в Exodus:
+
+```typescript
+// apps/exodus/src/flows-manifest.ts
+import type { FlowsManifest } from "@exodus/edem-flows"
+
+export const SYSTEM_FLOWS_MANIFEST: FlowsManifest = {
+  flows: [
+    {
+      id: "system-logger",
+      name: "System Logger",
+      trigger: { type: "event", event: "log:entry" },
+      nodes: [
+        { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+        { id: "n2", type: "action", position: { x: 100, y: 0 }, data: { action: "insertLog" } },
+      ],
+      edges: [{ id: "e1", source: "n1", target: "n2" }],
+    },
+  ],
+}
+
+// apps/exodus/src/flows-bootstrap.ts
+import type { flowsModule } from "@exodus/edem-flows"
+import { SYSTEM_FLOWS_MANIFEST } from "./flows-manifest"
+
+export async function ensureFlows(flows: typeof flowsModule): Promise<void> {
+  await flows.applyManifest({ manifest: SYSTEM_FLOWS_MANIFEST })
+}
+```
+
 ## Template Resolution
 
 Syntax: `{{scope.path.to.value}}`

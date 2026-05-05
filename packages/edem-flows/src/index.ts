@@ -2,6 +2,16 @@ import { z } from "zod"
 import { createEdemModule, type InferModuleAPI } from "@exodus/edem-core"
 import type { dataModule } from "@exodus/edem-data"
 import { executeFlow, type Flow } from "./engine"
+import {
+  triggerSchema,
+  nodeSchema,
+  edgeSchema,
+  flowsManifestSchema,
+  type FlowsManifest,
+  type FlowManifest,
+} from "./manifest"
+
+export type { FlowsManifest, FlowManifest }
 
 type EdemData = InferModuleAPI<typeof dataModule>
 
@@ -9,42 +19,6 @@ const FLOWS_COLLECTION = "flows"
 const RUNS_COLLECTION = "flow_runs"
 
 let dataRef: EdemData | null = null
-
-const triggerSchema = z.discriminatedUnion("type", [
-  z.object({
-    type: z.literal("event"),
-    event: z.string(),
-    filter: z.record(z.string(), z.unknown()).optional(),
-  }),
-  z.object({
-    type: z.literal("schedule"),
-    cron: z.string(),
-  }),
-  z.object({
-    type: z.literal("manual"),
-  }),
-  z.object({
-    type: z.literal("webhook"),
-    path: z.string(),
-  }),
-])
-
-const nodeSchema = z.object({
-  id: z.string(),
-  type: z.string(),
-  position: z.object({ x: z.number(), y: z.number() }),
-  data: z.record(z.string(), z.unknown()).optional(),
-})
-
-const edgeSchema = z.object({
-  id: z.string(),
-  source: z.string(),
-  target: z.string(),
-  sourceHandle: z.string().optional(),
-  targetHandle: z.string().optional(),
-  condition: z.string().optional(),
-  label: z.string().optional(),
-})
 
 const flowSchema = z.object({
   id: z.string(),
@@ -401,6 +375,96 @@ export const flowsModule = createEdemModule(
           }
           await emit.runCompleted(errorRun)
           return { success: true }
+        },
+      })
+      .mutation("applyManifest", {
+        input: z.object({
+          manifest: flowsManifestSchema,
+        }),
+        output: z.object({
+          created: z.array(z.string()),
+          updated: z.array(z.string()),
+          skipped: z.array(z.string()),
+        }),
+        resolve: async ({ input }) => {
+          const data = getData()
+          const { manifest } = input
+
+          const created: string[] = []
+          const updated: string[] = []
+          const skipped: string[] = []
+
+          const { items: existingFlows } = await data.queryItems({
+            collection_id: FLOWS_COLLECTION,
+          })
+          const existingByManifestId = new Map(
+            existingFlows.map((f) => [f.data.manifest_id as string, f]),
+          )
+
+          for (const flowDef of manifest.flows) {
+            const existing = existingByManifestId.get(flowDef.id)
+
+            if (existing) {
+              const existingData = existing.data
+              const hasChanges =
+                existingData.name !== flowDef.name ||
+                JSON.stringify(existingData.trigger) !== JSON.stringify(flowDef.trigger) ||
+                JSON.stringify(existingData.nodes) !== JSON.stringify(flowDef.nodes) ||
+                JSON.stringify(existingData.edges) !== JSON.stringify(flowDef.edges)
+
+              if (hasChanges) {
+                await data.updateItem({
+                  item_id: existing.id,
+                  data: {
+                    name: flowDef.name,
+                    trigger: flowDef.trigger,
+                    nodes: flowDef.nodes,
+                    edges: flowDef.edges,
+                    meta: flowDef.meta ?? {},
+                  },
+                })
+                updated.push(flowDef.id)
+              } else {
+                skipped.push(flowDef.id)
+              }
+            } else {
+              await data.createItem({
+                collection_id: FLOWS_COLLECTION,
+                data: {
+                  manifest_id: flowDef.id,
+                  name: flowDef.name,
+                  trigger: flowDef.trigger,
+                  nodes: flowDef.nodes,
+                  edges: flowDef.edges,
+                  meta: flowDef.meta ?? {},
+                },
+              })
+              created.push(flowDef.id)
+            }
+          }
+
+          return { created, updated, skipped }
+        },
+      })
+      .query("getManifest", {
+        input: z.void(),
+        output: flowsManifestSchema,
+        resolve: async () => {
+          const data = getData()
+          const { items } = await data.queryItems({
+            collection_id: FLOWS_COLLECTION,
+          })
+
+          const flows = items.map((item) => ({
+            id: (item.data.manifest_id as string) ?? item.id,
+            name: item.data.name as string,
+            trigger: item.data.trigger as z.infer<typeof triggerSchema>,
+            nodes: (item.data.nodes as z.infer<typeof nodeSchema>[]) ?? [],
+            edges: (item.data.edges as z.infer<typeof edgeSchema>[]) ?? [],
+            meta: item.data.meta as Record<string, unknown> | undefined,
+          }))
+
+          return { flows }
         },
       })
       .query("getFlow", {
