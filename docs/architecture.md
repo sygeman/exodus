@@ -229,23 +229,23 @@ When Exodus builds itself:
 
 ## Current State
 
-Exodus is a hybrid — partially on edem, partially traditional:
+Exodus is fully on edem:
 
 | Module | System | Storage |
 |--------|--------|---------|
 | projects | Edem | edem-data (SQLite) |
-| logger | Evento | Own SQLite (Drizzle) |
-| app-state | Evento | JSON file |
-| updater | Evento | Electrobun API |
-| schema | Evento | No storage (introspection) |
-| settings | Evento | via app-state |
-| debug | Evento | No storage (UI only) |
+| logger | Edem | edem-data (SQLite) |
+| app-state | Edem | edem-data (SQLite) |
+| updater | Edem | edem-data (SQLite) |
+| settings | Edem | via app-state |
 
-Only `projects` uses edem-data. Everything else uses evento + separate storage.
+All modules use edem-data for storage. Evento has been removed.
 
 ## Migration Plan
 
-Incremental migration. Mix old and new, gradually transform Exodus into a full Edem application.
+~~Incremental migration. Mix old and new, gradually transform Exodus into a full Edem application.~~
+
+**Completed.** All modules migrated to edem. Evento removed.
 
 ### Phase 1: edem-flows → data backend
 
@@ -261,12 +261,13 @@ Incremental migration. Mix old and new, gradually transform Exodus into a full E
 
 ### Phase 3: Exodus modules → edem collections
 
-Migrate modules one by one. Parallel operation (evento + edem), then switch off evento.
+~~Migrate modules one by one. Parallel operation (evento + edem), then switch off evento.~~
 
-1. `app-state` → collection `app_state` (simplest, key-value)
-2. `logger` → collection `logs` (isolated, clear schema)
-3. `settings` → collection `settings` (follows app-state)
-4. `updater` → config in edem, API stays Electrobun
+**Completed.** All modules migrated:
+1. ~~`app-state` → collection `app_state`~~ ✅
+2. ~~`logger` → collection `logs`~~ ✅
+3. ~~`settings` → collection `settings`~~ ✅
+4. ~~`updater` → config in edem, API stays Electrobun~~ ✅
 
 ### Phase 4: Exodus bootstrap
 
