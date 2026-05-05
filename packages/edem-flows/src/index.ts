@@ -58,9 +58,11 @@ const flowSchema = z.object({
 const runSchema = z.object({
   id: z.string(),
   flow_id: z.string(),
-  status: z.enum(["pending", "running", "completed", "error", "cancelled"]),
+  status: z.enum(["pending", "running", "waiting", "completed", "error", "cancelled"]),
   input: z.record(z.string(), z.unknown()).optional(),
   output: z.record(z.string(), z.unknown()).optional(),
+  context: z.record(z.string(), z.unknown()).optional(),
+  waiting_node_id: z.string().nullable().optional(),
   error: z.string().nullable().optional(),
   started_at: z.number(),
   completed_at: z.number().nullable().optional(),
@@ -197,6 +199,26 @@ export const flowsModule = createEdemModule(
           try {
             const result = await executeFlow(flow as Flow, input.trigger_data ?? {})
 
+            if (result.status === "waiting") {
+              await data.updateItem({
+                item_id: runId,
+                data: {
+                  status: "waiting",
+                  context: result.context as unknown as Record<string, unknown>,
+                  waiting_node_id: result.waitingNodeId,
+                },
+              })
+
+              const waitingRun: z.infer<typeof runSchema> = {
+                ...run,
+                status: "waiting",
+                context: result.context as unknown as Record<string, unknown>,
+                waiting_node_id: result.waitingNodeId,
+              }
+              await emit.runUpdated(waitingRun)
+              return { run_id: runId, status: "waiting" }
+            }
+
             await data.updateItem({
               item_id: runId,
               data: {
@@ -246,8 +268,8 @@ export const flowsModule = createEdemModule(
           const { item } = await data.getItem({ item_id: input.run_id })
           if (!item) throw new Error(`Run ${input.run_id} not found`)
 
-          if (item.data.status !== "running") {
-            throw new Error(`Run ${input.run_id} is not running`)
+          if (item.data.status !== "running" && item.data.status !== "waiting") {
+            throw new Error(`Run ${input.run_id} is not running or waiting`)
           }
 
           await data.updateItem({
@@ -255,6 +277,129 @@ export const flowsModule = createEdemModule(
             data: { status: "cancelled", completed_at: Date.now() },
           })
 
+          return { success: true }
+        },
+      })
+      .mutation("handleNodeCompleted", {
+        input: z.object({
+          run_id: z.string(),
+          node_id: z.string(),
+          output: z.record(z.string(), z.unknown()),
+        }),
+        output: z.object({ success: z.boolean() }),
+        resolve: async ({ input, emit }) => {
+          const data = getData()
+
+          const { item } = await data.getItem({ item_id: input.run_id })
+          if (!item) throw new Error(`Run ${input.run_id} not found`)
+
+          if (item.data.status !== "waiting") {
+            throw new Error(`Run ${input.run_id} is not waiting`)
+          }
+
+          if (item.data.waiting_node_id !== input.node_id) {
+            throw new Error(`Run ${input.run_id} is not waiting for node ${input.node_id}`)
+          }
+
+          const flowItem = await data.getItem({ item_id: item.data.flow_id as string })
+          if (!flowItem.item) throw new Error(`Flow ${item.data.flow_id} not found`)
+
+          const flow = parseFlow(flowItem.item)
+          const context = (item.data.context as Record<string, unknown>) ?? {}
+
+          context.node_outputs =
+            (context.node_outputs as Record<string, Record<string, unknown>>) ?? {}
+          ;(context.node_outputs as Record<string, Record<string, unknown>>)[input.node_id] =
+            input.output
+
+          const result = await executeFlow(
+            flow as Flow,
+            (context.trigger_data as Record<string, unknown>) ?? {},
+          )
+
+          if (result.status === "waiting") {
+            await data.updateItem({
+              item_id: input.run_id,
+              data: {
+                status: "waiting",
+                context: result.context as unknown as Record<string, unknown>,
+                waiting_node_id: result.waitingNodeId,
+              },
+            })
+
+            const waitingRun: z.infer<typeof runSchema> = {
+              id: input.run_id,
+              flow_id: item.data.flow_id as string,
+              status: "waiting",
+              context: result.context as unknown as Record<string, unknown>,
+              waiting_node_id: result.waitingNodeId,
+              started_at: item.data.started_at as number,
+              completed_at: null,
+            }
+            await emit.runUpdated(waitingRun)
+            return { success: true }
+          }
+
+          await data.updateItem({
+            item_id: input.run_id,
+            data: {
+              status: result.status,
+              output: result.context.node_outputs,
+              completed_at: Date.now(),
+            },
+          })
+
+          const completedRun: z.infer<typeof runSchema> = {
+            id: input.run_id,
+            flow_id: item.data.flow_id as string,
+            status: result.status,
+            output: result.context.node_outputs,
+            completed_at: Date.now(),
+            started_at: item.data.started_at as number,
+          }
+          await emit.runCompleted(completedRun)
+          return { success: true }
+        },
+      })
+      .mutation("handleNodeFailed", {
+        input: z.object({
+          run_id: z.string(),
+          node_id: z.string(),
+          error: z.string(),
+        }),
+        output: z.object({ success: z.boolean() }),
+        resolve: async ({ input, emit }) => {
+          const data = getData()
+
+          const { item } = await data.getItem({ item_id: input.run_id })
+          if (!item) throw new Error(`Run ${input.run_id} not found`)
+
+          if (item.data.status !== "waiting") {
+            throw new Error(`Run ${input.run_id} is not waiting`)
+          }
+
+          if (item.data.waiting_node_id !== input.node_id) {
+            throw new Error(`Run ${input.run_id} is not waiting for node ${input.node_id}`)
+          }
+
+          await data.updateItem({
+            item_id: input.run_id,
+            data: {
+              status: "error",
+              error: input.error,
+              completed_at: Date.now(),
+            },
+          })
+
+          const errorRun: z.infer<typeof runSchema> = {
+            id: input.run_id,
+            flow_id: item.data.flow_id as string,
+            status: "error",
+            error: input.error,
+            completed_at: Date.now(),
+            started_at: item.data.started_at as number,
+          }
+          await emit.runCompleted(errorRun)
           return { success: true }
         },
       })
@@ -346,6 +491,8 @@ function parseRun(item: {
     status: item.data.status as z.infer<typeof runSchema>["status"],
     input: item.data.input as Record<string, unknown> | undefined,
     output: item.data.output as Record<string, unknown> | undefined,
+    context: item.data.context as Record<string, unknown> | undefined,
+    waiting_node_id: (item.data.waiting_node_id as string) ?? null,
     error: (item.data.error as string) ?? null,
     started_at: item.data.started_at as number,
     completed_at: (item.data.completed_at as number) ?? null,

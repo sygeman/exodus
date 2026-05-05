@@ -206,4 +206,71 @@ describe("Node Executors", () => {
       expect(result.output.outputs).toEqual({ user_name: "Alice", total: 42 })
     })
   })
+
+  describe("action", () => {
+    it("should return async status", async () => {
+      const ctx = createContext()
+      const result = await executors.action(
+        { action: "send_email", to: "test@example.com" },
+        { message: "Hello" },
+        ctx,
+      )
+      expect(result.status).toBe("async")
+      expect(result.output.status).toBe("pending")
+      expect(result.output.action).toBe("send_email")
+    })
+
+    it("should pass input to output", async () => {
+      const ctx = createContext()
+      const input = { message: "Hello", count: 5 }
+      const result = await executors.action({ action: "test" }, input, ctx)
+      expect(result.output.input).toEqual(input)
+    })
+  })
+
+  describe("loop", () => {
+    it("should track iteration count", async () => {
+      const ctx = createContext()
+      const result = await executors.loop(
+        { maxIterations: 3, action: "process" },
+        { item: "test" },
+        ctx,
+        "loop1",
+      )
+      expect(result.status).toBe("async")
+      expect(result.output.status).toBe("pending")
+      expect(result.output.iteration).toBe(1)
+      expect(ctx.flow_variables["nodes.loop1.currentIteration"]).toBe(1)
+    })
+
+    it("should complete when max iterations reached", async () => {
+      const ctx = createContext()
+      ctx.flow_variables["nodes.loop1.currentIteration"] = 3
+
+      const result = await executors.loop(
+        { maxIterations: 3, action: "process" },
+        { item: "test" },
+        ctx,
+        "loop1",
+      )
+      expect(result.status).toBeUndefined()
+      expect(result.output.status).toBe("completed")
+      expect(result.output.final).toBe(true)
+    })
+
+    it("should increment iteration on each call", async () => {
+      const ctx = createContext()
+
+      await executors.loop({ maxIterations: 3 }, {}, ctx, "loop1")
+      expect(ctx.flow_variables["nodes.loop1.currentIteration"]).toBe(1)
+
+      await executors.loop({ maxIterations: 3 }, {}, ctx, "loop1")
+      expect(ctx.flow_variables["nodes.loop1.currentIteration"]).toBe(2)
+
+      const result = await executors.loop({ maxIterations: 3 }, {}, ctx, "loop1")
+      expect(ctx.flow_variables["nodes.loop1.currentIteration"]).toBe(3)
+      expect(result.status).toBeUndefined()
+      expect(result.output.status).toBe("completed")
+    })
+  })
 })

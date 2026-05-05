@@ -169,4 +169,57 @@ describe("executeFlow", () => {
     expect(result.status).toBe("error")
     expect(result.error).toContain("Unknown node type")
   })
+
+  it("should pause on async action node", async () => {
+    const flow: Flow = {
+      id: "test",
+      name: "Test Flow",
+      nodes: [
+        { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+        {
+          id: "n2",
+          type: "action",
+          position: { x: 100, y: 0 },
+          data: { action: "send_email" },
+        },
+        {
+          id: "n3",
+          type: "transform",
+          position: { x: 200, y: 0 },
+          data: { field: "result", operation: "set", value: "done" },
+        },
+      ],
+      edges: [
+        { id: "e1", source: "n1", target: "n2" },
+        { id: "e2", source: "n2", target: "n3" },
+      ],
+    }
+
+    const result = await executeFlow(flow, { message: "test" })
+    expect(result.status).toBe("waiting")
+    expect(result.waitingNodeId).toBe("n2")
+    expect(result.context.node_outputs.n2.status).toBe("pending")
+  })
+
+  it("should pause on loop node", async () => {
+    const flow: Flow = {
+      id: "test",
+      name: "Test Flow",
+      nodes: [
+        { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+        {
+          id: "n2",
+          type: "loop",
+          position: { x: 100, y: 0 },
+          data: { maxIterations: 3, action: "process" },
+        },
+      ],
+      edges: [{ id: "e1", source: "n1", target: "n2" }],
+    }
+
+    const result = await executeFlow(flow, { item: "test" })
+    expect(result.status).toBe("waiting")
+    expect(result.waitingNodeId).toBe("n2")
+    expect(result.context.node_outputs.n2.iteration).toBe(1)
+  })
 })

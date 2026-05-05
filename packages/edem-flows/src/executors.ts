@@ -1,14 +1,16 @@
-import { resolveNodeInput, resolveTemplate, type FlowContext } from "./context"
+import { resolveNodeInput, resolveTemplate, setFlowVariable, type FlowContext } from "./context"
 
 export interface NodeExecutorResult {
   output: Record<string, unknown>
   followEdges?: Array<{ handle: string }>
+  status?: "completed" | "async"
 }
 
 export type NodeExecutor = (
   config: Record<string, unknown> | undefined,
   input: Record<string, unknown>,
   context: FlowContext,
+  nodeId?: string,
 ) => Promise<NodeExecutorResult>
 
 export const executors: Record<string, NodeExecutor> = {
@@ -19,6 +21,8 @@ export const executors: Record<string, NodeExecutor> = {
   delay: executeDelay,
   input: executeInput,
   output: executeOutput,
+  action: executeAction,
+  loop: executeLoop,
 }
 
 async function executeTrigger(
@@ -199,4 +203,58 @@ function resolveNestedValue(value: unknown, path: string[]): unknown {
   }
 
   return current
+}
+
+async function executeAction(
+  config: Record<string, unknown> | undefined,
+  input: Record<string, unknown>,
+  context: FlowContext,
+): Promise<NodeExecutorResult> {
+  const resolved = resolveNodeInput(config, context)
+  const actionType = (resolved.action as string) ?? (resolved.type as string)
+
+  return {
+    output: {
+      status: "pending",
+      action: actionType,
+      input,
+    },
+    status: "async",
+  }
+}
+
+async function executeLoop(
+  config: Record<string, unknown> | undefined,
+  input: Record<string, unknown>,
+  context: FlowContext,
+  nodeId?: string,
+): Promise<NodeExecutorResult> {
+  const resolved = resolveNodeInput(config, context)
+  const maxIterations = Number(resolved.maxIterations ?? 1)
+
+  const iterationKey = nodeId ? `nodes.${nodeId}.currentIteration` : "loop.currentIteration"
+  const currentIteration = (context.flow_variables[iterationKey] as number) ?? 0
+
+  const nextIteration = currentIteration + 1
+  setFlowVariable(context, iterationKey, nextIteration)
+
+  if (nextIteration >= maxIterations) {
+    return {
+      output: {
+        status: "completed",
+        iteration: nextIteration,
+        final: true,
+      },
+    }
+  }
+
+  return {
+    output: {
+      status: "pending",
+      iteration: nextIteration,
+      action: resolved.action as string,
+      input,
+    },
+    status: "async",
+  }
 }

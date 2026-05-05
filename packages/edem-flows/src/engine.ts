@@ -28,8 +28,9 @@ export interface Flow {
 export interface ExecutionResult {
   context: FlowContext
   nodeResults: Map<string, NodeExecutorResult>
-  status: "completed" | "error"
+  status: "completed" | "error" | "waiting"
   error?: string
+  waitingNodeId?: string
 }
 
 export async function executeFlow(
@@ -58,22 +59,31 @@ export async function executeFlow(
   }
 
   for (const triggerNode of triggerNodes) {
-    try {
-      await executeNode(
-        triggerNode.id,
-        nodeMap,
-        adjacency,
+    const result = await executeNode(
+      triggerNode.id,
+      nodeMap,
+      adjacency,
+      context,
+      nodeResults,
+      new Set(),
+      triggerData,
+    )
+
+    if (result.status === "waiting") {
+      return {
         context,
         nodeResults,
-        new Set(),
-        triggerData,
-      )
-    } catch (err) {
+        status: "waiting",
+        waitingNodeId: result.waitingNodeId,
+      }
+    }
+
+    if (result.status === "error") {
       return {
         context,
         nodeResults,
         status: "error",
-        error: err instanceof Error ? err.message : String(err),
+        error: result.error,
       }
     }
   }
@@ -89,29 +99,51 @@ async function executeNode(
   nodeResults: Map<string, NodeExecutorResult>,
   visited: Set<string>,
   input: Record<string, unknown> = {},
-): Promise<void> {
-  if (visited.has(nodeId)) return
+): Promise<{ status: "completed" | "waiting" | "error"; waitingNodeId?: string; error?: string }> {
+  if (visited.has(nodeId)) return { status: "completed" }
   visited.add(nodeId)
 
   const node = nodeMap.get(nodeId)
-  if (!node) return
+  if (!node) return { status: "completed" }
 
   const executor = executors[node.type]
   if (!executor) {
-    throw new Error(`Unknown node type: ${node.type}`)
+    return { status: "error", error: `Unknown node type: ${node.type}` }
   }
 
-  const result = await executor(node.data, input, context)
+  const result = await executor(node.data, input, context, nodeId)
 
   nodeResults.set(nodeId, result)
   setNodeOutput(context, nodeId, result.output)
+
+  if (result.status === "async") {
+    return { status: "waiting", waitingNodeId: nodeId }
+  }
 
   const edges = adjacency.get(nodeId) ?? []
   const nextEdges = filterEdgesByResult(edges, result)
 
   for (const edge of nextEdges) {
-    await executeNode(edge.target, nodeMap, adjacency, context, nodeResults, visited, result.output)
+    const nextResult = await executeNode(
+      edge.target,
+      nodeMap,
+      adjacency,
+      context,
+      nodeResults,
+      visited,
+      result.output,
+    )
+
+    if (nextResult.status === "waiting") {
+      return nextResult
+    }
+
+    if (nextResult.status === "error") {
+      return nextResult
+    }
   }
+
+  return { status: "completed" }
 }
 
 function filterEdgesByResult(edges: FlowEdge[], result: NodeExecutorResult): FlowEdge[] {
