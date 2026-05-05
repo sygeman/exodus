@@ -6,11 +6,13 @@ import { computed, ref } from "vue"
 import SettingsLayout from "@/components/SettingsLayout.vue"
 import type { MenuLayoutItem } from "@/components/MenuLayout.vue"
 import { PROJECT_COLORS } from "@/modules/projects/constants"
+import { useCollectionLabels } from "@/composables/useCollectionLabels"
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const { projects, loading, update, remove } = useProjects()
+const { fieldLabel } = useCollectionLabels("projects")
 
 const projectId = computed(() => route.params.id as string)
 const project = computed(() => projects.value.find((p) => p.id === projectId.value))
@@ -57,7 +59,7 @@ function confirmDelete() {
       <section class="flex flex-col gap-8">
         <div class="flex flex-col gap-4 border-b border-[var(--ui-border)] pb-8">
           <div class="flex flex-col gap-1">
-            <h3 class="text-base font-medium">{{ t("projects.name") }}</h3>
+            <h3 class="text-base font-medium">{{ fieldLabel("name") }}</h3>
             <p class="text-sm text-[var(--ui-text-muted)]">{{ t("projects.nameDescription") }}</p>
           </div>
           <UInput
@@ -70,7 +72,7 @@ function confirmDelete() {
 
         <div class="flex flex-col gap-4 border-b border-[var(--ui-border)] pb-8">
           <div class="flex flex-col gap-1">
-            <h3 class="text-base font-medium">{{ t("projects.color") }}</h3>
+            <h3 class="text-base font-medium">{{ fieldLabel("color") }}</h3>
             <p class="text-sm text-[var(--ui-text-muted)]">{{ t("projects.colorDescription") }}</p>
           </div>
           <div class="flex flex-wrap gap-2">

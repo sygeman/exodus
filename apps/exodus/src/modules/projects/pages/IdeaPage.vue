@@ -4,10 +4,12 @@ import { useRoute, useRouter } from "vue-router"
 import { computed, ref, watch, nextTick } from "vue"
 import { useIdeas } from "@/modules/projects/webview"
 import { getLevelColor } from "@/modules/projects/composables/useLevelColor"
+import { useCollectionLabels } from "@/composables/useCollectionLabels"
 
 const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
+const { fieldLabel } = useCollectionLabels("ideas")
 const projectId = computed(() => route.params.id as string)
 const ideaId = computed(() => route.params.ideaId as string)
 
@@ -184,7 +186,7 @@ const statusItems = [
         <div class="grid grid-cols-3 gap-4">
           <div class="flex flex-col gap-1.5">
             <label class="text-sm font-medium text-[var(--ui-text-muted)]">{{
-              t("projects.ideaLevel")
+              fieldLabel("level")
             }}</label>
             <USelect
               v-model="level"
@@ -198,7 +200,7 @@ const statusItems = [
 
           <div class="flex flex-col gap-1.5">
             <label class="text-sm font-medium text-[var(--ui-text-muted)]">{{
-              t("projects.ideaType")
+              fieldLabel("type")
             }}</label>
             <USelect
               v-model="typeValue"
@@ -212,7 +214,7 @@ const statusItems = [
 
           <div class="flex flex-col gap-1.5">
             <label class="text-sm font-medium text-[var(--ui-text-muted)]">{{
-              t("projects.ideaStatus")
+              fieldLabel("status")
             }}</label>
             <USelect
               v-model="status"
