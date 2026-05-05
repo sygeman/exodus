@@ -25,6 +25,7 @@ export const executors: Record<string, NodeExecutor> = {
   loop: executeLoop,
   fork: executeFork,
   join: executeJoin,
+  subflow: executeSubflow,
 }
 
 async function executeTrigger(
@@ -305,5 +306,29 @@ async function executeJoin(
       mode,
       input,
     },
+  }
+}
+
+async function executeSubflow(
+  config: Record<string, unknown> | undefined,
+  input: Record<string, unknown>,
+  context: FlowContext,
+): Promise<NodeExecutorResult> {
+  const resolved = resolveNodeInput(config, context)
+  const flowId = resolved.flow_id as string
+
+  if (!flowId) {
+    return {
+      output: { status: "error", error: "flow_id is required" },
+    }
+  }
+
+  return {
+    output: {
+      status: "pending",
+      flow_id: flowId,
+      input,
+    },
+    status: "async",
   }
 }

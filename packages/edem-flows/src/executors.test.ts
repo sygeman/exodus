@@ -321,4 +321,21 @@ describe("Node Executors", () => {
       expect(ctx.flow_variables["nodes.join1.joinMode"]).toBe("n_of_m")
     })
   })
+
+  describe("subflow", () => {
+    it("should return async status with flow_id", async () => {
+      const ctx = createContext()
+      const result = await executors.subflow({ flow_id: "other-flow-id" }, { data: "test" }, ctx)
+      expect(result.status).toBe("async")
+      expect(result.output.status).toBe("pending")
+      expect(result.output.flow_id).toBe("other-flow-id")
+    })
+
+    it("should return error when flow_id missing", async () => {
+      const ctx = createContext()
+      const result = await executors.subflow({}, { data: "test" }, ctx)
+      expect(result.output.status).toBe("error")
+      expect(result.output.error).toContain("flow_id is required")
+    })
+  })
 })

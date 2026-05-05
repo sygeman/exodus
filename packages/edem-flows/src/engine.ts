@@ -6,6 +6,9 @@ export interface FlowNode {
   type: string
   position: { x: number; y: number }
   data?: Record<string, unknown>
+  retry_max?: number
+  retry_delay?: number
+  timeout?: number
 }
 
 export interface FlowEdge {
@@ -99,9 +102,10 @@ async function executeNode(
   nodeResults: Map<string, NodeExecutorResult>,
   visited: Set<string>,
   input: Record<string, unknown> = {},
+  attempt: number = 1,
 ): Promise<{ status: "completed" | "waiting" | "error"; waitingNodeId?: string; error?: string }> {
-  if (visited.has(nodeId)) return { status: "completed" }
-  visited.add(nodeId)
+  if (visited.has(nodeId) && attempt === 1) return { status: "completed" }
+  if (attempt === 1) visited.add(nodeId)
 
   const node = nodeMap.get(nodeId)
   if (!node) return { status: "completed" }
@@ -157,4 +161,17 @@ function filterEdgesByResult(edges: FlowEdge[], result: NodeExecutorResult): Flo
     const handle = edge.sourceHandle ?? edge.label ?? "output"
     return handles.has(handle)
   })
+}
+
+export function validateFlowRunTransition(current: string, target: string): boolean {
+  const validTransitions: Record<string, string[]> = {
+    pending: ["running", "cancelled"],
+    running: ["waiting", "completed", "error", "cancelled"],
+    waiting: ["running", "completed", "error", "cancelled"],
+    completed: [],
+    error: [],
+    cancelled: [],
+  }
+
+  return validTransitions[current]?.includes(target) ?? false
 }

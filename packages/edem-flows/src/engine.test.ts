@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test"
-import { executeFlow } from "./engine"
+import { executeFlow, validateFlowRunTransition } from "./engine"
 import type { Flow } from "./engine"
 
 describe("executeFlow", () => {
@@ -269,5 +269,29 @@ describe("executeFlow", () => {
     expect(result.context.node_outputs.n3).toEqual({ result: "A" })
     expect(result.context.node_outputs.n4).toEqual({ result: "B" })
     expect(result.context.node_outputs.n5.status).toBe("completed")
+  })
+})
+
+describe("validateFlowRunTransition", () => {
+  it("should allow valid transitions", () => {
+    expect(validateFlowRunTransition("pending", "running")).toBe(true)
+    expect(validateFlowRunTransition("pending", "cancelled")).toBe(true)
+    expect(validateFlowRunTransition("running", "completed")).toBe(true)
+    expect(validateFlowRunTransition("running", "error")).toBe(true)
+    expect(validateFlowRunTransition("running", "waiting")).toBe(true)
+    expect(validateFlowRunTransition("waiting", "running")).toBe(true)
+    expect(validateFlowRunTransition("waiting", "completed")).toBe(true)
+  })
+
+  it("should reject invalid transitions", () => {
+    expect(validateFlowRunTransition("completed", "running")).toBe(false)
+    expect(validateFlowRunTransition("error", "running")).toBe(false)
+    expect(validateFlowRunTransition("cancelled", "running")).toBe(false)
+    expect(validateFlowRunTransition("completed", "error")).toBe(false)
+  })
+
+  it("should reject unknown statuses", () => {
+    expect(validateFlowRunTransition("unknown", "running")).toBe(false)
+    expect(validateFlowRunTransition("running", "unknown")).toBe(false)
   })
 })
