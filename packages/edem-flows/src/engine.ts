@@ -26,6 +26,8 @@ export interface Flow {
   name: string
   nodes: FlowNode[]
   edges: FlowEdge[]
+  trigger?: Record<string, unknown>
+  meta?: Record<string, unknown>
 }
 
 export interface ExecutionResult {
@@ -59,7 +61,7 @@ export async function executeFlow(
     if (flow.nodes.length === 0) {
       return { context, nodeResults, status: "completed" }
     }
-    triggerNodes.push(flow.nodes[0])
+    throw new Error(`Flow "${flow.name}" has no trigger node`)
   }
 
   for (const triggerNode of triggerNodes) {
@@ -118,7 +120,22 @@ async function executeNode(
 
   let result: NodeExecutorResult
   try {
-    result = await executor(node.data, input, context, nodeId)
+    const timeoutMs = node.timeout
+    const executorPromise = executor(node.data, input, context, nodeId)
+
+    if (timeoutMs && timeoutMs > 0) {
+      result = await Promise.race([
+        executorPromise,
+        new Promise<never>((_, reject) =>
+          setTimeout(
+            () => reject(new Error(`Node "${nodeId}" timed out after ${timeoutMs}ms`)),
+            timeoutMs,
+          ),
+        ),
+      ])
+    } else {
+      result = await executorPromise
+    }
   } catch (err) {
     const maxRetries = node.retry_max ?? 0
     if (attempt <= maxRetries) {

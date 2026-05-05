@@ -14,6 +14,23 @@ describe("executeFlow", () => {
     expect(result.status).toBe("completed")
   })
 
+  it("should throw when flow has nodes but no trigger", async () => {
+    const flow: Flow = {
+      id: "test",
+      name: "Test Flow",
+      nodes: [
+        {
+          id: "n1",
+          type: "transform",
+          position: { x: 0, y: 0 },
+          data: { field: "x", operation: "set", value: 1 },
+        },
+      ],
+      edges: [],
+    }
+    await expect(executeFlow(flow)).rejects.toThrow("has no trigger node")
+  })
+
   it("should execute single trigger node", async () => {
     const flow: Flow = {
       id: "test",
@@ -162,8 +179,11 @@ describe("executeFlow", () => {
     const flow: Flow = {
       id: "test",
       name: "Test Flow",
-      nodes: [{ id: "n1", type: "unknown_type", position: { x: 0, y: 0 } }],
-      edges: [],
+      nodes: [
+        { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+        { id: "n2", type: "unknown_type", position: { x: 100, y: 0 } },
+      ],
+      edges: [{ id: "e1", source: "n1", target: "n2" }],
     }
     const result = await executeFlow(flow)
     expect(result.status).toBe("error")

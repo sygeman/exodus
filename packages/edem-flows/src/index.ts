@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { createEdemModule, type InferModuleAPI } from "@exodus/edem-core"
 import type { dataModule } from "@exodus/edem-data"
-import { executeFlow, validateFlowRunTransition, type Flow } from "./engine"
+import { executeFlow, validateFlowRunTransition } from "./engine"
 import {
   triggerSchema,
   nodeSchema,
@@ -187,7 +187,7 @@ export const flowsModule = createEdemModule(
           await emit.runStarted(run)
 
           try {
-            const result = await executeFlow(flow as Flow, input.trigger_data ?? {})
+            const result = await executeFlow(flow, input.trigger_data ?? {})
 
             if (result.status === "waiting") {
               await data.updateItem({
@@ -310,11 +310,7 @@ export const flowsModule = createEdemModule(
           }
           restoredContext.node_outputs[input.node_id] = input.output
 
-          const result = await executeFlow(
-            flow as Flow,
-            restoredContext.trigger_data,
-            restoredContext,
-          )
+          const result = await executeFlow(flow, restoredContext.trigger_data, restoredContext)
 
           if (result.status === "waiting") {
             await data.updateItem({
@@ -610,6 +606,13 @@ function deepEqual(a: unknown, b: unknown): boolean {
   if (a === null || b === null || a === undefined || b === undefined) return false
   if (typeof a !== typeof b) return false
   if (typeof a !== "object") return false
+
+  if (Array.isArray(a) !== Array.isArray(b)) return false
+
+  if (Array.isArray(a) && Array.isArray(b)) {
+    if (a.length !== b.length) return false
+    return a.every((item, i) => deepEqual(item, b[i]))
+  }
 
   const objA = a as Record<string, unknown>
   const objB = b as Record<string, unknown>

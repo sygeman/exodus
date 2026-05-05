@@ -24,6 +24,9 @@ export const nodeSchema = z.object({
   type: z.string(),
   position: z.object({ x: z.number(), y: z.number() }),
   data: z.record(z.string(), z.unknown()).optional(),
+  retry_max: z.number().optional(),
+  retry_delay: z.number().optional(),
+  timeout: z.number().optional(),
 })
 
 export const edgeSchema = z.object({
