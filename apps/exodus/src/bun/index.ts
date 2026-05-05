@@ -3,7 +3,7 @@ import type { RPCSchema } from "electrobun"
 import { createBunEdemBridge } from "@exodus/edem-electrobun/bun"
 import type { EdemMsg } from "@exodus/edem-electrobun/types"
 import { edem, modules } from "@/bun/edem"
-import { ensureCollections } from "@/modules/projects/init"
+import { ensureCollections } from "@/manifest"
 import { bunLogger } from "@/modules/logger/bun"
 import { initAppState, initStateDefaults } from "@/modules/app-state/bun"
 

@@ -3,7 +3,7 @@ import type { InferModuleAPI } from "@exodus/edem-core"
 
 type EdemData = InferModuleAPI<typeof dataModule>
 
-const SYSTEM_MANIFEST: Manifest = {
+export const SYSTEM_MANIFEST: Manifest = {
   collections: [
     {
       id: "projects",
