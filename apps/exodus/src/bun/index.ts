@@ -1,13 +1,11 @@
 import { BrowserWindow, BrowserView, Updater, ApplicationMenu } from "electrobun/bun"
 import type { RPCSchema } from "electrobun"
-import { Evento, type EventoMetaType } from "@exodus/evento"
 import { createBunEdemBridge } from "@exodus/edem-electrobun/bun"
 import type { EdemMsg } from "@exodus/edem-electrobun/types"
 import { edem, modules } from "@/bun/edem"
 import { ensureCollections } from "@/modules/projects/init"
 import { bunLogger } from "@/modules/logger/bun"
 import { initAppState, initStateDefaults } from "@/modules/app-state/bun"
-import { globalRegistry, type GlobalEventMap } from "@/events"
 
 // Workaround for WebKitGTK + NVIDIA + Wayland rendering issue.
 // The DMA-BUF renderer fails to create GBM buffers on NVIDIA in Wayland
@@ -49,26 +47,18 @@ async function getMainViewUrl(): Promise<string> {
 
 const url = await getMainViewUrl()
 
-const evento = new Evento<"bun", ["webview"], GlobalEventMap>("bun", "webview")
-evento.register(globalRegistry)
-
 const edemBridge = createBunEdemBridge(edem, modules)
-
-type EventoMeta = EventoMetaType<typeof evento>
 
 const rpc = BrowserView.defineRPC<{
   bun: RPCSchema<{
-    messages: { emit: { name: string; payload: unknown; meta: EventoMeta }; edem: EdemMsg }
+    messages: { edem: EdemMsg }
   }>
   webview: RPCSchema<{
-    messages: { emit: { name: string; payload: unknown; meta: EventoMeta }; edem: EdemMsg }
+    messages: { edem: EdemMsg }
   }>
 }>({
   handlers: {
     messages: {
-      emit: (msg: { name: string; payload: unknown; meta: EventoMeta }) => {
-        evento.emitLocal(msg.name, msg.payload, msg.meta)
-      },
       edem: (msg: EdemMsg) => {
         edemBridge.handler(msg)
       },
@@ -108,7 +98,6 @@ if (savedMaximized) {
 
 const { webview } = win
 
-evento.sender = webview.rpc?.send?.emit
 edemBridge.attachWebview(webview)
 
 initAppState(edem.data, win)
@@ -160,4 +149,4 @@ bunLogger.attach(edem.data)
 
 console.log("Bun process started")
 
-export { evento, edem }
+export { edem }

@@ -9,7 +9,7 @@ import { projectsRoutes } from "@/modules/projects/routes"
 import { debugRoutes } from "@/modules/debug/routes"
 import { settingsRoutes } from "@/modules/settings/routes"
 import NotFound from "./pages/NotFound.vue"
-import { evento, rpc } from "./evento"
+import { rpc } from "./edem-bridge"
 import { Electroview } from "electrobun/view"
 import { webviewLogger } from "@/modules/logger/webview"
 import { defaultLocale, messages, resolveLocale } from "./locales"
@@ -17,8 +17,7 @@ import { useAppState } from "./composables/useAppState"
 
 webviewLogger.init()
 
-const electroview = new Electroview({ rpc })
-evento.sender = (msg) => electroview.rpc?.send?.emit(msg)
+void new Electroview({ rpc })
 
 console.log("Webview process started")
 
