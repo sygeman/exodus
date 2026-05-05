@@ -4,7 +4,6 @@ import { Evento, type EventoMetaType } from "@exodus/evento"
 import { createBunEdemBridge } from "@exodus/edem-electrobun/bun"
 import type { EdemMsg } from "@exodus/edem-electrobun/types"
 import { edem, modules } from "@/bun/edem"
-import { initSchema } from "@/modules/schema/bun"
 import { ensureCollections } from "@/modules/projects/init"
 import { bunLogger } from "@/modules/logger/bun"
 import { initAppState, initStateDefaults } from "@/modules/app-state/bun"
@@ -158,7 +157,6 @@ ApplicationMenu.on("application-menu-clicked", (event) => {
 })
 
 bunLogger.attach(edem.data)
-initSchema(evento)
 
 console.log("Bun process started")
 
