@@ -2,7 +2,7 @@
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
-import { evento } from "@/evento"
+import { edem } from "@/edem"
 import { useUpdaterStatus } from "@/modules/updater/composables/useUpdaterStatus"
 
 const { t } = useI18n()
@@ -14,7 +14,7 @@ const version = __APP_VERSION__
 const isUpdateAvailable = computed(() => updateStatus.value === "available")
 
 function startUpdate() {
-  evento.emitEvent("updater:start-update", "webview")
+  edem.updater.startUpdate({})
 }
 
 function goBack() {
