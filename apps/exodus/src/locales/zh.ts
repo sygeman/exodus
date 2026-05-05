@@ -1,7 +1,6 @@
 import { loggerEvents } from "@/modules/logger/i18n/zh"
 import { appStateEvents } from "@/modules/app-state/i18n/zh"
 import { updaterEvents } from "@/modules/updater/i18n/zh"
-import { schemaEvents } from "@/modules/schema/i18n/zh"
 
 export default {
   common: {
@@ -13,7 +12,6 @@ export default {
     logger: loggerEvents,
     "app-state": appStateEvents,
     updater: updaterEvents,
-    schema: schemaEvents,
   },
   notFound: {
     title: "页面未找到",

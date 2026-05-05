@@ -1,7 +1,6 @@
 import { loggerEvents } from "@/modules/logger/i18n/ru"
 import { appStateEvents } from "@/modules/app-state/i18n/ru"
 import { updaterEvents } from "@/modules/updater/i18n/ru"
-import { schemaEvents } from "@/modules/schema/i18n/ru"
 
 export default {
   common: {
@@ -13,7 +12,6 @@ export default {
     logger: loggerEvents,
     "app-state": appStateEvents,
     updater: updaterEvents,
-    schema: schemaEvents,
   },
   notFound: {
     title: "Страница не найдена",
