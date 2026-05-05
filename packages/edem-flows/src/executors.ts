@@ -23,6 +23,8 @@ export const executors: Record<string, NodeExecutor> = {
   output: executeOutput,
   action: executeAction,
   loop: executeLoop,
+  fork: executeFork,
+  join: executeJoin,
 }
 
 async function executeTrigger(
@@ -256,5 +258,52 @@ async function executeLoop(
       input,
     },
     status: "async",
+  }
+}
+
+async function executeFork(
+  config: Record<string, unknown> | undefined,
+  input: Record<string, unknown>,
+  context: FlowContext,
+  nodeId?: string,
+): Promise<NodeExecutorResult> {
+  const resolved = resolveNodeInput(config, context)
+  const branches = (resolved.branches as Array<{ id: string }>) ?? []
+
+  if (nodeId) {
+    setFlowVariable(context, `nodes.${nodeId}.forkBranches`, branches)
+  }
+
+  const followEdges = branches.map((branch) => ({ handle: branch.id }))
+
+  return {
+    output: {
+      status: "forked",
+      branches: branches.map((b) => b.id),
+      input,
+    },
+    followEdges,
+  }
+}
+
+async function executeJoin(
+  config: Record<string, unknown> | undefined,
+  input: Record<string, unknown>,
+  context: FlowContext,
+  nodeId?: string,
+): Promise<NodeExecutorResult> {
+  const resolved = resolveNodeInput(config, context)
+  const mode = (resolved.mode as string) ?? "all"
+
+  if (nodeId) {
+    setFlowVariable(context, `nodes.${nodeId}.joinMode`, mode)
+  }
+
+  return {
+    output: {
+      status: "completed",
+      mode,
+      input,
+    },
   }
 }

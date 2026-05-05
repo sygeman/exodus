@@ -273,4 +273,52 @@ describe("Node Executors", () => {
       expect(result.output.status).toBe("completed")
     })
   })
+
+  describe("fork", () => {
+    it("should return forked status with branches", async () => {
+      const ctx = createContext()
+      const result = await executors.fork(
+        {
+          branches: [{ id: "branch_a" }, { id: "branch_b" }, { id: "branch_c" }],
+        },
+        { data: "test" },
+        ctx,
+        "fork1",
+      )
+      expect(result.output.status).toBe("forked")
+      expect(result.output.branches).toEqual(["branch_a", "branch_b", "branch_c"])
+      expect(result.followEdges).toEqual([
+        { handle: "branch_a" },
+        { handle: "branch_b" },
+        { handle: "branch_c" },
+      ])
+    })
+
+    it("should store branches in context", async () => {
+      const ctx = createContext()
+      await executors.fork({ branches: [{ id: "a" }, { id: "b" }] }, {}, ctx, "fork1")
+      expect(ctx.flow_variables["nodes.fork1.forkBranches"]).toEqual([{ id: "a" }, { id: "b" }])
+    })
+  })
+
+  describe("join", () => {
+    it("should return completed status", async () => {
+      const ctx = createContext()
+      const result = await executors.join({ mode: "all" }, { data: "test" }, ctx, "join1")
+      expect(result.output.status).toBe("completed")
+      expect(result.output.mode).toBe("all")
+    })
+
+    it("should support any mode", async () => {
+      const ctx = createContext()
+      const result = await executors.join({ mode: "any" }, {}, ctx, "join1")
+      expect(result.output.mode).toBe("any")
+    })
+
+    it("should store mode in context", async () => {
+      const ctx = createContext()
+      await executors.join({ mode: "n_of_m" }, {}, ctx, "join1")
+      expect(ctx.flow_variables["nodes.join1.joinMode"]).toBe("n_of_m")
+    })
+  })
 })
