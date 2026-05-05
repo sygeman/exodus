@@ -2,6 +2,7 @@ import { BrowserWindow, BrowserView, Updater, ApplicationMenu } from "electrobun
 import type { RPCSchema } from "electrobun"
 import { createBunEdemBridge } from "@exodus/edem-electrobun/bun"
 import type { EdemMsg } from "@exodus/edem-electrobun/types"
+import { registerAction, startScheduler, startDispatcher } from "@exodus/edem-flows"
 import { edem, modules } from "@/bun/edem"
 import { ensureCollections } from "@/manifest"
 import { ensureFlows } from "@/flows-bootstrap"
@@ -69,6 +70,38 @@ const rpc = BrowserView.defineRPC<{
 
 await ensureCollections(edem.data)
 await ensureFlows(edem.flows)
+
+registerAction("checkUpdate", async () => {
+  try {
+    const result = await Updater.checkForUpdate()
+    const currentVersion = await Updater.localInfo.version()
+    const currentHash = await Updater.localInfo.hash()
+    const isAvailable =
+      result.updateAvailable && result.version !== currentVersion && result.hash !== currentHash
+    return {
+      available: isAvailable,
+      version: result.version,
+      current: currentVersion,
+      error: result.error ?? null,
+    }
+  } catch (err) {
+    return { available: false, error: (err as Error).message }
+  }
+})
+
+registerAction("saveWindowFrame", async (input) => {
+  const frame = input.frame as { x: number; y: number; width: number; height: number } | undefined
+  if (!frame) return { status: "skipped" }
+  const { items } = await edem.data.queryItems({ collection_id: "app_state" })
+  if (items.length > 0) {
+    await edem.data.updateItem({ item_id: items[0].id, data: { window_frame: frame } })
+  }
+  return { status: "ok" }
+})
+
+await startScheduler(edem.flows, edem.data)
+const flowsDispatcher = await startDispatcher(edem.flows, edem.data)
+
 await initStateDefaults(edem.data)
 
 const defaultFrame = { width: 1200, height: 800, x: 0, y: 0 }
@@ -102,7 +135,7 @@ const { webview } = win
 
 edemBridge.attachWebview(webview)
 
-initAppState(edem.data, win)
+initAppState(edem.data, win, flowsDispatcher.emit)
 
 ApplicationMenu.setApplicationMenu([
   {

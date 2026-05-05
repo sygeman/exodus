@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+const dayEnum = z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"])
+
 export const triggerSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("event"),
@@ -8,7 +10,9 @@ export const triggerSchema = z.discriminatedUnion("type", [
   }),
   z.object({
     type: z.literal("schedule"),
-    cron: z.string(),
+    every: z.string(),
+    at: z.string().optional(),
+    days: z.array(dayEnum).optional(),
   }),
   z.object({
     type: z.literal("manual"),
@@ -18,6 +22,55 @@ export const triggerSchema = z.discriminatedUnion("type", [
     path: z.string(),
   }),
 ])
+
+export type ScheduleTrigger = z.infer<typeof triggerSchema> & { type: "schedule" }
+export type DayOfWeek = z.infer<typeof dayEnum>
+
+const EVERY_RE = /^(\d+)(m|h|d|w)$/
+
+export function parseEvery(every: string): number {
+  const match = EVERY_RE.exec(every)
+  if (!match) throw new Error(`Invalid every format: "${every}". Expected: Nm, Nh, Nd, Nw`)
+  const n = Number(match[1])
+  const unit = match[2]
+  switch (unit) {
+    case "m":
+      return n * 60 * 1000
+    case "h":
+      return n * 60 * 60 * 1000
+    case "d":
+      return n * 24 * 60 * 60 * 1000
+    case "w":
+      return n * 7 * 24 * 60 * 60 * 1000
+    default:
+      throw new Error(`Unknown unit: ${unit}`)
+  }
+}
+
+const DAY_MAP: Record<DayOfWeek, number> = {
+  mon: 1,
+  tue: 2,
+  wed: 3,
+  thu: 4,
+  fri: 5,
+  sat: 6,
+  sun: 0,
+}
+
+export function matchesSchedule(trigger: ScheduleTrigger, now: Date): boolean {
+  if (trigger.days && trigger.days.length > 0) {
+    const dayNum = now.getDay()
+    const allowed = trigger.days.some((d) => DAY_MAP[d] === dayNum)
+    if (!allowed) return false
+  }
+
+  if (trigger.at) {
+    const [h, m] = trigger.at.split(":").map(Number)
+    if (now.getHours() !== h || now.getMinutes() !== m) return false
+  }
+
+  return true
+}
 
 export const nodeSchema = z.object({
   id: z.string(),

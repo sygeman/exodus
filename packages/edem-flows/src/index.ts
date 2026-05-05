@@ -682,3 +682,8 @@ async function ensureCollections(data: EdemData) {
 }
 
 export default flowsModule
+
+export { registerAction, type ActionHandler } from "./actions"
+export { startScheduler } from "./scheduler"
+export { startDispatcher } from "./dispatcher"
+export { parseEvery, matchesSchedule, type ScheduleTrigger, type DayOfWeek } from "./manifest"

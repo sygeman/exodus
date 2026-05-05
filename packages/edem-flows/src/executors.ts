@@ -5,6 +5,7 @@ import {
   setFlowVariable,
   type FlowContext,
 } from "./context"
+import { getActionHandler } from "./actions"
 
 export interface NodeExecutorResult {
   output: Record<string, unknown>
@@ -200,6 +201,12 @@ async function executeAction(
 ): Promise<NodeExecutorResult> {
   const resolved = resolveNodeInput(config, context)
   const actionType = (resolved.action as string) ?? (resolved.type as string)
+
+  const handler = getActionHandler(actionType)
+  if (handler) {
+    const result = await handler(input, context)
+    return { output: result }
+  }
 
   return {
     output: {

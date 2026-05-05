@@ -106,7 +106,11 @@ export async function initStateDefaults(data: EdemData) {
   }
 }
 
-export function initAppState(edemData: EdemData, win: BrowserWindow) {
+export function initAppState(
+  edemData: EdemData,
+  win: BrowserWindow,
+  emit?: (name: string, payload: Record<string, unknown>) => void,
+) {
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
   function debouncedSaveWindowFrame(frame: WindowFrame) {
@@ -116,6 +120,7 @@ export function initAppState(edemData: EdemData, win: BrowserWindow) {
     debounceTimer = setTimeout(() => {
       if (frame.width < MIN_WINDOW_WIDTH || frame.height < MIN_WINDOW_HEIGHT) return
       updateState(edemData, { window_frame: frame }).catch(() => {})
+      emit?.("window:frame_changed", { frame })
     }, 300)
   }
 
@@ -140,5 +145,6 @@ export function initAppState(edemData: EdemData, win: BrowserWindow) {
       window_frame: currentFrame,
       window_maximized: win.isMaximized(),
     }).catch(() => {})
+    emit?.("window:frame_changed", { frame: currentFrame })
   })
 }

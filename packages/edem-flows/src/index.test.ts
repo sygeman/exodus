@@ -40,7 +40,7 @@ describe("edem-flows", () => {
     it("should persist flow in edem-data", async () => {
       await edem.flows.createFlow({
         name: "Persisted Flow",
-        trigger: { type: "schedule", cron: "0 9 * * *" },
+        trigger: { type: "schedule", every: "1d", at: "09:00" },
       })
 
       const { items } = await edem.data.queryItems({ collection_id: "flows" })
@@ -202,13 +202,14 @@ describe("edem-flows", () => {
     it("should support schedule trigger", async () => {
       const { flow_id } = await edem.flows.createFlow({
         name: "Scheduled Flow",
-        trigger: { type: "schedule", cron: "0 9 * * *" },
+        trigger: { type: "schedule", every: "1d", at: "09:00" },
       })
 
       const { flow } = await edem.flows.getFlow({ flow_id })
       expect(flow?.trigger.type).toBe("schedule")
       if (flow?.trigger.type === "schedule") {
-        expect(flow.trigger.cron).toBe("0 9 * * *")
+        expect(flow.trigger.every).toBe("1d")
+        expect(flow.trigger.at).toBe("09:00")
       }
     })
 
