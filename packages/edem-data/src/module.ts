@@ -8,11 +8,13 @@ import {
   fieldSchema,
   fieldInputSchema,
   fieldTypes,
+  labelsSchema,
   validateFieldValue,
   manifestSchema,
   type FieldType,
 } from "./fields"
 import { matchFilter, sortItems, filterSchema, sortSchema } from "./filters"
+import { resolveLocalizedData } from "./locale"
 
 function safeJsonParse<T>(value: string, context: string): T {
   try {
@@ -25,6 +27,7 @@ function safeJsonParse<T>(value: string, context: string): T {
 const collectionSchema = z.object({
   id: z.string(),
   name: z.string(),
+  labels: labelsSchema.optional(),
   description: z.string().nullable().optional(),
   icon: z.string().nullable().optional(),
   singleton: z.boolean().nullable().optional(),
@@ -105,6 +108,7 @@ export const dataModule = createEdemModule("data", (module) => {
         input: z.object({
           id: z.string(),
           name: z.string(),
+          labels: labelsSchema.optional(),
           parent_id: z.string().optional(),
           description: z.string().optional(),
           icon: z.string().optional(),
@@ -120,6 +124,7 @@ export const dataModule = createEdemModule("data", (module) => {
             id: input.id,
             parent_id: input.parent_id,
             name: input.name,
+            labels: input.labels ? JSON.stringify(input.labels) : null,
             description: input.description,
             icon: input.icon,
             singleton: input.singleton,
@@ -134,6 +139,7 @@ export const dataModule = createEdemModule("data", (module) => {
                 id: crypto.randomUUID(),
                 collection_id: input.id,
                 name: field.name,
+                labels: field.labels ? JSON.stringify(field.labels) : null,
                 type: field.type,
                 required: field.required,
                 default_value:
@@ -156,6 +162,7 @@ export const dataModule = createEdemModule("data", (module) => {
         input: z.object({
           collection_id: z.string(),
           name: z.string().optional(),
+          labels: labelsSchema.optional(),
           description: z.string().optional(),
           icon: z.string().optional(),
           singleton: z.boolean().optional(),
@@ -166,7 +173,7 @@ export const dataModule = createEdemModule("data", (module) => {
         }),
         output: z.object({ id: z.string() }),
         resolve: async ({ input, ctx, emit }) => {
-          const { collection_id, fields: newFields, meta, ...updates } = input
+          const { collection_id, fields: newFields, meta, labels, ...updates } = input
           const now = Date.now()
 
           const existing = await ctx.db.query.collections.findFirst({
@@ -178,6 +185,7 @@ export const dataModule = createEdemModule("data", (module) => {
 
           const updateData: Record<string, unknown> = { ...updates, updated_at: now }
           if (meta !== undefined) updateData.meta = JSON.stringify(meta)
+          if (labels !== undefined) updateData.labels = JSON.stringify(labels)
 
           await ctx.db.transaction(async (tx) => {
             await tx
@@ -192,6 +200,7 @@ export const dataModule = createEdemModule("data", (module) => {
                   id: crypto.randomUUID(),
                   collection_id,
                   name: field.name,
+                  labels: field.labels ? JSON.stringify(field.labels) : null,
                   type: field.type,
                   required: field.required,
                   default_value:
@@ -276,6 +285,9 @@ export const dataModule = createEdemModule("data", (module) => {
               })
               return {
                 ...row,
+                labels: row.labels
+                  ? safeJsonParse<Record<string, string>>(row.labels, `collection ${row.id} labels`)
+                  : undefined,
                 meta: row.meta
                   ? safeJsonParse<Record<string, unknown>>(row.meta, `collection ${row.id} meta`)
                   : undefined,
@@ -283,6 +295,9 @@ export const dataModule = createEdemModule("data", (module) => {
                   id: f.id,
                   collection_id: f.collection_id,
                   name: f.name,
+                  labels: f.labels
+                    ? safeJsonParse<Record<string, string>>(f.labels, `field ${f.id} labels`)
+                    : undefined,
                   type: f.type as FieldType,
                   options: f.interface_options
                     ? safeJsonParse<Record<string, unknown>>(
@@ -339,6 +354,7 @@ export const dataModule = createEdemModule("data", (module) => {
         input: z.object({
           collection_id: z.string(),
           name: z.string(),
+          labels: labelsSchema.optional(),
           type: z.enum(fieldTypes),
           interface: z.string().optional(),
           display: z.string().optional(),
@@ -362,6 +378,7 @@ export const dataModule = createEdemModule("data", (module) => {
             id,
             collection_id: input.collection_id,
             name: input.name,
+            labels: input.labels ? JSON.stringify(input.labels) : null,
             type: input.type,
             interface: input.interface,
             display: input.display,
@@ -387,6 +404,7 @@ export const dataModule = createEdemModule("data", (module) => {
         input: z.object({
           field_id: z.string(),
           name: z.string().optional(),
+          labels: labelsSchema.optional(),
           type: z.enum(fieldTypes).optional(),
           interface: z.string().optional(),
           display: z.string().optional(),
@@ -399,7 +417,7 @@ export const dataModule = createEdemModule("data", (module) => {
         }),
         output: z.object({ id: z.string() }),
         resolve: async ({ input, ctx }) => {
-          const { field_id, default_value, validation, meta, ...updates } = input
+          const { field_id, default_value, validation, meta, labels, ...updates } = input
 
           const field = await ctx.db.query.fields.findFirst({
             where: eq(schema.fields.id, field_id),
@@ -410,6 +428,7 @@ export const dataModule = createEdemModule("data", (module) => {
           if (default_value !== undefined) updateData.default_value = JSON.stringify(default_value)
           if (validation !== undefined) updateData.validation = JSON.stringify(validation)
           if (meta !== undefined) updateData.meta = JSON.stringify(meta)
+          if (labels !== undefined) updateData.labels = JSON.stringify(labels)
 
           await ctx.db.update(schema.fields).set(updateData).where(eq(schema.fields.id, field_id))
 
@@ -465,6 +484,9 @@ export const dataModule = createEdemModule("data", (module) => {
               id: f.id,
               collection_id: f.collection_id,
               name: f.name,
+              labels: f.labels
+                ? safeJsonParse<Record<string, string>>(f.labels, `field ${f.id} labels`)
+                : undefined,
               type: f.type as FieldType,
               options: f.interface_options
                 ? safeJsonParse<Record<string, unknown>>(
@@ -496,6 +518,9 @@ export const dataModule = createEdemModule("data", (module) => {
               id: f.id,
               collection_id: f.collection_id,
               name: f.name,
+              labels: f.labels
+                ? safeJsonParse<Record<string, string>>(f.labels, `field ${f.id} labels`)
+                : undefined,
               type: f.type as FieldType,
               options: f.interface_options
                 ? safeJsonParse<Record<string, unknown>>(
@@ -796,6 +821,7 @@ export const dataModule = createEdemModule("data", (module) => {
         input: z.object({
           collection_id: z.string(),
           filter: filterSchema,
+          locale: z.string().optional(),
         }),
         output: z.object({ count: z.number() }),
         resolve: async ({ input, ctx }) => {
@@ -808,8 +834,9 @@ export const dataModule = createEdemModule("data", (module) => {
 
           let items = rows.map(parseItem)
           if (input.filter) {
+            const localeOpts = input.locale ? { locale: input.locale, fallback: "en" } : undefined
             items = items.filter((item) =>
-              matchFilter(item.data, input.filter as Record<string, unknown>),
+              matchFilter(item.data, input.filter as Record<string, unknown>, localeOpts),
             )
           }
           return { count: items.length }
@@ -848,13 +875,22 @@ export const dataModule = createEdemModule("data", (module) => {
         },
       })
       .query("getItem", {
-        input: z.object({ item_id: z.string() }),
+        input: z.object({
+          item_id: z.string(),
+          locale: z.string().optional(),
+        }),
         output: z.object({ item: itemSchema.nullable() }),
         resolve: async ({ input, ctx }) => {
           const item = await ctx.db.query.items.findFirst({
             where: and(eq(schema.items.id, input.item_id), isNull(schema.items.deleted_at)),
           })
-          return { item: item ? parseItem(item) : null }
+          if (!item) return { item: null }
+          const parsed = parseItem(item)
+          if (input.locale) {
+            const collectionFieldTypes = await getCollectionFieldTypes(ctx.db, parsed.collection_id)
+            parsed.data = resolveLocalizedData(parsed.data, collectionFieldTypes, input.locale)
+          }
+          return { item: parsed }
         },
       })
       .query("queryItems", {
@@ -864,6 +900,7 @@ export const dataModule = createEdemModule("data", (module) => {
           sort: sortSchema.optional(),
           limit: z.number().optional(),
           offset: z.number().optional(),
+          locale: z.string().optional(),
         }),
         output: z.object({
           items: z.array(itemSchema),
@@ -880,17 +917,18 @@ export const dataModule = createEdemModule("data", (module) => {
           })
 
           let items = rows.map(parseItem)
+          const localeOpts = input.locale ? { locale: input.locale, fallback: "en" } : undefined
 
           if (input.filter) {
             items = items.filter((item) =>
-              matchFilter(item.data, input.filter as Record<string, unknown>),
+              matchFilter(item.data, input.filter as Record<string, unknown>, localeOpts),
             )
           }
 
           const total = items.length
 
           if (input.sort) {
-            items = sortItems(items, input.sort)
+            items = sortItems(items, input.sort, localeOpts)
           }
 
           if (input.offset !== undefined) {
@@ -898,6 +936,14 @@ export const dataModule = createEdemModule("data", (module) => {
           }
           if (input.limit !== undefined) {
             items = items.slice(0, input.limit)
+          }
+
+          if (input.locale) {
+            const collectionFieldTypes = await getCollectionFieldTypes(ctx.db, input.collection_id)
+            items = items.map((item) => ({
+              ...item,
+              data: resolveLocalizedData(item.data, collectionFieldTypes, input.locale!),
+            }))
           }
 
           return { items, total }
@@ -1240,11 +1286,17 @@ export const dataModule = createEdemModule("data", (module) => {
               return {
                 id: row.id,
                 name: row.name,
+                labels: row.labels
+                  ? safeJsonParse<Record<string, string>>(row.labels, `collection ${row.id} labels`)
+                  : undefined,
                 description: row.description ?? undefined,
                 icon: row.icon ?? undefined,
                 singleton: row.singleton ?? undefined,
                 fields: fields.map((f) => ({
                   name: f.name,
+                  labels: f.labels
+                    ? safeJsonParse<Record<string, string>>(f.labels, `field ${f.id} labels`)
+                    : undefined,
                   type: f.type as FieldType,
                   required: f.required ?? undefined,
                   default: f.default_value
@@ -1299,12 +1351,22 @@ export const dataModule = createEdemModule("data", (module) => {
               const existingFieldNames = new Set(existingFields.map((f) => f.name))
 
               let fieldsChanged = false
+
+              if (colDef.labels) {
+                await ctx.db
+                  .update(schema.collections)
+                  .set({ labels: JSON.stringify(colDef.labels), updated_at: now })
+                  .where(eq(schema.collections.id, existing.id))
+                fieldsChanged = true
+              }
+
               for (const fieldDef of colDef.fields) {
                 if (!existingFieldNames.has(fieldDef.name)) {
                   await ctx.db.insert(schema.fields).values({
                     id: crypto.randomUUID(),
                     collection_id: existing.id,
                     name: fieldDef.name,
+                    labels: fieldDef.labels ? JSON.stringify(fieldDef.labels) : null,
                     type: fieldDef.type,
                     required: fieldDef.required ?? false,
                     default_value:
@@ -1331,6 +1393,7 @@ export const dataModule = createEdemModule("data", (module) => {
               await ctx.db.insert(schema.collections).values({
                 id: colDef.id,
                 name: colDef.name,
+                labels: colDef.labels ? JSON.stringify(colDef.labels) : null,
                 description: colDef.description,
                 icon: colDef.icon,
                 singleton: colDef.singleton,
@@ -1343,6 +1406,7 @@ export const dataModule = createEdemModule("data", (module) => {
                   id: crypto.randomUUID(),
                   collection_id: colDef.id,
                   name: fieldDef.name,
+                  labels: fieldDef.labels ? JSON.stringify(fieldDef.labels) : null,
                   type: fieldDef.type,
                   required: fieldDef.required ?? false,
                   default_value:
@@ -1366,6 +1430,20 @@ export const dataModule = createEdemModule("data", (module) => {
   )
 })
 
+async function getCollectionFieldTypes(
+  db: DataEngine["db"],
+  collectionId: string,
+): Promise<Map<string, FieldType>> {
+  const fields = await db.query.fields.findMany({
+    where: eq(schema.fields.collection_id, collectionId),
+  })
+  const map = new Map<string, FieldType>()
+  for (const f of fields) {
+    map.set(f.name, f.type as FieldType)
+  }
+  return map
+}
+
 async function getCollectionWithFields(
   db: DataEngine["db"],
   collectionId: string,
@@ -1381,6 +1459,12 @@ async function getCollectionWithFields(
 
   return {
     ...collection,
+    labels: collection.labels
+      ? safeJsonParse<Record<string, string>>(
+          collection.labels,
+          `collection ${collectionId} labels`,
+        )
+      : undefined,
     meta: collection.meta
       ? safeJsonParse<Record<string, unknown>>(collection.meta, `collection ${collectionId} meta`)
       : undefined,
@@ -1388,6 +1472,9 @@ async function getCollectionWithFields(
       id: f.id,
       collection_id: f.collection_id,
       name: f.name,
+      labels: f.labels
+        ? safeJsonParse<Record<string, string>>(f.labels, `field ${f.id} labels`)
+        : undefined,
       type: f.type as FieldType,
       options: f.interface_options
         ? safeJsonParse<Record<string, unknown>>(f.interface_options, `field ${f.id} options`)

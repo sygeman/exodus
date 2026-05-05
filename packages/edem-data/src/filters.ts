@@ -1,7 +1,13 @@
 import { z } from "zod"
 import type { itemSchema } from "./schemas"
+import { resolveLocalizedValue } from "./locale"
 
 export type FilterCondition = Record<string, unknown>
+
+export interface LocaleOptions {
+  locale?: string
+  fallback?: string
+}
 
 function searchInData(data: Record<string, unknown>, query: string): boolean {
   const lowerQuery = query.toLowerCase()
@@ -16,14 +22,25 @@ function searchInData(data: Record<string, unknown>, query: string): boolean {
   return false
 }
 
-export function matchFilter(data: Record<string, unknown>, filter: FilterCondition): boolean {
+function resolveForComparison(value: unknown, opts?: LocaleOptions): unknown {
+  if (opts?.locale && typeof value === "object" && value !== null && !Array.isArray(value)) {
+    return resolveLocalizedValue(value, opts.locale, opts.fallback ?? "en")
+  }
+  return value
+}
+
+export function matchFilter(
+  data: Record<string, unknown>,
+  filter: FilterCondition,
+  opts?: LocaleOptions,
+): boolean {
   for (const [key, condition] of Object.entries(filter)) {
     if (key === "_and" && Array.isArray(condition)) {
-      if (!condition.every((sub: FilterCondition) => matchFilter(data, sub))) return false
+      if (!condition.every((sub: FilterCondition) => matchFilter(data, sub, opts))) return false
       continue
     }
     if (key === "_or" && Array.isArray(condition)) {
-      if (!condition.some((sub: FilterCondition) => matchFilter(data, sub))) return false
+      if (!condition.some((sub: FilterCondition) => matchFilter(data, sub, opts))) return false
       continue
     }
     if (key === "_search" && typeof condition === "string") {
@@ -35,7 +52,8 @@ export function matchFilter(data: Record<string, unknown>, filter: FilterConditi
     if (typeof condition === "object" && condition !== null && !Array.isArray(condition)) {
       for (const [op, expected] of Object.entries(condition)) {
         if (op.startsWith("_")) {
-          if (!matchOperator(value, op, expected)) return false
+          const resolved = resolveForComparison(value, opts)
+          if (!matchOperator(resolved, op, expected)) return false
         }
       }
     }
@@ -76,13 +94,17 @@ function matchOperator(value: unknown, op: string, expected: unknown): boolean {
 export function sortItems(
   items: z.infer<typeof itemSchema>[],
   sort: string[],
+  opts?: LocaleOptions,
 ): z.infer<typeof itemSchema>[] {
   return items.toSorted((a, b) => {
     for (const field of sort) {
       const desc = field.startsWith("-")
       const key = desc ? field.slice(1) : field
-      const aVal = key in a ? a[key as keyof typeof a] : a.data[key]
-      const bVal = key in b ? b[key as keyof typeof b] : b.data[key]
+      let aVal = key in a ? a[key as keyof typeof a] : a.data[key]
+      let bVal = key in b ? b[key as keyof typeof b] : b.data[key]
+
+      aVal = resolveForComparison(aVal, opts)
+      bVal = resolveForComparison(bVal, opts)
 
       if (aVal === bVal) continue
       if (aVal === undefined || aVal === null) return desc ? 1 : -1

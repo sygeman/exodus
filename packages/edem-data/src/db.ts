@@ -16,6 +16,7 @@ const INIT_SQL = `CREATE TABLE IF NOT EXISTS "collections" (
 	"parent_id" text,
 	"template_id" text,
 	"name" text NOT NULL,
+	"labels" text,
 	"description" text,
 	"icon" text,
 	"singleton" integer DEFAULT false,
@@ -199,6 +200,12 @@ export function createDataEngine(options: DataEngineOptions): DataEngine {
   sqlite.exec("PRAGMA foreign_keys = ON")
 
   sqlite.exec(INIT_SQL)
+
+  try {
+    sqlite.exec('ALTER TABLE "collections" ADD COLUMN "labels" text')
+  } catch {
+    // column already exists
+  }
 
   const db = drizzle(sqlite, { schema })
   sharedEngine = { db, sqlite }

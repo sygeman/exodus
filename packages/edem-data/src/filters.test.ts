@@ -259,6 +259,56 @@ describe("matchFilter", () => {
     })
   })
 
+  describe("localized values", () => {
+    const localizedData = {
+      title: { en: "Buy milk", ru: "Купить молоко" },
+      status: "active",
+    }
+
+    it("should match localized value with locale option", () => {
+      expect(
+        matchFilter(localizedData, { title: { _eq: "Купить молоко" } }, { locale: "ru" }),
+      ).toBe(true)
+    })
+
+    it("should match localized value with fallback", () => {
+      expect(matchFilter(localizedData, { title: { _eq: "Buy milk" } }, { locale: "fr" })).toBe(
+        true,
+      )
+    })
+
+    it("should not match wrong locale value without locale option", () => {
+      expect(matchFilter(localizedData, { title: { _eq: "Купить молоко" } })).toBe(false)
+    })
+
+    it("should match localized value with _contains", () => {
+      expect(matchFilter(localizedData, { title: { _contains: "молоко" } }, { locale: "ru" })).toBe(
+        true,
+      )
+    })
+
+    it("should match localized value with _starts_with", () => {
+      expect(matchFilter(localizedData, { title: { _starts_with: "Buy" } }, { locale: "en" })).toBe(
+        true,
+      )
+    })
+
+    it("should match localized value with _ends_with", () => {
+      expect(
+        matchFilter(localizedData, { title: { _ends_with: "молоко" } }, { locale: "ru" }),
+      ).toBe(true)
+    })
+
+    it("should search across all locales without locale option", () => {
+      expect(matchFilter(localizedData, { _search: "молоко" })).toBe(true)
+      expect(matchFilter(localizedData, { _search: "milk" })).toBe(true)
+    })
+
+    it("should leave non-localized fields untouched", () => {
+      expect(matchFilter(localizedData, { status: { _eq: "active" } }, { locale: "ru" })).toBe(true)
+    })
+  })
+
   describe("edge cases", () => {
     it("should match with empty filter", () => {
       expect(matchFilter(data, {})).toBe(true)
@@ -402,6 +452,69 @@ describe("sortItems", () => {
     ]
     const sorted = sortItems(items, ["-updated_at"])
     expect(sorted.map((i) => i.id)).toEqual(["2", "3", "1"])
+  })
+
+  describe("localized values", () => {
+    it("should sort by resolved locale value", () => {
+      const items = [
+        {
+          id: "1",
+          collection_id: "c",
+          data: { name: { en: "Banana", ru: "Банан" } },
+          created_at: 0,
+          updated_at: 0,
+        },
+        {
+          id: "2",
+          collection_id: "c",
+          data: { name: { en: "Apple", ru: "Яблоко" } },
+          created_at: 0,
+          updated_at: 0,
+        },
+        {
+          id: "3",
+          collection_id: "c",
+          data: { name: { en: "Cherry", ru: "Вишня" } },
+          created_at: 0,
+          updated_at: 0,
+        },
+      ]
+
+      const sortedEn = sortItems(items, ["name"], { locale: "en" })
+      expect(sortedEn.map((i) => i.id)).toEqual(["2", "1", "3"])
+
+      const sortedRu = sortItems(items, ["name"], { locale: "ru" })
+      expect(sortedRu.map((i) => i.id)).toEqual(["1", "3", "2"])
+    })
+
+    it("should sort descending by resolved locale value", () => {
+      const items = [
+        {
+          id: "1",
+          collection_id: "c",
+          data: { name: { en: "A" } },
+          created_at: 0,
+          updated_at: 0,
+        },
+        {
+          id: "2",
+          collection_id: "c",
+          data: { name: { en: "C" } },
+          created_at: 0,
+          updated_at: 0,
+        },
+        {
+          id: "3",
+          collection_id: "c",
+          data: { name: { en: "B" } },
+          created_at: 0,
+          updated_at: 0,
+        },
+      ]
+
+      const sorted = sortItems(items, ["-name"], { locale: "en" })
+      expect(sorted.map((i) => i.id)).toEqual(["2", "3", "1"])
+    })
   })
 })
 
@@ -576,5 +689,249 @@ describe("query language (integration)", () => {
     expect(items).toHaveLength(2)
     expect(items[0].data.name).toBe("B")
     expect(items[1].data.name).toBe("A")
+  })
+})
+
+describe("i18n (integration)", () => {
+  let edem: ReturnType<typeof createEdem<[typeof dataModule]>>
+
+  beforeEach(async () => {
+    resetDataEngine()
+    edem = createEdem([dataModule])
+  })
+
+  describe("field and collection labels", () => {
+    it("should create collection with labels", async () => {
+      const { id } = await edem.data.createCollection({
+        name: "Tasks",
+        id: "tasks",
+        labels: { en: "Tasks", ru: "Задачи" },
+        fields: [
+          {
+            name: "title",
+            type: "string",
+            labels: { en: "Title", ru: "Заголовок" },
+          },
+        ],
+      })
+
+      const { collection } = await edem.data.getCollection({ collection_id: id })
+      expect(collection).not.toBeNull()
+      expect(collection!.labels).toEqual({ en: "Tasks", ru: "Задачи" })
+      expect(collection!.fields[0].labels).toEqual({ en: "Title", ru: "Заголовок" })
+    })
+
+    it("should update collection labels", async () => {
+      await edem.data.createCollection({ name: "Tasks", id: "tasks" })
+      await edem.data.updateCollection({
+        collection_id: "tasks",
+        labels: { en: "Tasks", ru: "Задачи" },
+      })
+
+      const { collection } = await edem.data.getCollection({ collection_id: "tasks" })
+      expect(collection!.labels).toEqual({ en: "Tasks", ru: "Задачи" })
+    })
+
+    it("should list collections with labels", async () => {
+      await edem.data.createCollection({
+        name: "Tasks",
+        id: "tasks",
+        labels: { en: "Tasks", ru: "Задачи" },
+      })
+
+      const { collections } = await edem.data.listCollections({})
+      expect(collections[0].labels).toEqual({ en: "Tasks", ru: "Задачи" })
+    })
+
+    it("should return labels in getFields", async () => {
+      await edem.data.createCollection({
+        name: "Tasks",
+        id: "tasks",
+        fields: [
+          {
+            name: "title",
+            type: "string",
+            labels: { en: "Title", ru: "Заголовок" },
+          },
+        ],
+      })
+
+      const { fields } = await edem.data.getFields({ collection_id: "tasks" })
+      expect(fields[0].labels).toEqual({ en: "Title", ru: "Заголовок" })
+    })
+
+    it("should include labels in manifest", async () => {
+      await edem.data.createCollection({
+        name: "Tasks",
+        id: "tasks",
+        labels: { en: "Tasks" },
+        fields: [
+          {
+            name: "title",
+            type: "string",
+            labels: { en: "Title" },
+          },
+        ],
+      })
+
+      const manifest = await edem.data.getManifest()
+      expect(manifest.collections[0].labels).toEqual({ en: "Tasks" })
+      expect(manifest.collections[0].fields[0].labels).toEqual({ en: "Title" })
+    })
+  })
+
+  describe("localized item data", () => {
+    it("should store and retrieve localized values", async () => {
+      await edem.data.createCollection({
+        name: "Tasks",
+        id: "tasks",
+        fields: [{ name: "title", type: "string" }],
+      })
+
+      const { id } = await edem.data.createItem({
+        collection_id: "tasks",
+        data: { title: { en: "Buy milk", ru: "Купить молоко" } },
+      })
+
+      const { item } = await edem.data.getItem({ item_id: id })
+      expect(item!.data.title).toEqual({ en: "Buy milk", ru: "Купить молоко" })
+    })
+
+    it("should resolve locale in getItem", async () => {
+      await edem.data.createCollection({
+        name: "Tasks",
+        id: "tasks",
+        fields: [{ name: "title", type: "string" }],
+      })
+
+      const { id } = await edem.data.createItem({
+        collection_id: "tasks",
+        data: { title: { en: "Buy milk", ru: "Купить молоко" } },
+      })
+
+      const { item } = await edem.data.getItem({ item_id: id, locale: "ru" })
+      expect(item!.data.title).toBe("Купить молоко")
+    })
+
+    it("should resolve locale in queryItems", async () => {
+      await edem.data.createCollection({
+        name: "Tasks",
+        id: "tasks",
+        fields: [{ name: "title", type: "string" }],
+      })
+
+      await edem.data.createItem({
+        collection_id: "tasks",
+        data: { title: { en: "Buy milk", ru: "Купить молоко" } },
+      })
+
+      const { items } = await edem.data.queryItems({
+        collection_id: "tasks",
+        locale: "ru",
+      })
+
+      expect(items[0].data.title).toBe("Купить молоко")
+    })
+
+    it("should filter by locale in queryItems", async () => {
+      await edem.data.createCollection({
+        name: "Tasks",
+        id: "tasks",
+        fields: [{ name: "title", type: "string" }],
+      })
+
+      await edem.data.createItem({
+        collection_id: "tasks",
+        data: { title: { en: "Buy milk", ru: "Купить молоко" } },
+      })
+      await edem.data.createItem({
+        collection_id: "tasks",
+        data: { title: { en: "Clean house", ru: "Убрать дом" } },
+      })
+
+      const { items } = await edem.data.queryItems({
+        collection_id: "tasks",
+        filter: { title: { _contains: "молоко" } },
+        locale: "ru",
+      })
+
+      expect(items).toHaveLength(1)
+      expect(items[0].data.title).toBe("Купить молоко")
+    })
+
+    it("should sort by locale in queryItems", async () => {
+      await edem.data.createCollection({
+        name: "Tasks",
+        id: "tasks",
+        fields: [{ name: "title", type: "string" }],
+      })
+
+      await edem.data.createItem({
+        collection_id: "tasks",
+        data: { title: { en: "Banana", ru: "Банан" } },
+      })
+      await edem.data.createItem({
+        collection_id: "tasks",
+        data: { title: { en: "Apple", ru: "Яблоко" } },
+      })
+
+      const { items } = await edem.data.queryItems({
+        collection_id: "tasks",
+        sort: ["title"],
+        locale: "ru",
+      })
+
+      expect(items.map((i) => i.data.title)).toEqual(["Банан", "Яблоко"])
+    })
+
+    it("should search across all locales", async () => {
+      await edem.data.createCollection({
+        name: "Tasks",
+        id: "tasks",
+        fields: [{ name: "title", type: "string" }],
+      })
+
+      await edem.data.createItem({
+        collection_id: "tasks",
+        data: { title: { en: "Buy milk", ru: "Купить молоко" } },
+      })
+
+      const { items: byRu } = await edem.data.searchItems({
+        collection_id: "tasks",
+        query: "молоко",
+      })
+      expect(byRu).toHaveLength(1)
+
+      const { items: byEn } = await edem.data.searchItems({
+        collection_id: "tasks",
+        query: "milk",
+      })
+      expect(byEn).toHaveLength(1)
+    })
+
+    it("should count with locale filter", async () => {
+      await edem.data.createCollection({
+        name: "Tasks",
+        id: "tasks",
+        fields: [{ name: "title", type: "string" }],
+      })
+
+      await edem.data.createItem({
+        collection_id: "tasks",
+        data: { title: { en: "Buy milk", ru: "Купить молоко" } },
+      })
+      await edem.data.createItem({
+        collection_id: "tasks",
+        data: { title: { en: "Clean house", ru: "Убрать дом" } },
+      })
+
+      const { count } = await edem.data.countItems({
+        collection_id: "tasks",
+        filter: { title: { _contains: "молоко" } },
+        locale: "ru",
+      })
+
+      expect(count).toBe(1)
+    })
   })
 })

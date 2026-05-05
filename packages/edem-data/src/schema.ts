@@ -7,6 +7,7 @@ export const collections = sqliteTable("collections", {
   parent_id: text("parent_id"),
   template_id: text("template_id"),
   name: text("name").notNull(),
+  labels: text("labels"), // JSON i18n
   description: text("description"),
   icon: text("icon"),
   singleton: integer("singleton", { mode: "boolean" }).default(false),

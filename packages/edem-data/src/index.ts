@@ -1,3 +1,5 @@
 export { dataModule } from "./module"
 export { resetDataEngine } from "./db"
 export type { Manifest, ManifestCollection, ManifestField } from "./fields"
+export { labelsSchema } from "./fields"
+export { resolveLocalizedValue, resolveLocalizedData, isLocalizedValue } from "./locale"

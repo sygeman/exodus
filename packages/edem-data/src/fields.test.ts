@@ -154,6 +154,40 @@ describe("validateFieldValue", () => {
       expect(validateFieldValue("collection", [])).toBe(true)
     })
   })
+
+  describe("localized values", () => {
+    it("should accept localized object for string", () => {
+      expect(validateFieldValue("string", { en: "Hello", ru: "Привет" })).toBe(true)
+    })
+
+    it("should accept localized object for text", () => {
+      expect(validateFieldValue("text", { en: "Hello", ru: "Привет" })).toBe(true)
+    })
+
+    it("should reject localized object for file", () => {
+      expect(validateFieldValue("file", { en: "file.txt" })).toBe(false)
+    })
+
+    it("should reject localized object for image", () => {
+      expect(validateFieldValue("image", { en: "photo.jpg" })).toBe(false)
+    })
+
+    it("should reject localized object for video", () => {
+      expect(validateFieldValue("video", { en: "clip.mp4" })).toBe(false)
+    })
+
+    it("should reject localized object for user", () => {
+      expect(validateFieldValue("user", { en: "admin" })).toBe(false)
+    })
+
+    it("should reject empty object for string", () => {
+      expect(validateFieldValue("string", {})).toBe(false)
+    })
+
+    it("should reject object with non-string values for string", () => {
+      expect(validateFieldValue("string", { en: "Hello", count: 5 })).toBe(false)
+    })
+  })
 })
 
 describe("fieldSchema", () => {
@@ -219,5 +253,30 @@ describe("fieldSchema", () => {
       })
       expect(result.success).toBe(true)
     }
+  })
+
+  it("should validate with labels", () => {
+    const result = fieldSchema.safeParse({
+      id: "1",
+      collection_id: "col1",
+      name: "title",
+      type: "string",
+      labels: { en: "Title", ru: "Заголовок" },
+    })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.labels).toEqual({ en: "Title", ru: "Заголовок" })
+    }
+  })
+
+  it("should validate with empty labels", () => {
+    const result = fieldSchema.safeParse({
+      id: "1",
+      collection_id: "col1",
+      name: "title",
+      type: "string",
+      labels: {},
+    })
+    expect(result.success).toBe(true)
   })
 })

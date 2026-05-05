@@ -21,10 +21,13 @@ export const fieldTypes = [
 
 export type FieldType = (typeof fieldTypes)[number]
 
+export const labelsSchema = z.record(z.string(), z.string())
+
 export const fieldSchema = z.object({
   id: z.string(),
   collection_id: z.string(),
   name: z.string(),
+  labels: labelsSchema.optional(),
   type: z.enum(fieldTypes),
   options: z.record(z.string(), z.any()).optional(),
   required: z.boolean().optional(),
@@ -36,6 +39,7 @@ export const fieldInputSchema = fieldSchema.omit({ id: true, collection_id: true
 
 export const manifestFieldSchema = z.object({
   name: z.string(),
+  labels: labelsSchema.optional(),
   type: z.enum(fieldTypes),
   required: z.boolean().optional(),
   default: z.any().optional(),
@@ -46,6 +50,7 @@ export const manifestFieldSchema = z.object({
 export const manifestCollectionSchema = z.object({
   id: z.string(),
   name: z.string(),
+  labels: labelsSchema.optional(),
   description: z.string().optional(),
   icon: z.string().optional(),
   singleton: z.boolean().optional(),
@@ -63,12 +68,21 @@ export type ManifestField = z.infer<typeof manifestFieldSchema>
 const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/
 const isoDatetimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
 
+export function isLocalizedValue(value: unknown): value is Record<string, string> {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false
+  const entries = Object.entries(value)
+  if (entries.length === 0) return false
+  return entries.every(([, v]) => typeof v === "string")
+}
+
 export function validateFieldValue(type: FieldType, value: unknown): boolean {
   if (value === null || value === undefined) return true
 
   switch (type) {
     case "string":
     case "text":
+      if (typeof value === "string") return true
+      return isLocalizedValue(value)
     case "file":
     case "image":
     case "video":
