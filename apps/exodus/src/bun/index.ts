@@ -4,6 +4,7 @@ import { createBunEdemBridge } from "@exodus/edem-electrobun/bun"
 import type { EdemMsg } from "@exodus/edem-electrobun/types"
 import { edem, modules } from "@/bun/edem"
 import { ensureCollections } from "@/manifest"
+import { ensureFlows } from "@/flows-bootstrap"
 import { bunLogger } from "@/modules/logger/bun"
 import { initAppState, initStateDefaults } from "@/modules/app-state/bun"
 
@@ -67,6 +68,7 @@ const rpc = BrowserView.defineRPC<{
 })
 
 await ensureCollections(edem.data)
+await ensureFlows(edem.flows)
 await initStateDefaults(edem.data)
 
 const defaultFrame = { width: 1200, height: 800, x: 0, y: 0 }

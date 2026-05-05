@@ -48,7 +48,7 @@ Everything in an Edem application is built on three meta-modules:
 | Module | Role | Status |
 |--------|------|--------|
 | **edem-data** | Schema + data storage (meta-level) | Working |
-| **edem-flows** | Business logic engine | Stub |
+| **edem-flows** | Business logic engine | Working |
 | **edem-ui** | Rendering engine | Stub |
 
 All application features (logger, settings, app-state, etc.) are NOT separate modules. They are **collections + flows + UI** defined through the three base modules.
@@ -71,7 +71,7 @@ Settings:
 |---------|------|--------|
 | edem-core | Module system, RPC, worker abstraction | Working |
 | edem-data | Collections, items, fields — the meta-level | Working |
-| edem-flows | Triggers, nodes, actions | Stub (in-memory) |
+| edem-flows | Triggers, nodes, actions, DAG engine | Working |
 | edem-ui | Pages, components, rendering | Stub (in-memory) |
 | edem-mcp | MCP tools integration | Stub |
 | edem-runners | Distributed task execution | Stub |
@@ -103,8 +103,10 @@ These are built-in mechanisms, not collections. They operate on items.
 | itemLocks | Pessimistic locking for concurrent editing |
 | files | Content-addressed file storage |
 | itemFiles | Junction between items and files |
+| fileThumbnails | Thumbnail variants for files (small/medium/large) |
 | fieldMigrations | Schema evolution tracking |
 | templates | Predefined project/collection configurations |
+| templateTags | Tags for template discovery |
 
 ### Projects
 
@@ -208,15 +210,14 @@ Exodus SQLite
 ├── project "exodus" (type: desktop)
 │
 ├── collections
-│   ├── settings { key, value, type }
-│   ├── logs { level, message, timestamp, source }
-│   ├── app_state { key, value }
-│   ├── projects { name, slug, color, ... }
-│   ├── flows { name, nodes, triggers }
-│   └── pages { path, components }
+│   ├── projects { name, slug, description, icon, color, type, sort_order }
+│   ├── ideas { project_id, title, description, level, type, status }
+│   ├── logs { level, message, source, args, count }
+│   ├── app_state (singleton) { last_route, locale, theme, window_frame, window_maximized }
+│   └── updater_status (singleton) { status, current_version, latest_version, error }
 │
 └── items
-    ├── settings: [{ dark_mode: true }, ...]
+    ├── projects: [{ name: "My Project", ... }, ...]
     ├── logs: [...]
     └── ...
 ```
@@ -238,6 +239,7 @@ Exodus is fully on edem:
 | app-state | Edem | edem-data (SQLite) |
 | updater | Edem | edem-data (SQLite) |
 | settings | Edem | via app-state |
+| debug | Vue pages only | reads logs + app_state |
 
 All modules use edem-data for storage. Evento has been removed.
 
@@ -253,11 +255,15 @@ All modules use edem-data for storage. Evento has been removed.
 - Remove in-memory Map from edem-flows
 - edem-flows depends on edem-data
 
+**Status: Implemented.** edem-flows stores flows/runs in edem-data collections. 12 node types, DAG engine, retry/timeout support.
+
 ### Phase 2: edem-ui → data backend
 
 - edem-ui reads/writes pages as items in collection "pages"
 - Remove in-memory Map from edem-ui
 - edem-ui depends on edem-data
+
+**Status: Not started.** edem-ui still uses in-memory Map.
 
 ### Phase 3: Exodus modules → edem collections
 
@@ -301,7 +307,7 @@ Exodus can build projects into standalone apps.
 
 3. **Bootstrap tables**: Current 11 tables — which stay as bootstrap, which become collections?
 
-4. **edem-data size**: 1459 lines, 52 procedures. Should it be split into sub-modules (edem-relations, edem-versions, edem-locks, edem-files)?
+4. **edem-data size**: 1529 lines, 52+ procedures. Should it be split into sub-modules (edem-relations, edem-versions, edem-locks, edem-files)?
 
 5. **UI rendering**: Vue at runtime? Custom renderer from JSON manifest?
 
