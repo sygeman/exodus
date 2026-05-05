@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { createEdemModule, type InferModuleAPI } from "@exodus/edem-core"
 import type { dataModule } from "@exodus/edem-data"
-import { executeFlow, type Flow } from "./engine"
+import { executeFlow, validateFlowRunTransition, type Flow } from "./engine"
 import {
   triggerSchema,
   nodeSchema,
@@ -29,13 +29,19 @@ const flowSchema = z.object({
   meta: z.record(z.string(), z.unknown()).optional(),
 })
 
+const flowContextSchema = z.object({
+  trigger_data: z.record(z.string(), z.unknown()),
+  node_outputs: z.record(z.string(), z.record(z.string(), z.unknown())),
+  flow_variables: z.record(z.string(), z.unknown()),
+})
+
 const runSchema = z.object({
   id: z.string(),
   flow_id: z.string(),
   status: z.enum(["pending", "running", "waiting", "completed", "error", "cancelled"]),
   input: z.record(z.string(), z.unknown()).optional(),
   output: z.record(z.string(), z.unknown()).optional(),
-  context: z.record(z.string(), z.unknown()).optional(),
+  context: flowContextSchema.optional(),
   waiting_node_id: z.string().nullable().optional(),
   error: z.string().nullable().optional(),
   started_at: z.number(),
@@ -57,6 +63,16 @@ export const flowsModule = createEdemModule(
       .subscription("runStarted", { output: runSchema })
       .subscription("runCompleted", { output: runSchema })
       .subscription("runUpdated", { output: runSchema })
+      .subscription("nodeStarted", {
+        output: z.object({ run_id: z.string(), node_id: z.string() }),
+      })
+      .subscription("nodeCompleted", {
+        output: z.object({
+          run_id: z.string(),
+          node_id: z.string(),
+          output: z.record(z.string(), z.unknown()),
+        }),
+      })
       .mutation("createFlow", {
         input: z.object({
           name: z.string(),
@@ -178,7 +194,7 @@ export const flowsModule = createEdemModule(
                 item_id: runId,
                 data: {
                   status: "waiting",
-                  context: result.context as unknown as Record<string, unknown>,
+                  context: result.context,
                   waiting_node_id: result.waitingNodeId,
                 },
               })
@@ -186,7 +202,7 @@ export const flowsModule = createEdemModule(
               const waitingRun: z.infer<typeof runSchema> = {
                 ...run,
                 status: "waiting",
-                context: result.context as unknown as Record<string, unknown>,
+                context: result.context,
                 waiting_node_id: result.waitingNodeId,
               }
               await emit.runUpdated(waitingRun)
@@ -242,8 +258,9 @@ export const flowsModule = createEdemModule(
           const { item } = await data.getItem({ item_id: input.run_id })
           if (!item) throw new Error(`Run ${input.run_id} not found`)
 
-          if (item.data.status !== "running" && item.data.status !== "waiting") {
-            throw new Error(`Run ${input.run_id} is not running or waiting`)
+          const currentStatus = item.data.status as string
+          if (!validateFlowRunTransition(currentStatus, "cancelled")) {
+            throw new Error(`Cannot cancel run ${input.run_id} with status ${currentStatus}`)
           }
 
           await data.updateItem({
@@ -267,8 +284,9 @@ export const flowsModule = createEdemModule(
           const { item } = await data.getItem({ item_id: input.run_id })
           if (!item) throw new Error(`Run ${input.run_id} not found`)
 
-          if (item.data.status !== "waiting") {
-            throw new Error(`Run ${input.run_id} is not waiting`)
+          const currentStatus = item.data.status as string
+          if (!validateFlowRunTransition(currentStatus, "completed")) {
+            throw new Error(`Run ${input.run_id} has status ${currentStatus}, expected waiting`)
           }
 
           if (item.data.waiting_node_id !== input.node_id) {
@@ -279,16 +297,23 @@ export const flowsModule = createEdemModule(
           if (!flowItem.item) throw new Error(`Flow ${item.data.flow_id} not found`)
 
           const flow = parseFlow(flowItem.item)
-          const context = (item.data.context as Record<string, unknown>) ?? {}
+          const storedContext = (item.data.context ?? {}) as {
+            trigger_data?: Record<string, unknown>
+            node_outputs?: Record<string, Record<string, unknown>>
+            flow_variables?: Record<string, unknown>
+          }
 
-          context.node_outputs =
-            (context.node_outputs as Record<string, Record<string, unknown>>) ?? {}
-          ;(context.node_outputs as Record<string, Record<string, unknown>>)[input.node_id] =
-            input.output
+          const restoredContext = {
+            trigger_data: storedContext.trigger_data ?? {},
+            node_outputs: storedContext.node_outputs ?? {},
+            flow_variables: storedContext.flow_variables ?? {},
+          }
+          restoredContext.node_outputs[input.node_id] = input.output
 
           const result = await executeFlow(
             flow as Flow,
-            (context.trigger_data as Record<string, unknown>) ?? {},
+            restoredContext.trigger_data,
+            restoredContext,
           )
 
           if (result.status === "waiting") {
@@ -296,7 +321,7 @@ export const flowsModule = createEdemModule(
               item_id: input.run_id,
               data: {
                 status: "waiting",
-                context: result.context as unknown as Record<string, unknown>,
+                context: result.context,
                 waiting_node_id: result.waitingNodeId,
               },
             })
@@ -305,7 +330,7 @@ export const flowsModule = createEdemModule(
               id: input.run_id,
               flow_id: item.data.flow_id as string,
               status: "waiting",
-              context: result.context as unknown as Record<string, unknown>,
+              context: result.context,
               waiting_node_id: result.waitingNodeId,
               started_at: item.data.started_at as number,
               completed_at: null,
@@ -348,8 +373,9 @@ export const flowsModule = createEdemModule(
           const { item } = await data.getItem({ item_id: input.run_id })
           if (!item) throw new Error(`Run ${input.run_id} not found`)
 
-          if (item.data.status !== "waiting") {
-            throw new Error(`Run ${input.run_id} is not waiting`)
+          const currentStatus = item.data.status as string
+          if (!validateFlowRunTransition(currentStatus, "error")) {
+            throw new Error(`Run ${input.run_id} has status ${currentStatus}, expected waiting`)
           }
 
           if (item.data.waiting_node_id !== input.node_id) {
@@ -386,7 +412,7 @@ export const flowsModule = createEdemModule(
           updated: z.array(z.string()),
           skipped: z.array(z.string()),
         }),
-        resolve: async ({ input }) => {
+        resolve: async ({ input, emit }) => {
           const data = getData()
           const { manifest } = input
 
@@ -408,9 +434,9 @@ export const flowsModule = createEdemModule(
               const existingData = existing.data
               const hasChanges =
                 existingData.name !== flowDef.name ||
-                JSON.stringify(existingData.trigger) !== JSON.stringify(flowDef.trigger) ||
-                JSON.stringify(existingData.nodes) !== JSON.stringify(flowDef.nodes) ||
-                JSON.stringify(existingData.edges) !== JSON.stringify(flowDef.edges)
+                !deepEqual(existingData.trigger, flowDef.trigger) ||
+                !deepEqual(existingData.nodes, flowDef.nodes) ||
+                !deepEqual(existingData.edges, flowDef.edges)
 
               if (hasChanges) {
                 await data.updateItem({
@@ -424,11 +450,19 @@ export const flowsModule = createEdemModule(
                   },
                 })
                 updated.push(flowDef.id)
+                await emit.flowUpdated({
+                  id: existing.id,
+                  name: flowDef.name,
+                  trigger: flowDef.trigger,
+                  nodes: flowDef.nodes,
+                  edges: flowDef.edges,
+                  meta: flowDef.meta,
+                })
               } else {
                 skipped.push(flowDef.id)
               }
             } else {
-              await data.createItem({
+              const { id } = await data.createItem({
                 collection_id: FLOWS_COLLECTION,
                 data: {
                   manifest_id: flowDef.id,
@@ -440,6 +474,14 @@ export const flowsModule = createEdemModule(
                 },
               })
               created.push(flowDef.id)
+              await emit.flowCreated({
+                id,
+                name: flowDef.name,
+                trigger: flowDef.trigger,
+                nodes: flowDef.nodes,
+                edges: flowDef.edges,
+                meta: flowDef.meta,
+              })
             }
           }
 
@@ -550,17 +592,38 @@ function parseRun(item: {
   data: Record<string, unknown>
 }): z.infer<typeof runSchema> {
   return {
-    id: (item.data.id as string) ?? item.id,
+    id: item.id,
     flow_id: item.data.flow_id as string,
     status: item.data.status as z.infer<typeof runSchema>["status"],
     input: item.data.input as Record<string, unknown> | undefined,
     output: item.data.output as Record<string, unknown> | undefined,
-    context: item.data.context as Record<string, unknown> | undefined,
+    context: item.data.context as z.infer<typeof flowContextSchema> | undefined,
     waiting_node_id: (item.data.waiting_node_id as string) ?? null,
     error: (item.data.error as string) ?? null,
     started_at: item.data.started_at as number,
     completed_at: (item.data.completed_at as number) ?? null,
   }
+}
+
+function deepEqual(a: unknown, b: unknown): boolean {
+  if (a === b) return true
+  if (a === null || b === null || a === undefined || b === undefined) return false
+  if (typeof a !== typeof b) return false
+  if (typeof a !== "object") return false
+
+  const objA = a as Record<string, unknown>
+  const objB = b as Record<string, unknown>
+  const keysA = Object.keys(objA)
+  const keysB = Object.keys(objB)
+
+  if (keysA.length !== keysB.length) return false
+
+  for (const key of keysA) {
+    if (!Object.hasOwn(objB, key)) return false
+    if (!deepEqual(objA[key], objB[key])) return false
+  }
+
+  return true
 }
 
 async function ensureCollections(data: EdemData) {
@@ -581,8 +644,10 @@ async function ensureCollections(data: EdemData) {
         ],
       })
     }
-  } catch {
-    // collection already exists
+  } catch (err) {
+    if (!(err instanceof Error && err.message.includes("already exists"))) {
+      throw err
+    }
   }
 
   try {
@@ -598,14 +663,18 @@ async function ensureCollections(data: EdemData) {
           { name: "status", type: "string", required: true },
           { name: "input", type: "json" },
           { name: "output", type: "json" },
+          { name: "context", type: "json" },
+          { name: "waiting_node_id", type: "string" },
           { name: "error", type: "string" },
           { name: "started_at", type: "number" },
           { name: "completed_at", type: "number" },
         ],
       })
     }
-  } catch {
-    // collection already exists
+  } catch (err) {
+    if (!(err instanceof Error && err.message.includes("already exists"))) {
+      throw err
+    }
   }
 }
 

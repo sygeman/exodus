@@ -1,4 +1,10 @@
-import { resolveNodeInput, resolveTemplate, setFlowVariable, type FlowContext } from "./context"
+import {
+  resolveNodeInput,
+  resolveTemplate,
+  resolveNestedValue,
+  setFlowVariable,
+  type FlowContext,
+} from "./context"
 
 export interface NodeExecutorResult {
   output: Record<string, unknown>
@@ -46,9 +52,7 @@ async function executeCondition(
   const value = resolved.value
   const operator = (resolved.operator as string) ?? "eq"
 
-  const inputValue = field.startsWith("{{")
-    ? resolveTemplate(field, context)
-    : resolveNestedValue(input, field.split("."))
+  const inputValue = resolveNestedValue(input, field.split("."))
 
   let result = false
 
@@ -187,25 +191,6 @@ async function executeOutput(
   return {
     output: { status: "completed", outputs: resolvedOutputs },
   }
-}
-
-function resolveNestedValue(value: unknown, path: string[]): unknown {
-  let current = value
-
-  for (const key of path) {
-    if (current === null || current === undefined) return undefined
-    if (typeof current !== "object") return undefined
-
-    if (Array.isArray(current)) {
-      const index = parseInt(key, 10)
-      if (isNaN(index)) return undefined
-      current = current[index]
-    } else {
-      current = (current as Record<string, unknown>)[key]
-    }
-  }
-
-  return current
 }
 
 async function executeAction(

@@ -51,7 +51,7 @@ export function resolveVariable(path: string, context: FlowContext): unknown {
 
   switch (scope) {
     case "trigger":
-      return resolveNested(context.trigger_data, rest)
+      return resolveNestedValue(context.trigger_data, rest)
     case "nodes": {
       if (rest.length === 0) return undefined
       const nodeId = rest[0]
@@ -59,9 +59,9 @@ export function resolveVariable(path: string, context: FlowContext): unknown {
       if (!nodeOutput) return undefined
       // Support both nodes.id.field and nodes.id.output.field
       if (rest.length >= 2 && rest[1] === "output") {
-        return resolveNested(nodeOutput, rest.slice(2))
+        return resolveNestedValue(nodeOutput, rest.slice(2))
       }
-      return resolveNested(nodeOutput, rest.slice(1))
+      return resolveNestedValue(nodeOutput, rest.slice(1))
     }
     case "context": {
       if (rest.length === 0) return undefined
@@ -73,7 +73,7 @@ export function resolveVariable(path: string, context: FlowContext): unknown {
   }
 }
 
-function resolveNested(value: unknown, path: string[]): unknown {
+export function resolveNestedValue(value: unknown, path: string[]): unknown {
   let current = value
 
   for (const key of path) {

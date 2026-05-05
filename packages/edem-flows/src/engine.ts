@@ -39,8 +39,9 @@ export interface ExecutionResult {
 export async function executeFlow(
   flow: Flow,
   triggerData: Record<string, unknown> = {},
+  existingContext?: FlowContext,
 ): Promise<ExecutionResult> {
-  const context = createContext(triggerData)
+  const context = existingContext ?? createContext(triggerData)
   const nodeResults = new Map<string, NodeExecutorResult>()
   const nodeMap = new Map(flow.nodes.map((n) => [n.id, n]))
 
@@ -115,7 +116,28 @@ async function executeNode(
     return { status: "error", error: `Unknown node type: ${node.type}` }
   }
 
-  const result = await executor(node.data, input, context, nodeId)
+  let result: NodeExecutorResult
+  try {
+    result = await executor(node.data, input, context, nodeId)
+  } catch (err) {
+    const maxRetries = node.retry_max ?? 0
+    if (attempt <= maxRetries) {
+      const delay = node.retry_delay ?? 1000
+      await new Promise((resolve) => setTimeout(resolve, delay))
+      return executeNode(
+        nodeId,
+        nodeMap,
+        adjacency,
+        context,
+        nodeResults,
+        visited,
+        input,
+        attempt + 1,
+      )
+    }
+    const error = err instanceof Error ? err.message : String(err)
+    return { status: "error", error }
+  }
 
   nodeResults.set(nodeId, result)
   setNodeOutput(context, nodeId, result.output)
