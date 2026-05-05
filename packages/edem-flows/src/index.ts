@@ -1,10 +1,12 @@
 import { z } from "zod"
 import { createEdemModule, type InferModuleAPI } from "@exodus/edem-core"
 import type { dataModule } from "@exodus/edem-data"
+import { executeFlow, type Flow } from "./engine"
 
 type EdemData = InferModuleAPI<typeof dataModule>
 
-const COLLECTION_ID = "flows"
+const FLOWS_COLLECTION = "flows"
+const RUNS_COLLECTION = "flow_runs"
 
 let dataRef: EdemData | null = null
 
@@ -41,6 +43,7 @@ const edgeSchema = z.object({
   sourceHandle: z.string().optional(),
   targetHandle: z.string().optional(),
   condition: z.string().optional(),
+  label: z.string().optional(),
 })
 
 const flowSchema = z.object({
@@ -55,9 +58,9 @@ const flowSchema = z.object({
 const runSchema = z.object({
   id: z.string(),
   flow_id: z.string(),
-  status: z.enum(["pending", "running", "success", "error", "cancelled"]),
-  trigger: z.record(z.string(), z.unknown()).optional(),
-  variables: z.record(z.string(), z.unknown()).optional(),
+  status: z.enum(["pending", "running", "completed", "error", "cancelled"]),
+  input: z.record(z.string(), z.unknown()).optional(),
+  output: z.record(z.string(), z.unknown()).optional(),
   error: z.string().nullable().optional(),
   started_at: z.number(),
   completed_at: z.number().nullable().optional(),
@@ -77,6 +80,7 @@ export const flowsModule = createEdemModule(
       .subscription("flowDeleted", { output: z.object({ flow_id: z.string() }) })
       .subscription("runStarted", { output: runSchema })
       .subscription("runCompleted", { output: runSchema })
+      .subscription("runUpdated", { output: runSchema })
       .mutation("createFlow", {
         input: z.object({
           name: z.string(),
@@ -90,7 +94,7 @@ export const flowsModule = createEdemModule(
           const data = getData()
 
           const { id } = await data.createItem({
-            collection_id: COLLECTION_ID,
+            collection_id: FLOWS_COLLECTION,
             data: {
               name: input.name,
               trigger: input.trigger,
@@ -167,40 +171,91 @@ export const flowsModule = createEdemModule(
           if (!item) throw new Error(`Flow ${input.flow_id} not found`)
 
           const flow = parseFlow(item)
-          const runId = crypto.randomUUID()
           const now = Date.now()
+
+          const { id: runId } = await data.createItem({
+            collection_id: RUNS_COLLECTION,
+            data: {
+              flow_id: input.flow_id,
+              status: "running",
+              input: input.trigger_data ?? {},
+              started_at: now,
+            },
+          })
 
           const run: z.infer<typeof runSchema> = {
             id: runId,
             flow_id: input.flow_id,
             status: "running",
-            trigger: input.trigger_data,
-            variables: {},
+            input: input.trigger_data,
             started_at: now,
             completed_at: null,
           }
+
           await emit.runStarted(run)
 
           try {
-            const result = await executeFlow(flow)
+            const result = await executeFlow(flow as Flow, input.trigger_data ?? {})
+
+            await data.updateItem({
+              item_id: runId,
+              data: {
+                status: result.status,
+                output: result.context.node_outputs,
+                completed_at: Date.now(),
+              },
+            })
+
             const completedRun: z.infer<typeof runSchema> = {
               ...run,
-              status: "success",
-              variables: result,
+              status: result.status,
+              output: result.context.node_outputs,
               completed_at: Date.now(),
             }
             await emit.runCompleted(completedRun)
-            return { run_id: runId, status: "success" }
+            return { run_id: runId, status: result.status }
           } catch (err) {
+            const error = err instanceof Error ? err.message : String(err)
+
+            await data.updateItem({
+              item_id: runId,
+              data: {
+                status: "error",
+                error,
+                completed_at: Date.now(),
+              },
+            })
+
             const errorRun: z.infer<typeof runSchema> = {
               ...run,
               status: "error",
-              error: err instanceof Error ? err.message : String(err),
+              error,
               completed_at: Date.now(),
             }
             await emit.runCompleted(errorRun)
             return { run_id: runId, status: "error" }
           }
+        },
+      })
+      .mutation("cancelRun", {
+        input: z.object({ run_id: z.string() }),
+        output: z.object({ success: z.boolean() }),
+        resolve: async ({ input }) => {
+          const data = getData()
+
+          const { item } = await data.getItem({ item_id: input.run_id })
+          if (!item) throw new Error(`Run ${input.run_id} not found`)
+
+          if (item.data.status !== "running") {
+            throw new Error(`Run ${input.run_id} is not running`)
+          }
+
+          await data.updateItem({
+            item_id: input.run_id,
+            data: { status: "cancelled", completed_at: Date.now() },
+          })
+
+          return { success: true }
         },
       })
       .query("getFlow", {
@@ -218,14 +273,50 @@ export const flowsModule = createEdemModule(
         output: z.object({ flows: z.array(flowSchema) }),
         resolve: async () => {
           const data = getData()
-          const { items } = await data.queryItems({ collection_id: COLLECTION_ID })
+          const { items } = await data.queryItems({
+            collection_id: FLOWS_COLLECTION,
+          })
           return { flows: items.map(parseFlow) }
+        },
+      })
+      .query("getRun", {
+        input: z.object({ run_id: z.string() }),
+        output: z.object({ run: runSchema.nullable() }),
+        resolve: async ({ input }) => {
+          const data = getData()
+          const { item } = await data.getItem({ item_id: input.run_id })
+          if (!item) return { run: null }
+          return { run: parseRun(item) }
+        },
+      })
+      .query("listRuns", {
+        input: z.object({
+          flow_id: z.string().optional(),
+          status: z.string().optional(),
+        }),
+        output: z.object({ runs: z.array(runSchema) }),
+        resolve: async ({ input }) => {
+          const data = getData()
+          const { items } = await data.queryItems({
+            collection_id: RUNS_COLLECTION,
+          })
+
+          let runs = items.map(parseRun)
+
+          if (input.flow_id) {
+            runs = runs.filter((r) => r.flow_id === input.flow_id)
+          }
+          if (input.status) {
+            runs = runs.filter((r) => r.status === input.status)
+          }
+
+          return { runs }
         },
       }),
   (edem) => {
     const { data } = edem as { data: EdemData }
     dataRef = data
-    ensureFlowsCollection(data).catch(console.error)
+    ensureCollections(data).catch(console.error)
   },
 )
 
@@ -244,63 +335,67 @@ function parseFlow(item: {
   }
 }
 
-async function ensureFlowsCollection(data: EdemData) {
-  try {
-    const { collection } = await data.getCollection({ collection_id: COLLECTION_ID })
-    if (collection) return
-
-    await data.createCollection({
-      id: COLLECTION_ID,
-      name: "Flows",
-      fields: [
-        { name: "name", type: "string", required: true },
-        { name: "trigger", type: "json", required: true },
-        { name: "nodes", type: "json" },
-        { name: "edges", type: "json" },
-        { name: "meta", type: "json" },
-      ],
-    })
-  } catch {
-    // collection already exists
+function parseRun(item: {
+  id: string
+  collection_id: string
+  data: Record<string, unknown>
+}): z.infer<typeof runSchema> {
+  return {
+    id: (item.data.id as string) ?? item.id,
+    flow_id: item.data.flow_id as string,
+    status: item.data.status as z.infer<typeof runSchema>["status"],
+    input: item.data.input as Record<string, unknown> | undefined,
+    output: item.data.output as Record<string, unknown> | undefined,
+    error: (item.data.error as string) ?? null,
+    started_at: item.data.started_at as number,
+    completed_at: (item.data.completed_at as number) ?? null,
   }
 }
 
-async function executeFlow(flow: z.infer<typeof flowSchema>): Promise<Record<string, unknown>> {
-  const variables: Record<string, unknown> = {}
-
-  if (flow.nodes.length === 0) return variables
-
-  const nodeMap = new Map(flow.nodes.map((n) => [n.id, n]))
-  const adjacency = new Map<string, string[]>()
-
-  for (const edge of flow.edges) {
-    if (!adjacency.has(edge.source)) {
-      adjacency.set(edge.source, [])
+async function ensureCollections(data: EdemData) {
+  try {
+    const { collection: flowsCol } = await data.getCollection({
+      collection_id: FLOWS_COLLECTION,
+    })
+    if (!flowsCol) {
+      await data.createCollection({
+        id: FLOWS_COLLECTION,
+        name: "Flows",
+        fields: [
+          { name: "name", type: "string", required: true },
+          { name: "trigger", type: "json", required: true },
+          { name: "nodes", type: "json" },
+          { name: "edges", type: "json" },
+          { name: "meta", type: "json" },
+        ],
+      })
     }
-    adjacency.get(edge.source)!.push(edge.target)
+  } catch {
+    // collection already exists
   }
 
-  const startNode = flow.nodes[0]
-  if (!startNode) return variables
-
-  const queue: string[] = [startNode.id]
-  const visited = new Set<string>()
-
-  while (queue.length > 0) {
-    const nodeId = queue.shift()!
-    if (visited.has(nodeId)) continue
-    visited.add(nodeId)
-
-    const node = nodeMap.get(nodeId)
-    if (!node) continue
-
-    variables[nodeId] = { type: node.type, data: node.data, executed_at: Date.now() }
-
-    const nextNodes = adjacency.get(nodeId) ?? []
-    queue.push(...nextNodes)
+  try {
+    const { collection: runsCol } = await data.getCollection({
+      collection_id: RUNS_COLLECTION,
+    })
+    if (!runsCol) {
+      await data.createCollection({
+        id: RUNS_COLLECTION,
+        name: "Flow Runs",
+        fields: [
+          { name: "flow_id", type: "string", required: true },
+          { name: "status", type: "string", required: true },
+          { name: "input", type: "json" },
+          { name: "output", type: "json" },
+          { name: "error", type: "string" },
+          { name: "started_at", type: "number" },
+          { name: "completed_at", type: "number" },
+        ],
+      })
+    }
+  } catch {
+    // collection already exists
   }
-
-  return variables
 }
 
 export default flowsModule

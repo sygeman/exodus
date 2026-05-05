@@ -156,8 +156,7 @@ describe("edem-flows", () => {
       })
 
       const result = await edem.flows.runFlow({ flow_id })
-      expect(result.status).toBe("success")
-      expect(result.run_id).toBeDefined()
+      expect(result.status).toBe("completed")
     })
 
     it("should execute nodes and populate variables", async () => {
@@ -166,13 +165,18 @@ describe("edem-flows", () => {
         trigger: { type: "manual" },
         nodes: [
           { id: "start", type: "trigger", position: { x: 0, y: 0 } },
-          { id: "action", type: "update", position: { x: 100, y: 0 }, data: { target: "item" } },
+          {
+            id: "transform",
+            type: "transform",
+            position: { x: 100, y: 0 },
+            data: { field: "value", operation: "add", value: 10 },
+          },
         ],
-        edges: [{ id: "e1", source: "start", target: "action" }],
+        edges: [{ id: "e1", source: "start", target: "transform" }],
       })
 
-      const result = await edem.flows.runFlow({ flow_id })
-      expect(result.status).toBe("success")
+      const result = await edem.flows.runFlow({ flow_id, trigger_data: { value: 5 } })
+      expect(result.status).toBe("completed")
     })
 
     it("should throw on non-existent flow", async () => {

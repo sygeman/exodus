@@ -1,0 +1,202 @@
+import { resolveNodeInput, resolveTemplate, type FlowContext } from "./context"
+
+export interface NodeExecutorResult {
+  output: Record<string, unknown>
+  followEdges?: Array<{ handle: string }>
+}
+
+export type NodeExecutor = (
+  config: Record<string, unknown> | undefined,
+  input: Record<string, unknown>,
+  context: FlowContext,
+) => Promise<NodeExecutorResult>
+
+export const executors: Record<string, NodeExecutor> = {
+  trigger: executeTrigger,
+  condition: executeCondition,
+  transform: executeTransform,
+  switch: executeSwitch,
+  delay: executeDelay,
+  input: executeInput,
+  output: executeOutput,
+}
+
+async function executeTrigger(
+  _config: Record<string, unknown> | undefined,
+  input: Record<string, unknown>,
+  _context: FlowContext,
+): Promise<NodeExecutorResult> {
+  return { output: input }
+}
+
+async function executeCondition(
+  config: Record<string, unknown> | undefined,
+  input: Record<string, unknown>,
+  context: FlowContext,
+): Promise<NodeExecutorResult> {
+  const resolved = resolveNodeInput(config, context)
+  const field = resolved.field as string
+  const value = resolved.value
+  const operator = (resolved.operator as string) ?? "eq"
+
+  const inputValue = field.startsWith("{{")
+    ? resolveTemplate(field, context)
+    : resolveNestedValue(input, field.split("."))
+
+  let result = false
+
+  switch (operator) {
+    case "eq":
+      result = inputValue === value
+      break
+    case "ne":
+      result = inputValue !== value
+      break
+    case "gt":
+      result = Number(inputValue) > Number(value)
+      break
+    case "lt":
+      result = Number(inputValue) < Number(value)
+      break
+    case "gte":
+      result = Number(inputValue) >= Number(value)
+      break
+    case "lte":
+      result = Number(inputValue) <= Number(value)
+      break
+    case "contains":
+      result = String(inputValue).includes(String(value))
+      break
+    default:
+      result = inputValue === value
+  }
+
+  return {
+    output: { result },
+    followEdges: [{ handle: result ? "true" : "false" }],
+  }
+}
+
+async function executeTransform(
+  config: Record<string, unknown> | undefined,
+  input: Record<string, unknown>,
+  context: FlowContext,
+): Promise<NodeExecutorResult> {
+  const resolved = resolveNodeInput(config, context)
+  const field = resolved.field as string
+  const operation = (resolved.operation as string) ?? "set"
+  const value = resolved.value
+
+  const inputValue = resolveNestedValue(input, field.split("."))
+
+  let result: unknown
+
+  switch (operation) {
+    case "set":
+      result = value
+      break
+    case "add":
+      result = Number(inputValue) + Number(value)
+      break
+    case "multiply":
+      result = Number(inputValue) * Number(value)
+      break
+    case "append":
+      result = String(inputValue) + String(value)
+      break
+    default:
+      result = value
+  }
+
+  return { output: { result } }
+}
+
+async function executeSwitch(
+  config: Record<string, unknown> | undefined,
+  _input: Record<string, unknown>,
+  context: FlowContext,
+): Promise<NodeExecutorResult> {
+  const resolved = resolveNodeInput(config, context)
+  const valueTemplate = resolved.value as string
+  const cases = (resolved.cases as Array<{ value: string; handle: string }>) ?? []
+  const defaultHandle = (resolved.default_handle as string) ?? "default"
+
+  const resolvedValue =
+    typeof valueTemplate === "string" ? resolveTemplate(valueTemplate, context) : valueTemplate
+
+  const valueStr = String(resolvedValue)
+
+  const matchedCase = cases.find((c) => c.value === valueStr)
+  const matchedHandle = matchedCase?.handle ?? defaultHandle
+
+  return {
+    output: { matched_handle: matchedHandle, value: valueStr },
+    followEdges: [{ handle: matchedHandle }],
+  }
+}
+
+async function executeDelay(
+  config: Record<string, unknown> | undefined,
+  _input: Record<string, unknown>,
+  context: FlowContext,
+): Promise<NodeExecutorResult> {
+  const resolved = resolveNodeInput(config, context)
+  const seconds = Math.max(1, Number(resolved.seconds ?? 1))
+
+  await new Promise((resolve) => setTimeout(resolve, seconds * 1000))
+
+  return {
+    output: { status: "completed", delayed_seconds: seconds },
+  }
+}
+
+async function executeInput(
+  _config: Record<string, unknown> | undefined,
+  _input: Record<string, unknown>,
+  context: FlowContext,
+): Promise<NodeExecutorResult> {
+  const inputs = (context.trigger_data.inputs as Record<string, unknown>) ?? {}
+  return { output: inputs }
+}
+
+async function executeOutput(
+  config: Record<string, unknown> | undefined,
+  _input: Record<string, unknown>,
+  context: FlowContext,
+): Promise<NodeExecutorResult> {
+  const resolved = resolveNodeInput(config, context)
+  const outputs = (resolved.outputs as Record<string, string>) ?? {}
+
+  const resolvedOutputs: Record<string, unknown> = {}
+
+  for (const [key, path] of Object.entries(outputs)) {
+    if (typeof path === "string") {
+      resolvedOutputs[key] = resolveTemplate(path, context)
+    } else {
+      resolvedOutputs[key] = path
+    }
+  }
+
+  return {
+    output: { status: "completed", outputs: resolvedOutputs },
+  }
+}
+
+function resolveNestedValue(value: unknown, path: string[]): unknown {
+  let current = value
+
+  for (const key of path) {
+    if (current === null || current === undefined) return undefined
+    if (typeof current !== "object") return undefined
+
+    if (Array.isArray(current)) {
+      const index = parseInt(key, 10)
+      if (isNaN(index)) return undefined
+      current = current[index]
+    } else {
+      current = (current as Record<string, unknown>)[key]
+    }
+  }
+
+  return current
+}
