@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@exodus/edem-core": "workspace:*",
-    "zod": "4.3.6"
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@exodus/typescript-config": "workspace:*",

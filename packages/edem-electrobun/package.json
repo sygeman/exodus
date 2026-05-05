@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "@exodus/edem-core": "workspace:*",
-    "electrobun": "1.16.0"
+    "electrobun": "1.18.1"
   },
   "devDependencies": {
     "@exodus/typescript-config": "workspace:*",
