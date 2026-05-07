@@ -114,4 +114,36 @@ describe("dispatcher", () => {
     const { runs } = await edem.flows.listRuns({})
     expect(runs.length).toBe(2)
   })
+
+  it("dispatcher filters by collection_id in event data", async () => {
+    const edem = getEdem()
+    await edem.flows.createFlow({
+      name: "Tasks Only",
+      trigger: { type: "event", event: "item:created:tasks", filter: { collection_id: "tasks" } },
+    })
+
+    const { emit } = await startDispatcher(edem.flows as any, edem.data as any)
+    emit("item:created:tasks", { item: { id: "item-1", collection_id: "projects", data: {} } })
+
+    await new Promise((r) => setTimeout(r, 50))
+
+    const { runs } = await edem.flows.listRuns({})
+    expect(runs).toHaveLength(0)
+  })
+
+  it("dispatcher handles deleted item events", async () => {
+    const edem = getEdem()
+    await edem.flows.createFlow({
+      name: "Delete Flow",
+      trigger: { type: "event", event: "item:deleted:tasks" },
+    })
+
+    const { emit } = await startDispatcher(edem.flows as any, edem.data as any)
+    emit("item:deleted:tasks", { id: "item-1", collection_id: "tasks" })
+
+    await new Promise((r) => setTimeout(r, 50))
+
+    const { runs } = await edem.flows.listRuns({})
+    expect(runs.length).toBeGreaterThanOrEqual(1)
+  })
 })

@@ -1,6 +1,7 @@
 import { describe, it, expect } from "bun:test"
 import { executors } from "./executors"
 import { createContext, setNodeOutput } from "./context"
+import { registerAction } from "./actions"
 
 describe("Node Executors", () => {
   describe("trigger", () => {
@@ -272,6 +273,51 @@ describe("Node Executors", () => {
       expect(result.status).toBeUndefined()
       expect(result.output.status).toBe("completed")
     })
+
+    it("should auto-iterate when autoIterate is true and handler exists", async () => {
+      const ctx = createContext()
+      const callOrder: number[] = []
+
+      registerAction("auto_process", async (input) => {
+        const iter = (input.iteration as number) ?? 0
+        callOrder.push(iter)
+        return { processed: iter }
+      })
+
+      const result = await executors.loop(
+        { maxIterations: 3, action: "auto_process", autoIterate: true },
+        { item: "test" },
+        ctx,
+        "loop1",
+      )
+
+      expect(result.status).toBeUndefined()
+      expect(result.output.status).toBe("completed")
+      expect(result.output.iterations).toBe(3)
+      expect(result.output.final).toBe(true)
+      expect(callOrder).toEqual([1, 2, 3])
+      expect(ctx.flow_variables["nodes.loop1.currentIteration"]).toBe(3)
+      expect(ctx.flow_variables["nodes.loop1.results"]).toEqual([
+        { processed: 1 },
+        { processed: 2 },
+        { processed: 3 },
+      ])
+    })
+
+    it("should fall back to async when autoIterate is true but no handler", async () => {
+      const ctx = createContext()
+
+      const result = await executors.loop(
+        { maxIterations: 3, action: "nonexistent_action", autoIterate: true },
+        { item: "test" },
+        ctx,
+        "loop1",
+      )
+
+      expect(result.status).toBe("async")
+      expect(result.output.status).toBe("pending")
+      expect(result.output.iteration).toBe(1)
+    })
   })
 
   describe("fork", () => {
@@ -319,6 +365,31 @@ describe("Node Executors", () => {
       const ctx = createContext()
       await executors.join({ mode: "n_of_m" }, {}, ctx, "join1")
       expect(ctx.flow_variables["nodes.join1.joinMode"]).toBe("n_of_m")
+    })
+
+    it("should aggregate branch outputs from input", async () => {
+      const ctx = createContext()
+      const result = await executors.join(
+        { mode: "all" },
+        { action_a: { result: "A" }, action_b: { result: "B" } },
+        ctx,
+        "join1",
+      )
+      expect(result.output.status).toBe("completed")
+      expect(result.output.branches).toBe(2)
+      expect(result.output.aggregated).toEqual([{ result: "A" }, { result: "B" }])
+    })
+
+    it("should handle any mode with single branch", async () => {
+      const ctx = createContext()
+      const result = await executors.join(
+        { mode: "any" },
+        { action_a: { result: "A" } },
+        ctx,
+        "join1",
+      )
+      expect(result.output.mode).toBe("any")
+      expect(result.output.aggregated).toEqual({ result: "A" })
     })
   })
 

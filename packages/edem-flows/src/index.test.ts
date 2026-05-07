@@ -384,6 +384,60 @@ describe("edem-flows", () => {
     })
   })
 
+  describe("resumeRun", () => {
+    it("should resume a waiting run", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Resume Test",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+          {
+            id: "n2",
+            type: "action",
+            position: { x: 100, y: 0 },
+            data: { action: "resume_test_action" },
+          },
+          {
+            id: "n3",
+            type: "transform",
+            position: { x: 200, y: 0 },
+            data: { field: "result", operation: "set", value: "done" },
+          },
+        ],
+        edges: [
+          { id: "e1", source: "n1", target: "n2" },
+          { id: "e2", source: "n2", target: "n3" },
+        ],
+      })
+
+      const result = await edem.flows.runFlow({ flow_id })
+      expect(result.status).toBe("waiting")
+
+      registerAction("resume_test_action", async (input) => ({ approved: true, ...input }))
+
+      const resumeResult = await edem.flows.resumeRun({ run_id: result.run_id })
+      expect(resumeResult.success).toBe(true)
+
+      const { run } = await edem.flows.getRun({ run_id: result.run_id })
+      expect(run?.status).toBe("completed")
+    })
+
+    it("should throw for non-existent run", async () => {
+      await expect(edem.flows.resumeRun({ run_id: "non-existent" })).rejects.toThrow("not found")
+    })
+
+    it("should throw when run is not waiting", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Not Waiting",
+        trigger: { type: "manual" },
+      })
+
+      const result = await edem.flows.runFlow({ flow_id })
+
+      await expect(edem.flows.resumeRun({ run_id: result.run_id })).rejects.toThrow("Cannot resume")
+    })
+  })
+
   describe("handleNodeCompleted", () => {
     it("should resume a waiting run", async () => {
       const { flow_id } = await edem.flows.createFlow({

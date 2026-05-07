@@ -118,6 +118,53 @@ export async function executeFlow(
   return { context, nodeResults, status: "completed" }
 }
 
+async function executeNodeOnly(
+  nodeId: string,
+  nodeMap: Map<string, FlowNode>,
+  context: FlowContext,
+  nodeResults: Map<string, NodeExecutorResult>,
+  input: Record<string, unknown>,
+  run_id?: string,
+  lifecycle?: NodeLifecycle,
+): Promise<NodeExecutorResult> {
+  const node = nodeMap.get(nodeId)
+  if (!node) return { output: {} }
+
+  const executor = executors[node.type]
+  if (!executor) return { output: {} }
+
+  const started_at = Date.now()
+
+  if (run_id && lifecycle?.onNodeStarted) {
+    await lifecycle.onNodeStarted({
+      run_id,
+      node_id: nodeId,
+      input,
+      attempts: 1,
+      started_at,
+    })
+  }
+
+  const result = await executor(node.data, input, context, nodeId)
+
+  nodeResults.set(nodeId, result)
+  setNodeOutput(context, nodeId, result.output)
+
+  if (run_id && lifecycle?.onNodeCompleted) {
+    await lifecycle.onNodeCompleted({
+      run_id,
+      node_id: nodeId,
+      input,
+      output: result.output,
+      attempts: 1,
+      started_at,
+      completed_at: Date.now(),
+    })
+  }
+
+  return result
+}
+
 async function executeNode(
   nodeId: string,
   nodeMap: Map<string, FlowNode>,
@@ -248,24 +295,23 @@ async function executeNode(
     }
 
     const processedTargets = new Set<string>()
+    const branchOutputs = new Map<string, Record<string, unknown>>()
 
     for (const edge of edgesToRun) {
-      const nextResult = await executeNode(
+      const nextResult = await executeNodeOnly(
         edge.target,
         nodeMap,
-        adjacency,
         context,
         nodeResults,
-        new Set(visited),
         result.output,
-        1,
         run_id,
         lifecycle,
       )
 
       processedTargets.add(edge.target)
+      branchOutputs.set(edge.target, nextResult.output)
 
-      if (nextResult.status === "waiting") {
+      if (nextResult.status === "async") {
         const remaining = edgesToRun.filter((e) => !processedTargets.has(e.target))
         if (remaining.length > 0) {
           setFlowVariable(context, pendingKey, {
@@ -276,16 +322,38 @@ async function executeNode(
         } else {
           setFlowVariable(context, pendingKey, undefined)
         }
-        return nextResult
-      }
-
-      if (nextResult.status === "error") {
-        setFlowVariable(context, pendingKey, undefined)
-        return nextResult
+        return { status: "waiting", waitingNodeId: edge.target }
       }
     }
 
     setFlowVariable(context, pendingKey, undefined)
+
+    const joinNodes = findJoinNodes(
+      edgesToRun.map((e) => e.target),
+      adjacency,
+    )
+    for (const joinNodeId of joinNodes) {
+      const joinInput: Record<string, unknown> = {}
+      for (const [targetId, output] of branchOutputs) {
+        joinInput[targetId] = output
+      }
+
+      const joinResult = await executeNodeOnly(
+        joinNodeId,
+        nodeMap,
+        context,
+        nodeResults,
+        joinInput,
+        run_id,
+        lifecycle,
+      )
+
+      if (joinResult.status === "async") {
+        return { status: "waiting", waitingNodeId: joinNodeId }
+      }
+    }
+
+    return { status: "completed" }
   } else {
     for (const edge of nextEdges) {
       const nextResult = await executeNode(
@@ -312,6 +380,30 @@ async function executeNode(
   }
 
   return { status: "completed" }
+}
+
+function findJoinNodes(branchNodeIds: string[], adjacency: Map<string, FlowEdge[]>): string[] {
+  const branchSet = new Set(branchNodeIds)
+
+  const incomingByTarget = new Map<string, Set<string>>()
+  for (const edges of adjacency.values()) {
+    for (const edge of edges) {
+      if (!branchSet.has(edge.source)) continue
+      if (!incomingByTarget.has(edge.target)) {
+        incomingByTarget.set(edge.target, new Set())
+      }
+      incomingByTarget.get(edge.target)!.add(edge.source)
+    }
+  }
+
+  const joinNodes: string[] = []
+  for (const [targetId, sources] of incomingByTarget) {
+    if ([...branchSet].every((s) => sources.has(s))) {
+      joinNodes.push(targetId)
+    }
+  }
+
+  return joinNodes
 }
 
 function filterEdgesByResult(edges: FlowEdge[], result: NodeExecutorResult): FlowEdge[] {

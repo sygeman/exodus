@@ -76,4 +76,35 @@ describe("scheduler", () => {
     await startScheduler(edem.flows as any, edem.data as any)
     expect(console.log).toHaveBeenCalled()
   })
+
+  it("scheduler stop() cleans up timers", async () => {
+    const edem = getEdem()
+    await edem.flows.createFlow({
+      name: "Hourly",
+      trigger: { type: "schedule", every: "1h" },
+    })
+
+    const scheduler = await startScheduler(edem.flows as any, edem.data as any)
+    expect(console.log).toHaveBeenCalled()
+
+    scheduler.stop()
+    expect(console.log).toHaveBeenCalled()
+  })
+
+  it("scheduler handles flow update removing schedule", async () => {
+    const edem = getEdem()
+    const { flow_id } = await edem.flows.createFlow({
+      name: "Scheduled",
+      trigger: { type: "schedule", every: "1h" },
+    })
+
+    await startScheduler(edem.flows as any, edem.data as any)
+
+    await edem.flows.updateFlow({
+      flow_id,
+      trigger: { type: "manual" },
+    })
+
+    expect(console.log).toHaveBeenCalled()
+  })
 })

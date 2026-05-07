@@ -239,9 +239,36 @@ async function executeLoop(
 ): Promise<NodeExecutorResult> {
   const resolved = resolveNodeInput(config, context)
   const maxIterations = Number(resolved.maxIterations ?? 1)
+  const actionName = resolved.action as string | undefined
+  const autoIterate = resolved.autoIterate === true
 
   const iterationKey = nodeId ? `nodes.${nodeId}.currentIteration` : "loop.currentIteration"
+  const resultsKey = nodeId ? `nodes.${nodeId}.results` : "loop.results"
   const currentIteration = (context.flow_variables[iterationKey] as number) ?? 0
+
+  if (autoIterate && actionName) {
+    const handler = getActionHandler(actionName)
+    if (handler) {
+      const results = (context.flow_variables[resultsKey] as unknown[]) ?? []
+
+      for (let i = currentIteration; i < maxIterations; i++) {
+        setFlowVariable(context, iterationKey, i + 1)
+        const iterResult = await handler({ iteration: i + 1, input }, context)
+        results.push(iterResult)
+      }
+
+      setFlowVariable(context, resultsKey, results)
+
+      return {
+        output: {
+          status: "completed",
+          iterations: maxIterations,
+          results,
+          final: true,
+        },
+      }
+    }
+  }
 
   const nextIteration = currentIteration + 1
   setFlowVariable(context, iterationKey, nextIteration)
@@ -260,7 +287,7 @@ async function executeLoop(
     output: {
       status: "pending",
       iteration: nextIteration,
-      action: resolved.action as string,
+      action: actionName,
       input,
     },
     status: "async",
@@ -305,22 +332,8 @@ async function executeJoin(
     setFlowVariable(context, `nodes.${nodeId}.joinMode`, mode)
   }
 
-  const pendingFork = context.flow_variables["pending_fork"] as
-    | { nodeId: string; remainingEdges: Array<{ target: string }>; input: Record<string, unknown> }
-    | undefined
-
-  if (pendingFork && pendingFork.remainingEdges.length > 0) {
-    return {
-      output: {
-        status: "waiting_for_branches",
-        mode,
-        pending_branches: pendingFork.remainingEdges.length,
-      },
-      status: "async",
-    }
-  }
-
   const branchOutputs: Record<string, unknown>[] = []
+
   if (input && typeof input === "object") {
     for (const [key, value] of Object.entries(input)) {
       if (key !== "status" && key !== "mode") {

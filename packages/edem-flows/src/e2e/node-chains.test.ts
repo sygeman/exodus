@@ -453,4 +453,143 @@ describe("node chains", () => {
     const { run: finalRun } = await edem.flows.getRun({ run_id: result.run_id })
     expect(finalRun?.status).toBe("completed")
   })
+
+  it("fork + join with async branches — join waits for all branches", async () => {
+    const edem = getEdem()
+    const { flow_id } = await edem.flows.createFlow({
+      name: "Async ForkJoin",
+      trigger: { type: "manual" },
+      nodes: [
+        { id: "t", type: "trigger", position: { x: 0, y: 0 } },
+        {
+          id: "fork",
+          type: "fork",
+          position: { x: 100, y: 0 },
+          data: { branches: [{ id: "branch_a" }, { id: "branch_b" }] },
+        },
+        {
+          id: "action_a",
+          type: "action",
+          position: { x: 200, y: 0 },
+          data: { action: "e2e_fork_action_a" },
+        },
+        {
+          id: "action_b",
+          type: "action",
+          position: { x: 200, y: 100 },
+          data: { action: "e2e_fork_action_b" },
+        },
+        { id: "join", type: "join", position: { x: 300, y: 50 }, data: { mode: "all" } },
+      ],
+      edges: [
+        { id: "e1", source: "t", target: "fork" },
+        { id: "e2", source: "fork", target: "action_a", label: "branch_a" },
+        { id: "e3", source: "fork", target: "action_b", label: "branch_b" },
+        { id: "e4", source: "action_a", target: "join" },
+        { id: "e5", source: "action_b", target: "join" },
+      ],
+    })
+
+    const result = await edem.flows.runFlow({ flow_id, trigger_data: {} })
+    expect(result.status).toBe("waiting")
+
+    registerAction("e2e_fork_action_a", async (input) => ({ branch: "a", ...input }))
+    registerAction("e2e_fork_action_b", async (input) => ({ branch: "b", ...input }))
+
+    const r2 = await edem.flows.handleNodeCompleted({
+      run_id: result.run_id,
+      node_id: "action_a",
+      output: { branch: "a" },
+    })
+    expect(r2.success).toBe(true)
+
+    const { run: finalRun } = await edem.flows.getRun({ run_id: result.run_id })
+    expect(finalRun?.status).toBe("completed")
+    expect((finalRun?.output?.join as Record<string, unknown>)?.status).toBe("completed")
+  })
+
+  it("loop auto-iteration with registered handler", async () => {
+    const edem = getEdem()
+    registerAction("e2e_auto_loop", async (input) => {
+      const iter = (input.iteration as number) ?? 0
+      return { processed: iter, doubled: iter * 2 }
+    })
+
+    const { flow_id } = await edem.flows.createFlow({
+      name: "Auto Loop",
+      trigger: { type: "manual" },
+      nodes: [
+        { id: "t", type: "trigger", position: { x: 0, y: 0 } },
+        {
+          id: "loop",
+          type: "loop",
+          position: { x: 100, y: 0 },
+          data: { maxIterations: 5, action: "e2e_auto_loop", autoIterate: true },
+        },
+      ],
+      edges: [{ id: "e1", source: "t", target: "loop" }],
+    })
+
+    const result = await edem.flows.runFlow({ flow_id, trigger_data: {} })
+    expect(result.status).toBe("completed")
+
+    const { run } = await edem.flows.getRun({ run_id: result.run_id })
+    expect(run?.output?.loop).toBeDefined()
+    const loopOutput = run?.output?.loop as Record<string, unknown>
+    expect(loopOutput.status).toBe("completed")
+    expect(loopOutput.iterations).toBe(5)
+    expect(loopOutput.final).toBe(true)
+    expect(loopOutput.results).toEqual([
+      { processed: 1, doubled: 2 },
+      { processed: 2, doubled: 4 },
+      { processed: 3, doubled: 6 },
+      { processed: 4, doubled: 8 },
+      { processed: 5, doubled: 10 },
+    ])
+  })
+
+  it("fork + join — branch error propagates", async () => {
+    const edem = getEdem()
+    const { flow_id } = await edem.flows.createFlow({
+      name: "ForkJoin Error",
+      trigger: { type: "manual" },
+      nodes: [
+        { id: "t", type: "trigger", position: { x: 0, y: 0 } },
+        {
+          id: "fork",
+          type: "fork",
+          position: { x: 100, y: 0 },
+          data: { branches: [{ id: "branch_a" }, { id: "branch_b" }] },
+        },
+        {
+          id: "action_a",
+          type: "action",
+          position: { x: 200, y: 0 },
+          data: { action: "e2e_fork_err_action_a" },
+        },
+        {
+          id: "action_b",
+          type: "action",
+          position: { x: 200, y: 100 },
+          data: { action: "e2e_fork_err_action_b" },
+        },
+        { id: "join", type: "join", position: { x: 300, y: 50 }, data: { mode: "all" } },
+      ],
+      edges: [
+        { id: "e1", source: "t", target: "fork" },
+        { id: "e2", source: "fork", target: "action_a", label: "branch_a" },
+        { id: "e3", source: "fork", target: "action_b", label: "branch_b" },
+        { id: "e4", source: "action_a", target: "join" },
+        { id: "e5", source: "action_b", target: "join" },
+      ],
+    })
+
+    registerAction("e2e_fork_err_action_a", async () => {
+      throw new Error("branch_a failed")
+    })
+    registerAction("e2e_fork_err_action_b", async (input) => ({ branch: "b", ...input }))
+
+    const result = await edem.flows.runFlow({ flow_id, trigger_data: {} })
+    expect(result.status).toBe("error")
+  })
 })
