@@ -1,4 +1,4 @@
-import { createContext, setNodeOutput, type FlowContext } from "./context"
+import { createContext, setNodeOutput, setFlowVariable, type FlowContext } from "./context"
 import { executors, type NodeExecutorResult } from "./executors"
 
 export interface FlowNode {
@@ -231,31 +231,61 @@ async function executeNode(
   const nextEdges = filterEdgesByResult(edges, result)
 
   if (nextEdges.length > 1 && node.type === "fork") {
-    const branchResults = await Promise.all(
-      nextEdges.map((edge) =>
-        executeNode(
-          edge.target,
-          nodeMap,
-          adjacency,
-          context,
-          nodeResults,
-          new Set(visited),
-          result.output,
-          1,
-          run_id,
-          lifecycle,
-        ),
-      ),
-    )
+    const pendingKey = `pending_fork`
+    const pendingFork = context.flow_variables[pendingKey] as
+      | {
+          nodeId: string
+          remainingEdges: Array<{ target: string }>
+          input: Record<string, unknown>
+        }
+      | undefined
 
-    for (const nextResult of branchResults) {
+    let edgesToRun = nextEdges
+    if (pendingFork && pendingFork.nodeId === nodeId) {
+      edgesToRun = pendingFork.remainingEdges
+        .map((e) => nextEdges.find((ne) => ne.target === e.target) ?? e)
+        .filter(Boolean) as FlowEdge[]
+    }
+
+    const processedTargets = new Set<string>()
+
+    for (const edge of edgesToRun) {
+      const nextResult = await executeNode(
+        edge.target,
+        nodeMap,
+        adjacency,
+        context,
+        nodeResults,
+        new Set(visited),
+        result.output,
+        1,
+        run_id,
+        lifecycle,
+      )
+
+      processedTargets.add(edge.target)
+
       if (nextResult.status === "waiting") {
+        const remaining = edgesToRun.filter((e) => !processedTargets.has(e.target))
+        if (remaining.length > 0) {
+          setFlowVariable(context, pendingKey, {
+            nodeId,
+            remainingEdges: remaining.map((e) => ({ target: e.target })),
+            input: result.output,
+          })
+        } else {
+          setFlowVariable(context, pendingKey, undefined)
+        }
         return nextResult
       }
+
       if (nextResult.status === "error") {
+        setFlowVariable(context, pendingKey, undefined)
         return nextResult
       }
     }
+
+    setFlowVariable(context, pendingKey, undefined)
   } else {
     for (const edge of nextEdges) {
       const nextResult = await executeNode(
@@ -308,6 +338,13 @@ export function validateFlowRunTransition(current: string, target: string): bool
   }
 
   return validTransitions[current]?.includes(target) ?? false
+}
+
+export function hasPendingForks(context: FlowContext): boolean {
+  const pendingFork = context.flow_variables["pending_fork"] as
+    | { nodeId: string; remainingEdges: Array<{ target: string }>; input: Record<string, unknown> }
+    | undefined
+  return !!(pendingFork && pendingFork.remainingEdges.length > 0)
 }
 
 export interface FlowValidationResult {

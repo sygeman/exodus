@@ -412,7 +412,7 @@ describe("node chains", () => {
     expect(finalRun?.status).toBe("completed")
   })
 
-  it("delay node completes with minimum 1s", async () => {
+  it("delay node returns async and resumes via handleNodeCompleted", async () => {
     const edem = getEdem()
     const { flow_id } = await edem.flows.createFlow({
       name: "Delay",
@@ -434,10 +434,23 @@ describe("node chains", () => {
     })
 
     const result = await edem.flows.runFlow({ flow_id })
-    expect(result.status).toBe("completed")
+    expect(result.status).toBe("waiting")
+
+    const { run } = await edem.flows.getRun({ run_id: result.run_id })
+    expect(run?.waiting_node_id).toBe("d")
 
     const { nodes } = await edem.flows.getRunNodes({ run_id: result.run_id })
     const delayNode = nodes.find((n) => n.node_id === "d")
     expect(delayNode?.output?.delayed_seconds).toBe(1)
+
+    const resumeResult = await edem.flows.handleNodeCompleted({
+      run_id: result.run_id,
+      node_id: "d",
+      output: { status: "completed", delayed_seconds: 1 },
+    })
+    expect(resumeResult.success).toBe(true)
+
+    const { run: finalRun } = await edem.flows.getRun({ run_id: result.run_id })
+    expect(finalRun?.status).toBe("completed")
   })
 })

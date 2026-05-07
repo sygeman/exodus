@@ -160,15 +160,15 @@ describe("Node Executors", () => {
   })
 
   describe("delay", () => {
-    it("should delay execution", async () => {
+    it("should return async status with resume_at", async () => {
       const ctx = createContext()
-      const start = Date.now()
-      const result = await executors.delay({ seconds: 1 }, {}, ctx)
-      const elapsed = Date.now() - start
+      const before = Date.now()
+      const result = await executors.delay({ seconds: 5 }, {}, ctx, "delay1")
 
-      expect(result.output.status).toBe("completed")
-      expect(result.output.delayed_seconds).toBe(1)
-      expect(elapsed).toBeGreaterThanOrEqual(900)
+      expect(result.status).toBe("async")
+      expect(result.output.status).toBe("pending")
+      expect(result.output.delayed_seconds).toBe(5)
+      expect(result.output.resume_at).toBeGreaterThanOrEqual(before + 5000)
     })
   })
 

@@ -135,7 +135,7 @@ describe("edem-flows", () => {
 
   describe("listFlows", () => {
     it("should return empty list initially", async () => {
-      const { flows } = await edem.flows.listFlows()
+      const { flows } = await edem.flows.listFlows({})
       expect(flows).toHaveLength(0)
     })
 
@@ -143,7 +143,7 @@ describe("edem-flows", () => {
       await edem.flows.createFlow({ name: "Flow 1", trigger: { type: "manual" } })
       await edem.flows.createFlow({ name: "Flow 2", trigger: { type: "manual" } })
 
-      const { flows } = await edem.flows.listFlows()
+      const { flows } = await edem.flows.listFlows({})
       expect(flows).toHaveLength(2)
     })
   })

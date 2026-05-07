@@ -30,7 +30,7 @@ describe("CRUD", () => {
     expect(flow?.edges).toHaveLength(1)
     expect(flow?.meta?.version).toBe(1)
 
-    const { flows } = await edem.flows.listFlows()
+    const { flows } = await edem.flows.listFlows({})
     expect(flows.length).toBeGreaterThanOrEqual(1)
     expect(flows.find((f) => f.id === flow_id)).toBeDefined()
   })

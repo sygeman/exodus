@@ -24,15 +24,6 @@ interface FlowsAPI {
     flow_id: string
     trigger_data?: Record<string, unknown>
   }) => Promise<{ run_id: string; status: string }>
-  listFlows: () => Promise<{
-    flows: Array<{
-      id: string
-      name: string
-      trigger: unknown
-      nodes: unknown[]
-      edges: unknown[]
-    }>
-  }>
   flowCreated: (handler: (args: { event: unknown }) => void) => () => void
   flowUpdated: (handler: (args: { event: unknown }) => void) => () => void
   flowDeleted: (handler: (args: { event: unknown }) => void) => () => void
@@ -54,6 +45,33 @@ interface DataItemEvent {
 const eventFlows = new Map<string, EventFlowEntry[]>()
 const webhookFlows = new Map<string, EventFlowEntry[]>()
 let flowsRef: FlowsAPI | null = null
+
+const MAX_RETRIES = 3
+const BASE_DELAY_MS = 1000
+
+async function runFlowWithRetry(
+  flows: FlowsAPI,
+  input: { flow_id: string; trigger_data?: Record<string, unknown> },
+  context: string,
+): Promise<void> {
+  let lastError: unknown
+  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+    try {
+      await flows.runFlow(input)
+      return
+    } catch (err) {
+      lastError = err
+      if (attempt < MAX_RETRIES) {
+        const delay = BASE_DELAY_MS * 2 ** attempt
+        await new Promise((r) => setTimeout(r, delay))
+      }
+    }
+  }
+  console.error(
+    `[flows:${context}] Failed to run flow ${input.flow_id} after ${MAX_RETRIES + 1} attempts:`,
+    lastError,
+  )
+}
 
 function rebuildIndex(items: FlowItem[]): void {
   eventFlows.clear()
@@ -106,12 +124,11 @@ function triggerFlows(eventName: string, triggerData: Record<string, unknown>): 
   for (const entry of entries) {
     if (entry.trigger.type === "event" && !matchFilter(triggerData, entry.trigger.filter)) continue
 
-    flowsRef.runFlow({ flow_id: entry.flowId, trigger_data: triggerData }).catch((err: unknown) => {
-      console.error(
-        `[flows:dispatcher] Failed to run flow ${entry.flowId} for event "${eventName}":`,
-        err,
-      )
-    })
+    runFlowWithRetry(
+      flowsRef,
+      { flow_id: entry.flowId, trigger_data: triggerData },
+      "dispatcher",
+    ).catch(() => {})
   }
 }
 
@@ -122,12 +139,11 @@ function triggerWebhook(path: string, payload: Record<string, unknown>): void {
   if (!entries) return
 
   for (const entry of entries) {
-    flowsRef.runFlow({ flow_id: entry.flowId, trigger_data: payload }).catch((err: unknown) => {
-      console.error(
-        `[flows:dispatcher] Failed to run flow ${entry.flowId} for webhook "${path}":`,
-        err,
-      )
-    })
+    runFlowWithRetry(
+      flowsRef,
+      { flow_id: entry.flowId, trigger_data: payload },
+      "dispatcher",
+    ).catch(() => {})
   }
 }
 

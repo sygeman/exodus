@@ -16,11 +16,13 @@
 
 ### 3. `fork`/`join` — join не ждёт ветки
 
-Fork выполняет ветки через `Promise.all` (`engine.ts:234`). Если ветка содержит async node (action, loop), `Promise.all` вернёт `waiting` при первой же async ветке, а остальные ветки не выполнятся.
+Fork выполняет ветки последовательно через `Promise.all` (`engine.ts:234`). Если ветка содержит async node (action, loop), `Promise.all` вернёт `waiting` при первой же async ветке, а остальные ветки не выполнятся.
 
 Join executor (`executors.ts:282`) просто агрегирует `input`, не имея механизма ожидания внешнего завершения веток.
 
-**Реализация:** реализовать полноценный async fork с сохранением состояния веток.
+**Реализация:** Fork теперь выполняет ветки последовательно и сохраняет состояние ожидания веток в `context.flow_variables.pending_fork`. Когда ветка завершается, движок возобновляет выполнение оставшихся веток. Join проверяет наличие ожидаемых веток и возвращает `status: "async"` если не все ветки завершились.
+
+**Ограничения:** Внешнее завершение async веток (через `handleNodeCompleted`) возобновляет только одну ветку. Параллельные async ветки требуют внешнего завершения каждой по очереди.
 
 ### 4. ~~Нет валидации структуры flow~~ ✅
 
@@ -30,39 +32,29 @@ Join executor (`executors.ts:282`) просто агрегирует `input`, н
 
 ## Средний приоритет
 
-### 5. `delay` — блокирует поток
+### 5. ~~`delay` — блокирует поток~~ ✅
 
-`delay` executor (`executors.ts:150`) использует `setTimeout`. При длинных задержках (часы, дни) блокирует поток выполнения. Нет persistence — при рестарте процесса delay теряется.
+`delay` executor теперь возвращает `status: "async"` с `resume_at` timestamp. Scheduler проверяет delayed runs каждые 10 секунд и возобновляет их по истечении времени. При рестарте процесса delay восстанавливается из сохранённого context.
 
-**Реализация:** сделать `delay` async node (возвращать `status: "async"`), сохранять `resume_at` timestamp, возобновлять через scheduler/dispatcher.
+### 6. ~~`output` — не сохраняет в `FlowRun.output`~~ ✅
 
-### 6. `output` — не сохраняет в `FlowRun.output`
+`FlowRun.output` теперь устанавливается как конкретный output ноды типа `output` (с полем `outputs`). Если нода типа `output` не найдена, используется `context.node_outputs` как fallback.
 
-`output` executor возвращает resolved outputs как node output (`executors.ts:192`). `FlowRun.output` устанавливается как `result.context.node_outputs` (все выходы всех нод), а не конкретный output ноды.
+### 7. ~~`action` / `subflow` — нет таймаута для `waiting`~~ ✅
 
-**Реализация:** изменить `FlowRun.output` на конкретный output ноды типа `output`.
+Добавлен опциональный `timeout` на async nodes (уже существовал в `FlowNode.timeout`). При истечении — автоматически вызывать `handleNodeFailed` через scheduler. `timeout_at` сохраняется в run record при входе в `waiting` состояние.
 
-### 7. `action` / `subflow` — нет таймаута для `waiting`
+### 8. ~~Backpressure — race condition~~ ✅
 
-Если registered handler не найден (action) или subflow не завершается, run остаётся в `waiting` навсегда.
-
-**Реализация:** добавить опциональный `timeout` на async nodes. При истечении — автоматически вызывать `handleNodeFailed`.
-
-### 8. Backpressure — race condition
-
-Проверка backpressure (`index.ts:202-226`) происходит до создания run. Два параллельных `runFlow` могут пройти проверку одновременно и превысить лимит.
-
-**Реализация:** либо использовать атомарную операцию, либо проверять backpressure после создания run и откатывать при превышении.
+Backpressure check теперь выполняется с per-flow mutex (через `globalThis`). Проверка происходит до создания run с `>=` сравнением. Mutex блокирует параллельные `runFlow` для одного flow_id.
 
 ### 9. ~~Scheduler — нет `stopScheduler()`~~ ✅
 
 `startScheduler()` возвращает `{ stop() }` функцию, которая очищает все таймеры и отписывается от событий.
 
-### 10. Silent `.catch(console.error)` в dispatcher/scheduler
+### 10. ~~Silent `.catch(console.error)` в dispatcher/scheduler~~ ✅
 
-Ошибки при запуске flows глотаются (`dispatcher.ts:109`, `scheduler.ts:54`). Нет retry, нет error propagation, нет dead-letter.
-
-**Реализация:** добавить retry с exponential backoff или event emitter для ошибок.
+Dispatcher и scheduler теперь используют `runFlowWithRetry` с exponential backoff (3 попытки, базовая задержка 1s). Ошибки логируются после исчерпания попыток.
 
 ---
 
@@ -82,9 +74,9 @@ Loop executor трекает итерации через `flow_variables`, но 
 
 `manifest_id` добавлен в fields коллекции `flows`.
 
-### 14. `listFlows` — нет фильтрации
+### 14. ~~`listFlows` — нет фильтрации~~ ✅
 
-Edem module system не поддерживает optional inputs в query. Фильтрация возможна на стороне клиента.
+`listFlows` теперь поддерживает опциональные фильтры `status` и `name` (case-insensitive contains).
 
 ### 15. Покрытие тестами
 

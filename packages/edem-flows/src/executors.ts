@@ -151,14 +151,26 @@ async function executeDelay(
   config: Record<string, unknown> | undefined,
   _input: Record<string, unknown>,
   context: FlowContext,
+  nodeId?: string,
 ): Promise<NodeExecutorResult> {
+  if (nodeId && context.node_outputs[nodeId]?.status === "completed") {
+    return {
+      output: context.node_outputs[nodeId],
+      status: "completed",
+    }
+  }
+
   const resolved = resolveNodeInput(config, context)
   const seconds = Math.max(1, Number(resolved.seconds ?? 1))
+  const resumeAt = Date.now() + seconds * 1000
 
-  await new Promise((resolve) => setTimeout(resolve, seconds * 1000))
+  if (nodeId) {
+    setFlowVariable(context, `nodes.${nodeId}.resumeAt`, resumeAt)
+  }
 
   return {
-    output: { status: "completed", delayed_seconds: seconds },
+    output: { status: "pending", delayed_seconds: seconds, resume_at: resumeAt },
+    status: "async",
   }
 }
 
@@ -291,6 +303,21 @@ async function executeJoin(
 
   if (nodeId) {
     setFlowVariable(context, `nodes.${nodeId}.joinMode`, mode)
+  }
+
+  const pendingFork = context.flow_variables["pending_fork"] as
+    | { nodeId: string; remainingEdges: Array<{ target: string }>; input: Record<string, unknown> }
+    | undefined
+
+  if (pendingFork && pendingFork.remainingEdges.length > 0) {
+    return {
+      output: {
+        status: "waiting_for_branches",
+        mode,
+        pending_branches: pendingFork.remainingEdges.length,
+      },
+      status: "async",
+    }
   }
 
   const branchOutputs: Record<string, unknown>[] = []
