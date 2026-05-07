@@ -52,6 +52,7 @@ const runSchema = z.object({
   context: flowContextSchema.optional(),
   waiting_node_id: z.string().nullable().optional(),
   error: z.string().nullable().optional(),
+  parent_run_id: z.string().nullable().optional(),
   started_at: z.number(),
   completed_at: z.number().nullable().optional(),
 })
@@ -279,7 +280,8 @@ export const flowsModule = createEdemModule(
                 (i) =>
                   i.data.run_id === event.run_id &&
                   i.data.node_id === event.node_id &&
-                  i.data.attempts === event.attempts,
+                  i.data.attempts === event.attempts &&
+                  i.data.status === "running",
               )
               if (existing) {
                 await data.updateItem({
@@ -312,7 +314,8 @@ export const flowsModule = createEdemModule(
                 (i) =>
                   i.data.run_id === event.run_id &&
                   i.data.node_id === event.node_id &&
-                  i.data.attempts === event.attempts,
+                  i.data.attempts === event.attempts &&
+                  i.data.status === "running",
               )
               if (existing) {
                 await data.updateItem({
@@ -431,6 +434,13 @@ export const flowsModule = createEdemModule(
                   })
 
                   const subflowOutput = childResult.context.node_outputs
+
+                  result.context.node_outputs[result.waitingNodeId!] = {
+                    ...result.context.node_outputs[result.waitingNodeId!],
+                    child_output: subflowOutput,
+                    status: "completed",
+                  }
+
                   const resumeResult = await executeFlow(
                     flow,
                     result.context.trigger_data,
@@ -638,7 +648,8 @@ export const flowsModule = createEdemModule(
                 (i) =>
                   i.data.run_id === event.run_id &&
                   i.data.node_id === event.node_id &&
-                  i.data.attempts === event.attempts,
+                  i.data.attempts === event.attempts &&
+                  i.data.status === "running",
               )
               if (existing) {
                 await data.updateItem({
@@ -671,7 +682,8 @@ export const flowsModule = createEdemModule(
                 (i) =>
                   i.data.run_id === event.run_id &&
                   i.data.node_id === event.node_id &&
-                  i.data.attempts === event.attempts,
+                  i.data.attempts === event.attempts &&
+                  i.data.status === "running",
               )
               if (existing) {
                 await data.updateItem({
@@ -843,7 +855,8 @@ export const flowsModule = createEdemModule(
                 (i) =>
                   i.data.run_id === event.run_id &&
                   i.data.node_id === event.node_id &&
-                  i.data.attempts === event.attempts,
+                  i.data.attempts === event.attempts &&
+                  i.data.status === "running",
               )
               if (existing) {
                 await data.updateItem({
@@ -876,7 +889,8 @@ export const flowsModule = createEdemModule(
                 (i) =>
                   i.data.run_id === event.run_id &&
                   i.data.node_id === event.node_id &&
-                  i.data.attempts === event.attempts,
+                  i.data.attempts === event.attempts &&
+                  i.data.status === "running",
               )
               if (existing) {
                 await data.updateItem({
@@ -1225,6 +1239,7 @@ function parseRun(item: {
     context: item.data.context as z.infer<typeof flowContextSchema> | undefined,
     waiting_node_id: (item.data.waiting_node_id as string) ?? null,
     error: (item.data.error as string) ?? null,
+    parent_run_id: (item.data.parent_run_id as string) ?? null,
     started_at: item.data.started_at as number,
     completed_at: (item.data.completed_at as number) ?? null,
   }

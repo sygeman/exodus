@@ -335,7 +335,15 @@ async function executeSubflow(
   config: Record<string, unknown> | undefined,
   input: Record<string, unknown>,
   context: FlowContext,
+  nodeId?: string,
 ): Promise<NodeExecutorResult> {
+  if (nodeId && context.node_outputs[nodeId]?.status === "completed") {
+    return {
+      output: (context.node_outputs[nodeId].child_output as Record<string, unknown>) ?? {},
+      status: "completed",
+    }
+  }
+
   const resolved = resolveNodeInput(config, context)
   const flowId = resolved.flow_id as string
 

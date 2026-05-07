@@ -42,9 +42,9 @@ export interface NodeLifecycleEvent {
 }
 
 export interface NodeLifecycle {
-  onNodeStarted?: (event: NodeLifecycleEvent) => void
-  onNodeCompleted?: (event: NodeLifecycleEvent) => void
-  onNodeFailed?: (event: NodeLifecycleEvent) => void
+  onNodeStarted?: (event: NodeLifecycleEvent) => void | Promise<void>
+  onNodeCompleted?: (event: NodeLifecycleEvent) => void | Promise<void>
+  onNodeFailed?: (event: NodeLifecycleEvent) => void | Promise<void>
 }
 
 export interface ExecutionResult {
@@ -147,7 +147,7 @@ async function executeNode(
   const started_at = Date.now()
 
   if (run_id && lifecycle?.onNodeStarted) {
-    lifecycle.onNodeStarted({
+    await lifecycle.onNodeStarted({
       run_id,
       node_id: nodeId,
       input,
@@ -195,7 +195,7 @@ async function executeNode(
     const error = err instanceof Error ? err.message : String(err)
 
     if (run_id && lifecycle?.onNodeFailed) {
-      lifecycle.onNodeFailed({
+      await lifecycle.onNodeFailed({
         run_id,
         node_id: nodeId,
         error,
@@ -212,7 +212,7 @@ async function executeNode(
   setNodeOutput(context, nodeId, result.output)
 
   if (run_id && lifecycle?.onNodeCompleted) {
-    lifecycle.onNodeCompleted({
+    await lifecycle.onNodeCompleted({
       run_id,
       node_id: nodeId,
       input,
