@@ -4,6 +4,7 @@ export interface FlowContext {
   flow_variables: Record<string, unknown>
 }
 
+/** Creates a new flow execution context with the given trigger data. */
 export function createContext(trigger_data: Record<string, unknown> = {}): FlowContext {
   return {
     trigger_data,
@@ -24,6 +25,13 @@ export function setFlowVariable(context: FlowContext, key: string, value: unknow
   context.flow_variables[key] = value
 }
 
+/**
+ * Resolves template strings containing `{{scope.path}}` expressions.
+ *
+ * - If the template is a single expression (e.g. `"{{trigger.name}}"`), returns the native value.
+ * - If the template contains text around expressions (e.g. `"Hello {{trigger.name}}"`), returns a string.
+ * - Objects are JSON-serialized when interpolated into strings.
+ */
 export function resolveTemplate(template: string, context: FlowContext): unknown {
   const regex = /\{\{([^}]+)\}\}/g
   const matches = [...template.matchAll(regex)]

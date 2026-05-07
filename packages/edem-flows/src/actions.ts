@@ -7,6 +7,7 @@ export type ActionHandler = (
 
 const registry = new Map<string, ActionHandler>()
 
+/** Registers a named action handler that can be invoked by action nodes. */
 export function registerAction(name: string, handler: ActionHandler): void {
   registry.set(name, handler)
 }

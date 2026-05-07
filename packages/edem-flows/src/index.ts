@@ -5,6 +5,7 @@ import {
   executeFlow,
   validateFlowRunTransition,
   validateFlow,
+  type NodeLifecycle,
   type NodeLifecycleEvent,
 } from "./engine"
 import {
@@ -25,6 +26,7 @@ const RUNS_COLLECTION = "flow_runs"
 const RUN_NODES_COLLECTION = "flow_run_nodes"
 
 let dataRef: EdemData | null = null
+const bpLocks = new Map<string, Promise<void>>()
 
 const backpressureSchema = z.object({
   maxPending: z.number().optional(),
@@ -79,6 +81,127 @@ const flowRunNodeSchema = z.object({
 function getData(): EdemData {
   if (!dataRef) throw new Error("edem-flows: data module not initialized")
   return dataRef
+}
+
+type EmitFn = {
+  runStarted: (run: z.infer<typeof runSchema>) => Promise<void>
+  runCompleted: (run: z.infer<typeof runSchema>) => Promise<void>
+  runUpdated: (run: z.infer<typeof runSchema>) => Promise<void>
+  runNodeStarted: (node: z.infer<typeof flowRunNodeSchema>) => Promise<void>
+  runNodeCompleted: (node: z.infer<typeof flowRunNodeSchema>) => Promise<void>
+  nodeStarted: (event: { run_id: string; node_id: string }) => Promise<void>
+  nodeCompleted: (event: {
+    run_id: string
+    node_id: string
+    output: Record<string, unknown>
+  }) => Promise<void>
+}
+
+function createLifecycleHandlers(data: EdemData, emit: EmitFn, _runId: string): NodeLifecycle {
+  return {
+    onNodeStarted: async (event: NodeLifecycleEvent) => {
+      const { id: nodeRunId } = await data.createItem({
+        collection_id: RUN_NODES_COLLECTION,
+        data: {
+          run_id: event.run_id,
+          node_id: event.node_id,
+          status: "running",
+          input: event.input,
+          attempts: event.attempts,
+          started_at: event.started_at,
+        },
+      })
+      const runNode: z.infer<typeof flowRunNodeSchema> = {
+        id: nodeRunId,
+        run_id: event.run_id,
+        node_id: event.node_id,
+        status: "running",
+        input: event.input,
+        attempts: event.attempts,
+        started_at: event.started_at,
+      }
+      await emit.runNodeStarted(runNode)
+      await emit.nodeStarted({ run_id: event.run_id, node_id: event.node_id })
+    },
+    onNodeCompleted: async (event: NodeLifecycleEvent) => {
+      const { items } = await data.queryItems({
+        collection_id: RUN_NODES_COLLECTION,
+      })
+      const existing = items.find(
+        (i) =>
+          i.data.run_id === event.run_id &&
+          i.data.node_id === event.node_id &&
+          i.data.attempts === event.attempts &&
+          i.data.status === "running",
+      )
+      if (existing) {
+        await data.updateItem({
+          item_id: existing.id,
+          data: {
+            status: "completed",
+            output: event.output,
+            completed_at: event.completed_at,
+          },
+        })
+        const runNode: z.infer<typeof flowRunNodeSchema> = {
+          id: existing.id,
+          run_id: event.run_id,
+          node_id: event.node_id,
+          status: "completed",
+          input: event.input,
+          output: event.output,
+          attempts: event.attempts,
+          started_at: event.started_at,
+          completed_at: event.completed_at,
+        }
+        await emit.runNodeCompleted(runNode)
+        await emit.nodeCompleted({
+          run_id: event.run_id,
+          node_id: event.node_id,
+          output: event.output ?? {},
+        })
+      }
+    },
+    onNodeFailed: async (event: NodeLifecycleEvent) => {
+      const { items } = await data.queryItems({
+        collection_id: RUN_NODES_COLLECTION,
+      })
+      const existing = items.find(
+        (i) =>
+          i.data.run_id === event.run_id &&
+          i.data.node_id === event.node_id &&
+          i.data.attempts === event.attempts &&
+          i.data.status === "running",
+      )
+      if (existing) {
+        await data.updateItem({
+          item_id: existing.id,
+          data: {
+            status: "failed",
+            error: event.error,
+            completed_at: event.completed_at,
+          },
+        })
+        const runNode: z.infer<typeof flowRunNodeSchema> = {
+          id: existing.id,
+          run_id: event.run_id,
+          node_id: event.node_id,
+          status: "failed",
+          input: event.input,
+          error: event.error,
+          attempts: event.attempts,
+          started_at: event.started_at,
+          completed_at: event.completed_at,
+        }
+        await emit.runNodeCompleted(runNode)
+        await emit.nodeCompleted({
+          run_id: event.run_id,
+          node_id: event.node_id,
+          output: event.output ?? {},
+        })
+      }
+    },
+  }
 }
 
 export const flowsModule = createEdemModule(
@@ -211,17 +334,15 @@ export const flowsModule = createEdemModule(
 
           const now = Date.now()
 
-          const bpLockKey = `bp:${input.flow_id}`
-          const bpLock = (globalThis as Record<string, unknown>)[bpLockKey] as
-            | Promise<unknown>
-            | undefined
-          if (bpLock) await bpLock
+          const bpLockKey = input.flow_id
+          const existingLock = bpLocks.get(bpLockKey)
+          if (existingLock) await existingLock
 
           let bpResolve: () => void
           const bpPromise = new Promise<void>((r) => {
             bpResolve = r
           })
-          ;(globalThis as Record<string, unknown>)[bpLockKey] = bpPromise
+          bpLocks.set(bpLockKey, bpPromise)
 
           try {
             if (flow.backpressure) {
@@ -277,110 +398,7 @@ export const flowsModule = createEdemModule(
 
             await emit.runStarted(run)
 
-            const lifecycle = {
-              onNodeStarted: async (event: NodeLifecycleEvent) => {
-                const { id: nodeRunId } = await data.createItem({
-                  collection_id: RUN_NODES_COLLECTION,
-                  data: {
-                    run_id: event.run_id,
-                    node_id: event.node_id,
-                    status: "running",
-                    input: event.input,
-                    attempts: event.attempts,
-                    started_at: event.started_at,
-                  },
-                })
-                const runNode: z.infer<typeof flowRunNodeSchema> = {
-                  id: nodeRunId,
-                  run_id: event.run_id,
-                  node_id: event.node_id,
-                  status: "running",
-                  input: event.input,
-                  attempts: event.attempts,
-                  started_at: event.started_at,
-                }
-                await emit.runNodeStarted(runNode)
-                await emit.nodeStarted({ run_id: event.run_id, node_id: event.node_id })
-              },
-              onNodeCompleted: async (event: NodeLifecycleEvent) => {
-                const { items } = await data.queryItems({
-                  collection_id: RUN_NODES_COLLECTION,
-                })
-                const existing = items.find(
-                  (i) =>
-                    i.data.run_id === event.run_id &&
-                    i.data.node_id === event.node_id &&
-                    i.data.attempts === event.attempts &&
-                    i.data.status === "running",
-                )
-                if (existing) {
-                  await data.updateItem({
-                    item_id: existing.id,
-                    data: {
-                      status: "completed",
-                      output: event.output,
-                      completed_at: event.completed_at,
-                    },
-                  })
-                  const runNode: z.infer<typeof flowRunNodeSchema> = {
-                    id: existing.id,
-                    run_id: event.run_id,
-                    node_id: event.node_id,
-                    status: "completed",
-                    input: event.input,
-                    output: event.output,
-                    attempts: event.attempts,
-                    started_at: event.started_at,
-                    completed_at: event.completed_at,
-                  }
-                  await emit.runNodeCompleted(runNode)
-                  await emit.nodeCompleted({
-                    run_id: event.run_id,
-                    node_id: event.node_id,
-                    output: event.output ?? {},
-                  })
-                }
-              },
-              onNodeFailed: async (event: NodeLifecycleEvent) => {
-                const { items } = await data.queryItems({
-                  collection_id: RUN_NODES_COLLECTION,
-                })
-                const existing = items.find(
-                  (i) =>
-                    i.data.run_id === event.run_id &&
-                    i.data.node_id === event.node_id &&
-                    i.data.attempts === event.attempts &&
-                    i.data.status === "running",
-                )
-                if (existing) {
-                  await data.updateItem({
-                    item_id: existing.id,
-                    data: {
-                      status: "failed",
-                      error: event.error,
-                      completed_at: event.completed_at,
-                    },
-                  })
-                  const runNode: z.infer<typeof flowRunNodeSchema> = {
-                    id: existing.id,
-                    run_id: event.run_id,
-                    node_id: event.node_id,
-                    status: "failed",
-                    input: event.input,
-                    error: event.error,
-                    attempts: event.attempts,
-                    started_at: event.started_at,
-                    completed_at: event.completed_at,
-                  }
-                  await emit.runNodeCompleted(runNode)
-                  await emit.nodeCompleted({
-                    run_id: event.run_id,
-                    node_id: event.node_id,
-                    output: event.output ?? {},
-                  })
-                }
-              },
-            }
+            const lifecycle = createLifecycleHandlers(data, emit, runId)
 
             try {
               const result = await executeFlow(flow, input.trigger_data ?? {}, undefined, {
@@ -638,11 +656,11 @@ export const flowsModule = createEdemModule(
               return { run_id: runId, status: "error" }
             } finally {
               bpResolve!()
-              delete (globalThis as Record<string, unknown>)[bpLockKey]
+              bpLocks.delete(bpLockKey)
             }
           } catch (err) {
             bpResolve!()
-            delete (globalThis as Record<string, unknown>)[bpLockKey]
+            bpLocks.delete(bpLockKey)
             throw err
           }
         },
@@ -705,110 +723,7 @@ export const flowsModule = createEdemModule(
           })
 
           const runId = input.run_id
-          const lifecycle = {
-            onNodeStarted: async (event: NodeLifecycleEvent) => {
-              const { id: nodeRunId } = await data.createItem({
-                collection_id: RUN_NODES_COLLECTION,
-                data: {
-                  run_id: event.run_id,
-                  node_id: event.node_id,
-                  status: "running",
-                  input: event.input,
-                  attempts: event.attempts,
-                  started_at: event.started_at,
-                },
-              })
-              const runNode: z.infer<typeof flowRunNodeSchema> = {
-                id: nodeRunId,
-                run_id: event.run_id,
-                node_id: event.node_id,
-                status: "running",
-                input: event.input,
-                attempts: event.attempts,
-                started_at: event.started_at,
-              }
-              await emit.runNodeStarted(runNode)
-              await emit.nodeStarted({ run_id: event.run_id, node_id: event.node_id })
-            },
-            onNodeCompleted: async (event: NodeLifecycleEvent) => {
-              const { items } = await data.queryItems({
-                collection_id: RUN_NODES_COLLECTION,
-              })
-              const existing = items.find(
-                (i) =>
-                  i.data.run_id === event.run_id &&
-                  i.data.node_id === event.node_id &&
-                  i.data.attempts === event.attempts &&
-                  i.data.status === "running",
-              )
-              if (existing) {
-                await data.updateItem({
-                  item_id: existing.id,
-                  data: {
-                    status: "completed",
-                    output: event.output,
-                    completed_at: event.completed_at,
-                  },
-                })
-                const runNode: z.infer<typeof flowRunNodeSchema> = {
-                  id: existing.id,
-                  run_id: event.run_id,
-                  node_id: event.node_id,
-                  status: "completed",
-                  input: event.input,
-                  output: event.output,
-                  attempts: event.attempts,
-                  started_at: event.started_at,
-                  completed_at: event.completed_at,
-                }
-                await emit.runNodeCompleted(runNode)
-                await emit.nodeCompleted({
-                  run_id: event.run_id,
-                  node_id: event.node_id,
-                  output: event.output ?? {},
-                })
-              }
-            },
-            onNodeFailed: async (event: NodeLifecycleEvent) => {
-              const { items } = await data.queryItems({
-                collection_id: RUN_NODES_COLLECTION,
-              })
-              const existing = items.find(
-                (i) =>
-                  i.data.run_id === event.run_id &&
-                  i.data.node_id === event.node_id &&
-                  i.data.attempts === event.attempts &&
-                  i.data.status === "running",
-              )
-              if (existing) {
-                await data.updateItem({
-                  item_id: existing.id,
-                  data: {
-                    status: "failed",
-                    error: event.error,
-                    completed_at: event.completed_at,
-                  },
-                })
-                const runNode: z.infer<typeof flowRunNodeSchema> = {
-                  id: existing.id,
-                  run_id: event.run_id,
-                  node_id: event.node_id,
-                  status: "failed",
-                  input: event.input,
-                  error: event.error,
-                  attempts: event.attempts,
-                  started_at: event.started_at,
-                  completed_at: event.completed_at,
-                }
-                await emit.runNodeCompleted(runNode)
-                await emit.nodeCompleted({
-                  run_id: event.run_id,
-                  node_id: event.node_id,
-                  output: event.output ?? {},
-                })
-              }
-            },
-          }
+          const lifecycle = createLifecycleHandlers(data, emit, runId)
 
           try {
             const result = await executeFlow(flow, restoredContext.trigger_data, restoredContext, {
@@ -924,110 +839,7 @@ export const flowsModule = createEdemModule(
           restoredContext.node_outputs[input.node_id] = input.output
 
           const runId = input.run_id
-          const lifecycle = {
-            onNodeStarted: async (event: NodeLifecycleEvent) => {
-              const { id: nodeRunId } = await data.createItem({
-                collection_id: RUN_NODES_COLLECTION,
-                data: {
-                  run_id: event.run_id,
-                  node_id: event.node_id,
-                  status: "running",
-                  input: event.input,
-                  attempts: event.attempts,
-                  started_at: event.started_at,
-                },
-              })
-              const runNode: z.infer<typeof flowRunNodeSchema> = {
-                id: nodeRunId,
-                run_id: event.run_id,
-                node_id: event.node_id,
-                status: "running",
-                input: event.input,
-                attempts: event.attempts,
-                started_at: event.started_at,
-              }
-              await emit.runNodeStarted(runNode)
-              await emit.nodeStarted({ run_id: event.run_id, node_id: event.node_id })
-            },
-            onNodeCompleted: async (event: NodeLifecycleEvent) => {
-              const { items } = await data.queryItems({
-                collection_id: RUN_NODES_COLLECTION,
-              })
-              const existing = items.find(
-                (i) =>
-                  i.data.run_id === event.run_id &&
-                  i.data.node_id === event.node_id &&
-                  i.data.attempts === event.attempts &&
-                  i.data.status === "running",
-              )
-              if (existing) {
-                await data.updateItem({
-                  item_id: existing.id,
-                  data: {
-                    status: "completed",
-                    output: event.output,
-                    completed_at: event.completed_at,
-                  },
-                })
-                const runNode: z.infer<typeof flowRunNodeSchema> = {
-                  id: existing.id,
-                  run_id: event.run_id,
-                  node_id: event.node_id,
-                  status: "completed",
-                  input: event.input,
-                  output: event.output,
-                  attempts: event.attempts,
-                  started_at: event.started_at,
-                  completed_at: event.completed_at,
-                }
-                await emit.runNodeCompleted(runNode)
-                await emit.nodeCompleted({
-                  run_id: event.run_id,
-                  node_id: event.node_id,
-                  output: event.output ?? {},
-                })
-              }
-            },
-            onNodeFailed: async (event: NodeLifecycleEvent) => {
-              const { items } = await data.queryItems({
-                collection_id: RUN_NODES_COLLECTION,
-              })
-              const existing = items.find(
-                (i) =>
-                  i.data.run_id === event.run_id &&
-                  i.data.node_id === event.node_id &&
-                  i.data.attempts === event.attempts &&
-                  i.data.status === "running",
-              )
-              if (existing) {
-                await data.updateItem({
-                  item_id: existing.id,
-                  data: {
-                    status: "failed",
-                    error: event.error,
-                    completed_at: event.completed_at,
-                  },
-                })
-                const runNode: z.infer<typeof flowRunNodeSchema> = {
-                  id: existing.id,
-                  run_id: event.run_id,
-                  node_id: event.node_id,
-                  status: "failed",
-                  input: event.input,
-                  error: event.error,
-                  attempts: event.attempts,
-                  started_at: event.started_at,
-                  completed_at: event.completed_at,
-                }
-                await emit.runNodeCompleted(runNode)
-                await emit.nodeCompleted({
-                  run_id: event.run_id,
-                  node_id: event.node_id,
-                  output: event.output ?? {},
-                })
-              }
-            },
-          }
+          const lifecycle = createLifecycleHandlers(data, emit, runId)
 
           const result = await executeFlow(flow, restoredContext.trigger_data, restoredContext, {
             run_id: runId,
@@ -1337,22 +1149,45 @@ export const flowsModule = createEdemModule(
   },
 )
 
+const VALID_FLOW_STATUSES = ["draft", "active", "paused", "archived"] as const
+const VALID_RUN_STATUSES = [
+  "pending",
+  "running",
+  "waiting",
+  "completed",
+  "error",
+  "cancelled",
+] as const
+
+function toStr(val: unknown, fallback: string): string {
+  return typeof val === "string" ? val : fallback
+}
+
+function toNum(val: unknown): number | null {
+  return typeof val === "number" ? val : null
+}
+
 function parseFlow(item: {
   id: string
   collection_id: string
   data: Record<string, unknown>
 }): z.infer<typeof flowSchema> {
+  const status = toStr(item.data.status, "draft")
   return {
     id: item.id,
-    name: item.data.name as string,
-    status: (item.data.status as z.infer<typeof flowSchema>["status"]) ?? "draft",
+    name: toStr(item.data.name, ""),
+    status: (VALID_FLOW_STATUSES as readonly string[]).includes(status)
+      ? (status as z.infer<typeof flowSchema>["status"])
+      : "draft",
     trigger: item.data.trigger as z.infer<typeof triggerSchema>,
-    nodes: (item.data.nodes as z.infer<typeof nodeSchema>[]) ?? [],
-    edges: (item.data.edges as z.infer<typeof edgeSchema>[]) ?? [],
-    meta: item.data.meta as Record<string, unknown> | undefined,
-    backpressure: item.data.backpressure as
-      | { maxPending?: number; maxConcurrent?: number }
+    nodes: (Array.isArray(item.data.nodes) ? item.data.nodes : []) as z.infer<typeof nodeSchema>[],
+    edges: (Array.isArray(item.data.edges) ? item.data.edges : []) as z.infer<typeof edgeSchema>[],
+    meta: (item.data.meta && typeof item.data.meta === "object" ? item.data.meta : undefined) as
+      | Record<string, unknown>
       | undefined,
+    backpressure: (item.data.backpressure && typeof item.data.backpressure === "object"
+      ? item.data.backpressure
+      : undefined) as { maxPending?: number; maxConcurrent?: number } | undefined,
   }
 }
 
@@ -1361,22 +1196,36 @@ function parseRun(item: {
   collection_id: string
   data: Record<string, unknown>
 }): z.infer<typeof runSchema> {
+  const status = toStr(item.data.status, "pending")
   return {
     id: item.id,
-    flow_id: item.data.flow_id as string,
-    status: item.data.status as z.infer<typeof runSchema>["status"],
-    input: item.data.input as Record<string, unknown> | undefined,
-    output: item.data.output as Record<string, unknown> | undefined,
-    context: item.data.context as z.infer<typeof flowContextSchema> | undefined,
-    waiting_node_id: (item.data.waiting_node_id as string) ?? null,
-    timeout_at: (item.data.timeout_at as number) ?? null,
-    error: (item.data.error as string) ?? null,
-    parent_run_id: (item.data.parent_run_id as string) ?? null,
-    started_at: item.data.started_at as number,
-    completed_at: (item.data.completed_at as number) ?? null,
+    flow_id: toStr(item.data.flow_id, ""),
+    status: (VALID_RUN_STATUSES as readonly string[]).includes(status)
+      ? (status as z.infer<typeof runSchema>["status"])
+      : "pending",
+    input: (item.data.input && typeof item.data.input === "object"
+      ? item.data.input
+      : undefined) as Record<string, unknown> | undefined,
+    output: (item.data.output && typeof item.data.output === "object"
+      ? item.data.output
+      : undefined) as Record<string, unknown> | undefined,
+    context: (item.data.context && typeof item.data.context === "object"
+      ? item.data.context
+      : undefined) as z.infer<typeof flowContextSchema> | undefined,
+    waiting_node_id: toStr(item.data.waiting_node_id, "") || null,
+    timeout_at: toNum(item.data.timeout_at),
+    error: toStr(item.data.error, "") || null,
+    parent_run_id: toStr(item.data.parent_run_id, "") || null,
+    started_at: typeof item.data.started_at === "number" ? item.data.started_at : Date.now(),
+    completed_at: toNum(item.data.completed_at),
   }
 }
 
+/**
+ * Extracts the flow output from execution context.
+ * Returns the output node's resolved outputs if an output node exists,
+ * otherwise returns all node outputs (used for debugging/transparency).
+ */
 function extractFlowOutput(
   flow: z.infer<typeof flowSchema>,
   context: { node_outputs: Record<string, Record<string, unknown>> },
@@ -1427,86 +1276,85 @@ function deepEqual(a: unknown, b: unknown): boolean {
   return true
 }
 
-async function ensureCollections(data: EdemData) {
-  try {
-    const { collection: flowsCol } = await data.getCollection({
-      collection_id: FLOWS_COLLECTION,
-    })
-    if (!flowsCol) {
-      await data.createCollection({
-        id: FLOWS_COLLECTION,
-        name: "Flows",
-        fields: [
-          { name: "name", type: "string", required: true },
-          { name: "status", type: "string" },
-          { name: "trigger", type: "json", required: true },
-          { name: "nodes", type: "json" },
-          { name: "edges", type: "json" },
-          { name: "meta", type: "json" },
-          { name: "manifest_id", type: "string" },
-        ],
-      })
-    }
-  } catch (err) {
-    if (!(err instanceof Error && err.message.includes("already exists"))) {
-      throw err
-    }
-  }
+async function ensureCollections(data: EdemData, retries = 3) {
+  const collections = [
+    {
+      id: FLOWS_COLLECTION,
+      name: "Flows",
+      fields: [
+        { name: "name", type: "string", required: true },
+        { name: "status", type: "string" },
+        { name: "trigger", type: "json", required: true },
+        { name: "nodes", type: "json" },
+        { name: "edges", type: "json" },
+        { name: "meta", type: "json" },
+        { name: "manifest_id", type: "string" },
+      ],
+    },
+    {
+      id: RUNS_COLLECTION,
+      name: "Flow Runs",
+      fields: [
+        { name: "flow_id", type: "string", required: true },
+        { name: "status", type: "string", required: true },
+        { name: "input", type: "json" },
+        { name: "output", type: "json" },
+        { name: "context", type: "json" },
+        { name: "waiting_node_id", type: "string" },
+        { name: "timeout_at", type: "number" },
+        { name: "error", type: "string" },
+        { name: "parent_run_id", type: "string" },
+        { name: "depth", type: "number" },
+        { name: "started_at", type: "number" },
+        { name: "completed_at", type: "number" },
+      ],
+    },
+    {
+      id: RUN_NODES_COLLECTION,
+      name: "Flow Run Nodes",
+      fields: [
+        { name: "run_id", type: "string", required: true },
+        { name: "node_id", type: "string", required: true },
+        { name: "status", type: "string", required: true },
+        { name: "input", type: "json" },
+        { name: "output", type: "json" },
+        { name: "error", type: "string" },
+        { name: "attempts", type: "number" },
+        { name: "started_at", type: "number" },
+        { name: "completed_at", type: "number" },
+      ],
+    },
+  ]
 
-  try {
-    const { collection: runsCol } = await data.getCollection({
-      collection_id: RUNS_COLLECTION,
-    })
-    if (!runsCol) {
-      await data.createCollection({
-        id: RUNS_COLLECTION,
-        name: "Flow Runs",
-        fields: [
-          { name: "flow_id", type: "string", required: true },
-          { name: "status", type: "string", required: true },
-          { name: "input", type: "json" },
-          { name: "output", type: "json" },
-          { name: "context", type: "json" },
-          { name: "waiting_node_id", type: "string" },
-          { name: "timeout_at", type: "number" },
-          { name: "error", type: "string" },
-          { name: "parent_run_id", type: "string" },
-          { name: "depth", type: "number" },
-          { name: "started_at", type: "number" },
-          { name: "completed_at", type: "number" },
-        ],
-      })
-    }
-  } catch (err) {
-    if (!(err instanceof Error && err.message.includes("already exists"))) {
-      throw err
-    }
-  }
-
-  try {
-    const { collection: runNodesCol } = await data.getCollection({
-      collection_id: RUN_NODES_COLLECTION,
-    })
-    if (!runNodesCol) {
-      await data.createCollection({
-        id: RUN_NODES_COLLECTION,
-        name: "Flow Run Nodes",
-        fields: [
-          { name: "run_id", type: "string", required: true },
-          { name: "node_id", type: "string", required: true },
-          { name: "status", type: "string", required: true },
-          { name: "input", type: "json" },
-          { name: "output", type: "json" },
-          { name: "error", type: "string" },
-          { name: "attempts", type: "number" },
-          { name: "started_at", type: "number" },
-          { name: "completed_at", type: "number" },
-        ],
-      })
-    }
-  } catch (err) {
-    if (!(err instanceof Error && err.message.includes("already exists"))) {
-      throw err
+  for (let attempt = 0; attempt < retries; attempt++) {
+    try {
+      for (const def of collections) {
+        try {
+          const { collection } = await data.getCollection({ collection_id: def.id })
+          if (!collection) {
+            await data.createCollection({
+              id: def.id,
+              name: def.name,
+              fields: def.fields as {
+                name: string
+                type: "string" | "json" | "number"
+                required?: boolean
+              }[],
+            })
+          }
+        } catch (err) {
+          if (!(err instanceof Error && err.message.includes("already exists"))) {
+            throw err
+          }
+        }
+      }
+      return
+    } catch (err) {
+      if (attempt === retries - 1) {
+        console.error("[edem-flows] Failed to ensure collections after retries:", err)
+        return
+      }
+      await new Promise((r) => setTimeout(r, 500 * 2 ** attempt))
     }
   }
 }

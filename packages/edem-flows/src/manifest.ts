@@ -28,6 +28,7 @@ export type DayOfWeek = z.infer<typeof dayEnum>
 
 const EVERY_RE = /^(\d+)(m|h|d|w)$/
 
+/** Parses an interval string (e.g. "15m", "2h", "1d", "1w") into milliseconds. */
 export function parseEvery(every: string): number {
   const match = EVERY_RE.exec(every)
   if (!match) throw new Error(`Invalid every format: "${every}". Expected: Nm, Nh, Nd, Nw`)
@@ -57,6 +58,10 @@ const DAY_MAP: Record<DayOfWeek, number> = {
   sun: 0,
 }
 
+/**
+ * Checks if a schedule trigger matches the given time.
+ * Matches based on day-of-week and time-of-day constraints.
+ */
 export function matchesSchedule(trigger: ScheduleTrigger, now: Date): boolean {
   if (trigger.days && trigger.days.length > 0) {
     const dayNum = now.getDay()

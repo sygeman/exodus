@@ -234,6 +234,12 @@ export async function startScheduler(
   flows: FlowsAPI,
   data: DataAPI,
 ): Promise<{ stop: () => void }> {
+  stopAll()
+  if (delayCheckTimer) {
+    clearInterval(delayCheckTimer)
+    delayCheckTimer = null
+  }
+
   const { items } = await data.queryItems({ collection_id: "flows" })
 
   for (const item of items) {

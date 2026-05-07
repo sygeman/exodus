@@ -47,6 +47,7 @@ export interface NodeLifecycle {
   onNodeFailed?: (event: NodeLifecycleEvent) => void | Promise<void>
 }
 
+/** Result of executing a flow or a single node. */
 export interface ExecutionResult {
   context: FlowContext
   nodeResults: Map<string, NodeExecutorResult>
@@ -55,15 +56,31 @@ export interface ExecutionResult {
   waitingNodeId?: string
 }
 
+/**
+ * Executes a flow graph starting from its trigger nodes.
+ *
+ * Walks the DAG, executing each node and following edges based on results.
+ * Supports async nodes (action, loop, subflow) via waiting state, retries with
+ * configurable delay, per-node timeouts, and AbortSignal cancellation.
+ *
+ * @param flow - The flow definition with nodes and edges
+ * @param triggerData - Initial data passed to trigger nodes
+ * @param existingContext - Optional restored context for resuming execution
+ * @param options - Optional run_id, lifecycle callbacks, and AbortSignal
+ */
 export async function executeFlow(
   flow: Flow,
   triggerData: Record<string, unknown> = {},
   existingContext?: FlowContext,
-  options?: { run_id?: string; lifecycle?: NodeLifecycle },
+  options?: { run_id?: string; lifecycle?: NodeLifecycle; signal?: AbortSignal },
 ): Promise<ExecutionResult> {
   const context = existingContext ?? createContext(triggerData)
   const nodeResults = new Map<string, NodeExecutorResult>()
   const nodeMap = new Map(flow.nodes.map((n) => [n.id, n]))
+
+  if (options?.signal?.aborted) {
+    return { context, nodeResults, status: "error", error: "Run cancelled" }
+  }
 
   const adjacency = new Map<string, FlowEdge[]>()
   for (const edge of flow.edges) {
@@ -94,6 +111,7 @@ export async function executeFlow(
       1,
       options?.run_id,
       options?.lifecycle,
+      options?.signal,
     )
 
     if (result.status === "waiting") {
@@ -126,7 +144,12 @@ async function executeNodeOnly(
   input: Record<string, unknown>,
   run_id?: string,
   lifecycle?: NodeLifecycle,
+  signal?: AbortSignal,
 ): Promise<NodeExecutorResult> {
+  if (signal?.aborted) {
+    throw new Error("Run cancelled")
+  }
+
   const node = nodeMap.get(nodeId)
   if (!node) return { output: {} }
 
@@ -176,7 +199,12 @@ async function executeNode(
   attempt: number = 1,
   run_id?: string,
   lifecycle?: NodeLifecycle,
+  signal?: AbortSignal,
 ): Promise<{ status: "completed" | "waiting" | "error"; waitingNodeId?: string; error?: string }> {
+  if (signal?.aborted) {
+    return { status: "error", error: "Run cancelled" }
+  }
+
   if (visited.has(nodeId) && attempt === 1) {
     const node = nodeMap.get(nodeId)
     if (!node || node.type !== "join") return { status: "completed" }
@@ -237,6 +265,7 @@ async function executeNode(
         attempt + 1,
         run_id,
         lifecycle,
+        signal,
       )
     }
     const error = err instanceof Error ? err.message : String(err)
@@ -306,6 +335,7 @@ async function executeNode(
         result.output,
         run_id,
         lifecycle,
+        signal,
       )
 
       processedTargets.add(edge.target)
@@ -346,6 +376,7 @@ async function executeNode(
         joinInput,
         run_id,
         lifecycle,
+        signal,
       )
 
       if (joinResult.status === "async") {
@@ -367,6 +398,7 @@ async function executeNode(
         1,
         run_id,
         lifecycle,
+        signal,
       )
 
       if (nextResult.status === "waiting") {
@@ -419,6 +451,15 @@ function filterEdgesByResult(edges: FlowEdge[], result: NodeExecutorResult): Flo
   })
 }
 
+/**
+ * Validates that a state transition is allowed for a flow run.
+ *
+ * Allowed transitions:
+ * - pending → running, cancelled
+ * - running → waiting, completed, error, cancelled
+ * - waiting → running, completed, error, cancelled
+ * - completed/error/cancelled → (none, terminal states)
+ */
 export function validateFlowRunTransition(current: string, target: string): boolean {
   const validTransitions: Record<string, string[]> = {
     pending: ["running", "cancelled"],
@@ -444,6 +485,12 @@ export interface FlowValidationResult {
   errors: string[]
 }
 
+/**
+ * Validates a flow's structure:
+ * - All edges reference existing nodes
+ * - Flow has a trigger node (if it has any nodes)
+ * - Flow graph contains no cycles
+ */
 export function validateFlow(flow: Flow): FlowValidationResult {
   const errors: string[] = []
   const nodeIds = new Set(flow.nodes.map((n) => n.id))
@@ -454,6 +501,44 @@ export function validateFlow(flow: Flow): FlowValidationResult {
     }
     if (!nodeIds.has(edge.target)) {
       errors.push(`Edge "${edge.id}" references non-existent target node "${edge.target}"`)
+    }
+  }
+
+  if (flow.nodes.length > 0) {
+    const triggerNodes = flow.nodes.filter((n) => n.type === "trigger")
+    if (triggerNodes.length === 0) {
+      errors.push("Flow has no trigger node")
+    }
+  }
+
+  const adj = new Map<string, string[]>()
+  for (const edge of flow.edges) {
+    if (nodeIds.has(edge.source) && nodeIds.has(edge.target)) {
+      const list = adj.get(edge.source) ?? []
+      list.push(edge.target)
+      adj.set(edge.source, list)
+    }
+  }
+
+  const visited = new Set<string>()
+  const inStack = new Set<string>()
+
+  function dfs(nodeId: string): boolean {
+    if (inStack.has(nodeId)) return true
+    if (visited.has(nodeId)) return false
+    visited.add(nodeId)
+    inStack.add(nodeId)
+    for (const next of adj.get(nodeId) ?? []) {
+      if (dfs(next)) return true
+    }
+    inStack.delete(nodeId)
+    return false
+  }
+
+  for (const nodeId of nodeIds) {
+    if (dfs(nodeId)) {
+      errors.push(`Flow contains a cycle involving node "${nodeId}"`)
+      break
     }
   }
 

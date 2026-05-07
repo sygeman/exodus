@@ -64,18 +64,30 @@ async function executeCondition(
     case "ne":
       result = inputValue !== value
       break
-    case "gt":
-      result = Number(inputValue) > Number(value)
+    case "gt": {
+      const a = Number(inputValue)
+      const b = Number(value)
+      result = !isNaN(a) && !isNaN(b) && a > b
       break
-    case "lt":
-      result = Number(inputValue) < Number(value)
+    }
+    case "lt": {
+      const a = Number(inputValue)
+      const b = Number(value)
+      result = !isNaN(a) && !isNaN(b) && a < b
       break
-    case "gte":
-      result = Number(inputValue) >= Number(value)
+    }
+    case "gte": {
+      const a = Number(inputValue)
+      const b = Number(value)
+      result = !isNaN(a) && !isNaN(b) && a >= b
       break
-    case "lte":
-      result = Number(inputValue) <= Number(value)
+    }
+    case "lte": {
+      const a = Number(inputValue)
+      const b = Number(value)
+      result = !isNaN(a) && !isNaN(b) && a <= b
       break
+    }
     case "contains":
       result = String(inputValue).includes(String(value))
       break
@@ -252,6 +264,9 @@ async function executeLoop(
       const results = (context.flow_variables[resultsKey] as unknown[]) ?? []
 
       for (let i = currentIteration; i < maxIterations; i++) {
+        if (i > currentIteration && i % 10 === 0) {
+          await new Promise((r) => setTimeout(r, 0))
+        }
         setFlowVariable(context, iterationKey, i + 1)
         const iterResult = await handler({ iteration: i + 1, input }, context)
         results.push(iterResult)

@@ -154,6 +154,8 @@ export async function startDispatcher(
   emit: (name: string, payload: Record<string, unknown>) => void
   triggerWebhook: (path: string, payload: Record<string, unknown>) => void
 }> {
+  eventFlows.clear()
+  webhookFlows.clear()
   flowsRef = flows
 
   const { items } = await data.queryItems({ collection_id: "flows" })
