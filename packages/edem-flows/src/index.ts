@@ -26,7 +26,27 @@ const RUNS_COLLECTION = "flow_runs"
 const RUN_NODES_COLLECTION = "flow_run_nodes"
 
 let dataRef: EdemData | null = null
-const bpLocks = new Map<string, Promise<void>>()
+
+class AsyncMutex {
+  private locks = new Map<string, Promise<void>>()
+
+  async acquire(key: string): Promise<() => void> {
+    const existing = this.locks.get(key)
+    if (existing) await existing
+
+    let release: () => void
+    const promise = new Promise<void>((resolve) => {
+      release = () => {
+        resolve()
+        this.locks.delete(key)
+      }
+    })
+    this.locks.set(key, promise)
+    return release!
+  }
+}
+
+const bpMutex = new AsyncMutex()
 
 const backpressureSchema = z.object({
   maxPending: z.number().optional(),
@@ -97,7 +117,20 @@ type EmitFn = {
   }) => Promise<void>
 }
 
-function createLifecycleHandlers(data: EdemData, emit: EmitFn, _runId: string): NodeLifecycle {
+function createLifecycleHandlers(data: EdemData, emit: EmitFn): NodeLifecycle {
+  async function findRunningNode(runId: string, nodeId: string, attempts: number) {
+    const { items } = await data.queryItems({
+      collection_id: RUN_NODES_COLLECTION,
+    })
+    return items.find(
+      (i) =>
+        i.data.run_id === runId &&
+        i.data.node_id === nodeId &&
+        i.data.attempts === attempts &&
+        i.data.status === "running",
+    )
+  }
+
   return {
     onNodeStarted: async (event: NodeLifecycleEvent) => {
       const { id: nodeRunId } = await data.createItem({
@@ -124,16 +157,7 @@ function createLifecycleHandlers(data: EdemData, emit: EmitFn, _runId: string): 
       await emit.nodeStarted({ run_id: event.run_id, node_id: event.node_id })
     },
     onNodeCompleted: async (event: NodeLifecycleEvent) => {
-      const { items } = await data.queryItems({
-        collection_id: RUN_NODES_COLLECTION,
-      })
-      const existing = items.find(
-        (i) =>
-          i.data.run_id === event.run_id &&
-          i.data.node_id === event.node_id &&
-          i.data.attempts === event.attempts &&
-          i.data.status === "running",
-      )
+      const existing = await findRunningNode(event.run_id, event.node_id, event.attempts)
       if (existing) {
         await data.updateItem({
           item_id: existing.id,
@@ -163,16 +187,7 @@ function createLifecycleHandlers(data: EdemData, emit: EmitFn, _runId: string): 
       }
     },
     onNodeFailed: async (event: NodeLifecycleEvent) => {
-      const { items } = await data.queryItems({
-        collection_id: RUN_NODES_COLLECTION,
-      })
-      const existing = items.find(
-        (i) =>
-          i.data.run_id === event.run_id &&
-          i.data.node_id === event.node_id &&
-          i.data.attempts === event.attempts &&
-          i.data.status === "running",
-      )
+      const existing = await findRunningNode(event.run_id, event.node_id, event.attempts)
       if (existing) {
         await data.updateItem({
           item_id: existing.id,
@@ -334,43 +349,10 @@ export const flowsModule = createEdemModule(
 
           const now = Date.now()
 
-          const bpLockKey = input.flow_id
-          const existingLock = bpLocks.get(bpLockKey)
-          if (existingLock) await existingLock
-
-          let bpResolve: () => void
-          const bpPromise = new Promise<void>((r) => {
-            bpResolve = r
-          })
-          bpLocks.set(bpLockKey, bpPromise)
+          const releaseLock = await bpMutex.acquire(input.flow_id)
 
           try {
-            if (flow.backpressure) {
-              const { items: allRuns } = await data.queryItems({
-                collection_id: RUNS_COLLECTION,
-              })
-              const flowRuns = allRuns.filter((r) => r.data.flow_id === input.flow_id)
-
-              if (flow.backpressure.maxConcurrent !== undefined) {
-                const runningCount = flowRuns.filter(
-                  (r) => r.data.status === "running" || r.data.status === "waiting",
-                ).length
-                if (runningCount >= flow.backpressure.maxConcurrent) {
-                  throw new Error(
-                    `Flow ${input.flow_id} has ${runningCount} concurrent runs (limit: ${flow.backpressure.maxConcurrent})`,
-                  )
-                }
-              }
-
-              if (flow.backpressure.maxPending !== undefined) {
-                const pendingCount = flowRuns.filter((r) => r.data.status === "waiting").length
-                if (pendingCount >= flow.backpressure.maxPending) {
-                  throw new Error(
-                    `Flow ${input.flow_id} has ${pendingCount} waiting runs (limit: ${flow.backpressure.maxPending})`,
-                  )
-                }
-              }
-            }
+            await checkBackpressure(data, flow, input.flow_id)
 
             await data.updateItem({
               item_id: input.flow_id,
@@ -398,7 +380,7 @@ export const flowsModule = createEdemModule(
 
             await emit.runStarted(run)
 
-            const lifecycle = createLifecycleHandlers(data, emit, runId)
+            const lifecycle = createLifecycleHandlers(data, emit)
 
             try {
               const result = await executeFlow(flow, input.trigger_data ?? {}, undefined, {
@@ -408,191 +390,20 @@ export const flowsModule = createEdemModule(
 
               if (result.status === "waiting") {
                 const waitingNode = flow.nodes.find((n) => n.id === result.waitingNodeId)
-                const isSubflow = waitingNode?.type === "subflow"
 
-                if (isSubflow && waitingNode) {
-                  const childFlowId = (waitingNode.data as Record<string, unknown>)
-                    ?.flow_id as string
-                  if (!childFlowId) {
-                    await data.updateItem({
-                      item_id: runId,
-                      data: {
-                        status: "error",
-                        error: "subflow node missing flow_id",
-                        completed_at: Date.now(),
-                      },
-                    })
-                    return { run_id: runId, status: "error" }
-                  }
-
-                  const childFlowItem = await data.getItem({ item_id: childFlowId })
-                  if (!childFlowItem.item) {
-                    await data.updateItem({
-                      item_id: runId,
-                      data: {
-                        status: "error",
-                        error: `Subflow flow ${childFlowId} not found`,
-                        completed_at: Date.now(),
-                      },
-                    })
-                    return { run_id: runId, status: "error" }
-                  }
-
-                  const childFlow = parseFlow(childFlowItem.item)
-                  const waitingOutput = result.context.node_outputs[result.waitingNodeId!] as
-                    | Record<string, unknown>
-                    | undefined
-                  const childInput: Record<string, unknown> =
-                    (waitingOutput?.input as Record<string, unknown>) ?? {}
-
-                  const parentDepth = (item.data.depth as number) ?? 0
-                  if (parentDepth >= 10) {
-                    await data.updateItem({
-                      item_id: runId,
-                      data: {
-                        status: "error",
-                        error: `Subflow max depth (10) exceeded`,
-                        completed_at: Date.now(),
-                      },
-                    })
-                    return { run_id: runId, status: "error" }
-                  }
-
-                  const { id: childRunId } = await data.createItem({
-                    collection_id: RUNS_COLLECTION,
-                    data: {
-                      flow_id: childFlowId,
-                      status: "running",
-                      input: childInput,
-                      parent_run_id: runId,
-                      depth: parentDepth + 1,
-                      started_at: Date.now(),
-                    },
-                  })
-
-                  try {
-                    const childResult = await executeFlow(childFlow, childInput, undefined, {
-                      run_id: childRunId,
-                      lifecycle,
-                    })
-
-                    if (childResult.status === "waiting") {
-                      await data.updateItem({
-                        item_id: childRunId,
-                        data: {
-                          status: "waiting",
-                          context: childResult.context,
-                          waiting_node_id: childResult.waitingNodeId,
-                          timeout_at: calculateTimeoutAt(childFlow, childResult.waitingNodeId),
-                        },
-                      })
-                      await data.updateItem({
-                        item_id: runId,
-                        data: {
-                          status: "waiting",
-                          context: result.context,
-                          waiting_node_id: result.waitingNodeId,
-                          timeout_at: calculateTimeoutAt(flow, result.waitingNodeId),
-                        },
-                      })
-                      return { run_id: runId, status: "waiting" }
-                    }
-
-                    await data.updateItem({
-                      item_id: childRunId,
-                      data: {
-                        status: childResult.status,
-                        output: childResult.context.node_outputs,
-                        error: childResult.error ?? null,
-                        completed_at: Date.now(),
-                      },
-                    })
-
-                    if (childResult.status === "error") {
-                      await data.updateItem({
-                        item_id: runId,
-                        data: {
-                          status: "error",
-                          output: extractFlowOutput(flow, result.context),
-                          error: `Subflow failed: ${childResult.error}`,
-                          waiting_node_id: null,
-                          completed_at: Date.now(),
-                        },
-                      })
-                      return { run_id: runId, status: "error" }
-                    }
-
-                    const subflowOutput = childResult.context.node_outputs
-
-                    result.context.node_outputs[result.waitingNodeId!] = {
-                      ...result.context.node_outputs[result.waitingNodeId!],
-                      child_output: subflowOutput,
-                      status: "completed",
-                    }
-
-                    const resumeResult = await executeFlow(
-                      flow,
-                      result.context.trigger_data,
-                      result.context,
-                      { run_id: runId, lifecycle },
-                    )
-
-                    if (resumeResult.status === "waiting") {
-                      await data.updateItem({
-                        item_id: runId,
-                        data: {
-                          status: "waiting",
-                          context: resumeResult.context,
-                          waiting_node_id: resumeResult.waitingNodeId,
-                        },
-                      })
-                      return { run_id: runId, status: "waiting" }
-                    }
-
-                    await data.updateItem({
-                      item_id: runId,
-                      data: {
-                        status: resumeResult.status,
-                        output: {
-                          ...extractFlowOutput(flow, resumeResult.context),
-                          subflow: subflowOutput,
-                        },
-                        completed_at: Date.now(),
-                      },
-                    })
-
-                    const completedRun: z.infer<typeof runSchema> = {
-                      ...run,
-                      status: resumeResult.status,
-                      output: {
-                        ...extractFlowOutput(flow, resumeResult.context),
-                        subflow: subflowOutput,
-                      },
-                      completed_at: Date.now(),
-                    }
-                    await emit.runCompleted(completedRun)
-                    return { run_id: runId, status: resumeResult.status }
-                  } catch (err) {
-                    const error = err instanceof Error ? err.message : String(err)
-                    await data.updateItem({
-                      item_id: childRunId,
-                      data: {
-                        status: "error",
-                        error,
-                        completed_at: Date.now(),
-                      },
-                    })
-                    await data.updateItem({
-                      item_id: runId,
-                      data: {
-                        status: "error",
-                        error: `Subflow failed: ${error}`,
-                        waiting_node_id: null,
-                        completed_at: Date.now(),
-                      },
-                    })
-                    return { run_id: runId, status: "error" }
-                  }
+                if (waitingNode?.type === "subflow") {
+                  const subflowResult = await handleSubflow(
+                    data,
+                    emit,
+                    flow,
+                    run,
+                    runId,
+                    result,
+                    waitingNode,
+                    item,
+                    lifecycle,
+                  )
+                  if (subflowResult) return subflowResult
                 }
 
                 await data.updateItem({
@@ -655,12 +466,10 @@ export const flowsModule = createEdemModule(
               await emit.runCompleted(errorRun)
               return { run_id: runId, status: "error" }
             } finally {
-              bpResolve!()
-              bpLocks.delete(bpLockKey)
+              releaseLock()
             }
           } catch (err) {
-            bpResolve!()
-            bpLocks.delete(bpLockKey)
+            releaseLock()
             throw err
           }
         },
@@ -723,7 +532,7 @@ export const flowsModule = createEdemModule(
           })
 
           const runId = input.run_id
-          const lifecycle = createLifecycleHandlers(data, emit, runId)
+          const lifecycle = createLifecycleHandlers(data, emit)
 
           try {
             const result = await executeFlow(flow, restoredContext.trigger_data, restoredContext, {
@@ -839,7 +648,7 @@ export const flowsModule = createEdemModule(
           restoredContext.node_outputs[input.node_id] = input.output
 
           const runId = input.run_id
-          const lifecycle = createLifecycleHandlers(data, emit, runId)
+          const lifecycle = createLifecycleHandlers(data, emit)
 
           const result = await executeFlow(flow, restoredContext.trigger_data, restoredContext, {
             run_id: runId,
@@ -970,7 +779,8 @@ export const flowsModule = createEdemModule(
                 existingData.name !== flowDef.name ||
                 !deepEqual(existingData.trigger, flowDef.trigger) ||
                 !deepEqual(existingData.nodes, flowDef.nodes) ||
-                !deepEqual(existingData.edges, flowDef.edges)
+                !deepEqual(existingData.edges, flowDef.edges) ||
+                !deepEqual(existingData.backpressure, flowDef.backpressure)
 
               if (hasChanges) {
                 await data.updateItem({
@@ -981,6 +791,7 @@ export const flowsModule = createEdemModule(
                     nodes: flowDef.nodes,
                     edges: flowDef.edges,
                     meta: flowDef.meta ?? {},
+                    backpressure: flowDef.backpressure ?? undefined,
                   },
                 })
                 updated.push(flowDef.id)
@@ -993,6 +804,7 @@ export const flowsModule = createEdemModule(
                   nodes: flowDef.nodes,
                   edges: flowDef.edges,
                   meta: flowDef.meta,
+                  backpressure: flowDef.backpressure,
                 })
               } else {
                 skipped.push(flowDef.id)
@@ -1008,6 +820,7 @@ export const flowsModule = createEdemModule(
                   nodes: flowDef.nodes,
                   edges: flowDef.edges,
                   meta: flowDef.meta ?? {},
+                  backpressure: flowDef.backpressure ?? undefined,
                 },
               })
               created.push(flowDef.id)
@@ -1019,6 +832,7 @@ export const flowsModule = createEdemModule(
                 nodes: flowDef.nodes,
                 edges: flowDef.edges,
                 meta: flowDef.meta,
+                backpressure: flowDef.backpressure,
               })
             }
           }
@@ -1276,6 +1090,234 @@ function deepEqual(a: unknown, b: unknown): boolean {
   return true
 }
 
+async function checkBackpressure(data: EdemData, flow: z.infer<typeof flowSchema>, flowId: string) {
+  if (!flow.backpressure) return
+
+  const { items: allRuns } = await data.queryItems({
+    collection_id: RUNS_COLLECTION,
+  })
+  const flowRuns = allRuns.filter((r) => r.data.flow_id === flowId)
+
+  if (flow.backpressure.maxConcurrent !== undefined) {
+    const runningCount = flowRuns.filter(
+      (r) => r.data.status === "running" || r.data.status === "waiting",
+    ).length
+    if (runningCount >= flow.backpressure.maxConcurrent) {
+      throw new Error(
+        `Flow ${flowId} has ${runningCount} concurrent runs (limit: ${flow.backpressure.maxConcurrent})`,
+      )
+    }
+  }
+
+  if (flow.backpressure.maxPending !== undefined) {
+    const pendingCount = flowRuns.filter((r) => r.data.status === "waiting").length
+    if (pendingCount >= flow.backpressure.maxPending) {
+      throw new Error(
+        `Flow ${flowId} has ${pendingCount} waiting runs (limit: ${flow.backpressure.maxPending})`,
+      )
+    }
+  }
+}
+
+async function handleSubflow(
+  data: EdemData,
+  emit: EmitFn,
+  flow: z.infer<typeof flowSchema>,
+  run: z.infer<typeof runSchema>,
+  runId: string,
+  result: {
+    context: {
+      node_outputs: Record<string, Record<string, unknown>>
+      trigger_data: Record<string, unknown>
+      flow_variables: Record<string, unknown>
+    }
+    waitingNodeId?: string
+  },
+  waitingNode: { id: string; data?: Record<string, unknown> },
+  parentItem: { data: Record<string, unknown> },
+  lifecycle: NodeLifecycle,
+): Promise<{ run_id: string; status: string } | null> {
+  const childFlowId = (waitingNode.data as Record<string, unknown>)?.flow_id as string
+  if (!childFlowId) {
+    await data.updateItem({
+      item_id: runId,
+      data: {
+        status: "error",
+        error: "subflow node missing flow_id",
+        completed_at: Date.now(),
+      },
+    })
+    return { run_id: runId, status: "error" }
+  }
+
+  const childFlowItem = await data.getItem({ item_id: childFlowId })
+  if (!childFlowItem.item) {
+    await data.updateItem({
+      item_id: runId,
+      data: {
+        status: "error",
+        error: `Subflow flow ${childFlowId} not found`,
+        completed_at: Date.now(),
+      },
+    })
+    return { run_id: runId, status: "error" }
+  }
+
+  const childFlow = parseFlow(childFlowItem.item)
+  const waitingOutput = result.context.node_outputs[result.waitingNodeId!] as
+    | Record<string, unknown>
+    | undefined
+  const childInput: Record<string, unknown> =
+    (waitingOutput?.input as Record<string, unknown>) ?? {}
+
+  const parentDepth = (parentItem.data.depth as number) ?? 0
+  if (parentDepth >= 10) {
+    await data.updateItem({
+      item_id: runId,
+      data: {
+        status: "error",
+        error: `Subflow max depth (10) exceeded`,
+        completed_at: Date.now(),
+      },
+    })
+    return { run_id: runId, status: "error" }
+  }
+
+  const { id: childRunId } = await data.createItem({
+    collection_id: RUNS_COLLECTION,
+    data: {
+      flow_id: childFlowId,
+      status: "running",
+      input: childInput,
+      parent_run_id: runId,
+      depth: parentDepth + 1,
+      started_at: Date.now(),
+    },
+  })
+
+  try {
+    const childResult = await executeFlow(childFlow, childInput, undefined, {
+      run_id: childRunId,
+      lifecycle,
+    })
+
+    if (childResult.status === "waiting") {
+      await data.updateItem({
+        item_id: childRunId,
+        data: {
+          status: "waiting",
+          context: childResult.context,
+          waiting_node_id: childResult.waitingNodeId,
+          timeout_at: calculateTimeoutAt(childFlow, childResult.waitingNodeId),
+        },
+      })
+      await data.updateItem({
+        item_id: runId,
+        data: {
+          status: "waiting",
+          context: result.context,
+          waiting_node_id: result.waitingNodeId,
+          timeout_at: calculateTimeoutAt(flow, result.waitingNodeId),
+        },
+      })
+      return { run_id: runId, status: "waiting" }
+    }
+
+    await data.updateItem({
+      item_id: childRunId,
+      data: {
+        status: childResult.status,
+        output: childResult.context.node_outputs,
+        error: childResult.error ?? null,
+        completed_at: Date.now(),
+      },
+    })
+
+    if (childResult.status === "error") {
+      await data.updateItem({
+        item_id: runId,
+        data: {
+          status: "error",
+          output: extractFlowOutput(flow, result.context),
+          error: `Subflow failed: ${childResult.error}`,
+          waiting_node_id: null,
+          completed_at: Date.now(),
+        },
+      })
+      return { run_id: runId, status: "error" }
+    }
+
+    const subflowOutput = childResult.context.node_outputs
+
+    result.context.node_outputs[result.waitingNodeId!] = {
+      ...result.context.node_outputs[result.waitingNodeId!],
+      child_output: subflowOutput,
+      status: "completed",
+    }
+
+    const resumeResult = await executeFlow(flow, result.context.trigger_data, result.context, {
+      run_id: runId,
+      lifecycle,
+    })
+
+    if (resumeResult.status === "waiting") {
+      await data.updateItem({
+        item_id: runId,
+        data: {
+          status: "waiting",
+          context: resumeResult.context,
+          waiting_node_id: resumeResult.waitingNodeId,
+        },
+      })
+      return { run_id: runId, status: "waiting" }
+    }
+
+    await data.updateItem({
+      item_id: runId,
+      data: {
+        status: resumeResult.status,
+        output: {
+          ...extractFlowOutput(flow, resumeResult.context),
+          subflow: subflowOutput,
+        },
+        completed_at: Date.now(),
+      },
+    })
+
+    const completedRun: z.infer<typeof runSchema> = {
+      ...run,
+      status: resumeResult.status,
+      output: {
+        ...extractFlowOutput(flow, resumeResult.context),
+        subflow: subflowOutput,
+      },
+      completed_at: Date.now(),
+    }
+    await emit.runCompleted(completedRun)
+    return { run_id: runId, status: resumeResult.status }
+  } catch (err) {
+    const error = err instanceof Error ? err.message : String(err)
+    await data.updateItem({
+      item_id: childRunId,
+      data: {
+        status: "error",
+        error,
+        completed_at: Date.now(),
+      },
+    })
+    await data.updateItem({
+      item_id: runId,
+      data: {
+        status: "error",
+        error: `Subflow failed: ${error}`,
+        waiting_node_id: null,
+        completed_at: Date.now(),
+      },
+    })
+    return { run_id: runId, status: "error" }
+  }
+}
+
 async function ensureCollections(data: EdemData, retries = 3) {
   const collections = [
     {
@@ -1289,6 +1331,7 @@ async function ensureCollections(data: EdemData, retries = 3) {
         { name: "edges", type: "json" },
         { name: "meta", type: "json" },
         { name: "manifest_id", type: "string" },
+        { name: "backpressure", type: "json" },
       ],
     },
     {
@@ -1365,3 +1408,4 @@ export { registerAction, type ActionHandler } from "./actions"
 export { startScheduler } from "./scheduler"
 export { startDispatcher } from "./dispatcher"
 export { parseEvery, matchesSchedule, type ScheduleTrigger, type DayOfWeek } from "./manifest"
+export { validateFlow } from "./engine"

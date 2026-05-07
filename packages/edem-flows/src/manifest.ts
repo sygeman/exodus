@@ -104,6 +104,12 @@ export const flowManifestSchema = z.object({
   nodes: z.array(nodeSchema),
   edges: z.array(edgeSchema),
   meta: z.record(z.string(), z.unknown()).optional(),
+  backpressure: z
+    .object({
+      maxPending: z.number().optional(),
+      maxConcurrent: z.number().optional(),
+    })
+    .optional(),
 })
 
 export const flowsManifestSchema = z.object({

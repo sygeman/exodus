@@ -1,6 +1,7 @@
 import { describe, it, expect } from "bun:test"
 import { executeFlow, validateFlowRunTransition } from "./engine"
-import type { Flow } from "./engine"
+import type { Flow, NodeLifecycle } from "./engine"
+import { registerAction } from "./actions"
 
 describe("executeFlow", () => {
   it("should execute empty flow", async () => {
@@ -289,6 +290,106 @@ describe("executeFlow", () => {
     expect(result.context.node_outputs.n3).toEqual({ result: "A" })
     expect(result.context.node_outputs.n4).toEqual({ result: "B" })
     expect(result.context.node_outputs.n5.status).toBe("completed")
+  })
+})
+
+describe("node retry", () => {
+  it("should retry a failing node up to retry_max", async () => {
+    let attempts = 0
+    registerAction("flaky_action", async () => {
+      attempts++
+      if (attempts < 3) {
+        throw new Error(`Attempt ${attempts} failed`)
+      }
+      return { success: true }
+    })
+
+    const flow: Flow = {
+      id: "test",
+      name: "Retry Flow",
+      nodes: [
+        { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+        {
+          id: "n2",
+          type: "action",
+          position: { x: 100, y: 0 },
+          data: { action: "flaky_action" },
+          retry_max: 3,
+          retry_delay: 10,
+        },
+      ],
+      edges: [{ id: "e1", source: "n1", target: "n2" }],
+    }
+
+    const result = await executeFlow(flow, { data: "test" })
+    expect(result.status).toBe("completed")
+    expect(attempts).toBe(3)
+  })
+
+  it("should fail after exhausting retries", async () => {
+    let attempts = 0
+    registerAction("always_fail", async () => {
+      attempts++
+      throw new Error(`Fail #${attempts}`)
+    })
+
+    const flow: Flow = {
+      id: "test",
+      name: "Retry Exhausted",
+      nodes: [
+        { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+        {
+          id: "n2",
+          type: "action",
+          position: { x: 100, y: 0 },
+          data: { action: "always_fail" },
+          retry_max: 2,
+          retry_delay: 10,
+        },
+      ],
+      edges: [{ id: "e1", source: "n1", target: "n2" }],
+    }
+
+    const result = await executeFlow(flow, { data: "test" })
+    expect(result.status).toBe("error")
+    expect(result.error).toContain("Fail #3")
+    expect(attempts).toBe(3)
+  })
+
+  it("should call lifecycle onNodeFailed after retries exhausted", async () => {
+    let failCalled = false
+    const lifecycle: NodeLifecycle = {
+      onNodeFailed: async () => {
+        failCalled = true
+      },
+    }
+
+    registerAction("fail_after_retry", async () => {
+      throw new Error("boom")
+    })
+
+    const flow: Flow = {
+      id: "test",
+      name: "Lifecycle Retry",
+      nodes: [
+        { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+        {
+          id: "n2",
+          type: "action",
+          position: { x: 100, y: 0 },
+          data: { action: "fail_after_retry" },
+          retry_max: 1,
+          retry_delay: 10,
+        },
+      ],
+      edges: [{ id: "e1", source: "n1", target: "n2" }],
+    }
+
+    await executeFlow(flow, { data: "test" }, undefined, {
+      run_id: "test-run",
+      lifecycle,
+    })
+    expect(failCalled).toBe(true)
   })
 })
 

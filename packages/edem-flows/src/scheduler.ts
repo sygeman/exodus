@@ -1,4 +1,5 @@
 import { parseEvery, matchesSchedule, type ScheduleTrigger } from "./manifest"
+import { withRetry } from "./retry"
 
 interface FlowItem {
   id: string
@@ -40,74 +41,6 @@ interface ScheduleEntry {
 
 const schedules = new Map<string, ScheduleEntry>()
 
-const MAX_RETRIES = 3
-const BASE_DELAY_MS = 1000
-
-async function runFlowWithRetry(flows: FlowsAPI, flowId: string): Promise<void> {
-  let lastError: unknown
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      await flows.runFlow({ flow_id: flowId })
-      return
-    } catch (err) {
-      lastError = err
-      if (attempt < MAX_RETRIES) {
-        const delay = BASE_DELAY_MS * 2 ** attempt
-        await new Promise((r) => setTimeout(r, delay))
-      }
-    }
-  }
-  console.error(
-    `[flows:scheduler] Failed to run flow ${flowId} after ${MAX_RETRIES + 1} attempts:`,
-    lastError,
-  )
-}
-
-async function resumeRunWithRetry(flows: FlowsAPI, runId: string): Promise<void> {
-  let lastError: unknown
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      await flows.resumeRun({ run_id: runId })
-      return
-    } catch (err) {
-      lastError = err
-      if (attempt < MAX_RETRIES) {
-        const delay = BASE_DELAY_MS * 2 ** attempt
-        await new Promise((r) => setTimeout(r, delay))
-      }
-    }
-  }
-  console.error(
-    `[flows:scheduler] Failed to resume run ${runId} after ${MAX_RETRIES + 1} attempts:`,
-    lastError,
-  )
-}
-
-async function handleNodeFailedWithRetry(
-  flows: FlowsAPI,
-  runId: string,
-  nodeId: string,
-  error: string,
-): Promise<void> {
-  let lastError: unknown
-  for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
-    try {
-      await flows.handleNodeFailed({ run_id: runId, node_id: nodeId, error })
-      return
-    } catch (err) {
-      lastError = err
-      if (attempt < MAX_RETRIES) {
-        const delay = BASE_DELAY_MS * 2 ** attempt
-        await new Promise((r) => setTimeout(r, delay))
-      }
-    }
-  }
-  console.error(
-    `[flows:scheduler] Failed to fail run ${runId} after ${MAX_RETRIES + 1} attempts:`,
-    lastError,
-  )
-}
-
 let delayCheckTimer: ReturnType<typeof setInterval> | null = null
 
 async function checkDelayedRunsAndTimeouts(flows: FlowsAPI, data: DataAPI): Promise<void> {
@@ -123,11 +56,15 @@ async function checkDelayedRunsAndTimeouts(flows: FlowsAPI, data: DataAPI): Prom
 
       const timeoutAt = run.data.timeout_at as number | undefined
       if (timeoutAt && now >= timeoutAt) {
-        handleNodeFailedWithRetry(
-          flows,
-          run.id,
-          waitingNodeId,
-          `Node "${waitingNodeId}" timed out`,
+        withRetry(
+          () =>
+            flows.handleNodeFailed({
+              run_id: run.id,
+              node_id: waitingNodeId,
+              error: `Node "${waitingNodeId}" timed out`,
+            }),
+          "scheduler",
+          `fail run ${run.id}`,
         ).catch(() => {})
         continue
       }
@@ -151,7 +88,11 @@ async function checkDelayedRunsAndTimeouts(flows: FlowsAPI, data: DataAPI): Prom
 
       const resumeAt = nodeOutput.resume_at as number
       if (now >= resumeAt) {
-        resumeRunWithRetry(flows, run.id).catch(() => {})
+        withRetry(
+          () => flows.resumeRun({ run_id: run.id }),
+          "scheduler",
+          `resume run ${run.id}`,
+        ).catch(() => {})
       }
     }
   } catch (err) {
@@ -172,7 +113,9 @@ function runWithScheduleCheck(flowId: string, trigger: ScheduleTrigger, flows: F
   const now = new Date()
   if (!matchesSchedule(trigger, now)) return
 
-  runFlowWithRetry(flows, flowId).catch(() => {})
+  withRetry(() => flows.runFlow({ flow_id: flowId }), "scheduler", `run flow ${flowId}`).catch(
+    () => {},
+  )
 }
 
 function setupSchedule(

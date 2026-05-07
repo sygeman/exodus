@@ -400,7 +400,7 @@ trigger → fork → branch_a → transform_a ─┐
               └─ branch_b → transform_b ─┘
 ```
 
-Fork выполняет ветки параллельно через `Promise.all`. Join агрегирует результаты.
+Fork выполняет ветки последовательно, traversing each branch and collecting outputs. Join агрегирует результаты.
 
 ### Subflow
 
@@ -408,7 +408,7 @@ Fork выполняет ветки параллельно через `Promise.al
 trigger → subflow (flow_id: "child") → (вложенный run) → output
 ```
 
-Вложенный flow выполняется с `parent_run_id`. Context наследуется.
+Вложенный flow выполняется с `parent_run_id`. Context наследуется. Максимальная глубина вложенности — 10 уровней. Child flow выполняется синхронно; его `child_output` доступен в `node_outputs` parent'а после завершения.
 
 ## FlowRun Status
 
@@ -654,6 +654,7 @@ const { emit, triggerWebhook } = await startDispatcher(flowsAPI, dataAPI)
 
 - `emit(name, payload)` — триггер event-based flows
 - `triggerWebhook(path, payload)` — триггер webhook-based flows
+- `stop()` — отписывается от всех событий и очищает индексы
 
 ### parseEvery
 

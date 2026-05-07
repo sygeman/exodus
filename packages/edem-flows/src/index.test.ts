@@ -597,4 +597,95 @@ describe("edem-flows", () => {
       ).rejects.toThrow()
     })
   })
+
+  describe("listFlows filters", () => {
+    it("should filter by status", async () => {
+      await edem.flows.createFlow({ name: "Draft", trigger: { type: "manual" } })
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Active",
+        trigger: { type: "manual" },
+      })
+      await edem.flows.updateFlow({ flow_id, name: "Active" })
+
+      const { flows: activeFlows } = await edem.flows.listFlows({ status: "draft" })
+      expect(activeFlows.every((f) => f.status === "draft")).toBe(true)
+    })
+
+    it("should filter by name substring", async () => {
+      await edem.flows.createFlow({ name: "Backup Games", trigger: { type: "manual" } })
+      await edem.flows.createFlow({ name: "Sync Files", trigger: { type: "manual" } })
+      await edem.flows.createFlow({ name: "Backup Saves", trigger: { type: "manual" } })
+
+      const { flows } = await edem.flows.listFlows({ name: "backup" })
+      expect(flows).toHaveLength(2)
+      expect(flows.every((f) => f.name.toLowerCase().includes("backup"))).toBe(true)
+    })
+
+    it("should combine status and name filters", async () => {
+      await edem.flows.createFlow({ name: "Backup Games", trigger: { type: "manual" } })
+      await edem.flows.createFlow({ name: "Sync Files", trigger: { type: "manual" } })
+
+      const { flows } = await edem.flows.listFlows({ status: "draft", name: "backup" })
+      expect(flows).toHaveLength(1)
+      expect(flows[0].name).toBe("Backup Games")
+    })
+  })
+
+  describe("backpressure", () => {
+    it("should throw when maxConcurrent exceeded", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "BP Flow",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+          {
+            id: "n2",
+            type: "action",
+            position: { x: 100, y: 0 },
+            data: { action: "slow_action" },
+          },
+        ],
+        edges: [{ id: "e1", source: "n1", target: "n2" }],
+        backpressure: { maxConcurrent: 1 },
+      })
+
+      await edem.flows.runFlow({ flow_id })
+      await expect(edem.flows.runFlow({ flow_id })).rejects.toThrow("concurrent runs")
+    })
+
+    it("should throw when maxPending exceeded", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "BP Pending",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+          {
+            id: "n2",
+            type: "action",
+            position: { x: 100, y: 0 },
+            data: { action: "pending_action" },
+          },
+        ],
+        edges: [{ id: "e1", source: "n1", target: "n2" }],
+        backpressure: { maxPending: 1 },
+      })
+
+      await edem.flows.runFlow({ flow_id })
+      await expect(edem.flows.runFlow({ flow_id })).rejects.toThrow("waiting runs")
+    })
+
+    it("should allow runs when under limits", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "BP OK",
+        trigger: { type: "manual" },
+        backpressure: { maxConcurrent: 5 },
+      })
+
+      const r1 = await edem.flows.runFlow({ flow_id })
+      expect(r1.status).toBe("completed")
+
+      const r2 = await edem.flows.runFlow({ flow_id })
+      expect(r2.status).toBe("completed")
+    })
+  })
 })
