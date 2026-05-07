@@ -21,6 +21,11 @@ const RUN_NODES_COLLECTION = "flow_run_nodes"
 
 let dataRef: EdemData | null = null
 
+const backpressureSchema = z.object({
+  maxPending: z.number().optional(),
+  maxConcurrent: z.number().optional(),
+})
+
 const flowSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -29,12 +34,7 @@ const flowSchema = z.object({
   nodes: z.array(nodeSchema),
   edges: z.array(edgeSchema),
   meta: z.record(z.string(), z.unknown()).optional(),
-  backpressure: z
-    .object({
-      maxPending: z.number().optional(),
-      maxConcurrent: z.number().optional(),
-    })
-    .optional(),
+  backpressure: backpressureSchema.optional(),
 })
 
 const flowContextSchema = z.object({
@@ -108,6 +108,7 @@ export const flowsModule = createEdemModule(
           nodes: z.array(nodeSchema).optional(),
           edges: z.array(edgeSchema).optional(),
           meta: z.record(z.string(), z.unknown()).optional(),
+          backpressure: backpressureSchema.optional(),
         }),
         output: z.object({ flow_id: z.string() }),
         resolve: async ({ input, emit }) => {
@@ -122,6 +123,7 @@ export const flowsModule = createEdemModule(
               nodes: input.nodes ?? [],
               edges: input.edges ?? [],
               meta: input.meta ?? {},
+              backpressure: input.backpressure ?? undefined,
             },
           })
 
@@ -133,6 +135,7 @@ export const flowsModule = createEdemModule(
             nodes: input.nodes ?? [],
             edges: input.edges ?? [],
             meta: input.meta,
+            backpressure: input.backpressure,
           }
           await emit.flowCreated(flow)
 
@@ -147,6 +150,7 @@ export const flowsModule = createEdemModule(
           nodes: z.array(nodeSchema).optional(),
           edges: z.array(edgeSchema).optional(),
           meta: z.record(z.string(), z.unknown()).optional(),
+          backpressure: backpressureSchema.optional(),
         }),
         output: z.object({ success: z.boolean() }),
         resolve: async ({ input, emit }) => {
@@ -213,10 +217,10 @@ export const flowsModule = createEdemModule(
             }
 
             if (flow.backpressure.maxPending !== undefined) {
-              const pendingCount = flowRuns.filter((r) => r.data.status === "pending").length
+              const pendingCount = flowRuns.filter((r) => r.data.status === "waiting").length
               if (pendingCount >= flow.backpressure.maxPending) {
                 throw new Error(
-                  `Flow ${input.flow_id} has ${pendingCount} pending runs (limit: ${flow.backpressure.maxPending})`,
+                  `Flow ${input.flow_id} has ${pendingCount} waiting runs (limit: ${flow.backpressure.maxPending})`,
                 )
               }
             }
@@ -429,9 +433,24 @@ export const flowsModule = createEdemModule(
                     data: {
                       status: childResult.status,
                       output: childResult.context.node_outputs,
+                      error: childResult.error ?? null,
                       completed_at: Date.now(),
                     },
                   })
+
+                  if (childResult.status === "error") {
+                    await data.updateItem({
+                      item_id: runId,
+                      data: {
+                        status: "error",
+                        output: result.context.node_outputs,
+                        error: `Subflow failed: ${childResult.error}`,
+                        waiting_node_id: null,
+                        completed_at: Date.now(),
+                      },
+                    })
+                    return { run_id: runId, status: "error" }
+                  }
 
                   const subflowOutput = childResult.context.node_outputs
 
@@ -492,6 +511,7 @@ export const flowsModule = createEdemModule(
                     data: {
                       status: "error",
                       error: `Subflow failed: ${error}`,
+                      waiting_node_id: null,
                       completed_at: Date.now(),
                     },
                   })
@@ -523,6 +543,8 @@ export const flowsModule = createEdemModule(
               data: {
                 status: result.status,
                 output: result.context.node_outputs,
+                error: result.error ?? null,
+                waiting_node_id: null,
                 completed_at: Date.now(),
               },
             })
@@ -950,6 +972,8 @@ export const flowsModule = createEdemModule(
             data: {
               status: result.status,
               output: result.context.node_outputs,
+              error: result.error ?? null,
+              waiting_node_id: null,
               completed_at: Date.now(),
             },
           })
@@ -959,6 +983,7 @@ export const flowsModule = createEdemModule(
             flow_id: item.data.flow_id as string,
             status: result.status,
             output: result.context.node_outputs,
+            error: result.error ?? null,
             completed_at: Date.now(),
             started_at: item.data.started_at as number,
           }
