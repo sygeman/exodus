@@ -32,7 +32,8 @@ interface ScheduleEntry {
   flowId: string
   trigger: ScheduleTrigger
   intervalMs: number
-  timer: ReturnType<typeof setInterval>
+  intervalTimer: ReturnType<typeof setInterval> | null
+  initialTimer: ReturnType<typeof setTimeout> | null
 }
 
 const schedules = new Map<string, ScheduleEntry>()
@@ -40,12 +41,27 @@ const schedules = new Map<string, ScheduleEntry>()
 function clearSchedule(flowId: string): void {
   const entry = schedules.get(flowId)
   if (entry) {
-    clearInterval(entry.timer)
+    if (entry.intervalTimer) clearInterval(entry.intervalTimer)
+    if (entry.initialTimer) clearTimeout(entry.initialTimer)
     schedules.delete(flowId)
   }
 }
 
-function setupSchedule(flowId: string, trigger: ScheduleTrigger, flows: FlowsAPI): void {
+function runWithScheduleCheck(flowId: string, trigger: ScheduleTrigger, flows: FlowsAPI): void {
+  const now = new Date()
+  if (!matchesSchedule(trigger, now)) return
+
+  flows.runFlow({ flow_id: flowId }).catch((err: unknown) => {
+    console.error(`[flows:scheduler] Failed to run flow ${flowId}:`, err)
+  })
+}
+
+function setupSchedule(
+  flowId: string,
+  trigger: ScheduleTrigger,
+  flows: FlowsAPI,
+  lastRunAt?: number,
+): void {
   clearSchedule(flowId)
 
   const intervalMs = parseEvery(trigger.every)
@@ -54,16 +70,39 @@ function setupSchedule(flowId: string, trigger: ScheduleTrigger, flows: FlowsAPI
     return
   }
 
-  const timer = setInterval(() => {
-    const now = new Date()
-    if (!matchesSchedule(trigger, now)) return
+  const entry: ScheduleEntry = {
+    flowId,
+    trigger,
+    intervalMs,
+    intervalTimer: null,
+    initialTimer: null,
+  }
 
-    flows.runFlow({ flow_id: flowId }).catch((err: unknown) => {
-      console.error(`[flows:scheduler] Failed to run flow ${flowId}:`, err)
-    })
-  }, intervalMs)
+  const startInterval = () => {
+    entry.intervalTimer = setInterval(() => {
+      runWithScheduleCheck(flowId, trigger, flows)
+    }, intervalMs)
+  }
 
-  schedules.set(flowId, { flowId, trigger, intervalMs, timer })
+  if (lastRunAt) {
+    const elapsed = Date.now() - lastRunAt
+    const remaining = intervalMs - elapsed
+
+    if (remaining <= 0) {
+      runWithScheduleCheck(flowId, trigger, flows)
+      startInterval()
+    } else {
+      entry.initialTimer = setTimeout(() => {
+        entry.initialTimer = null
+        runWithScheduleCheck(flowId, trigger, flows)
+        startInterval()
+      }, remaining)
+    }
+  } else {
+    startInterval()
+  }
+
+  schedules.set(flowId, entry)
 }
 
 export async function startScheduler(flows: FlowsAPI, data: DataAPI): Promise<void> {
@@ -72,7 +111,8 @@ export async function startScheduler(flows: FlowsAPI, data: DataAPI): Promise<vo
   for (const item of items) {
     const trigger = item.data.trigger as Record<string, unknown> | undefined
     if (trigger?.type === "schedule") {
-      setupSchedule(item.id, trigger as ScheduleTrigger, flows)
+      const lastRunAt = item.data.last_run_at as number | undefined
+      setupSchedule(item.id, trigger as ScheduleTrigger, flows, lastRunAt)
     }
   }
 

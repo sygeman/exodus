@@ -165,6 +165,11 @@ export const flowsModule = createEdemModule(
           const flow = parseFlow(item)
           const now = Date.now()
 
+          await data.updateItem({
+            item_id: input.flow_id,
+            data: { ...item.data, last_run_at: now },
+          })
+
           const { id: runId } = await data.createItem({
             collection_id: RUNS_COLLECTION,
             data: {

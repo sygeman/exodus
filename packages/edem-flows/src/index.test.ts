@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach } from "bun:test"
 import { createEdem } from "@exodus/edem-core"
 import { dataModule, resetDataEngine } from "@exodus/edem-data"
-import { flowsModule } from "./index"
+import { flowsModule, registerAction } from "./index"
 
 describe("edem-flows", () => {
   let edem: ReturnType<typeof createEdem<[typeof dataModule, typeof flowsModule]>>
@@ -221,6 +221,326 @@ describe("edem-flows", () => {
 
       const { flow } = await edem.flows.getFlow({ flow_id })
       expect(flow?.trigger.type).toBe("webhook")
+    })
+  })
+
+  describe("runFlow - last_run_at", () => {
+    it("should set last_run_at when running a flow", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Track Run",
+        trigger: { type: "manual" },
+      })
+
+      const before = Date.now()
+      await edem.flows.runFlow({ flow_id })
+      const after = Date.now()
+
+      const { items } = await edem.data.queryItems({ collection_id: "flows" })
+      const flow = items.find((i) => i.id === flow_id)
+      expect(flow).toBeDefined()
+      const lastRunAt = flow!.data.last_run_at as number
+      expect(lastRunAt).toBeGreaterThanOrEqual(before)
+      expect(lastRunAt).toBeLessThanOrEqual(after)
+    })
+
+    it("should update last_run_at on subsequent runs", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Re-run",
+        trigger: { type: "manual" },
+      })
+
+      await edem.flows.runFlow({ flow_id })
+      const { items: items1 } = await edem.data.queryItems({ collection_id: "flows" })
+      const first = items1.find((i) => i.id === flow_id)!.data.last_run_at as number
+
+      await new Promise((r) => setTimeout(r, 10))
+      await edem.flows.runFlow({ flow_id })
+      const { items: items2 } = await edem.data.queryItems({ collection_id: "flows" })
+      const second = items2.find((i) => i.id === flow_id)!.data.last_run_at as number
+
+      expect(second).toBeGreaterThan(first)
+    })
+  })
+
+  describe("runFlow - runs tracking", () => {
+    it("should create a run record", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Run Record",
+        trigger: { type: "manual" },
+      })
+
+      const result = await edem.flows.runFlow({ flow_id })
+      expect(result.run_id).toBeDefined()
+
+      const { run } = await edem.flows.getRun({ run_id: result.run_id })
+      expect(run).not.toBeNull()
+      expect(run?.flow_id).toBe(flow_id)
+      expect(run?.status).toBe("completed")
+    })
+
+    it("should store trigger_data in run", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Trigger Data",
+        trigger: { type: "manual" },
+      })
+
+      const result = await edem.flows.runFlow({
+        flow_id,
+        trigger_data: { key: "value" },
+      })
+
+      const { run } = await edem.flows.getRun({ run_id: result.run_id })
+      expect(run?.input).toEqual({ key: "value" })
+    })
+
+    it("should list all runs", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "List Runs",
+        trigger: { type: "manual" },
+      })
+
+      await edem.flows.runFlow({ flow_id })
+      await edem.flows.runFlow({ flow_id })
+
+      const { runs } = await edem.flows.listRuns({})
+      expect(runs).toHaveLength(2)
+    })
+
+    it("should filter runs by flow_id", async () => {
+      const { flow_id: f1 } = await edem.flows.createFlow({
+        name: "Flow A",
+        trigger: { type: "manual" },
+      })
+      const { flow_id: f2 } = await edem.flows.createFlow({
+        name: "Flow B",
+        trigger: { type: "manual" },
+      })
+
+      await edem.flows.runFlow({ flow_id: f1 })
+      await edem.flows.runFlow({ flow_id: f2 })
+      await edem.flows.runFlow({ flow_id: f1 })
+
+      const { runs } = await edem.flows.listRuns({ flow_id: f1 })
+      expect(runs).toHaveLength(2)
+      expect(runs.every((r) => r.flow_id === f1)).toBe(true)
+    })
+
+    it("should filter runs by status", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Status Filter",
+        trigger: { type: "manual" },
+      })
+
+      await edem.flows.runFlow({ flow_id })
+
+      const { runs } = await edem.flows.listRuns({ status: "completed" })
+      expect(runs.length).toBeGreaterThanOrEqual(1)
+      expect(runs.every((r) => r.status === "completed")).toBe(true)
+    })
+  })
+
+  describe("cancelRun", () => {
+    it("should cancel a waiting run", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Cancel Test",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+          {
+            id: "n2",
+            type: "action",
+            position: { x: 100, y: 0 },
+            data: { action: "send_email" },
+          },
+        ],
+        edges: [{ id: "e1", source: "n1", target: "n2" }],
+      })
+
+      const result = await edem.flows.runFlow({ flow_id })
+      expect(result.status).toBe("waiting")
+
+      const cancelResult = await edem.flows.cancelRun({ run_id: result.run_id })
+      expect(cancelResult.success).toBe(true)
+
+      const { run } = await edem.flows.getRun({ run_id: result.run_id })
+      expect(run?.status).toBe("cancelled")
+      expect(run?.completed_at).toBeDefined()
+    })
+
+    it("should throw when cancelling non-existent run", async () => {
+      await expect(edem.flows.cancelRun({ run_id: "non-existent" })).rejects.toThrow("not found")
+    })
+
+    it("should throw when cancelling completed run", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Completed",
+        trigger: { type: "manual" },
+      })
+
+      const result = await edem.flows.runFlow({ flow_id })
+      expect(result.status).toBe("completed")
+
+      await expect(edem.flows.cancelRun({ run_id: result.run_id })).rejects.toThrow("Cannot cancel")
+    })
+  })
+
+  describe("handleNodeCompleted", () => {
+    it("should resume a waiting run", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Resume Test",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+          {
+            id: "n2",
+            type: "action",
+            position: { x: 100, y: 0 },
+            data: { action: "approve" },
+          },
+          {
+            id: "n3",
+            type: "transform",
+            position: { x: 200, y: 0 },
+            data: { field: "result", operation: "set", value: "done" },
+          },
+        ],
+        edges: [
+          { id: "e1", source: "n1", target: "n2" },
+          { id: "e2", source: "n2", target: "n3" },
+        ],
+      })
+
+      const result = await edem.flows.runFlow({ flow_id })
+      expect(result.status).toBe("waiting")
+
+      registerAction("approve", async (input) => ({
+        approved: true,
+        ...input,
+      }))
+
+      const resumeResult = await edem.flows.handleNodeCompleted({
+        run_id: result.run_id,
+        node_id: "n2",
+        output: { approved: true },
+      })
+      expect(resumeResult.success).toBe(true)
+
+      const { run } = await edem.flows.getRun({ run_id: result.run_id })
+      expect(run?.status).toBe("completed")
+    })
+
+    it("should throw for non-existent run", async () => {
+      await expect(
+        edem.flows.handleNodeCompleted({
+          run_id: "non-existent",
+          node_id: "n1",
+          output: {},
+        }),
+      ).rejects.toThrow("not found")
+    })
+
+    it("should throw when run is not waiting", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Not Waiting",
+        trigger: { type: "manual" },
+      })
+
+      const result = await edem.flows.runFlow({ flow_id })
+
+      await expect(
+        edem.flows.handleNodeCompleted({
+          run_id: result.run_id,
+          node_id: "n1",
+          output: {},
+        }),
+      ).rejects.toThrow()
+    })
+
+    it("should throw when node_id does not match", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Wrong Node",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+          {
+            id: "n2",
+            type: "action",
+            position: { x: 100, y: 0 },
+            data: { action: "wait" },
+          },
+        ],
+        edges: [{ id: "e1", source: "n1", target: "n2" }],
+      })
+
+      const result = await edem.flows.runFlow({ flow_id })
+
+      await expect(
+        edem.flows.handleNodeCompleted({
+          run_id: result.run_id,
+          node_id: "wrong_node",
+          output: {},
+        }),
+      ).rejects.toThrow("not waiting for node")
+    })
+  })
+
+  describe("handleNodeFailed", () => {
+    it("should fail a waiting run", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Fail Test",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+          {
+            id: "n2",
+            type: "action",
+            position: { x: 100, y: 0 },
+            data: { action: "risky" },
+          },
+        ],
+        edges: [{ id: "e1", source: "n1", target: "n2" }],
+      })
+
+      const result = await edem.flows.runFlow({ flow_id })
+      expect(result.status).toBe("waiting")
+
+      const failResult = await edem.flows.handleNodeFailed({
+        run_id: result.run_id,
+        node_id: "n2",
+        error: "Timeout exceeded",
+      })
+      expect(failResult.success).toBe(true)
+
+      const { run } = await edem.flows.getRun({ run_id: result.run_id })
+      expect(run?.status).toBe("error")
+      expect(run?.error).toBe("Timeout exceeded")
+    })
+
+    it("should throw for non-existent run", async () => {
+      await expect(
+        edem.flows.handleNodeFailed({
+          run_id: "non-existent",
+          node_id: "n1",
+          error: "fail",
+        }),
+      ).rejects.toThrow("not found")
+    })
+
+    it("should throw when run is not waiting", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Not Waiting",
+        trigger: { type: "manual" },
+      })
+
+      const result = await edem.flows.runFlow({ flow_id })
+
+      await expect(
+        edem.flows.handleNodeFailed({
+          run_id: result.run_id,
+          node_id: "n1",
+          error: "fail",
+        }),
+      ).rejects.toThrow()
     })
   })
 })
