@@ -1,7 +1,12 @@
 import { z } from "zod"
 import { createEdemModule, type InferModuleAPI } from "@exodus/edem-core"
 import type { dataModule } from "@exodus/edem-data"
-import { executeFlow, validateFlowRunTransition, type NodeLifecycleEvent } from "./engine"
+import {
+  executeFlow,
+  validateFlowRunTransition,
+  validateFlow,
+  type NodeLifecycleEvent,
+} from "./engine"
 import {
   triggerSchema,
   nodeSchema,
@@ -197,6 +202,12 @@ export const flowsModule = createEdemModule(
           if (!item) throw new Error(`Flow ${input.flow_id} not found`)
 
           const flow = parseFlow(item)
+
+          const validation = validateFlow(flow)
+          if (!validation.valid) {
+            throw new Error(`Invalid flow: ${validation.errors.join("; ")}`)
+          }
+
           const now = Date.now()
 
           if (flow.backpressure) {
@@ -275,6 +286,7 @@ export const flowsModule = createEdemModule(
                 started_at: event.started_at,
               }
               await emit.runNodeStarted(runNode)
+              await emit.nodeStarted({ run_id: event.run_id, node_id: event.node_id })
             },
             onNodeCompleted: async (event: NodeLifecycleEvent) => {
               const { items } = await data.queryItems({
@@ -308,6 +320,11 @@ export const flowsModule = createEdemModule(
                   completed_at: event.completed_at,
                 }
                 await emit.runNodeCompleted(runNode)
+                await emit.nodeCompleted({
+                  run_id: event.run_id,
+                  node_id: event.node_id,
+                  output: event.output ?? {},
+                })
               }
             },
             onNodeFailed: async (event: NodeLifecycleEvent) => {
@@ -342,6 +359,11 @@ export const flowsModule = createEdemModule(
                   completed_at: event.completed_at,
                 }
                 await emit.runNodeCompleted(runNode)
+                await emit.nodeCompleted({
+                  run_id: event.run_id,
+                  node_id: event.node_id,
+                  output: event.output ?? {},
+                })
               }
             },
           }
@@ -390,6 +412,19 @@ export const flowsModule = createEdemModule(
                 const childInput: Record<string, unknown> =
                   (waitingOutput?.input as Record<string, unknown>) ?? {}
 
+                const parentDepth = (item.data.depth as number) ?? 0
+                if (parentDepth >= 10) {
+                  await data.updateItem({
+                    item_id: runId,
+                    data: {
+                      status: "error",
+                      error: `Subflow max depth (10) exceeded`,
+                      completed_at: Date.now(),
+                    },
+                  })
+                  return { run_id: runId, status: "error" }
+                }
+
                 const { id: childRunId } = await data.createItem({
                   collection_id: RUNS_COLLECTION,
                   data: {
@@ -397,7 +432,7 @@ export const flowsModule = createEdemModule(
                     status: "running",
                     input: childInput,
                     parent_run_id: runId,
-                    depth: 1,
+                    depth: parentDepth + 1,
                     started_at: Date.now(),
                   },
                 })
@@ -661,6 +696,7 @@ export const flowsModule = createEdemModule(
                 started_at: event.started_at,
               }
               await emit.runNodeStarted(runNode)
+              await emit.nodeStarted({ run_id: event.run_id, node_id: event.node_id })
             },
             onNodeCompleted: async (event: NodeLifecycleEvent) => {
               const { items } = await data.queryItems({
@@ -694,6 +730,11 @@ export const flowsModule = createEdemModule(
                   completed_at: event.completed_at,
                 }
                 await emit.runNodeCompleted(runNode)
+                await emit.nodeCompleted({
+                  run_id: event.run_id,
+                  node_id: event.node_id,
+                  output: event.output ?? {},
+                })
               }
             },
             onNodeFailed: async (event: NodeLifecycleEvent) => {
@@ -728,6 +769,11 @@ export const flowsModule = createEdemModule(
                   completed_at: event.completed_at,
                 }
                 await emit.runNodeCompleted(runNode)
+                await emit.nodeCompleted({
+                  run_id: event.run_id,
+                  node_id: event.node_id,
+                  output: event.output ?? {},
+                })
               }
             },
           }
@@ -868,6 +914,7 @@ export const flowsModule = createEdemModule(
                 started_at: event.started_at,
               }
               await emit.runNodeStarted(runNode)
+              await emit.nodeStarted({ run_id: event.run_id, node_id: event.node_id })
             },
             onNodeCompleted: async (event: NodeLifecycleEvent) => {
               const { items } = await data.queryItems({
@@ -901,6 +948,11 @@ export const flowsModule = createEdemModule(
                   completed_at: event.completed_at,
                 }
                 await emit.runNodeCompleted(runNode)
+                await emit.nodeCompleted({
+                  run_id: event.run_id,
+                  node_id: event.node_id,
+                  output: event.output ?? {},
+                })
               }
             },
             onNodeFailed: async (event: NodeLifecycleEvent) => {
@@ -935,6 +987,11 @@ export const flowsModule = createEdemModule(
                   completed_at: event.completed_at,
                 }
                 await emit.runNodeCompleted(runNode)
+                await emit.nodeCompleted({
+                  run_id: event.run_id,
+                  node_id: event.node_id,
+                  output: event.output ?? {},
+                })
               }
             },
           }
@@ -1314,6 +1371,7 @@ async function ensureCollections(data: EdemData) {
           { name: "nodes", type: "json" },
           { name: "edges", type: "json" },
           { name: "meta", type: "json" },
+          { name: "manifest_id", type: "string" },
         ],
       })
     }

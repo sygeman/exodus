@@ -309,3 +309,24 @@ export function validateFlowRunTransition(current: string, target: string): bool
 
   return validTransitions[current]?.includes(target) ?? false
 }
+
+export interface FlowValidationResult {
+  valid: boolean
+  errors: string[]
+}
+
+export function validateFlow(flow: Flow): FlowValidationResult {
+  const errors: string[] = []
+  const nodeIds = new Set(flow.nodes.map((n) => n.id))
+
+  for (const edge of flow.edges) {
+    if (!nodeIds.has(edge.source)) {
+      errors.push(`Edge "${edge.id}" references non-existent source node "${edge.source}"`)
+    }
+    if (!nodeIds.has(edge.target)) {
+      errors.push(`Edge "${edge.id}" references non-existent target node "${edge.target}"`)
+    }
+  }
+
+  return { valid: errors.length === 0, errors }
+}

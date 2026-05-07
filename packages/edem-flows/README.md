@@ -548,7 +548,9 @@ Pass-through. Возвращает входные данные как output.
 
 ### input
 
-Возвращает `context.trigger_data.inputs`.
+Возвращает входные данные триггера. Поддерживает оба варианта:
+- `trigger_data.inputs.name` → читает из `trigger_data.inputs`
+- `trigger_data.name` → читает из `trigger_data` напрямую
 
 ### output
 
@@ -607,6 +609,7 @@ import {
   startDispatcher,    // запуск event/webhook триггеров
   parseEvery,         // парсинг "15m" → миллисекунды
   matchesSchedule,    // проверка расписания
+  validateFlow,       // валидация структуры flow
   type FlowsManifest,
   type FlowManifest,
   type ActionHandler,
@@ -631,10 +634,13 @@ registerAction("checkUpdate", async (input, context) => {
 ```typescript
 import { startScheduler } from "@exodus/edem-flows"
 
-await startScheduler(flowsAPI, dataAPI)
+const scheduler = await startScheduler(flowsAPI, dataAPI)
+
+// Остановка
+scheduler.stop()
 ```
 
-Запускает таймеры для flows с `schedule` триггером. Подписывается на создание/обновление/удаление flows.
+Запускает таймеры для flows с `schedule` триггером. Подписывается на создание/обновление/удаление flows. Возвращает `{ stop() }` для остановки.
 
 ### startDispatcher
 
@@ -669,6 +675,18 @@ const trigger = { type: "schedule" as const, every: "1h", at: "09:00", days: ["m
 matchesSchedule(trigger, new Date()) // boolean
 ```
 
+### validateFlow
+
+```typescript
+import { validateFlow } from "@exodus/edem-flows"
+
+const result = validateFlow(flow)
+if (!result.valid) {
+  console.error(result.errors)
+}
+// Проверяет: edges ссылаются на существующие ноды
+```
+
 ## Пример
 
 ```typescript
@@ -685,7 +703,7 @@ registerAction("checkUpdate", async () => {
 })
 
 // Запуск scheduler и dispatcher
-await startScheduler(edem.flows, edem.data)
+const scheduler = await startScheduler(edem.flows, edem.data)
 const { emit } = await startDispatcher(edem.flows, edem.data)
 
 // Создание flow

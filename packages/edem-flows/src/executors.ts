@@ -167,7 +167,8 @@ async function executeInput(
   _input: Record<string, unknown>,
   context: FlowContext,
 ): Promise<NodeExecutorResult> {
-  const inputs = (context.trigger_data.inputs as Record<string, unknown>) ?? {}
+  const inputs =
+    (context.trigger_data.inputs as Record<string, unknown>) ?? context.trigger_data ?? {}
   return { output: inputs }
 }
 

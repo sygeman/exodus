@@ -105,7 +105,16 @@ function setupSchedule(
   schedules.set(flowId, entry)
 }
 
-export async function startScheduler(flows: FlowsAPI, data: DataAPI): Promise<void> {
+function stopAll(): void {
+  for (const [flowId] of schedules) {
+    clearSchedule(flowId)
+  }
+}
+
+export async function startScheduler(
+  flows: FlowsAPI,
+  data: DataAPI,
+): Promise<{ stop: () => void }> {
   const { items } = await data.queryItems({ collection_id: "flows" })
 
   for (const item of items) {
@@ -116,14 +125,14 @@ export async function startScheduler(flows: FlowsAPI, data: DataAPI): Promise<vo
     }
   }
 
-  flows.flowCreated(({ event }) => {
+  const unsubCreated = flows.flowCreated(({ event }) => {
     const flow = event as { id: string; trigger: ScheduleTrigger }
     if (flow.trigger?.type === "schedule") {
       setupSchedule(flow.id, flow.trigger, flows)
     }
   })
 
-  flows.flowUpdated(({ event }) => {
+  const unsubUpdated = flows.flowUpdated(({ event }) => {
     const flow = event as { id: string; trigger: ScheduleTrigger }
     if (flow.trigger?.type === "schedule") {
       setupSchedule(flow.id, flow.trigger, flows)
@@ -132,10 +141,20 @@ export async function startScheduler(flows: FlowsAPI, data: DataAPI): Promise<vo
     }
   })
 
-  flows.flowDeleted(({ event }) => {
+  const unsubDeleted = flows.flowDeleted(({ event }) => {
     const { flow_id } = event as { flow_id: string }
     clearSchedule(flow_id)
   })
 
   console.log(`[flows:scheduler] Started ${schedules.size} scheduled flows`)
+
+  return {
+    stop() {
+      stopAll()
+      unsubCreated()
+      unsubUpdated()
+      unsubDeleted()
+      console.log(`[flows:scheduler] Stopped`)
+    },
+  }
 }
