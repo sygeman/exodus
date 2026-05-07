@@ -1,6 +1,6 @@
 # Edem Flows
 
-Движок визуального программирования для Edem — flows, nodes, edges, execution engine, template resolution.
+Движок визуального программирования — flows, nodes, edges, execution engine, template resolution.
 
 ## Установка
 
@@ -22,53 +22,71 @@ Workflow — граф нод, соединённых edges.
 type Flow = {
   id: string
   name: string
+  status: "draft" | "active" | "paused" | "archived"
   trigger: Trigger
   nodes: FlowNode[]
   edges: FlowEdge[]
   meta?: Record<string, unknown>
+  backpressure?: {
+    maxPending?: number
+    maxConcurrent?: number
+  }
 }
 ```
 
-### Trigger Types
+### Trigger
 
-| Type | Описание |
-|------|----------|
-| `event` | Реакция на системное событие |
-| `schedule` | По расписанию (cron) |
-| `manual` | Ручной запуск |
-| `webhook` | HTTP вызов |
+| Type | Описание | Поля |
+|------|----------|------|
+| `event` | Реакция на системное событие | `event`, `filter?` |
+| `schedule` | По расписанию | `every` (Nm/Nh/Nd/Nw), `at?`, `days?` |
+| `manual` | Ручной запуск | — |
+| `webhook` | HTTP вызов | `path` |
+
+### FlowNode
+
+```typescript
+type FlowNode = {
+  id: string
+  type: string
+  position: { x: number; y: number }
+  data?: Record<string, unknown>
+  retry_max?: number
+  retry_delay?: number
+  timeout?: number
+}
+```
+
+### FlowEdge
+
+```typescript
+type FlowEdge = {
+  id: string
+  source: string
+  target: string
+  sourceHandle?: string
+  targetHandle?: string
+  condition?: string
+  label?: string
+}
+```
 
 ### Node Types
 
 | Category | Node | Описание |
 |----------|------|----------|
 | **Logic** | `trigger` | Точка входа, pass-through |
-| | `condition` | Условие (eq/ne/gt/lt/contains) |
+| | `condition` | Условие (eq/ne/gt/lt/gte/lte/contains) |
 | | `switch` | Множественный выбор |
 | | `loop` | Цикл с итерациями |
 | | `delay` | Пауза N секунд |
 | **Data** | `input` | Входные данные (trigger inputs) |
 | | `output` | Выходные данные (template resolution) |
 | **Transform** | `transform` | Трансформация (set/add/multiply/append) |
-| **External** | `action` | Внешняя задача (async callback) |
+| **External** | `action` | Внешняя задача (sync или async callback) |
 | | `subflow` | Вложенный flow |
 | **Flow** | `fork` | Параллельные ветки |
 | | `join` | Ожидание веток (all/any/n_of_m) |
-
-### Edge
-
-Связь между нодами.
-
-```typescript
-type FlowEdge = {
-  id: string
-  source: string         // source node id
-  target: string         // target node id
-  sourceHandle?: string  // output port
-  targetHandle?: string  // input port
-  label?: string         // для switch/fork matching
-}
-```
 
 ## API
 
@@ -87,6 +105,8 @@ const { flow_id } = await edem.flows.createFlow({
   edges: [
     { id: "e1", source: "n1", target: "n2" },
   ],
+  meta: { version: 1 },
+  backpressure: { maxConcurrent: 3, maxPending: 5 },
 })
 ```
 
@@ -96,8 +116,11 @@ const { flow_id } = await edem.flows.createFlow({
 await edem.flows.updateFlow({
   flow_id: "...",
   name: "Updated Name",
+  trigger: { type: "event", event: "data:item_created" },
   nodes: [...],
   edges: [...],
+  meta: { version: 2 },
+  backpressure: { maxConcurrent: 5 },
 })
 ```
 
@@ -119,6 +142,20 @@ const { run_id, status } = await edem.flows.runFlow({
 // status: "completed" | "waiting" | "error"
 ```
 
+#### `cancelRun`
+
+```typescript
+await edem.flows.cancelRun({ run_id: "..." })
+```
+
+#### `resumeRun`
+
+Возобновление run в статусе `waiting`.
+
+```typescript
+await edem.flows.resumeRun({ run_id: "..." })
+```
+
 #### `handleNodeCompleted`
 
 Resume после async node (action, loop, subflow).
@@ -133,7 +170,7 @@ await edem.flows.handleNodeCompleted({
 
 #### `handleNodeFailed`
 
-Завершить с ошибкой.
+Завершить async node с ошибкой.
 
 ```typescript
 await edem.flows.handleNodeFailed({
@@ -143,19 +180,13 @@ await edem.flows.handleNodeFailed({
 })
 ```
 
-#### `cancelRun`
-
-```typescript
-await edem.flows.cancelRun({ run_id: "..." })
-```
-
 ### Queries
 
 #### `getFlow`
 
 ```typescript
 const { flow } = await edem.flows.getFlow({ flow_id: "..." })
-// flow | null
+// Flow | null
 ```
 
 #### `listFlows`
@@ -169,7 +200,7 @@ const { flows } = await edem.flows.listFlows()
 
 ```typescript
 const { run } = await edem.flows.getRun({ run_id: "..." })
-// { id, flow_id, status, input, output, context, waiting_node_id, error, started_at, completed_at }
+// { id, flow_id, status, input, output, context, waiting_node_id, error, parent_run_id, started_at, completed_at } | null
 ```
 
 #### `listRuns`
@@ -181,13 +212,20 @@ const { runs } = await edem.flows.listRuns({
 })
 ```
 
+#### `getRunNodes`
+
+```typescript
+const { nodes } = await edem.flows.getRunNodes({ run_id: "..." })
+// FlowRunNode[]
+```
+
 ### Subscriptions
 
 #### `flowCreated`
 
 ```typescript
 edem.flows.flowCreated(async ({ event }) => {
-  console.log(event.id, event.name)
+  console.log(event.id, event.name, event.status)
 })
 ```
 
@@ -195,7 +233,7 @@ edem.flows.flowCreated(async ({ event }) => {
 
 ```typescript
 edem.flows.flowUpdated(async ({ event }) => {
-  console.log(event.id, event.name)
+  console.log(event.id, event.name, event.status)
 })
 ```
 
@@ -228,6 +266,22 @@ edem.flows.runCompleted(async ({ event }) => {
 ```typescript
 edem.flows.runUpdated(async ({ event }) => {
   console.log(event.id, event.status)
+})
+```
+
+#### `runNodeStarted`
+
+```typescript
+edem.flows.runNodeStarted(async ({ event }) => {
+  console.log(event.id, event.run_id, event.node_id, event.status, event.attempts)
+})
+```
+
+#### `runNodeCompleted`
+
+```typescript
+edem.flows.runNodeCompleted(async ({ event }) => {
+  console.log(event.id, event.run_id, event.node_id, event.status, event.output)
 })
 ```
 
@@ -279,12 +333,12 @@ import type { FlowsManifest } from "@exodus/edem-flows"
 export const SYSTEM_FLOWS_MANIFEST: FlowsManifest = {
   flows: [
     {
-      id: "system-logger",
-      name: "System Logger",
-      trigger: { type: "event", event: "log:entry" },
+      id: "auto-updater",
+      name: "Auto Updater",
+      trigger: { type: "schedule", every: "15m" },
       nodes: [
         { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
-        { id: "n2", type: "action", position: { x: 100, y: 0 }, data: { action: "insertLog" } },
+        { id: "n2", type: "action", position: { x: 100, y: 0 }, data: { action: "checkUpdate" } },
       ],
       edges: [{ id: "e1", source: "n1", target: "n2" }],
     },
@@ -306,15 +360,15 @@ Syntax: `{{scope.path.to.value}}`
 
 | Scope | Example | Описание |
 |-------|---------|----------|
-| `trigger` | `{{trigger.inputs.name}}` | Данные триггера |
-| `nodes` | `{{nodes.node_id.output.field}}` | Output ноды |
+| `trigger` | `{{trigger.name}}` | Данные триггера |
+| `nodes` | `{{nodes.node_id.output.field}}` | Output ноды (также `{{nodes.node_id.field}}`) |
 | `context` | `{{context.my_var}}` | Переменная flow |
 
 ### Пример
 
 ```typescript
 // Node config
-{ "title": "{{trigger.inputs.name}} - {{nodes.abc.output.count}}" }
+{ "title": "{{trigger.name}} - {{nodes.abc.output.count}}" }
 
 // Resolved
 { "title": "Alice - 42" }
@@ -327,7 +381,7 @@ Syntax: `{{scope.path.to.value}}`
 ```
 trigger → condition → transform → output
               ↓
-         follow edge by handle ("true"/"false")
+         follow edge by sourceHandle ("true"/"false")
 ```
 
 ### Async Nodes (action, loop, subflow)
@@ -346,17 +400,33 @@ trigger → fork → branch_a → transform_a ─┐
               └─ branch_b → transform_b ─┘
 ```
 
+Fork выполняет ветки параллельно через `Promise.all`. Join агрегирует результаты.
+
+### Subflow
+
+```
+trigger → subflow (flow_id: "child") → (вложенный run) → output
+```
+
+Вложенный flow выполняется с `parent_run_id`. Context наследуется.
+
 ## FlowRun Status
 
 ```
 pending → running → waiting → completed
-                   ↘ error
-                   ↘ cancelled
+                    ↘ error
+                    ↘ cancelled
 ```
 
-Terminal states: `completed`, `error`, `cancelled`
+Терминальные состояния: `completed`, `error`, `cancelled`
+
+Переходы между состояниями валидируются через `validateFlowRunTransition`.
 
 ## Node Executors
+
+### trigger
+
+Pass-through. Возвращает входные данные как output.
 
 ### condition
 
@@ -371,7 +441,7 @@ Terminal states: `completed`, `error`, `cancelled`
 }
 ```
 
-Returns `{ result: boolean }`. Follows edges with `sourceHandle: "true"` or `"false"`.
+Возвращает `{ result: boolean }`. Следует по edges с `sourceHandle: "true"` или `"false"`.
 
 ### transform
 
@@ -386,7 +456,7 @@ Returns `{ result: boolean }`. Follows edges with `sourceHandle: "true"` or `"fa
 }
 ```
 
-Returns `{ result: unknown }`.
+Возвращает `{ result: unknown }`.
 
 ### switch
 
@@ -394,7 +464,7 @@ Returns `{ result: unknown }`.
 {
   type: "switch",
   data: {
-    value: "{{trigger.inputs.type}}",
+    value: "{{trigger.type}}",
     cases: [
       { value: "a", handle: "case_a" },
       { value: "b", handle: "case_b" },
@@ -404,7 +474,7 @@ Returns `{ result: unknown }`.
 }
 ```
 
-Follows edges by `label` matching.
+Следует по edge с `label` совпадающему с `handle`.
 
 ### loop
 
@@ -418,7 +488,7 @@ Follows edges by `label` matching.
 }
 ```
 
-Tracks iterations in `context.flow_variables["nodes.{id}.currentIteration"]`.
+Трекает итерации в `context.flow_variables["nodes.{id}.currentIteration"]`. Возвращает `status: "async"` пока не достигнет `maxIterations`. Требует внешних вызовов `handleNodeCompleted` для каждой итерации.
 
 ### fork
 
@@ -434,7 +504,7 @@ Tracks iterations in `context.flow_variables["nodes.{id}.currentIteration"]`.
 }
 ```
 
-Follows edges by `label` matching (branch id).
+Следует по edges с `label` совпадающему с branch id.
 
 ### join
 
@@ -447,6 +517,8 @@ Follows edges by `label` matching (branch id).
 }
 ```
 
+Агрегирует результаты веток.
+
 ### action
 
 ```typescript
@@ -454,12 +526,44 @@ Follows edges by `label` matching (branch id).
   type: "action",
   data: {
     action: "send_email",
-    to: "{{trigger.inputs.email}}"
+    to: "{{trigger.email}}"
   }
 }
 ```
 
-Returns `status: "async"`. Requires `handleNodeCompleted` callback.
+Если registered handler — выполняет sync. Если нет — возвращает `status: "async"` и ждёт `handleNodeCompleted`.
+
+### delay
+
+```typescript
+{
+  type: "delay",
+  data: {
+    seconds: 30
+  }
+}
+```
+
+Пауза. Минимум 1 секунда.
+
+### input
+
+Возвращает `context.trigger_data.inputs`.
+
+### output
+
+```typescript
+{
+  type: "output",
+  data: {
+    outputs: {
+      tag: "{{nodes.n3.output.result}}"
+    }
+  }
+}
+```
+
+Резолвит templates и возвращает resolved outputs.
 
 ### subflow
 
@@ -472,21 +576,122 @@ Returns `status: "async"`. Requires `handleNodeCompleted` callback.
 }
 ```
 
-Returns `status: "async"`. Requires `handleNodeCompleted` callback.
+Создаёт вложенный run. Возвращает `status: "async"`. Требует `handleNodeCompleted`.
+
+## Backpressure
+
+Опциональные лимиты на количество параллельных и ожидающих run'ов.
+
+```typescript
+await edem.flows.createFlow({
+  name: "Rate-limited Flow",
+  trigger: { type: "manual" },
+  backpressure: {
+    maxConcurrent: 3,  // максимум running + waiting
+    maxPending: 2,     // максимум waiting
+  },
+  nodes: [...],
+  edges: [...],
+})
+```
+
+При превышении лимита `runFlow` выбрасывает ошибку.
+
+## Экспорты
+
+```typescript
+import {
+  flowsModule,        // основной модуль
+  registerAction,     // регистрация action handlers
+  startScheduler,     // запуск schedule триггеров
+  startDispatcher,    // запуск event/webhook триггеров
+  parseEvery,         // парсинг "15m" → миллисекунды
+  matchesSchedule,    // проверка расписания
+  type FlowsManifest,
+  type FlowManifest,
+  type ActionHandler,
+  type ScheduleTrigger,
+  type DayOfWeek,
+} from "@exodus/edem-flows"
+```
+
+### registerAction
+
+```typescript
+import { registerAction } from "@exodus/edem-flows"
+
+registerAction("checkUpdate", async (input, context) => {
+  // обработка
+  return { updated: true }
+})
+```
+
+### startScheduler
+
+```typescript
+import { startScheduler } from "@exodus/edem-flows"
+
+await startScheduler(flowsAPI, dataAPI)
+```
+
+Запускает таймеры для flows с `schedule` триггером. Подписывается на создание/обновление/удаление flows.
+
+### startDispatcher
+
+```typescript
+import { startDispatcher } from "@exodus/edem-flows"
+
+const { emit, triggerWebhook } = await startDispatcher(flowsAPI, dataAPI)
+```
+
+Создаёт индексы event и webhook триггеров. Слушает события `itemCreated`/`itemUpdated`/`itemDeleted` от data модуля.
+
+- `emit(name, payload)` — триггер event-based flows
+- `triggerWebhook(path, payload)` — триггер webhook-based flows
+
+### parseEvery
+
+```typescript
+import { parseEvery } from "@exodus/edem-flows"
+
+parseEvery("15m")  // 900000
+parseEvery("2h")   // 7200000
+parseEvery("1d")   // 86400000
+parseEvery("1w")   // 604800000
+```
+
+### matchesSchedule
+
+```typescript
+import { matchesSchedule } from "@exodus/edem-flows"
+
+const trigger = { type: "schedule" as const, every: "1h", at: "09:00", days: ["mon", "tue"] }
+matchesSchedule(trigger, new Date()) // boolean
+```
 
 ## Пример
 
 ```typescript
 import { createEdem } from "@exodus/edem-core"
 import { dataModule } from "@exodus/edem-data"
-import { flowsModule } from "@exodus/edem-flows"
+import { flowsModule, registerAction, startScheduler, startDispatcher } from "@exodus/edem-flows"
 
 const edem = createEdem([dataModule, flowsModule])
+
+// Регистрация action handlers
+registerAction("checkUpdate", async () => {
+  console.log("Checking for updates...")
+  return { updated: false }
+})
+
+// Запуск scheduler и dispatcher
+await startScheduler(edem.flows, edem.data)
+const { emit } = await startDispatcher(edem.flows, edem.data)
 
 // Создание flow
 const { flow_id } = await edem.flows.createFlow({
   name: "Auto-tag Items",
-  trigger: { type: "event", event: "data:item_created" },
+  trigger: { type: "event", event: "item:created:games" },
   nodes: [
     { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
     {
@@ -522,8 +727,7 @@ const { run_id, status } = await edem.flows.runFlow({
 })
 
 console.log(status) // "completed"
+
+// Эмит события (триггерит flows с event триггером)
+emit("item:created:games", { id: "1", genre: "RPG", title: "Elden Ring" })
 ```
-
-## Видение
-
-Полная спецификация: [docs/spec.md](./docs/spec.md)
