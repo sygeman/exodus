@@ -30,6 +30,23 @@ export interface Flow {
   meta?: Record<string, unknown>
 }
 
+export interface NodeLifecycleEvent {
+  run_id: string
+  node_id: string
+  input?: Record<string, unknown>
+  output?: Record<string, unknown>
+  error?: string
+  attempts: number
+  started_at: number
+  completed_at?: number
+}
+
+export interface NodeLifecycle {
+  onNodeStarted?: (event: NodeLifecycleEvent) => void
+  onNodeCompleted?: (event: NodeLifecycleEvent) => void
+  onNodeFailed?: (event: NodeLifecycleEvent) => void
+}
+
 export interface ExecutionResult {
   context: FlowContext
   nodeResults: Map<string, NodeExecutorResult>
@@ -42,6 +59,7 @@ export async function executeFlow(
   flow: Flow,
   triggerData: Record<string, unknown> = {},
   existingContext?: FlowContext,
+  options?: { run_id?: string; lifecycle?: NodeLifecycle },
 ): Promise<ExecutionResult> {
   const context = existingContext ?? createContext(triggerData)
   const nodeResults = new Map<string, NodeExecutorResult>()
@@ -73,6 +91,9 @@ export async function executeFlow(
       nodeResults,
       new Set(),
       triggerData,
+      1,
+      options?.run_id,
+      options?.lifecycle,
     )
 
     if (result.status === "waiting") {
@@ -106,8 +127,13 @@ async function executeNode(
   visited: Set<string>,
   input: Record<string, unknown> = {},
   attempt: number = 1,
+  run_id?: string,
+  lifecycle?: NodeLifecycle,
 ): Promise<{ status: "completed" | "waiting" | "error"; waitingNodeId?: string; error?: string }> {
-  if (visited.has(nodeId) && attempt === 1) return { status: "completed" }
+  if (visited.has(nodeId) && attempt === 1) {
+    const node = nodeMap.get(nodeId)
+    if (!node || node.type !== "join") return { status: "completed" }
+  }
   if (attempt === 1) visited.add(nodeId)
 
   const node = nodeMap.get(nodeId)
@@ -116,6 +142,18 @@ async function executeNode(
   const executor = executors[node.type]
   if (!executor) {
     return { status: "error", error: `Unknown node type: ${node.type}` }
+  }
+
+  const started_at = Date.now()
+
+  if (run_id && lifecycle?.onNodeStarted) {
+    lifecycle.onNodeStarted({
+      run_id,
+      node_id: nodeId,
+      input,
+      attempts: attempt,
+      started_at,
+    })
   }
 
   let result: NodeExecutorResult
@@ -150,14 +188,40 @@ async function executeNode(
         visited,
         input,
         attempt + 1,
+        run_id,
+        lifecycle,
       )
     }
     const error = err instanceof Error ? err.message : String(err)
+
+    if (run_id && lifecycle?.onNodeFailed) {
+      lifecycle.onNodeFailed({
+        run_id,
+        node_id: nodeId,
+        error,
+        attempts: attempt,
+        started_at,
+        completed_at: Date.now(),
+      })
+    }
+
     return { status: "error", error }
   }
 
   nodeResults.set(nodeId, result)
   setNodeOutput(context, nodeId, result.output)
+
+  if (run_id && lifecycle?.onNodeCompleted) {
+    lifecycle.onNodeCompleted({
+      run_id,
+      node_id: nodeId,
+      input,
+      output: result.output,
+      attempts: attempt,
+      started_at,
+      completed_at: Date.now(),
+    })
+  }
 
   if (result.status === "async") {
     return { status: "waiting", waitingNodeId: nodeId }
@@ -166,23 +230,54 @@ async function executeNode(
   const edges = adjacency.get(nodeId) ?? []
   const nextEdges = filterEdgesByResult(edges, result)
 
-  for (const edge of nextEdges) {
-    const nextResult = await executeNode(
-      edge.target,
-      nodeMap,
-      adjacency,
-      context,
-      nodeResults,
-      visited,
-      result.output,
+  if (nextEdges.length > 1 && node.type === "fork") {
+    const branchResults = await Promise.all(
+      nextEdges.map((edge) =>
+        executeNode(
+          edge.target,
+          nodeMap,
+          adjacency,
+          context,
+          nodeResults,
+          new Set(visited),
+          result.output,
+          1,
+          run_id,
+          lifecycle,
+        ),
+      ),
     )
 
-    if (nextResult.status === "waiting") {
-      return nextResult
+    for (const nextResult of branchResults) {
+      if (nextResult.status === "waiting") {
+        return nextResult
+      }
+      if (nextResult.status === "error") {
+        return nextResult
+      }
     }
+  } else {
+    for (const edge of nextEdges) {
+      const nextResult = await executeNode(
+        edge.target,
+        nodeMap,
+        adjacency,
+        context,
+        nodeResults,
+        visited,
+        result.output,
+        1,
+        run_id,
+        lifecycle,
+      )
 
-    if (nextResult.status === "error") {
-      return nextResult
+      if (nextResult.status === "waiting") {
+        return nextResult
+      }
+
+      if (nextResult.status === "error") {
+        return nextResult
+      }
     }
   }
 

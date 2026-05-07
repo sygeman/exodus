@@ -292,11 +292,41 @@ async function executeJoin(
     setFlowVariable(context, `nodes.${nodeId}.joinMode`, mode)
   }
 
+  const branchOutputs: Record<string, unknown>[] = []
+  if (input && typeof input === "object") {
+    for (const [key, value] of Object.entries(input)) {
+      if (key !== "status" && key !== "mode") {
+        if (typeof value === "object" && value !== null) {
+          branchOutputs.push(value as Record<string, unknown>)
+        } else {
+          branchOutputs.push({ value })
+        }
+      }
+    }
+  }
+
+  let aggregated: unknown
+  switch (mode) {
+    case "any":
+      aggregated = branchOutputs.length > 0 ? branchOutputs[0] : undefined
+      break
+    case "n_of_m": {
+      const n = Number((resolved as Record<string, unknown>).n ?? branchOutputs.length)
+      aggregated = branchOutputs.slice(0, n)
+      break
+    }
+    case "all":
+    default:
+      aggregated = branchOutputs
+      break
+  }
+
   return {
     output: {
       status: "completed",
       mode,
-      input,
+      branches: branchOutputs.length,
+      aggregated,
     },
   }
 }
