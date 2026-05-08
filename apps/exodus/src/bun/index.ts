@@ -7,7 +7,7 @@ import { edem, modules } from "@/bun/edem"
 import { ensureCollections } from "@/manifest"
 import { ensureFlows } from "@/flows-bootstrap"
 import { bunLogger } from "@/modules/logger/bun"
-import { initAppState, initStateDefaults } from "@/modules/app-state/bun"
+import { initAppState, initStateDefaults, ensureStateItem } from "@/modules/app-state/bun"
 
 // Workaround for WebKitGTK + NVIDIA + Wayland rendering issue.
 // The DMA-BUF renderer fails to create GBM buffers on NVIDIA in Wayland
@@ -91,16 +91,40 @@ registerAction("checkUpdate", async () => {
 
 registerAction("saveWindowFrame", async (input) => {
   const frame = input.frame as { x: number; y: number; width: number; height: number } | undefined
+  const maximized = input.maximized as boolean | undefined
   if (!frame) return { status: "skipped" }
-  const { items } = await edem.data.queryItems({ collection_id: "app_state" })
-  if (items.length > 0) {
-    await edem.data.updateItem({ item_id: items[0].id, data: { window_frame: frame } })
-  }
+  const id = await ensureStateItem(edem.data)
+  const patch: Record<string, unknown> = { window_frame: frame }
+  if (maximized !== undefined) patch.window_maximized = maximized
+  await edem.data.updateItem({ item_id: id, data: patch })
+  return { status: "ok" }
+})
+
+registerAction("saveRoute", async (input) => {
+  const hash = input.hash as string | undefined
+  if (!hash) return { status: "skipped" }
+  const id = await ensureStateItem(edem.data)
+  await edem.data.updateItem({ item_id: id, data: { last_route: { hash } } })
+  return { status: "ok" }
+})
+
+const ALLOWED_SETTINGS_KEYS = new Set(["theme", "locale"])
+
+registerAction("saveSetting", async (input) => {
+  const key = input.key as string
+  const value = input.value as unknown
+  if (!key || !ALLOWED_SETTINGS_KEYS.has(key)) return { status: "skipped" }
+  const id = await ensureStateItem(edem.data)
+  await edem.data.updateItem({ item_id: id, data: { [key]: value } })
   return { status: "ok" }
 })
 
 await startScheduler(edem.flows, edem.data)
 const flowsDispatcher = await startDispatcher(edem.flows, edem.data)
+
+edemBridge.onWebviewEvent((name, payload) => {
+  flowsDispatcher.emit(name, payload)
+})
 
 await initStateDefaults(edem.data)
 
@@ -135,7 +159,7 @@ const { webview } = win
 
 edemBridge.attachWebview(webview)
 
-initAppState(edem.data, win, flowsDispatcher.emit)
+initAppState(win, flowsDispatcher.emit)
 
 ApplicationMenu.setApplicationMenu([
   {

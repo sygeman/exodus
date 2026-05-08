@@ -1,12 +1,21 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue"
+import { edem } from "@/edem"
 import { webviewLogger } from "@/modules/logger/webview"
 import type { LogEntry } from "@/modules/logger/types"
 
 const PAGE_SIZE = 100
+const COLLECTION_ID = "logs"
 
 function formatTime(ts: number) {
   const d = new Date(ts)
   return d.toLocaleTimeString() + "." + String(d.getMilliseconds()).padStart(3, "0")
+}
+
+function matchesFilters(log: LogEntry, level: string, source: string, search: string): boolean {
+  if (level !== "all" && log.level !== level) return false
+  if (source !== "all" && log.source !== source) return false
+  if (search.trim() && !log.message.includes(search.trim())) return false
+  return true
 }
 
 export function useLogger() {
@@ -21,6 +30,8 @@ export function useLogger() {
   const stats = ref({ debug: 0, info: 0, warn: 0, error: 0 })
 
   let requestId = 0
+  const unsubs: (() => void)[] = []
+  let statsTimer: ReturnType<typeof setTimeout> | null = null
 
   async function fetchLogs() {
     if (loading.value) return
@@ -48,23 +59,70 @@ export function useLogger() {
     stats.value = await webviewLogger.stats()
   }
 
-  let pollInterval: ReturnType<typeof setInterval> | null = null
-
-  function startPolling() {
-    if (pollInterval) return
-    pollInterval = setInterval(() => {
-      if (!isPaused.value) {
-        fetchLogs()
-        refreshStats()
-      }
-    }, 1000)
+  function debouncedRefreshStats() {
+    if (statsTimer) return
+    statsTimer = setTimeout(() => {
+      statsTimer = null
+      refreshStats()
+    }, 500)
   }
 
-  function stopPolling() {
-    if (pollInterval) {
-      clearInterval(pollInterval)
-      pollInterval = null
+  function toLogEntry(item: {
+    id: string
+    created_at: number
+    data: Record<string, unknown>
+  }): LogEntry {
+    return {
+      id: item.id,
+      timestamp: item.created_at,
+      level: item.data.level as LogEntry["level"],
+      source: item.data.source as "bun" | "webview",
+      message: item.data.message as string,
+      args: (item.data.args as unknown[]) ?? [],
+      count: item.data.count as number | undefined,
     }
+  }
+
+  function subscribe() {
+    unsubs.push(
+      edem.data.itemCreated(async ({ event: item }) => {
+        if (item.collection_id !== COLLECTION_ID) return
+        if (isPaused.value) return
+
+        const entry = toLogEntry(item)
+        if (matchesFilters(entry, levelFilter.value, sourceFilter.value, textFilter.value)) {
+          logs.value = [entry, ...logs.value].slice(0, PAGE_SIZE)
+          total.value++
+        }
+        debouncedRefreshStats()
+      }),
+    )
+
+    unsubs.push(
+      edem.data.itemUpdated(async ({ event: item }) => {
+        if (item.collection_id !== COLLECTION_ID) return
+        if (isPaused.value) return
+
+        const idx = logs.value.findIndex((l) => l.id === item.id)
+        if (idx !== -1) {
+          logs.value[idx] = toLogEntry(item)
+        }
+        debouncedRefreshStats()
+      }),
+    )
+
+    unsubs.push(
+      edem.data.itemDeleted(async ({ event }) => {
+        if (isPaused.value) return
+
+        const idx = logs.value.findIndex((l) => l.id === event.item_id)
+        if (idx !== -1) {
+          logs.value.splice(idx, 1)
+          total.value--
+        }
+        debouncedRefreshStats()
+      }),
+    )
   }
 
   watch([levelFilter, sourceFilter, textFilter], () => {
@@ -75,11 +133,16 @@ export function useLogger() {
   onMounted(() => {
     fetchLogs()
     refreshStats()
-    startPolling()
+    subscribe()
   })
 
   onUnmounted(() => {
-    stopPolling()
+    for (const unsub of unsubs) unsub()
+    unsubs.length = 0
+    if (statsTimer) {
+      clearTimeout(statsTimer)
+      statsTimer = null
+    }
   })
 
   const page = computed(() => Math.floor(offset.value / PAGE_SIZE) + 1)

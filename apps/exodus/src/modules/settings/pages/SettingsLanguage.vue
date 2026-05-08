@@ -2,7 +2,7 @@
 import { computed, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { locales, type Locale } from "@/locales"
-import { saveAppSettings } from "@/modules/app-state/settings"
+import { edemBridge } from "@/edem-bridge"
 
 const { t, locale } = useI18n()
 
@@ -16,7 +16,10 @@ const selectedLocale = computed<Locale>({
 })
 
 watch(selectedLocale, (value) => {
-  saveAppSettings({ locale: value }).catch(() => {})
+  edemBridge.emitEvent("app-state:setting-changed", {
+    key: "locale",
+    value,
+  })
 })
 </script>
 

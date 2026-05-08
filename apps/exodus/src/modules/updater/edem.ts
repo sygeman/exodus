@@ -5,7 +5,6 @@ import { Updater } from "electrobun/bun"
 
 type EdemData = InferModuleAPI<typeof dataModule>
 
-const CHECK_INTERVAL_MS = 15 * 60 * 1000
 const COLLECTION_ID = "updater_status"
 
 let dataRef: EdemData | null = null
@@ -109,9 +108,6 @@ export const updaterModule = createEdemModule(
   (edem) => {
     const { data } = edem as { data: EdemData }
     dataRef = data
-    ensureStatusItem(data).then(() => {
-      checkForUpdate()
-      setInterval(checkForUpdate, CHECK_INTERVAL_MS)
-    })
+    ensureStatusItem(data).then(() => checkForUpdate())
   },
 )

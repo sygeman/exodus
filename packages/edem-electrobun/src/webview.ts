@@ -75,6 +75,10 @@ export function createWebviewEdemBridge() {
 
   return {
     workerFactory,
+    emitEvent(name: string, payload: Record<string, unknown>) {
+      if (!sendToBun) return
+      sendToBun({ type: "event", module: "flows", name, payload })
+    },
     handler: (msg: EdemMsg) => {
       if (msg.type === "response") {
         const p = pending.get(msg.id)

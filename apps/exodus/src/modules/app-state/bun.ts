@@ -18,7 +18,7 @@ const COLLECTION_ID = "app_state"
 
 let stateItemId: string | null = null
 
-async function ensureStateItem(data: EdemData): Promise<string> {
+export async function ensureStateItem(data: EdemData): Promise<string> {
   if (stateItemId) return stateItemId
   const { items } = await data.queryItems({ collection_id: COLLECTION_ID })
   if (items.length > 0) {
@@ -34,11 +34,6 @@ async function ensureStateItem(data: EdemData): Promise<string> {
   })
   stateItemId = id
   return id
-}
-
-async function updateState(data: EdemData, patch: Record<string, unknown>) {
-  const id = await ensureStateItem(data)
-  await data.updateItem({ item_id: id, data: patch })
 }
 
 function getSystemLocale(): string {
@@ -107,19 +102,17 @@ export async function initStateDefaults(data: EdemData) {
 }
 
 export function initAppState(
-  edemData: EdemData,
   win: BrowserWindow,
   emit?: (name: string, payload: Record<string, unknown>) => void,
 ) {
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-  function debouncedSaveWindowFrame(frame: WindowFrame) {
+  function debouncedEmitFrame(frame: WindowFrame) {
     if (debounceTimer) {
       clearTimeout(debounceTimer)
     }
     debounceTimer = setTimeout(() => {
       if (frame.width < MIN_WINDOW_WIDTH || frame.height < MIN_WINDOW_HEIGHT) return
-      updateState(edemData, { window_frame: frame }).catch(() => {})
       emit?.("window:frame_changed", { frame })
     }, 300)
   }
@@ -127,13 +120,13 @@ export function initAppState(
   win.on("resize", (event: unknown) => {
     const e = event as { data?: { x: number; y: number; width: number; height: number } }
     if (e.data) {
-      debouncedSaveWindowFrame(e.data)
+      debouncedEmitFrame(e.data)
     }
   })
 
   win.on("move", () => {
     const currentFrame = win.getFrame()
-    debouncedSaveWindowFrame(currentFrame)
+    debouncedEmitFrame(currentFrame)
   })
 
   win.on("close", () => {
@@ -141,10 +134,6 @@ export function initAppState(
       clearTimeout(debounceTimer)
     }
     const currentFrame = win.getFrame()
-    updateState(edemData, {
-      window_frame: currentFrame,
-      window_maximized: win.isMaximized(),
-    }).catch(() => {})
-    emit?.("window:frame_changed", { frame: currentFrame })
+    emit?.("window:frame_changed", { frame: currentFrame, maximized: win.isMaximized() })
   })
 }

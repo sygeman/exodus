@@ -13,6 +13,7 @@ export function createBunEdemBridge(
   modules: EdemModule[],
 ) {
   const sendToWebview: ((msg: EdemMsg) => void)[] = []
+  const onWebviewEventHandlers: ((name: string, payload: Record<string, unknown>) => void)[] = []
 
   for (const mod of modules) {
     const moduleProxy = edem[mod._name] as Record<string, (arg: unknown) => unknown>
@@ -32,27 +33,31 @@ export function createBunEdemBridge(
 
   return {
     handler: async (msg: EdemMsg) => {
-      if (msg.type !== "request") return
-
-      const moduleProxy = edem[msg.module] as Record<string, (input: unknown) => Promise<unknown>>
-      if (!moduleProxy) {
-        for (const send of sendToWebview) {
-          send({ type: "response", id: msg.id, error: `Module "${msg.module}" not found` })
+      if (msg.type === "request") {
+        const moduleProxy = edem[msg.module] as Record<string, (input: unknown) => Promise<unknown>>
+        if (!moduleProxy) {
+          for (const send of sendToWebview) {
+            send({ type: "response", id: msg.id, error: `Module "${msg.module}" not found` })
+          }
+          return
         }
-        return
-      }
-      try {
-        const result = await moduleProxy[msg.proc](msg.input)
-        for (const send of sendToWebview) {
-          send({ type: "response", id: msg.id, result })
+        try {
+          const result = await moduleProxy[msg.proc](msg.input)
+          for (const send of sendToWebview) {
+            send({ type: "response", id: msg.id, result })
+          }
+        } catch (err) {
+          for (const send of sendToWebview) {
+            send({
+              type: "response",
+              id: msg.id,
+              error: err instanceof Error ? err.message : String(err),
+            })
+          }
         }
-      } catch (err) {
-        for (const send of sendToWebview) {
-          send({
-            type: "response",
-            id: msg.id,
-            error: err instanceof Error ? err.message : String(err),
-          })
+      } else if (msg.type === "event") {
+        for (const handler of onWebviewEventHandlers) {
+          handler(msg.name, msg.payload as Record<string, unknown>)
         }
       }
     },
@@ -62,6 +67,9 @@ export function createBunEdemBridge(
         sendToWebview.length = 0
         sendToWebview.push(send)
       }
+    },
+    onWebviewEvent(handler: (name: string, payload: Record<string, unknown>) => void) {
+      onWebviewEventHandlers.push(handler)
     },
   }
 }

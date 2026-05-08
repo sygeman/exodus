@@ -2,7 +2,7 @@
 import { computed, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useColorMode } from "@vueuse/core"
-import { saveAppSettings } from "@/modules/app-state/settings"
+import { edemBridge } from "@/edem-bridge"
 
 const { t } = useI18n()
 
@@ -18,7 +18,10 @@ const isDark = computed({
 })
 
 watch(isDark, (value) => {
-  saveAppSettings({ theme: value ? "dark" : "light" }).catch(() => {})
+  edemBridge.emitEvent("app-state:setting-changed", {
+    key: "theme",
+    value: value ? "dark" : "light",
+  })
 })
 
 const themeDescription = computed(() => t("settings.darkModeDescription"))

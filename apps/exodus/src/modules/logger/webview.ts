@@ -1,17 +1,16 @@
 import { edem } from "@/edem"
-import type { LogEntry, LogLevel } from "@/modules/logger/types"
+import type { LogLevel } from "@/modules/logger/types"
+import { createDedup } from "@/modules/logger/dedup"
+import { queryLogs, queryLogStats, clearLogs } from "@/modules/logger/query"
 
-interface DedupState {
-  count: number
-  lastArgs: unknown[]
-  timeout: ReturnType<typeof setTimeout>
-}
+const { add } = createDedup((entry) => {
+  edem.data
+    .createItem({ collection_id: "logs", data: { ...entry, source: "webview" } })
+    .catch(() => {})
+})
 
 class WebviewLogger {
   private patched = false
-  private dedupWindow = 1000
-  private recentLogs = new Map<string, number>()
-  private pendingDedups = new Map<string, DedupState>()
 
   init() {
     if (this.patched) return
@@ -32,7 +31,7 @@ class WebviewLogger {
       (level: LogLevel) =>
       (...args: unknown[]) => {
         original[level].apply(console, args)
-        this.add(level, args)
+        add(level, args)
       }
 
     console.log = createHandler("info")
@@ -42,154 +41,9 @@ class WebviewLogger {
     console.debug = createHandler("debug")
   }
 
-  private shouldDedupe(level: LogLevel, message: string): boolean {
-    if (level !== "warn" && level !== "error") return false
-    const now = Date.now()
-    const key = `${level}:${message}`
-    const last = this.recentLogs.get(key)
-    if (last && now - last < this.dedupWindow) {
-      return true
-    }
-    this.recentLogs.set(key, now)
-    if (this.recentLogs.size > 1000) {
-      const cutoff = now - this.dedupWindow
-      for (const [k, v] of this.recentLogs) {
-        if (v < cutoff) this.recentLogs.delete(k)
-      }
-    }
-    return false
-  }
-
-  private async flushDedup(key: string, level: LogLevel, baseMessage: string) {
-    const state = this.pendingDedups.get(key)
-    if (!state || state.count <= 0) {
-      this.pendingDedups.delete(key)
-      return
-    }
-
-    await edem.data.createItem({
-      collection_id: "logs",
-      data: {
-        level,
-        message: baseMessage,
-        source: "webview",
-        args: state.lastArgs.map((a) => {
-          try {
-            return typeof a === "object" && a !== null ? JSON.parse(JSON.stringify(a)) : a
-          } catch {
-            return String(a)
-          }
-        }),
-        count: state.count,
-      },
-    })
-
-    this.pendingDedups.delete(key)
-  }
-
-  private add(level: LogLevel, args: unknown[]) {
-    const message = args
-      .map((a) =>
-        typeof a === "string"
-          ? a
-          : typeof a === "number" || typeof a === "boolean"
-            ? String(a)
-            : JSON.stringify(a),
-      )
-      .join(" ")
-
-    const key = `${level}:${message}`
-
-    if (this.shouldDedupe(level, message)) {
-      const existing = this.pendingDedups.get(key)
-      if (existing) {
-        existing.count++
-        existing.lastArgs = args
-      } else {
-        const timeout = setTimeout(() => {
-          this.flushDedup(key, level, message).catch(() => {})
-        }, this.dedupWindow)
-        this.pendingDedups.set(key, { count: 1, lastArgs: args, timeout })
-      }
-      return
-    }
-
-    edem.data
-      .createItem({
-        collection_id: "logs",
-        data: {
-          level,
-          message,
-          source: "webview",
-          args: args.map((a) => {
-            try {
-              return typeof a === "object" && a !== null ? JSON.parse(JSON.stringify(a)) : a
-            } catch {
-              return String(a)
-            }
-          }),
-        },
-      })
-      .catch(() => {})
-  }
-
-  async clear(source: "bun" | "webview" | "all" = "all") {
-    const { items } = await edem.data.queryItems({
-      collection_id: "logs",
-      filter: source !== "all" ? { source: { _eq: source } } : undefined,
-    })
-    for (const item of items) {
-      await edem.data.deleteItem({ item_id: item.id })
-    }
-  }
-
-  async query(q: {
-    level?: string
-    source?: string
-    search?: string
-    limit?: number
-    offset?: number
-  }): Promise<{ logs: LogEntry[]; total: number }> {
-    const filter: Record<string, unknown> = {}
-    if (q.level && q.level !== "all") filter.level = { _eq: q.level }
-    if (q.source && q.source !== "all") filter.source = { _eq: q.source }
-    if (q.search?.trim()) filter.message = { _contains: q.search.trim() }
-
-    const { items, total } = await edem.data.queryItems({
-      collection_id: "logs",
-      filter: Object.keys(filter).length > 0 ? filter : undefined,
-      sort: ["-created_at"],
-      limit: q.limit ?? 500,
-      offset: q.offset ?? 0,
-    })
-
-    const logs = items.map((item) => ({
-      id: item.id,
-      timestamp: item.created_at,
-      level: item.data.level as LogLevel,
-      source: item.data.source as "bun" | "webview",
-      message: item.data.message as string,
-      args: (item.data.args as unknown[]) ?? [],
-      count: item.data.count as number | undefined,
-    }))
-
-    return { logs, total }
-  }
-
-  async stats(): Promise<{ debug: number; info: number; warn: number; error: number }> {
-    const [debug, info, warn, error] = await Promise.all(
-      (["debug", "info", "warn", "error"] as const).map((level) =>
-        edem.data
-          .queryItems({
-            collection_id: "logs",
-            filter: { level: { _eq: level } },
-            limit: 1,
-          })
-          .then(({ total }) => total),
-      ),
-    )
-    return { debug, info, warn, error }
-  }
+  clear = clearLogs
+  query = queryLogs
+  stats = queryLogStats
 }
 
 export const webviewLogger = new WebviewLogger()
