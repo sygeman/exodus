@@ -1,104 +1,142 @@
 # Agent Guidelines
 
-## Commit Style
+## Architecture
 
-This project uses [Conventional Commits](https://www.conventionalcommits.org/) to drive the automated release pipeline.
+### Edem
 
-### Format
+Фреймворк для декларативных приложений. Разработчик **объявляет**, никогда не пишет код:
 
 ```
-<type>[optional scope]: <description>
-
-[optional body]
-
-[optional footer(s)]
+Манифесты → Рантайм → Приложение
 ```
 
-### Types and their effect on versioning
+Три манифеста определяют любое приложение:
 
-| Type       | SemVer bump | When to use                                           |
+| Манифест | Файл | Описание | Модуль |
+|----------|------|----------|--------|
+| **Data** | `data.json` | Какие данные существуют | edem-data |
+| **Flows** | `flows.json` | Что происходит когда | edem-flows |
+| **UI** | `ui.json` | Как выглядит и к чему привязано | edem-ui |
+
+Один рантайм для всех приложений. Приложение = три JSON-файла.
+
+### Принципы
+
+1. **Декларативность** — разработчик описывает, интерпретатор выполняет
+2. **Разделение** — данные, логика, представление отделены друг от друга
+3. **Фреймворк-агностичность** — манифесты не привязаны к Vue/React/Svelte
+4. **Самореферентность** — приложение собирает себя из своих же данных
+
+### Модули
+
+Строгое разделение ответственности:
+
+| Модуль | Ответственность |
+|--------|----------------|
+| **edem-core** | Контракт коммуникации (RPC) |
+| **edem-data** | Хранение данных |
+| **edem-flows** | Бизнес-логика |
+| **edem-ui** | Представление (интерпретирует ui.json) |
+| **Рендерер** | Базовые компоненты (Vue / React / Svelte / ...) |
+| **Окружение** | Сборка приложения (Electrobun, browser, CLI) |
+
+Системные модули могут использовать друг друга. Модули приложений — изолированы друг от друга.
+
+### Архитектура
+
+```
+Манифесты (3 JSON-файла)
+        ↓
+    Рантайм
+    ├── edem-core      — контракт коммуникации
+    ├── edem-data      — хранение данных
+    ├── edem-flows     — бизнес-логика
+    └── edem-ui        — представление
+        ↓
+    Рендерер (Vue / React / Svelte / ...)
+        ↓
+    Среда (Electrobun / Browser / CLI)
+        ↓
+    Standalone-приложение
+```
+
+### Exodus
+
+IDE для построения Edem-приложений. Сам является Edem-приложением:
+
+```
+build(exodus) = exodus
+```
+
+**Содержит:**
+- 3 редактора (данных, потоков, UI)
+- Управление проектами
+- Build-пайплайну
+
+**Не содержит:**
+- Хардкоженного кода фич
+- Vue-модулей для логов, настроек и т.д.
+
+Всё кроме редакторов и инфраструктуры — коллекции внутри проекта, определённые через манифесты.
+
+## Стиль коммитов
+
+Проект использует [Conventional Commits](https://www.conventionalcommits.org/) для управления автоматическим релизом.
+
+### Формат
+
+```
+<type>[опциональный scope]: <описание>
+
+[опциональное тело]
+
+[опциональные footer(s)]
+```
+
+### Типы и их влияние на версионирование
+
+| Тип        | Бамп SemVer | Когда использовать                                    |
 |------------|-------------|-------------------------------------------------------|
-| `fix`      | `patch`     | Bug fix or small correction                           |
-| `feat`     | `minor`     | New feature or capability                             |
-| `BREAKING CHANGE` | `major` | Any backward-incompatible change (in footer or after `!`) |
-| `build`    | none        | Build system or external dependencies                 |
-| `chore`    | none        | Maintenance tasks that don't affect source code       |
-| `ci`       | none        | CI/CD configuration changes                           |
-| `docs`     | none        | Documentation-only changes                            |
-| `perf`     | `patch`     | Performance improvement                               |
-| `refactor` | none        | Code change that neither fixes a bug nor adds a feat  |
-| `style`    | none        | Formatting, missing semicolons, etc.                  |
-| `test`     | none        | Adding or correcting tests                            |
+| `fix`      | `patch`     | Исправление бага или мелкая коррекция                  |
+| `feat`     | `minor`     | Новая фича или возможность                            |
+| `BREAKING CHANGE` | `major` | Любое обратно-несовместимое изменение (в footer или после `!`) |
+| `build`    | нет         | Система сборки или внешние зависимости                 |
+| `chore`    | нет         | Задачи техобслуживания, не затрагивающие исходный код  |
+| `ci`       | нет         | Изменения конфигурации CI/CD                           |
+| `docs`     | нет         | Только изменения документации                          |
+| `perf`     | `patch`     | Улучшение производительности                           |
+| `refactor` | нет         | Изменение кода без исправления бага и без добавления фичи |
+| `style`    | нет         | Форматирование, пропущенные точки с запятой и т.д.     |
+| `test`     | нет         | Добавление или исправление тестов                      |
 
-### Important rules
+### Важные правила
 
-1. **Only `fix`, `feat`, and `BREAKING CHANGE` trigger a release.**
-2. **A push to `main` with only `chore`, `docs`, `ci`, `style`, `refactor`, or `test` commits will NOT create a new release.**
-3. **The release workflow automatically bumps `package.json`, creates a git tag, builds the app, and publishes a GitHub Release.**
-4. **Do not bump `package.json` version manually.** The CI handles it.
+1. **Только `fix`, `feat` и `BREAKING CHANGE` запускают релиз.**
+2. **Пуш в `main` только с коммитами `chore`, `docs`, `ci`, `style`, `refactor` или `test` НЕ создаёт новый релиз.**
+3. **Релиз-пайплайн автоматически бампит `package.json`, создаёт тег, собирает приложение и публикует GitHub Release.**
+4. **Не бампи `package.json` вручную.** CI делает это сам.
 
-### Examples
+### Примеры
 
 ```bash
-# Patch release (0.0.1 → 0.0.2)
-git commit -m "fix: correct logger timestamp"
+# Патч-релиз (0.0.1 → 0.0.2)
+git commit -m "fix: исправить таймстемп логгера"
 
-# Minor release (0.0.2 → 0.1.0)
-git commit -m "feat: add dark mode toggle"
+# Минор-релиз (0.0.2 → 0.1.0)
+git commit -m "feat: добавить тогл тёмной темы"
 
-# Major release (0.1.0 → 1.0.0)
-git commit -m "feat: redesign settings API
+# Мажор-релиз (0.1.0 → 1.0.0)
+git commit -m "feat: передизайн API настроек
 
-BREAKING CHANGE: old settings schema is no longer supported"
+BREAKING CHANGE: старая схема настроек больше не поддерживается"
 ```
 
-## Release Pipeline
+## Заметки для агентов
 
-- Trigger: `push` to `main`
-- Action: `TriPSs/conventional-changelog-action@v5` analyzes commits, bumps version, commits `package.json`, and creates a tag
-- Build: macOS app is built via `bun run build:stable`
-- Publish: GitHub Release is created at `https://github.com/sygeman/exodus/releases/latest/download`
-- Updater: Electrobun auto-updater checks `update.json` from the latest release
-
-## Notes for Agents
-
-- Keep commits atomic and use the correct type.
-- If a change includes both a fix and a feature, split it into two commits when possible.
-- Never force-push to `main` unless explicitly asked.
-- After the CI bumps `package.json`, run `git pull` locally to stay in sync.
-- **Zero tolerance for lint/type warnings and bugs.** Always run `bun run lint` and `bun run typecheck` after making changes and fix all errors and warnings before finishing. Do not leave any `any` types or type casts in new or modified code — use proper types derived from schemas.
-
-## Agent Tool Usage
-
-- **Do NOT use the `task` subagent tool.** Always use direct tool calls (`read`, `edit`, `bash`, `grep`, etc.) instead.
-
-## Module Boundaries
-
-- **Modules must not import from each other.** Each module is self-contained.
-- If multiple modules need the same code, extract it to `src/components/` or `src/composables/`.
-- Allowed imports inside a module:
-  - Within the same module (`./`, `../` inside `src/modules/<name>/`)
-  - From `src/components/`
-  - From `src/composables/`
-  - From third-party packages
-- Forbidden imports inside a module:
-  - `from "@/modules/<other-module>/..."`
-
-## Module i18n
-
-- **Each module must own its translations.** No module should rely on keys defined in `src/locales/*`.
-- Export naming: `export const <name>Messages = { ... }`
-- Structure:
-  - `common` — keys used **only** by this module (merged into global `common`)
-  - `<name>` — module-specific namespace (e.g., `settings`, `debug`, `projects`)
-  - `events` — event descriptions for the playground (optional)
-- **Do not use generic namespaces** (e.g., `logs`, `events`) for module-specific keys. Use the module name: `debug.searchLogs`, not `logs.searchLogs`.
-- Event descriptions live in `i18n/events/<locale>.ts` and are re-exported via `i18n/<locale>.ts`.
-- Global `src/locales/*.ts` should only contain **truly global** keys used across multiple modules or in `App.vue` / `AppSidebar.vue`.
-
-## Event Naming Convention
-
-- **All event names must use kebab-case strictly.**
-- The event namespace must match the module name exactly.
-- Examples: `logger:entry`, `app-state:route-changed`, `updater:check-update`, `schema:request-response`
-- Payload property names in schemas must also use kebab-case.
+- **Отвечай на русском языке.**
+- **Пиши коммиты на английском языке.**
+- Держи коммиты атомарными и используй правильный тип.
+- Если изменение включает и фикс, и фичу, разбей на два коммита когда возможно.
+- Никогда не делай force-push в `main` без явной просьбы.
+- После того как CI бампит `package.json`, сделай `git pull` локально, чтобы синхронизироваться.
+- **Нулевая терпимость к предупреждениям линтера/типов и багам.** Всегда запускай `bun run lint` и `bun run typecheck` после изменений и исправляй все ошибки и предупреждения. Не оставляй типы `any` или касты в новом/изменённом коде — используй правильные типы, выведенные из схем.

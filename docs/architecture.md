@@ -1,215 +1,241 @@
-# Exodus Architecture
+# Архитектура Exodus
 
-## Vision
+## Видение
 
-Edem is a framework for **declarative applications**. Instead of writing code, developers describe what an application should do through manifests: schema, flows, and UI. A universal runtime interprets these manifests.
+Edem — фреймворк для **декларативных приложений**. Вместо написания кода разработчик описывает, что должно делать приложение, через три JSON-файла. Универсальный рантайм интерпретирует эти манифесты.
 
-Exodus is an IDE for building Edem applications. Exodus itself is an Edem application — self-referential by design.
+Exodus — IDE для построения Edem-приложений. Сам является Edem-приложением:
 
 ```
 build(exodus) = exodus
 ```
 
-## Core Principle
+## Ключевой принцип
 
 ```
-Traditional development:
-  Code → Compilation → Application
+Традиционная разработка:
+  Код → Компиляция → Приложение
 
-Edem development:
-  Manifests (schema + flows + UI) → Runtime → Application
+Edem:
+  Манифесты (data.json + flows.json + ui.json) → Рантайм → Приложение
 ```
 
-The developer **declares**, never codes:
-- **Schema** — what data exists, what fields, what relations
-- **Flows** — what happens when (triggers → actions)
-- **UI** — how it looks, what binds to what
+Разработчик **объявляет**, никогда не пишет код:
+- **data.json** — какие данные существуют, какие поля, какие связи
+- **flows.json** — что происходит когда (триггеры → действия)
+- **ui.json** — как выглядит и к чему привязано
 
-The runtime **interprets** manifests. The same runtime for all applications.
+Рантайм **интерпретирует** манифесты. Один рантайм для всех приложений.
 
-## Artifact
+## Принципы
 
-```
-Artifact = Schema manifest + Flows manifest + UI manifest + Runtime + Environment
-```
+1. **Декларативность** — разработчик описывает, интерпретатор выполняет
+2. **Разделение** — данные, логика, представление отделены друг от друга
+3. **Фреймворк-агностичность** — манифесты не привязаны к Vue/React/Svelte
+4. **Самореферентность** — приложение собирает себя из своих же данных
 
-| Component | Format | Description |
-|-----------|--------|-------------|
-| Schema | Declarative JSON | Collections, fields, relations, validations |
-| Flows | Declarative JSON | Graph of nodes, triggers, connections |
-| UI | Declarative JSON | Pages, components, bindings to data/flows |
-| Runtime | JS bundle | edem-core + edem modules — same for all apps |
-| Environment | Platform wrapper | Electrobun (desktop), browser (web), CLI |
-
-## Three Base Modules
-
-Everything in an Edem application is built on three meta-modules:
-
-| Module | Role | Status |
-|--------|------|--------|
-| **edem-data** | Schema + data storage (meta-level) | Working |
-| **edem-flows** | Business logic engine | Working |
-| **edem-ui** | Rendering engine | Stub |
-
-All application features (logger, settings, app-state, etc.) are NOT separate modules. They are **collections + flows + UI** defined through the three base modules.
+## Артефакт
 
 ```
-Logger:
-  data:   collection "logs" { level, message, timestamp, source }
-  flow:   on "log:entry" → insert item in "logs"
-  ui:     page "/debug/logs" → list component bound to "logs"
-
-Settings:
-  data:   collection "settings" { key, value, type }
-  flow:   on "setting:changed" → update item in "settings"
-  ui:     page "/settings" → form component bound to "settings"
+Артефакт = data.json + flows.json + ui.json + Рантайм + Рендерер + Среда
 ```
 
-## Edem Packages
+| Компонент | Формат | Описание |
+|-----------|--------|----------|
+| data.json | Декларативный JSON | Коллекции, поля, связи, валидации |
+| flows.json | Декларативный JSON | Граф нод, триггеры, соединения |
+| ui.json | Декларативный JSON | Страницы, компоненты, привязки к данным/потокам |
+| Runtime | JS bundle | edem-core + модули edem — один для всех приложений |
+| Renderer | Фреймворк-специфичный | Компоненты Vue / React / Svelte, которые интерпретируют ui.json |
+| Окружение | Обёртка платформы | Electrobun (десктоп), браузер, CLI |
 
-| Package | Role | Status |
-|---------|------|--------|
-| edem-core | Module system, RPC, worker abstraction | Working |
-| edem-data | Collections, items, fields — the meta-level | Working |
-| edem-flows | Triggers, nodes, actions, DAG engine | Working |
-| edem-ui | Pages, components, rendering | Stub (in-memory) |
-| edem-mcp | MCP tools integration | Stub |
-| edem-runners | Distributed task execution | Stub |
-| edem-electrobun | Bun ↔ Webview bridge | Working |
-
-## edem-data as Meta-Level
-
-edem-data is the foundation. It is self-describing — it stores its own schema using its own tables.
-
-### Bootstrap tables (hardcoded in edem-data)
-
-These tables exist at the meta-level. They are not collections — they define what collections ARE.
-
-| Table | Purpose |
-|-------|---------|
-| projects | Container for collections (grouping, build target) |
-| collections | Meta-schema: what collections exist |
-| fields | Meta-schema: what fields each collection has |
-| items | Data storage: items in collections |
-
-### System capabilities (in edem-data)
-
-These are built-in mechanisms, not collections. They operate on items.
-
-| Table | Purpose |
-|-------|---------|
-| relations | Links between items across collections |
-| itemVersions | Version history for items |
-| itemLocks | Pessimistic locking for concurrent editing |
-| files | Content-addressed file storage |
-| itemFiles | Junction between items and files |
-| fileThumbnails | Thumbnail variants for files (small/medium/large) |
-| fieldMigrations | Schema evolution tracking |
-| templates | Predefined project/collection configurations |
-| templateTags | Tags for template discovery |
-
-### Projects
-
-Projects are a core concept in edem-data. A project is a container for collections and serves as the unit of build.
-
-- Every collection belongs to a project
-- Flows and UI are collections within a project
-- Build reads a project and produces an artifact
-- Projects have a `type` that determines the environment (desktop/web/cli)
-
-## Development vs Runtime
-
-edem-data operates in two modes:
-
-### Development mode (inside Exodus)
-
-Like Directus — dynamic schema, full CRUD on meta-level:
-
-- Create/modify/delete collections and fields
-- Add/remove items in any collection
-- Schema changes are instant (no ALTER TABLE)
-- All manifests stored in SQLite as data
-- Data editor, Flow editor, UI editor are CRUD interfaces
-
-### Runtime mode (built application)
-
-Schema is fixed, only data operations:
-
-- Schema loaded from manifest — cannot be changed
-- Only CRUD on items within existing collections
-- Validates data against fixed schema
-- No dynamic collection creation
-- SQLite for user data only
+## Архитектура
 
 ```
-DEVELOPMENT                          RUNTIME
+Манифесты (3 JSON-файла)
+        ↓
+    Рантайм
+    ├── edem-core      — контракт коммуникации
+    ├── edem-data      — хранение данных
+    ├── edem-flows     — бизнес-логика
+    └── edem-ui        — представление
+        ↓
+    Рендерер (Vue / React / Svelte / ...)
+        ↓
+    Среда (Electrobun / Browser / CLI)
+        ↓
+    Standalone-приложение
+```
+
+## Три базовых модуля
+
+Всё в Edem-приложении построено на трёх мета-модулях:
+
+| Модуль | Роль |
+|--------|------|
+| **edem-data** | Хранение данных (мета-уровень) |
+| **edem-flows** | Движок бизнес-логики |
+| **edem-ui** | Интерпретация UI (читает ui.json) |
+
+Все фичи приложения (логи, настройки, состояние) — НЕ отдельные модули. Это **коллекции + потоки + UI**, определённые через три базовых модуля.
+
+```
+Логи:
+  data:   коллекция "logs" { level, message, timestamp, source }
+  flow:   на "log:entry" → вставить item в "logs"
+  ui:     страница "/debug/logs" → компонент list, привязанный к "logs"
+
+Настройки:
+  data:   коллекция "settings" { key, value, type }
+  flow:   на "setting:changed" → обновить item в "settings"
+  ui:     страница "/settings" → компонент form, привязанный к "settings"
+```
+
+## Пакеты Edem
+
+| Пакет | Роль |
+|-------|------|
+| edem-core | Система модулей, RPC, абстракция воркера |
+| edem-data | Коллекции, items, поля — мета-уровень |
+| edem-flows | Триггеры, ноды, действия, DAG-движок |
+| edem-ui | Интерпретация UI, резолвинг компонентов |
+| edem-mcp | Интеграция MCP-инструментов |
+| edem-runners | Распределённое выполнение задач |
+| edem-electrobun | Мост Bun ↔ Webview |
+
+## edem-data как мета-уровень
+
+edem-data — фундамент. Он сам описывает себя — хранит собственную схему в своих таблицах.
+
+### Bootstrap-таблицы (захардкожены в edem-data)
+
+Эти таблицы существуют на мета-уровне. Они НЕ являются коллекциями — они определяют, ЧТО ТАКОЕ коллекции.
+
+| Таблица | Назначение |
+|---------|------------|
+| projects | Контейнер для коллекций (группировка, цель сборки) |
+| collections | Мета-схема: какие коллекции существуют |
+| fields | Мета-схема: какие поля у каждой коллекции |
+| items | Хранение данных: items в коллекциях |
+
+### Системные возможности (в edem-data)
+
+Это встроенные механизмы, не коллекции. Работают с items.
+
+| Таблица | Назначение |
+|---------|------------|
+| relations | Связи между items разных коллекций |
+| itemVersions | История версий items |
+| itemLocks | Пессимистичная блокировка для параллельного редактирования |
+| files | Хранение файлов по содержимому (content-addressed) |
+| itemFiles | Связь items и файлов |
+| fileThumbnails | Варианты миниатюр (small/medium/large) |
+| fieldMigrations | Отслеживание эволюции схемы |
+| templates | Предопределённые конфигурации проектов/коллекций |
+| templateTags | Теги для поиска шаблонов |
+
+### Проекты
+
+Проекты — ключевая концепция edem-data. Проект — контейнер для коллекций и единица сборки.
+
+- Каждая коллекция принадлежит проекту
+- Потоки и UI — коллекции внутри проекта
+- Build читает проект и Produces артефакт
+- У проекта есть `type`, определяющий среду (desktop/web/cli)
+
+## Разработка vs Рантайм
+
+edem-data работает в двух режимах:
+
+### Режим разработки (внутри Exodus)
+
+Как Directus — динамическая схема, полный CRUD на мета-уровне:
+
+- Создание/изменение/удаление коллекций и полей
+- Добавление/удаление items в любой коллекции
+- Изменения схемы мгновенны (без ALTER TABLE)
+- Все манифесты хранятся в SQLite как данные
+- Редактор данных, редактор потоков, редактор UI — CRUD-интерфейсы
+
+### Режим рантайма (собранное приложение)
+
+Схема фиксирована, только операции с данными:
+
+- Схема загружается из манифеста — не может быть изменена
+- Только CRUD по items в существующих коллекциях
+- Валидация данных по фиксированной схеме
+- Нет динамического создания коллекций
+- SQLite только для данных пользователя
+
+```
+РАЗРАБОТКА                          РАНТАЙМ
 ┌─────────────────────┐              ┌─────────────────────┐
-│ Dynamic schema       │    BUILD    │ Fixed schema         │
-│ Full CRUD            │ ──────────→ │ Data CRUD only       │
-│ Manifests in SQLite  │             │ Manifests in JSON    │
-│ edem-data = engine   │             │ edem-data = validator│
+│ Динамическая схема   │    BUILD    │ Фиксированная схема │
+│ Полный CRUD          │ ──────────→ │ Только CRUD данных  │
+│ Манифесты в SQLite   │             │ Манифесты в JSON    │
+│ edem-data = движок   │             │ edem-data = валидатор│
 └─────────────────────┘              └─────────────────────┘
 ```
 
-## Lifecycle
+## Жизненный цикл
 
-### 1. Development (inside Exodus)
+### 1. Разработка (внутри Exodus)
 
-All manifests live in SQLite as data:
+Все манифесты живут в SQLite как данные:
 
 ```
 SQLite (edem-data)
 ├── projects
 │   └── "Task Manager" (type: desktop)
 │
-├── collections (schema manifest)
+├── collections (схема данных)
 │   ├── tasks { title: string, status: string, ... }
 │   └── users { name: string, email: string, ... }
 │
-├── items (flows manifest)
-│   └── collection "flows"
+├── items (схема потоков)
+│   └── коллекция "flows"
 │       ├── flow_1 { trigger: item.created, nodes: [...] }
 │       └── flow_2 { trigger: schedule, nodes: [...] }
 │
-└── items (UI manifest)
-    └── collection "pages"
+└── items (схема UI)
+    └── коллекция "pages"
         ├── "/" { components: [list, nav, ...] }
         └── "/task/:id" { components: [detail, form, ...] }
 ```
 
-### 2. Build
+### 2. Сборка
 
-Read manifests from SQLite, package into artifact:
-
-```
-input:  SQLite (project_id)
-output: dist/
-        ├── schema.json    ← collections + fields + relations
-        ├── flows.json     ← flow graphs
-        ├── ui.json        ← pages + components
-        ├── runtime.js     ← edem bundle
-        └── app            ← environment wrapper
-```
-
-### 3. Runtime (on user's machine)
+Читает манифесты из SQLite, упаковывает в артефакт:
 
 ```
-Runtime
-├── schema.json → loaded once, defines valid collections/fields
-├── flows.json → loaded once, registers triggers/actions
-├── ui.json → loaded once, renders pages
-└── data.db → SQLite for user data (items, relations, files)
+вход:  SQLite (project_id)
+выход: dist/
+        ├── data.json      ← коллекции + поля + связи
+        ├── flows.json     ← графы потоков
+        ├── ui.json        ← страницы + компоненты
+        ├── runtime.js     ← бандл edem
+        └── app            ← обёртка среды
 ```
 
-## Self-Referential Architecture
-
-Exodus stores its own schema as a project in its own SQLite:
+### 3. Рантайм (на машине пользователя)
 
 ```
-Exodus SQLite
-├── project "exodus" (type: desktop)
+Рантайм
+├── data.json → загружается раз, определяет валидные коллекции/поля
+├── flows.json → загружается раз, регистрирует триггеры/действия
+├── ui.json → загружается раз, рендерит страницы
+└── data.db → SQLite для данных пользователя (items, связи, файлы)
+```
+
+## Самореферентная архитектура
+
+Exodus хранит свою собственную схему как проект в своей SQLite:
+
+```
+SQLite Exodus
+├── проект "exodus" (type: desktop)
 │
-├── collections
+├── коллекции
 │   ├── projects { name, slug, description, icon, color, type, sort_order }
 │   ├── ideas { project_id, title, description, level, type, status }
 │   ├── logs { level, message, source, args, count }
@@ -222,97 +248,8 @@ Exodus SQLite
     └── ...
 ```
 
-When Exodus builds itself:
-1. Reads its own project from SQLite
-2. Extracts schema, flows, UI manifests
-3. Packages with edem runtime + Electrobun
-4. Result = same Exodus application
-
-## Current State
-
-Exodus is fully on edem:
-
-| Module | System | Storage |
-|--------|--------|---------|
-| projects | Edem | edem-data (SQLite) |
-| logger | Edem | edem-data (SQLite) |
-| app-state | Edem | edem-data (SQLite) |
-| updater | Edem | edem-data (SQLite) |
-| settings | Edem | via app-state |
-| debug | Vue pages only | reads logs + app_state |
-
-All modules use edem-data for storage. Evento has been removed.
-
-## Migration Plan
-
-~~Incremental migration. Mix old and new, gradually transform Exodus into a full Edem application.~~
-
-**Completed.** All modules migrated to edem. Evento removed.
-
-### Phase 1: edem-flows → data backend
-
-- edem-flows reads/writes flows as items in collection "flows"
-- Remove in-memory Map from edem-flows
-- edem-flows depends on edem-data
-
-**Status: Implemented.** edem-flows stores flows/runs in edem-data collections. 12 node types, DAG engine, retry/timeout support.
-
-### Phase 2: edem-ui → data backend
-
-- edem-ui reads/writes pages as items in collection "pages"
-- Remove in-memory Map from edem-ui
-- edem-ui depends on edem-data
-
-**Status: Not started.** edem-ui still uses in-memory Map.
-
-### Phase 3: Exodus modules → edem collections
-
-~~Migrate modules one by one. Parallel operation (evento + edem), then switch off evento.~~
-
-**Completed.** All modules migrated:
-1. ~~`app-state` → collection `app_state`~~ ✅
-2. ~~`logger` → collection `logs`~~ ✅
-3. ~~`settings` → collection `settings`~~ ✅
-4. ~~`updater` → config in edem, API stays Electrobun~~ ✅
-
-### Phase 4: Exodus bootstrap
-
-Expand `init.ts` to create full Exodus project structure:
-- project "exodus" (type: desktop)
-- system collections: logs, settings, app_state, flows, pages
-- system flows: logging, state persistence
-- system pages: settings, debug, logger
-
-### Phase 5: Notes app
-
-Second project. Build in Exodus using data/flows/ui editors.
-- project "Notes" (type: desktop)
-- collections: notes, folders, tags
-- flows: auto-slug, trash
-- UI: list, editor, sidebar
-
-### Phase 6: Build pipeline
-
-Exodus can build projects into standalone apps.
-- Read project from edem-data
-- Export schema/flows/ui manifests as JSON
-- Package with edem runtime + environment
-- → standalone Electrobun app
-
-## Open Questions
-
-1. **Runtime data storage**: JSON blobs with schema validation? Or real SQL columns from manifest?
-
-2. **edem-data modes**: Should edem-data explicitly split into `mode: "development"` (dynamic) and `mode: "runtime"` (static)?
-
-3. **Bootstrap tables**: Current 11 tables — which stay as bootstrap, which become collections?
-
-4. **edem-data size**: 1529 lines, 52+ procedures. Should it be split into sub-modules (edem-relations, edem-versions, edem-locks, edem-files)?
-
-5. **UI rendering**: Vue at runtime? Custom renderer from JSON manifest?
-
-6. **Flow execution**: Interpreter for node graph? Or compile to JS?
-
-7. **Data migration**: Schema changes between builds — how to migrate existing user databases?
-
-8. **Exodus protection**: Should certain collections be protected from user modification?
+Когда Exodus собирает себя:
+1. Читает свой проект из SQLite
+2. Извлекает data.json, flows.json, ui.json
+3. Упаковывает с edem-runtime + Electrobun
+4. Результат = тот же Exodus
