@@ -2,7 +2,7 @@
 
 ## Overview
 
-The foundation of the Edem system. Stores all user data: projects, collections, items, relations, files, templates.
+The foundation of the Edem system. Stores all user data: collections, items, relations, files.
 
 Built as an `edem-core` module — typed mutations, queries, and subscriptions.
 
@@ -10,36 +10,14 @@ Reference: **Directus**
 
 ## Concepts
 
-### Project
-
-Top-level container for grouping collections.
-
-```typescript
-type Project = {
-  id: string
-  slug: string
-  name: string
-  description?: string
-  icon?: string
-  color?: string
-  is_default: boolean
-  sort_order: number
-  created_at: number
-  updated_at: number
-  deleted_at?: number
-}
-```
-
 ### Collection
 
-A table in the database. Belongs to a project. User creates collections through a constructor.
+A table in the database. User creates collections through a constructor.
 
 ```typescript
 type Collection = {
   id: string
-  project_id: string
   parent_id?: string          // hierarchical nesting
-  template_id?: string        // source template
   name: string
   slug: string
   description?: string
@@ -214,40 +192,6 @@ type FieldMigration = {
 }
 ```
 
-### Template
-
-Reusable project or collection template.
-
-```typescript
-type TemplateSource = 'builtin' | 'user' | 'community'
-
-type ProjectTemplate = {
-  id: string
-  source: TemplateSource
-  slug: string
-  name: string
-  description?: string
-  icon?: string
-  color?: string
-  preview?: string
-  version: number
-  author?: string
-  config: Record<string, unknown>
-  collections: CollectionTemplateConfig[]
-}
-
-type CollectionTemplate = {
-  id: string
-  source: TemplateSource
-  slug: string
-  name: string
-  description?: string
-  icon?: string
-  version: number
-  config: Record<string, unknown>
-}
-```
-
 ## Field Types
 
 ### Basic Types
@@ -338,27 +282,11 @@ type FieldValidation = {
 
 ## API Surface
 
-### Projects
-
-```typescript
-// Mutations
-edem.data.createProject({ name, slug?, description?, icon?, color? }): { id }
-edem.data.updateProject({ project_id, name?, slug?, description?, icon?, color?, sort_order? }): { id }
-edem.data.deleteProject({ project_id }): { success }
-edem.data.restoreProject({ project_id }): { success }
-edem.data.setDefaultProject({ project_id }): { success }
-
-// Queries
-edem.data.getProject({ project_id }): { project }
-edem.data.listProjects(): { projects }
-edem.data.getDefaultProject(): { project }
-```
-
 ### Collections
 
 ```typescript
 // Mutations
-edem.data.createCollection({ project_id, name, slug, parent_id?, description?, icon?, singleton?, fields?, meta? }): { id }
+edem.data.createCollection({ name, slug, parent_id?, description?, icon?, singleton?, fields?, meta? }): { id }
 edem.data.updateCollection({ collection_id, name?, slug?, description?, icon?, singleton?, fields?, default_sort_field?, default_sort_dir?, meta? }): { id }
 edem.data.deleteCollection({ collection_id }): { success }
 edem.data.restoreCollection({ collection_id }): { success }
@@ -366,8 +294,8 @@ edem.data.emptyCollectionTrash(): { deleted: number }
 
 // Queries
 edem.data.getCollection({ collection_id }): { collection }
-edem.data.listCollections({ project_id?, parent_id? }): { collections }
-edem.data.getDeletedCollections({ project_id? }): { collections }
+edem.data.listCollections({ parent_id? }): { collections }
+edem.data.getDeletedCollections(): { collections }
 ```
 
 ### Fields
@@ -487,28 +415,6 @@ edem.data.searchItems({ collection_id, query, limit?, offset? }): { items, total
 edem.data.countSearchResults({ collection_id, query }): { count }
 ```
 
-### Templates
-
-```typescript
-// Mutations
-edem.data.createProjectTemplate({ project_id, name, description?, icon?, tags? }): { id }
-edem.data.createCollectionTemplate({ collection_id, name, description?, icon?, tags? }): { id }
-edem.data.deleteProjectTemplate({ template_id }): { success }
-edem.data.deleteCollectionTemplate({ template_id }): { success }
-edem.data.installProjectTemplate({ template_id }): { project_id }
-edem.data.installCollectionTemplate({ template_id, project_id }): { collection_id }
-edem.data.exportProjectAsTemplate({ project_id }): { template }
-edem.data.exportCollectionAsTemplate({ collection_id }): { template }
-
-// Queries
-edem.data.getProjectTemplates(): { templates }
-edem.data.getProjectTemplate({ template_id }): { template }
-edem.data.getCollectionTemplates(): { templates }
-edem.data.getCollectionTemplate({ template_id }): { template }
-edem.data.getTemplateTags(): { tags }
-edem.data.searchTemplatesByTag({ tag }): { templates }
-```
-
 ### Migrations
 
 ```typescript
@@ -603,10 +509,6 @@ sort: ["-created_at", "name"]
 Each mutation emits a result event after success.
 
 ```
-data:create_project      → data:project_created
-data:update_project      → data:project_updated
-data:delete_project      → data:project_deleted
-
 data:create_collection   → data:collection_created
 data:update_collection   → data:collection_updated
 data:delete_collection   → data:collection_deleted
@@ -676,27 +578,10 @@ type EventSource = {
 Collections and fields are stored in the database itself (meta-tables).
 
 ```sql
--- Projects
-CREATE TABLE projects (
-  id TEXT PRIMARY KEY,
-  slug TEXT NOT NULL UNIQUE,
-  name TEXT NOT NULL,
-  description TEXT,
-  icon TEXT,
-  color TEXT,
-  is_default INTEGER DEFAULT 0,
-  sort_order INTEGER DEFAULT 0,
-  created_at INTEGER NOT NULL,
-  updated_at INTEGER NOT NULL,
-  deleted_at INTEGER
-);
-
 -- Collections
 CREATE TABLE collections (
   id TEXT PRIMARY KEY,
-  project_id TEXT NOT NULL,
   parent_id TEXT,
-  template_id TEXT,
   slug TEXT NOT NULL UNIQUE,
   name TEXT NOT NULL,
   description TEXT,
@@ -709,8 +594,7 @@ CREATE TABLE collections (
   meta TEXT, -- JSON
   created_at INTEGER NOT NULL,
   updated_at INTEGER NOT NULL,
-  deleted_at INTEGER,
-  FOREIGN KEY (project_id) REFERENCES projects(id) ON DELETE CASCADE
+  deleted_at INTEGER
 );
 
 -- Fields
@@ -861,33 +745,6 @@ CREATE TABLE field_migrations (
   created_at INTEGER NOT NULL,
   FOREIGN KEY (collection_id) REFERENCES collections(id) ON DELETE CASCADE
 );
-
--- Templates
-CREATE TABLE templates (
-  id TEXT PRIMARY KEY,
-  type TEXT NOT NULL, -- 'project' | 'collection'
-  source TEXT NOT NULL, -- 'builtin' | 'user' | 'community'
-  slug TEXT NOT NULL,
-  name TEXT NOT NULL,
-  description TEXT,
-  icon TEXT,
-  color TEXT,
-  preview TEXT,
-  version INTEGER DEFAULT 1,
-  author TEXT,
-  config TEXT NOT NULL, -- JSON
-  created_at INTEGER NOT NULL
-);
-
-CREATE TABLE template_tags (
-  id TEXT PRIMARY KEY,
-  template_type TEXT NOT NULL,
-  template_id TEXT NOT NULL,
-  tag TEXT NOT NULL,
-  FOREIGN KEY (template_id) REFERENCES templates(id) ON DELETE CASCADE
-);
-
-CREATE INDEX idx_template_tags_tag ON template_tags(tag);
 ```
 
 When a collection is created:
@@ -1014,43 +871,3 @@ await edem.data.restoreItemVersion({ version_id: "v3" })
 - Max 50 versions per item
 - Versions older than 90 days are cleaned up (keeping last 5)
 - Cleanup runs on item access
-
-## Templates
-
-### Built-in Templates
-
-Shipped with the app, created on first run.
-
-**Project templates:**
-- `media-tracker` — tracks games, movies, books with cover images
-
-**Collection templates:**
-- `games` — title, platform, rating, status, cover
-- `tasks` — title, description, status, priority, due_date
-- `notes` — title, body, tags
-
-### User Templates
-
-Users can export their own projects/collections as templates.
-
-```typescript
-// Export
-const { template } = await edem.data.exportCollectionAsTemplate({
-  collection_id: "my-collection"
-})
-
-// Install
-const { collection_id } = await edem.data.installCollectionTemplate({
-  template_id: "games",
-  project_id: "my-project"
-})
-```
-
-### Template Tags
-
-Templates can be tagged for discovery.
-
-```typescript
-const { tags } = await edem.data.getTemplateTags()
-const { templates } = await edem.data.searchTemplatesByTag({ tag: "productivity" })
-```

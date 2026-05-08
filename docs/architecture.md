@@ -113,7 +113,6 @@ edem-data — фундамент. Он сам описывает себя — х
 
 | Таблица | Назначение |
 |---------|------------|
-| projects | Контейнер для коллекций (группировка, цель сборки) |
 | collections | Мета-схема: какие коллекции существуют |
 | fields | Мета-схема: какие поля у каждой коллекции |
 | items | Хранение данных: items в коллекциях |
@@ -131,17 +130,6 @@ edem-data — фундамент. Он сам описывает себя — х
 | itemFiles | Связь items и файлов |
 | fileThumbnails | Варианты миниатюр (small/medium/large) |
 | fieldMigrations | Отслеживание эволюции схемы |
-| templates | Предопределённые конфигурации проектов/коллекций |
-| templateTags | Теги для поиска шаблонов |
-
-### Проекты
-
-Проекты — ключевая концепция edem-data. Проект — контейнер для коллекций и единица сборки.
-
-- Каждая коллекция принадлежит проекту
-- Потоки и UI — коллекции внутри проекта
-- Build читает проект и Produces артефакт
-- У проекта есть `type`, определяющий среду (desktop/web/cli)
 
 ## Разработка vs Рантайм
 
@@ -185,9 +173,6 @@ edem-data работает в двух режимах:
 
 ```
 SQLite (edem-data)
-├── projects
-│   └── "Task Manager" (type: desktop)
-│
 ├── collections (схема данных)
 │   ├── tasks { title: string, status: string, ... }
 │   └── users { name: string, email: string, ... }
@@ -208,7 +193,7 @@ SQLite (edem-data)
 Читает манифесты из SQLite, упаковывает в артефакт:
 
 ```
-вход:  SQLite (project_id)
+вход:  SQLite
 выход: dist/
         ├── data.json      ← коллекции + поля + связи
         ├── flows.json     ← графы потоков
@@ -229,27 +214,22 @@ SQLite (edem-data)
 
 ## Самореферентная архитектура
 
-Exodus хранит свою собственную схему как проект в своей SQLite:
+Exodus хранит свою собственную схему в своей SQLite:
 
 ```
 SQLite Exodus
-├── проект "exodus" (type: desktop)
-│
 ├── коллекции
-│   ├── projects { name, slug, description, icon, color, type, sort_order }
-│   ├── ideas { project_id, title, description, level, type, status }
 │   ├── logs { level, message, source, args, count }
 │   ├── app_state (singleton) { last_route, locale, theme, window_frame, window_maximized }
 │   └── updater_status (singleton) { status, current_version, latest_version, error }
 │
 └── items
-    ├── projects: [{ name: "My Project", ... }, ...]
     ├── logs: [...]
     └── ...
 ```
 
 Когда Exodus собирает себя:
-1. Читает свой проект из SQLite
+1. Читает свои коллекции из SQLite
 2. Извлекает data.json, flows.json, ui.json
 3. Упаковывает с edem-runtime + Electrobun
 4. Результат = тот же Exodus
