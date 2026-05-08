@@ -4,272 +4,295 @@
 
 Presentation layer. Displays data and handles user interaction.
 
-Reference: **v0.dev**
+UI = компоненты. Как в flows: нода = базовый элемент, так и в UI: компонент = базовый элемент.
 
-## Concepts
+Reference: **Storybook** (component-driven development)
 
-### Primitives
+## Архитектура
 
-Basic building blocks. Every UI element is a primitive or composition of primitives.
+```
+ui.json (дерево компонентов)
+        ↓
+    Рендерер (Vue)
+        ↓
+    Модуль (реестр компонентов)
+        ↓
+    DOM
+```
 
-| Primitive | Description | Props |
-|-----------|-------------|-------|
-| `Box` | Container, div equivalent | width, height, padding, margin, background, border, radius |
-| `Text` | Text display | content, size, weight, color, align |
-| `Image` | Image display | src, alt, fit, radius |
-| `Input` | Text input | value, placeholder, type, disabled |
-| `Button` | Clickable button | label, variant, disabled, icon |
-| `Icon` | SVG icon | name, size, color |
-| `Divider` | Visual separator | orientation, thickness |
-| `Spacer` | Empty space | size |
+**Нет фиксированного набора примитивов.** Всё определяется модулем.
 
-### Layouts
+## Контракт
 
-Ways to arrange primitives.
-
-| Layout | Description | Props |
-|--------|-------------|-------|
-| `Flex` | Flexbox layout | direction, justify, align, gap, wrap |
-| `Grid` | CSS Grid layout | columns, rows, gap, template |
-| `Stack` | Vertical/horizontal stack | spacing, divider, align |
-| `Absolute` | Absolute positioning | top, left, right, bottom, zIndex |
-
-### Components
-
-Higher-level components composed from primitives.
-
-| Component | Primitives Used |
-|-----------|----------------|
-| `Card` | Box + Text + optional Image |
-| `List` | Stack + repeated items |
-| `Table` | Grid + Text + Box |
-| `Form` | Stack + Input + Button |
-| `Modal` | Absolute + Box + Stack |
-| `Sidebar` | Box + Stack + Button |
-| `Header` | Box + Flex + Text + Button |
-
-## Data Binding
-
-Connect UI to data layer.
-
-### Static Binding
+Компонент в JSON описывается через:
 
 ```typescript
-// Bind text to field value
-{
-  type: "text",
-  props: {
-    content: "{{ item.title }}"
-  }
+type ComponentNode = {
+  component: string              // имя компонента (из реестра модуля)
+  props?: Record<string, any>    // пропсы компонента
+  children?: ComponentNode[]     // вложенные компоненты
+  events?: Record<string, EventBinding>  // обработчики событий
+  bind?: DataBinding             // биндинг к данным
 }
 ```
 
-### Dynamic Binding
+### События (events)
+
+События компонента привязываются к действиям:
 
 ```typescript
-// Bind to collection query
-{
-  type: "list",
-  data: {
-    collection: "games",
-    filter: { status: { _eq: "playing" } },
-    sort: ["-created_at"]
-  },
-  itemTemplate: {
-    type: "card",
-    props: {
-      title: "{{ item.name }}",
-      image: "{{ item.cover }}"
-    }
-  }
-}
+type EventBinding =
+  | { flow: string; input?: Record<string, unknown> }  // вызвать flow
+  | { action: string; collection?: string; data?: Record<string, unknown> }  // CRUD
+  | { navigate: string }  // навигация
 ```
 
-### Event Binding
+### Биндинги (bind)
+
+Данные резолвятся из контекста:
 
 ```typescript
-// Bind click to flow trigger
-{
-  type: "button",
-  props: {
-    label: "Create",
-    onClick: {
-      flow: "create_game",
-      input: { template: "default" }
-    }
-  }
-}
-```
-
-## Page Structure
-
-```typescript
-type Page = {
-  id: string
-  name: string
-  route: string          // URL path, e.g., "/games"
-  layout: LayoutConfig
-  components: Component[]
-  bindings: DataBinding[]
-}
-
-type Component = {
-  id: string
-  type: string           // primitive or component name
-  props: object
-  children?: Component[]
-  bindings?: DataBinding[]
-  events?: EventBinding[]
-}
-
 type DataBinding = {
-  target: string         // prop path, e.g., "props.content"
-  source: {
-    type: "collection" | "item" | "field" | "static"
-    collection?: string
-    item?: string
-    field?: string
-    value?: unknown
-  }
-}
-
-type EventBinding = {
-  trigger: string        // "onClick", "onChange", "onSubmit"
-  action: {
-    type: "flow" | "navigate" | "emit"
-    target: string
-    input?: object
-  }
+  collection?: string     // источник данных
+  filter?: FilterQuery    // фильтр
+  sort?: string[]         // сортировка
+  item?: ComponentNode    // шаблон элемента (для списков)
 }
 ```
 
-## Events
+Шаблоны: `{{ item.title }}`, `{{ item.name }}`, `{{ context.userId }}`
 
-### Commands
+## Модуль
+
+Модуль — реестр компонентов. Определяет какие компоненты доступны.
 
 ```typescript
-// Create page
-ui:create_page → ui:page_created
-
-// Update page
-ui:update_page → ui:page_updated
-
-// Delete page
-ui:delete_page → ui:page_deleted
-
-// Create component
-ui:create_component → ui:component_created
-
-// Update component props
-ui:update_props → ui:props_updated
-
-// Bind data
-ui:bind_data → ui:data_bound
+type UIModule = {
+  name: string
+  components: Record<string, VueComponent>  // name → implementation
+}
 ```
 
-### Event Schemas
+Пример: Vue/NuxtUI модуль регистрирует:
+- `UButton`, `UInput`, `UTextarea`, `USelect`, `USelectMenu`
+- `USwitch`, `UBadge`, `UIcon`, `UCard`
+- `UScrollArea`, `USkeleton`, `UModal`, `UTooltip`
 
-```typescript
-// ui:create_page
+Другой модуль может зарегистрировать свои компоненты.
+
+## JSON формат
+
+### Простой компонент
+
+```json
 {
-  name: string,
-  route: string,
-  layout: LayoutConfig,
-  source: string,
-  depth: number,
-  trace_id: string,
-  timestamp: number
+  "component": "UButton",
+  "props": {
+    "label": "Create",
+    "color": "primary",
+    "variant": "soft"
+  },
+  "events": {
+    "click": { "flow": "createProject" }
+  }
 }
+```
 
-// ui:page_created
+### Компонент с биндингом
+
+```json
 {
-  page_id: string,
-  name: string,
-  route: string,
-  source: string,
-  depth: number,
-  trace_id: string,
-  timestamp: number
+  "component": "UInput",
+  "props": {
+    "placeholder": "Enter title..."
+  },
+  "bind": {
+    "collection": "projects",
+    "filter": { "id": { "_eq": "{{ context.projectId }}" } }
+  }
 }
 ```
 
-## Generation via MCP
+### Список элементов
 
-AI agent can generate UI through MCP:
-
-```typescript
-// Agent requests UI generation
-mcp:call_tool → {
-  name: "ui_generate_page",
-  args: {
-    description: "A page showing all games with cover images",
-    collection: "games",
-    layout: "grid"
-  }
-}
-
-// Result: page created with components and bindings
-```
-
-## Styling
-
-### Theme
-
-```typescript
-type Theme = {
-  colors: {
-    primary: string
-    secondary: string
-    background: string
-    surface: string
-    text: string
-    textMuted: string
-    border: string
-    success: string
-    warning: string
-    error: string
-  }
-  spacing: {
-    xs: number
-    sm: number
-    md: number
-    lg: number
-    xl: number
-  }
-  typography: {
-    fontFamily: string
-    sizes: {
-      xs: number
-      sm: number
-      md: number
-      lg: number
-      xl: number
+```json
+{
+  "component": "UCard",
+  "bind": {
+    "collection": "games",
+    "filter": { "status": { "_eq": "playing" } },
+    "sort": ["-created_at"],
+    "item": {
+      "component": "UButton",
+      "props": {
+        "label": "{{ item.name }}",
+        "variant": "ghost"
+      },
+      "events": {
+        "click": { "navigate": "/games/{{ item.id }}" }
+      }
     }
   }
-  radii: {
-    sm: number
-    md: number
-    lg: number
-  }
 }
 ```
 
-### Component Variants
+### Страница целиком
 
-```typescript
-// Button variants
+```json
 {
-  "button": {
-    "variants": {
-      "solid": { background: "primary", color: "white" },
-      "outline": { border: "1px solid primary", color: "primary" },
-      "ghost": { color: "primary" }
+  "component": "UCard",
+  "props": { "class": "p-4" },
+  "children": [
+    {
+      "component": "UButton",
+      "props": { "label": "Create game", "color": "primary" },
+      "events": {
+        "click": { "flow": "createGame" }
+      }
     },
-    "sizes": {
-      "sm": { padding: "4px 8px", fontSize: "sm" },
-      "md": { padding: "8px 16px", fontSize: "md" },
-      "lg": { padding: "12px 24px", fontSize: "lg" }
+    {
+      "component": "UScrollArea",
+      "children": [
+        {
+          "component": "UBadge",
+          "props": { "label": "{{ item.name }}" },
+          "bind": {
+            "collection": "games",
+            "sort": ["-created_at"]
+          }
+        }
+      ]
     }
-  }
+  ]
+}
+```
+
+### Модалка подтверждения
+
+```json
+{
+  "component": "UModal",
+  "props": { "title": "Delete project?" },
+  "children": [
+    {
+      "component": "UButton",
+      "props": { "label": "Cancel", "variant": "ghost" }
+    },
+    {
+      "component": "UButton",
+      "props": { "label": "Delete", "color": "error" },
+      "events": {
+        "click": { "flow": "deleteProject", "input": { "projectId": "{{ context.projectId }}" } }
+      }
+    }
+  ]
+}
+```
+
+## Рендерер
+
+Рендерер (Vue) делает:
+
+1. **Читает JSON** — дерево компонентов
+2. **Резолвит bindings** — `{{ item.title }}` → реальное значение из контекста
+3. **Маппит компоненты** — имя → Vue компонент через модуль
+4. **Рендерит** — рекурсивно рендерит дерево
+5. **Подписывается** — на изменения данных (edem.data subscriptions)
+
+### Контекст рендеринга
+
+```typescript
+type RenderContext = {
+  item?: Record<string, unknown>       // текущий элемент (для списков)
+  collection?: string                   // текущая коллекция
+  userId?: string                       // текущий пользователь
+  projectId?: string                    // текущий проект
+  [key: string]: unknown               // расширяемый
+}
+```
+
+## Примеры из Exodus
+
+### Список проектов (ProjectsListPage)
+
+```json
+{
+  "component": "UCard",
+  "children": [
+    {
+      "component": "UButton",
+      "props": { "label": "Create project", "color": "primary" },
+      "events": { "click": { "flow": "createProject" } }
+    },
+    {
+      "component": "UScrollArea",
+      "bind": {
+        "collection": "projects",
+        "sort": ["sort_order"],
+        "item": {
+          "component": "ULink",
+          "props": { "to": "/project/{{ item.id }}/overview" },
+          "children": [
+            { "component": "UBadge", "props": { "label": "{{ item.name }}" } }
+          ]
+        }
+      }
+    }
+  ]
+}
+```
+
+### Редактор идеи (IdeaPage)
+
+```json
+{
+  "component": "UCard",
+  "bind": {
+    "collection": "ideas",
+    "filter": { "id": { "_eq": "{{ context.ideaId }}" } }
+  },
+  "children": [
+    {
+      "component": "UInput",
+      "props": { "modelValue": "{{ item.title }}" },
+      "events": { "update:modelValue": { "action": "updateItem", "data": { "title": "{{ event }}" } } }
+    },
+    {
+      "component": "UTextarea",
+      "props": { "modelValue": "{{ item.description }}", "rows": 6 },
+      "events": { "update:modelValue": { "action": "updateItem", "data": { "description": "{{ event }}" } } }
+    },
+    {
+      "component": "USelect",
+      "props": {
+        "modelValue": "{{ item.level }}",
+        "items": ["L0", "L1", "L2", "L3", "L4"]
+      },
+      "events": { "update:modelValue": { "action": "updateItem", "data": { "level": "{{ event }}" } } }
+    }
+  ]
+}
+```
+
+### Логи (DebugLogs)
+
+```json
+{
+  "component": "UCard",
+  "children": [
+    {
+      "component": "USelectMenu",
+      "props": { "placeholder": "Filter by level..." },
+      "bind": {
+        "collection": "logs",
+        "filter": { "level": { "_eq": "{{ context.levelFilter }}" } },
+        "sort": ["-created_at"],
+        "item": {
+          "component": "UBadge",
+          "props": { "label": "{{ item.level }}", "color": "{{ item.level }}" }
+        }
+      }
+    }
+  ]
 }
 ```
