@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test"
-import { registerAction } from "../index"
+import { reg } from "../test-actions"
 import { getEdem, setupTests } from "./setup"
 
 describe("node chains", () => {
@@ -292,7 +292,7 @@ describe("node chains", () => {
 
   it("action with registered handler completes synchronously", async () => {
     const edem = getEdem()
-    registerAction("e2e_sync_action", async (input) => ({ approved: true, ...input }))
+    reg("e2e_sync_action", async (input) => ({ approved: true, ...input }))
 
     const { flow_id } = await edem.flows.createFlow({
       name: "Action Sync",
@@ -303,7 +303,7 @@ describe("node chains", () => {
           id: "act",
           type: "action",
           position: { x: 100, y: 0 },
-          data: { action: "e2e_sync_action" },
+          data: { module: "test", proc: "e2e_sync_action" },
         },
         {
           id: "out",
@@ -336,7 +336,7 @@ describe("node chains", () => {
           id: "act",
           type: "action",
           position: { x: 100, y: 0 },
-          data: { action: "e2e_later_action" },
+          data: { module: "test", proc: "e2e_later_action" },
         },
         {
           id: "next",
@@ -354,7 +354,7 @@ describe("node chains", () => {
     const result = await edem.flows.runFlow({ flow_id })
     expect(result.status).toBe("waiting")
 
-    registerAction("e2e_later_action", async (input) => ({
+    reg("e2e_later_action", async (input) => ({
       sent: true,
       messageId: "abc",
       ...input,
@@ -471,13 +471,13 @@ describe("node chains", () => {
           id: "action_a",
           type: "action",
           position: { x: 200, y: 0 },
-          data: { action: "e2e_fork_action_a" },
+          data: { module: "test", proc: "e2e_fork_action_a" },
         },
         {
           id: "action_b",
           type: "action",
           position: { x: 200, y: 100 },
-          data: { action: "e2e_fork_action_b" },
+          data: { module: "test", proc: "e2e_fork_action_b" },
         },
         { id: "join", type: "join", position: { x: 300, y: 50 }, data: { mode: "all" } },
       ],
@@ -493,8 +493,8 @@ describe("node chains", () => {
     const result = await edem.flows.runFlow({ flow_id, trigger_data: {} })
     expect(result.status).toBe("waiting")
 
-    registerAction("e2e_fork_action_a", async (input) => ({ branch: "a", ...input }))
-    registerAction("e2e_fork_action_b", async (input) => ({ branch: "b", ...input }))
+    reg("e2e_fork_action_a", async (input) => ({ branch: "a", ...input }))
+    reg("e2e_fork_action_b", async (input) => ({ branch: "b", ...input }))
 
     const r2 = await edem.flows.handleNodeCompleted({
       run_id: result.run_id,
@@ -510,7 +510,7 @@ describe("node chains", () => {
 
   it("loop auto-iteration with registered handler", async () => {
     const edem = getEdem()
-    registerAction("e2e_auto_loop", async (input) => {
+    reg("e2e_auto_loop", async (input) => {
       const iter = (input.iteration as number) ?? 0
       return { processed: iter, doubled: iter * 2 }
     })
@@ -524,7 +524,7 @@ describe("node chains", () => {
           id: "loop",
           type: "loop",
           position: { x: 100, y: 0 },
-          data: { maxIterations: 5, action: "e2e_auto_loop", autoIterate: true },
+          data: { maxIterations: 5, module: "test", proc: "e2e_auto_loop", autoIterate: true },
         },
       ],
       edges: [{ id: "e1", source: "t", target: "loop" }],
@@ -565,13 +565,13 @@ describe("node chains", () => {
           id: "action_a",
           type: "action",
           position: { x: 200, y: 0 },
-          data: { action: "e2e_fork_err_action_a" },
+          data: { module: "test", proc: "e2e_fork_err_action_a" },
         },
         {
           id: "action_b",
           type: "action",
           position: { x: 200, y: 100 },
-          data: { action: "e2e_fork_err_action_b" },
+          data: { module: "test", proc: "e2e_fork_err_action_b" },
         },
         { id: "join", type: "join", position: { x: 300, y: 50 }, data: { mode: "all" } },
       ],
@@ -584,10 +584,10 @@ describe("node chains", () => {
       ],
     })
 
-    registerAction("e2e_fork_err_action_a", async () => {
+    reg("e2e_fork_err_action_a", async () => {
       throw new Error("branch_a failed")
     })
-    registerAction("e2e_fork_err_action_b", async (input) => ({ branch: "b", ...input }))
+    reg("e2e_fork_err_action_b", async (input) => ({ branch: "b", ...input }))
 
     const result = await edem.flows.runFlow({ flow_id, trigger_data: {} })
     expect(result.status).toBe("error")

@@ -20,10 +20,15 @@
     "./types": {
       "types": "./src/types.ts",
       "default": "./src/types.ts"
+    },
+    "./module": {
+      "types": "./src/module.ts",
+      "default": "./src/module.ts"
     }
   },
   "dependencies": {
     "@exodus/edem-core": "workspace:*",
+    "@exodus/edem-data": "workspace:*",
     "electrobun": "1.18.1",
     "zod": "4.4.3"
   },

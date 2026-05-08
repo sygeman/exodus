@@ -1,7 +1,8 @@
 import { describe, it, expect, beforeEach } from "bun:test"
 import { createEdem } from "@exodus/edem-core"
 import { dataModule, resetDataEngine } from "@exodus/edem-data"
-import { flowsModule, registerAction } from "./index"
+import flowsModule from "./index"
+import { reg } from "./test-actions"
 
 describe("edem-flows", () => {
   let edem: ReturnType<typeof createEdem<[typeof dataModule, typeof flowsModule]>>
@@ -350,7 +351,7 @@ describe("edem-flows", () => {
             id: "n2",
             type: "action",
             position: { x: 100, y: 0 },
-            data: { action: "send_email" },
+            data: { module: "test", proc: "send_email" },
           },
         ],
         edges: [{ id: "e1", source: "n1", target: "n2" }],
@@ -395,7 +396,7 @@ describe("edem-flows", () => {
             id: "n2",
             type: "action",
             position: { x: 100, y: 0 },
-            data: { action: "resume_test_action" },
+            data: { module: "test", proc: "resume_test_action" },
           },
           {
             id: "n3",
@@ -413,7 +414,7 @@ describe("edem-flows", () => {
       const result = await edem.flows.runFlow({ flow_id })
       expect(result.status).toBe("waiting")
 
-      registerAction("resume_test_action", async (input) => ({ approved: true, ...input }))
+      reg("resume_test_action", async (input) => ({ approved: true, ...input }))
 
       const resumeResult = await edem.flows.resumeRun({ run_id: result.run_id })
       expect(resumeResult.success).toBe(true)
@@ -449,7 +450,7 @@ describe("edem-flows", () => {
             id: "n2",
             type: "action",
             position: { x: 100, y: 0 },
-            data: { action: "approve" },
+            data: { module: "test", proc: "approve" },
           },
           {
             id: "n3",
@@ -467,7 +468,7 @@ describe("edem-flows", () => {
       const result = await edem.flows.runFlow({ flow_id })
       expect(result.status).toBe("waiting")
 
-      registerAction("approve", async (input) => ({
+      reg("approve", async (input) => ({
         approved: true,
         ...input,
       }))
@@ -520,7 +521,7 @@ describe("edem-flows", () => {
             id: "n2",
             type: "action",
             position: { x: 100, y: 0 },
-            data: { action: "wait" },
+            data: { module: "test", proc: "wait" },
           },
         ],
         edges: [{ id: "e1", source: "n1", target: "n2" }],
@@ -549,7 +550,7 @@ describe("edem-flows", () => {
             id: "n2",
             type: "action",
             position: { x: 100, y: 0 },
-            data: { action: "risky" },
+            data: { module: "test", proc: "risky" },
           },
         ],
         edges: [{ id: "e1", source: "n1", target: "n2" }],
@@ -642,7 +643,7 @@ describe("edem-flows", () => {
             id: "n2",
             type: "action",
             position: { x: 100, y: 0 },
-            data: { action: "slow_action" },
+            data: { module: "test", proc: "slow_action" },
           },
         ],
         edges: [{ id: "e1", source: "n1", target: "n2" }],
@@ -663,7 +664,7 @@ describe("edem-flows", () => {
             id: "n2",
             type: "action",
             position: { x: 100, y: 0 },
-            data: { action: "pending_action" },
+            data: { module: "test", proc: "pending_action" },
           },
         ],
         edges: [{ id: "e1", source: "n1", target: "n2" }],

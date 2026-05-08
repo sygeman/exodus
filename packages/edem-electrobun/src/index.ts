@@ -1,1 +1,3 @@
 export type { EdemMsg, EdemRequestMsg, EdemResponseMsg, EdemEventMsg } from "./types"
+export { electrobunModule, setElectrobunDeps } from "./module"
+export type { ElectrobunDeps } from "./module"

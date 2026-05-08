@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test"
 import { executors } from "./executors"
 import { createContext, setNodeOutput } from "./context"
-import { registerAction } from "./actions"
+import { reg } from "./test-actions"
 
 describe("Node Executors", () => {
   describe("trigger", () => {
@@ -278,14 +278,14 @@ describe("Node Executors", () => {
       const ctx = createContext()
       const callOrder: number[] = []
 
-      registerAction("auto_process", async (input) => {
+      reg("auto_process", async (input) => {
         const iter = (input.iteration as number) ?? 0
         callOrder.push(iter)
         return { processed: iter }
       })
 
       const result = await executors.loop(
-        { maxIterations: 3, action: "auto_process", autoIterate: true },
+        { maxIterations: 3, module: "test", proc: "auto_process", autoIterate: true },
         { item: "test" },
         ctx,
         "loop1",

@@ -8,6 +8,7 @@ import {
   type NodeLifecycle,
   type NodeLifecycleEvent,
 } from "./engine"
+import { setEdemModules } from "./executors"
 import {
   triggerSchema,
   nodeSchema,
@@ -957,9 +958,10 @@ export const flowsModule = createEdemModule(
         },
       }),
   (edem) => {
-    const { data } = edem as { data: EdemData }
-    dataRef = data
-    ensureCollections(data).catch(console.error)
+    const modules = edem as Record<string, Record<string, unknown>>
+    dataRef = modules.data as unknown as EdemData
+    setEdemModules(modules)
+    ensureCollections(dataRef).catch(console.error)
   },
 )
 
@@ -1404,7 +1406,6 @@ async function ensureCollections(data: EdemData, retries = 3) {
 
 export default flowsModule
 
-export { registerAction, type ActionHandler } from "./actions"
 export { startScheduler } from "./scheduler"
 export { startDispatcher } from "./dispatcher"
 export { parseEvery, matchesSchedule, type ScheduleTrigger, type DayOfWeek } from "./manifest"

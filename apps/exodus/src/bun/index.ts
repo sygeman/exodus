@@ -2,12 +2,13 @@ import { BrowserWindow, BrowserView, Updater, ApplicationMenu } from "electrobun
 import type { RPCSchema } from "electrobun"
 import { createBunEdemBridge } from "@exodus/edem-electrobun/bun"
 import type { EdemMsg } from "@exodus/edem-electrobun/types"
-import { registerAction, startScheduler, startDispatcher } from "@exodus/edem-flows"
+import { setElectrobunDeps } from "@exodus/edem-electrobun/module"
+import { startScheduler, startDispatcher } from "@exodus/edem-flows"
 import { edem, modules } from "@/bun/edem"
 import { ensureCollections } from "@/manifest"
 import { ensureFlows } from "@/flows-bootstrap"
 import { bunLogger } from "@/modules/logger/bun"
-import { initAppState, initStateDefaults, ensureStateItem } from "@/modules/app-state/bun"
+import { initAppState, initStateDefaults } from "@/modules/app-state/bun"
 
 // Workaround for WebKitGTK + NVIDIA + Wayland rendering issue.
 // The DMA-BUF renderer fails to create GBM buffers on NVIDIA in Wayland
@@ -71,53 +72,8 @@ const rpc = BrowserView.defineRPC<{
 await ensureCollections(edem.data)
 await ensureFlows(edem.flows)
 
-registerAction("checkUpdate", async () => {
-  try {
-    const result = await Updater.checkForUpdate()
-    const currentVersion = await Updater.localInfo.version()
-    const currentHash = await Updater.localInfo.hash()
-    const isAvailable =
-      result.updateAvailable && result.version !== currentVersion && result.hash !== currentHash
-    return {
-      available: isAvailable,
-      version: result.version,
-      current: currentVersion,
-      error: result.error ?? null,
-    }
-  } catch (err) {
-    return { available: false, error: (err as Error).message }
-  }
-})
-
-registerAction("saveWindowFrame", async (input) => {
-  const frame = input.frame as { x: number; y: number; width: number; height: number } | undefined
-  const maximized = input.maximized as boolean | undefined
-  if (!frame) return { status: "skipped" }
-  const id = await ensureStateItem(edem.data)
-  const patch: Record<string, unknown> = { window_frame: frame }
-  if (maximized !== undefined) patch.window_maximized = maximized
-  await edem.data.updateItem({ item_id: id, data: patch })
-  return { status: "ok" }
-})
-
-registerAction("saveRoute", async (input) => {
-  const hash = input.hash as string | undefined
-  if (!hash) return { status: "skipped" }
-  const id = await ensureStateItem(edem.data)
-  await edem.data.updateItem({ item_id: id, data: { last_route: { hash } } })
-  return { status: "ok" }
-})
-
-const ALLOWED_SETTINGS_KEYS = new Set(["theme", "locale"])
-
-registerAction("saveSetting", async (input) => {
-  const key = input.key as string
-  const value = input.value as unknown
-  if (!key || !ALLOWED_SETTINGS_KEYS.has(key)) return { status: "skipped" }
-  const id = await ensureStateItem(edem.data)
-  await edem.data.updateItem({ item_id: id, data: { [key]: value } })
-  return { status: "ok" }
-})
+// Set up Electrobun dependencies for the electrobun module
+setElectrobunDeps({ Updater })
 
 await startScheduler(edem.flows, edem.data)
 const flowsDispatcher = await startDispatcher(edem.flows, edem.data)

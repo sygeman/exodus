@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test"
-import { registerAction } from "../index"
+import { reg } from "../test-actions"
 import { getEdem, setupTests } from "./setup"
 
 describe("async control flow", () => {
@@ -15,7 +15,7 @@ describe("async control flow", () => {
           id: "wait",
           type: "action",
           position: { x: 100, y: 0 },
-          data: { action: "e2e_resume_action" },
+          data: { module: "test", proc: "e2e_resume_action" },
         },
         {
           id: "after",
@@ -36,7 +36,7 @@ describe("async control flow", () => {
     const { run: waitingRun } = await edem.flows.getRun({ run_id: result.run_id })
     expect(waitingRun?.waiting_node_id).toBe("wait")
 
-    registerAction("e2e_resume_action", async (input) => ({ approved: true, ...input }))
+    reg("e2e_resume_action", async (input) => ({ approved: true, ...input }))
 
     const resumeResult = await edem.flows.handleNodeCompleted({
       run_id: result.run_id,
@@ -61,7 +61,7 @@ describe("async control flow", () => {
           id: "wait",
           type: "action",
           position: { x: 100, y: 0 },
-          data: { action: "e2e_wrong_node_action" },
+          data: { module: "test", proc: "e2e_wrong_node_action" },
         },
       ],
       edges: [{ id: "e1", source: "t", target: "wait" }],
@@ -86,7 +86,7 @@ describe("async control flow", () => {
           id: "wait",
           type: "action",
           position: { x: 100, y: 0 },
-          data: { action: "e2e_fail_action" },
+          data: { module: "test", proc: "e2e_fail_action" },
         },
       ],
       edges: [{ id: "e1", source: "t", target: "wait" }],
@@ -118,7 +118,7 @@ describe("async control flow", () => {
           id: "wait",
           type: "action",
           position: { x: 100, y: 0 },
-          data: { action: "e2e_cancel_action" },
+          data: { module: "test", proc: "e2e_cancel_action" },
         },
       ],
       edges: [{ id: "e1", source: "t", target: "wait" }],
@@ -159,7 +159,7 @@ describe("async control flow", () => {
           id: "act",
           type: "action",
           position: { x: 100, y: 0 },
-          data: { action: "e2e_transitions_action" },
+          data: { module: "test", proc: "e2e_transitions_action" },
         },
         {
           id: "after",
@@ -180,7 +180,7 @@ describe("async control flow", () => {
     const { run: waitingRun } = await edem.flows.getRun({ run_id: result.run_id })
     expect(waitingRun?.status).toBe("waiting")
 
-    registerAction("e2e_transitions_action", async (input) => ({ step: 1, ...input }))
+    reg("e2e_transitions_action", async (input) => ({ step: 1, ...input }))
 
     await edem.flows.handleNodeCompleted({
       run_id: result.run_id,

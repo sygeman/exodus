@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test"
-import { registerAction } from "../index"
+import { reg } from "../test-actions"
 import { getEdem, setupTests } from "./setup"
 
 describe("error handling", () => {
@@ -26,7 +26,7 @@ describe("error handling", () => {
   it("node retry with retry_max", async () => {
     const edem = getEdem()
     let attempts = 0
-    registerAction("e2e_flaky", async () => {
+    reg("e2e_flaky", async () => {
       attempts++
       if (attempts < 3) throw new Error(`Attempt ${attempts} failed`)
       return { success: true }
@@ -41,7 +41,7 @@ describe("error handling", () => {
           id: "retry",
           type: "action",
           position: { x: 100, y: 0 },
-          data: { action: "e2e_flaky" },
+          data: { module: "test", proc: "e2e_flaky" },
           retry_max: 2,
           retry_delay: 10,
         },

@@ -1,7 +1,7 @@
 import { describe, it, expect } from "bun:test"
 import { executeFlow, validateFlowRunTransition } from "./engine"
 import type { Flow, NodeLifecycle } from "./engine"
-import { registerAction } from "./actions"
+import { reg } from "./test-actions"
 
 describe("executeFlow", () => {
   it("should execute empty flow", async () => {
@@ -201,7 +201,7 @@ describe("executeFlow", () => {
           id: "n2",
           type: "action",
           position: { x: 100, y: 0 },
-          data: { action: "send_email" },
+          data: { module: "test", proc: "send_email" },
         },
         {
           id: "n3",
@@ -296,7 +296,7 @@ describe("executeFlow", () => {
 describe("node retry", () => {
   it("should retry a failing node up to retry_max", async () => {
     let attempts = 0
-    registerAction("flaky_action", async () => {
+    reg("flaky_action", async () => {
       attempts++
       if (attempts < 3) {
         throw new Error(`Attempt ${attempts} failed`)
@@ -313,7 +313,7 @@ describe("node retry", () => {
           id: "n2",
           type: "action",
           position: { x: 100, y: 0 },
-          data: { action: "flaky_action" },
+          data: { module: "test", proc: "flaky_action" },
           retry_max: 3,
           retry_delay: 10,
         },
@@ -328,7 +328,7 @@ describe("node retry", () => {
 
   it("should fail after exhausting retries", async () => {
     let attempts = 0
-    registerAction("always_fail", async () => {
+    reg("always_fail", async () => {
       attempts++
       throw new Error(`Fail #${attempts}`)
     })
@@ -342,7 +342,7 @@ describe("node retry", () => {
           id: "n2",
           type: "action",
           position: { x: 100, y: 0 },
-          data: { action: "always_fail" },
+          data: { module: "test", proc: "always_fail" },
           retry_max: 2,
           retry_delay: 10,
         },
@@ -364,7 +364,7 @@ describe("node retry", () => {
       },
     }
 
-    registerAction("fail_after_retry", async () => {
+    reg("fail_after_retry", async () => {
       throw new Error("boom")
     })
 
@@ -377,7 +377,7 @@ describe("node retry", () => {
           id: "n2",
           type: "action",
           position: { x: 100, y: 0 },
-          data: { action: "fail_after_retry" },
+          data: { module: "test", proc: "fail_after_retry" },
           retry_max: 1,
           retry_delay: 10,
         },

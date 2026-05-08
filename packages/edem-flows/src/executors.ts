@@ -5,7 +5,12 @@ import {
   setFlowVariable,
   type FlowContext,
 } from "./context"
-import { getActionHandler } from "./actions"
+
+let edemModules: Record<string, Record<string, unknown>> | null = null
+
+export function setEdemModules(modules: Record<string, Record<string, unknown>>): void {
+  edemModules = modules
+}
 
 export interface NodeExecutorResult {
   output: Record<string, unknown>
@@ -225,18 +230,27 @@ async function executeAction(
   context: FlowContext,
 ): Promise<NodeExecutorResult> {
   const resolved = resolveNodeInput(config, context)
-  const actionType = (resolved.action as string) ?? (resolved.type as string)
+  const moduleName = resolved.module as string | undefined
+  const procName =
+    (resolved.proc as string) ?? (resolved.action as string) ?? (resolved.type as string)
 
-  const handler = getActionHandler(actionType)
-  if (handler) {
-    const result = await handler(input, context)
-    return { output: result }
+  if (moduleName && procName && edemModules?.[moduleName]) {
+    const moduleProxy = edemModules[moduleName] as Record<
+      string,
+      (input: unknown) => Promise<unknown>
+    >
+    const proc = moduleProxy[procName]
+    if (proc) {
+      const result = await proc(input)
+      return { output: result as Record<string, unknown> }
+    }
   }
 
   return {
     output: {
       status: "pending",
-      action: actionType,
+      action: procName,
+      module: moduleName,
       input,
     },
     status: "async",
@@ -251,7 +265,9 @@ async function executeLoop(
 ): Promise<NodeExecutorResult> {
   const resolved = resolveNodeInput(config, context)
   const maxIterations = Number(resolved.maxIterations ?? 1)
-  const actionName = resolved.action as string | undefined
+  const moduleName = resolved.module as string | undefined
+  const actionName =
+    (resolved.action as string | undefined) ?? (resolved.proc as string | undefined)
   const autoIterate = resolved.autoIterate === true
 
   const iterationKey = nodeId ? `nodes.${nodeId}.currentIteration` : "loop.currentIteration"
@@ -259,7 +275,24 @@ async function executeLoop(
   const currentIteration = (context.flow_variables[iterationKey] as number) ?? 0
 
   if (autoIterate && actionName) {
-    const handler = getActionHandler(actionName)
+    let handler:
+      | ((input: Record<string, unknown>, context: FlowContext) => Promise<Record<string, unknown>>)
+      | undefined
+
+    if (moduleName && edemModules?.[moduleName]) {
+      const moduleProxy = edemModules[moduleName] as Record<
+        string,
+        (input: unknown) => Promise<unknown>
+      >
+      const proc = moduleProxy[actionName]
+      if (proc) {
+        handler = async (iterInput: Record<string, unknown>, _context: FlowContext) => {
+          const result = await proc(iterInput)
+          return result as Record<string, unknown>
+        }
+      }
+    }
+
     if (handler) {
       const results = (context.flow_variables[resultsKey] as unknown[]) ?? []
 

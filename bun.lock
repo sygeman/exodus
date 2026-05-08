@@ -15,7 +15,7 @@
     },
     "apps/exodus": {
       "name": "exodus",
-      "version": "0.40.0",
+      "version": "0.42.0",
       "dependencies": {
         "@exodus/edem-core": "workspace:*",
         "@exodus/edem-data": "workspace:*",
@@ -80,6 +80,7 @@
       "version": "0.0.0",
       "dependencies": {
         "@exodus/edem-core": "workspace:*",
+        "@exodus/edem-data": "workspace:*",
         "electrobun": "1.18.1",
         "zod": "4.4.3",
       },

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test"
-import { registerAction } from "../index"
+import { reg } from "../test-actions"
 import { getEdem, setupTests } from "./setup"
 
 describe("subflow", () => {
@@ -123,7 +123,7 @@ describe("subflow", () => {
           id: "c_wait",
           type: "action",
           position: { x: 100, y: 0 },
-          data: { action: "e2e_subflow_async_action" },
+          data: { module: "test", proc: "e2e_subflow_async_action" },
         },
         {
           id: "c_out",
@@ -163,7 +163,7 @@ describe("subflow", () => {
     const { run: parentWaiting } = await edem.flows.getRun({ run_id: result.run_id })
     expect(parentWaiting?.status).toBe("waiting")
 
-    registerAction("e2e_subflow_async_action", async (input) => ({ confirmed: true, ...input }))
+    reg("e2e_subflow_async_action", async (input) => ({ confirmed: true, ...input }))
 
     const { runs } = await edem.flows.listRuns({})
     const childRun = runs.find((r) => r.flow_id === childId)
