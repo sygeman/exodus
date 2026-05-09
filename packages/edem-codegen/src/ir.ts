@@ -55,7 +55,7 @@ export interface ExtendedComponentNode extends Omit<ComponentNode, "children"> {
 
 // ── Intermediate Representation (IR) ──────────────────────────────────────────
 // Framework-agnostic description of the application.
-// Generated from manifests (data.json + flows.json + ui.json + platform.json).
+// Generated from manifests (data.json + flows.json + routes.json + platform.json).
 
 export interface IR {
   project: IRProject

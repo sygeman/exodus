@@ -1,17 +1,17 @@
 import { readFileSync, readdirSync, existsSync } from "fs"
 import { join } from "path"
-import type { ComponentNode, UIManifest } from "@exodus/edem-ui"
+import type { ComponentNode, RoutesManifest } from "@exodus/edem-ui"
 import type { Manifests } from "./parse"
 
 // ── Manifest Loader ───────────────────────────────────────────────────────────
-// Reads ui.json + components/*.json and merges into a single Manifests object.
+// Reads routes.json + components/*.json and merges into a single Manifests object.
 
 export function loadManifests(dir: string): Manifests {
-  const uiPath = join(dir, "ui.json")
+  const routesPath = join(dir, "routes.json")
   const componentsDir = join(dir, "components")
 
-  // Load ui.json (routes only)
-  const ui: UIManifest = JSON.parse(readFileSync(uiPath, "utf-8"))
+  // Load routes.json (routes only)
+  const routes: RoutesManifest = JSON.parse(readFileSync(routesPath, "utf-8"))
 
   // Load components from components/*.json
   const components: Record<string, ComponentNode> = {}
@@ -25,9 +25,9 @@ export function loadManifests(dir: string): Manifests {
     }
   }
 
-  // Also support inline components in ui.json for backward compatibility
-  if (ui.components) {
-    Object.assign(components, ui.components)
+  // Also support inline components in routes.json for backward compatibility
+  if (routes.components) {
+    Object.assign(components, routes.components)
   }
 
   // Load data.json
@@ -44,5 +44,5 @@ export function loadManifests(dir: string): Manifests {
     ? JSON.parse(readFileSync(platformPath, "utf-8"))
     : undefined
 
-  return { ui, components, data, flows, platform }
+  return { routes, components, data, flows, platform }
 }

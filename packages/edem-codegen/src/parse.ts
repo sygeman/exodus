@@ -1,4 +1,4 @@
-import type { ComponentNode, UIManifest } from "@exodus/edem-ui"
+import type { ComponentNode, RoutesManifest } from "@exodus/edem-ui"
 import type {
   IR,
   IRComponent,
@@ -16,7 +16,7 @@ import { collectFromTree, someInTree } from "./walker"
 // ── Parse manifests → IR ──────────────────────────────────────────────────────
 
 export interface Manifests {
-  ui: UIManifest
+  routes: RoutesManifest
   components: Record<string, ComponentNode>
   data: { collections: DataCollection[] }
   flows: { flows: FlowManifest[] }
@@ -62,7 +62,7 @@ interface PlatformManifest {
 
 export function parseManifests(manifests: Manifests, projectName?: string): IR {
   const components = parseComponents(manifests.components)
-  const routes = parseRoutes(manifests.ui)
+  const routes = parseRoutes(manifests.routes)
   const collections = parseCollections(manifests.data)
   const flows = parseFlows(manifests.flows)
   const layout = parseLayout(manifests.components)
@@ -144,11 +144,11 @@ function extractHasFormBindings(node: ExtendedComponentNode): boolean {
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
-function parseRoutes(ui: UIManifest): IRRoute[] {
-  return ui.routes.map((route) => parseRoute(route))
+function parseRoutes(routes: RoutesManifest): IRRoute[] {
+  return routes.routes.map((route) => parseRoute(route))
 }
 
-function parseRoute(route: UIManifest["routes"][0]): IRRoute {
+function parseRoute(route: RoutesManifest["routes"][0]): IRRoute {
   const params = extractParams(route.path)
   const name = route.redirect ? "" : route.root ? kebabCase(route.root) : ""
 

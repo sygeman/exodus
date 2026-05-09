@@ -35,7 +35,7 @@ describe("codegenModule", () => {
     // edem-manifests/ should exist
     const manifestsDir = join(TEST_OUTPUT, "edem-manifests")
     expect(existsSync(manifestsDir)).toBe(true)
-    expect(existsSync(join(manifestsDir, "ui.json"))).toBe(true)
+    expect(existsSync(join(manifestsDir, "routes.json"))).toBe(true)
     expect(existsSync(join(manifestsDir, "data.json"))).toBe(true)
     expect(existsSync(join(manifestsDir, "flows.json"))).toBe(true)
 

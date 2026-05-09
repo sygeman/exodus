@@ -45,4 +45,4 @@ export { platformStage } from "./stages/platform"
 
 // ── Re-exports from edem-ui ───────────────────────────────────────────────────
 
-export type { ComponentNode, EventBinding, DataBinding, Route, UIManifest } from "@exodus/edem-ui"
+export type { ComponentNode, EventBinding, DataBinding, Route, RoutesManifest } from "@exodus/edem-ui"
