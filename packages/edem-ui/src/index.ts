@@ -1,18 +1,18 @@
 import {
-  uiManifestSchema,
+  routesManifestSchema,
   componentNodeSchema,
   routeSchema,
   dataBindingSchema,
   eventBindingSchema,
-  type UIManifest,
+  type RoutesManifest,
   type ComponentNode,
   type Route,
   type DataBinding,
   type EventBinding,
 } from "./schemas"
 
-export type { UIManifest, ComponentNode, Route, DataBinding, EventBinding }
-export { uiManifestSchema, componentNodeSchema, routeSchema, dataBindingSchema, eventBindingSchema }
+export type { RoutesManifest, ComponentNode, Route, DataBinding, EventBinding }
+export { routesManifestSchema, componentNodeSchema, routeSchema, dataBindingSchema, eventBindingSchema }
 
 // ── Template Engine ───────────────────────────────────────────────────────────
 

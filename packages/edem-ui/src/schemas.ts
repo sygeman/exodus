@@ -68,7 +68,7 @@ export interface Route {
   children?: Route[]
 }
 
-export interface UIManifest {
+export interface RoutesManifest {
   routes: Route[]
   components: Record<string, ComponentNode>
 }
@@ -156,7 +156,7 @@ export const routeSchema: z.ZodType<Route> = z.lazy(
     }) as z.ZodType<Route>,
 )
 
-export const uiManifestSchema = z.object({
+export const routesManifestSchema = z.object({
   routes: z.array(routeSchema),
   components: z.record(z.string(), componentNodeSchema),
 })
