@@ -259,6 +259,21 @@ export const codegenModule = createEdemModule("codegen", (module) => {
           }
         }
 
+        // Generate platform icons from logo.svg
+        const iconsScript = join(input.output, "scripts", "generate-icons.sh")
+        if (existsSync(iconsScript)) {
+          const proc = Bun.spawn(["bash", iconsScript], {
+            cwd: input.output,
+            stdout: "pipe",
+            stderr: "pipe",
+          })
+          const exitCode = await proc.exited
+          if (exitCode !== 0) {
+            const stderr = await new Response(proc.stderr).text()
+            console.warn(`[codegen] icons generation failed: ${stderr}`)
+          }
+        }
+
         return { files: allFiles.length + 3 + (manifests.platform ? 1 : 0), output: input.output }
       },
     })
