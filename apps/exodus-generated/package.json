@@ -8,7 +8,8 @@
     "dev": "vite build && electrobun dev --watch",
     "dev:webview": "vite --port 5173",
     "build": "vite build",
-    "build:stable": "vite build && electrobun build --env=stable"
+    "build:stable": "vite build && electrobun build --env=stable",
+    "icons": "./scripts/generate-icons.sh"
   },
   "dependencies": {
     "@nuxt/ui": "4.7.1",

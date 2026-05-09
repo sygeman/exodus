@@ -1,8 +1,10 @@
 import type { Stage, StageInput, StageOutput, OutputFile, IR } from "../ir"
 import { capitalize } from "../utils"
+import { readFileSync, readdirSync } from "fs"
+import { join } from "path"
 
 // ── Electrobun Stage ──────────────────────────────────────────────────────────
-// Generates Electrobun platform files: config, bridge, bun entry.
+// Generates Electrobun platform files: config, bridge, bun entry, scripts.
 
 export const electrobunStage: Stage = {
   name: "electrobun",
@@ -34,6 +36,15 @@ export const electrobunStage: Stage = {
       path: "src/edem.ts",
       content: generateEdemProxy(ir),
     })
+
+    // Copy Electrobun platform scripts
+    const scriptsDir = join(import.meta.dir, "electrobun", "scripts")
+    for (const file of readdirSync(scriptsDir)) {
+      files.push({
+        path: `scripts/${file}`,
+        content: readFileSync(join(scriptsDir, file), "utf-8"),
+      })
+    }
 
     const deps = ["electrobun", "@exodus/edem-core"]
 

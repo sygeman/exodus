@@ -44,8 +44,15 @@ export const codegenModule = createEdemModule("codegen", (module) => {
       }),
       resolve: async ({ input }) => {
         const manifests = input.manifests as Manifests
-        const { mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, rmSync } =
-          await import("fs")
+        const {
+          mkdirSync,
+          writeFileSync,
+          readFileSync,
+          readdirSync,
+          existsSync,
+          rmSync,
+          chmodSync,
+        } = await import("fs")
         const { join } = await import("path")
 
         // 1. Parse manifests → IR
@@ -243,6 +250,13 @@ export const codegenModule = createEdemModule("codegen", (module) => {
             mkdirSync(dir, { recursive: true })
           }
           writeFileSync(outPath, file.content, "utf-8")
+        }
+
+        // Make shell scripts executable
+        for (const file of allFiles) {
+          if (file.path.endsWith(".sh")) {
+            chmodSync(join(input.output, file.path), 0o755)
+          }
         }
 
         return { files: allFiles.length + 3 + (manifests.platform ? 1 : 0), output: input.output }

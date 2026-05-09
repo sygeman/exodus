@@ -62,6 +62,7 @@ export const vueStage: Stage = {
       "dev:webview": "vite --port 5173",
       build: "vite build",
       "build:stable": "vite build && electrobun build --env=stable",
+      icons: "./scripts/generate-icons.sh",
     }
 
     return { files, deps, devDeps, scripts }
