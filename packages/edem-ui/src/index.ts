@@ -1,78 +1,82 @@
-import { z } from "zod"
-import { createEdemModule } from "@exodus/edem-core"
+import {
+  uiManifestSchema,
+  componentNodeSchema,
+  routeSchema,
+  dataBindingSchema,
+  eventBindingSchema,
+  type UIManifest,
+  type ComponentNode,
+  type Route,
+  type DataBinding,
+  type EventBinding,
+} from "./schemas"
 
-export const pageSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  route: z.string(),
-})
+export type { UIManifest, ComponentNode, Route, DataBinding, EventBinding }
+export { uiManifestSchema, componentNodeSchema, routeSchema, dataBindingSchema, eventBindingSchema }
 
-export const componentSchema = z.object({
-  id: z.string(),
-  type: z.string(),
-  props: z.record(z.string(), z.unknown()),
-})
+// ── Template Engine ───────────────────────────────────────────────────────────
 
-export const uiModule = createEdemModule("ui", (module) => {
-  return module
-    .context(async () => ({
-      pages: new Map<string, z.infer<typeof pageSchema>>(),
-    }))
-    .subscription("pageCreated", {
-      output: z.object({
-        page_id: z.string(),
-        name: z.string(),
-        route: z.string(),
-      }),
-    })
-    .subscription("pageUpdated", {
-      output: z.object({
-        page_id: z.string(),
-      }),
-    })
-    .subscription("invalidate", {
-      output: z.object({
-        reason: z.string(),
-        collection_id: z.string().optional(),
-      }),
-    })
-    .mutation("createPage", {
-      input: z.object({
-        name: z.string(),
-        route: z.string(),
-      }),
-      output: z.object({
-        page_id: z.string(),
-      }),
-      resolve: async ({ input, ctx, emit }) => {
-        const id = crypto.randomUUID()
-        const page = { id, name: input.name, route: input.route }
-        ctx.pages.set(id, page)
-        await emit.pageCreated({ page_id: id, name: input.name, route: input.route })
-        return { page_id: id }
-      },
-    })
-    .query("getPage", {
-      input: z.object({
-        page_id: z.string(),
-      }),
-      output: z.object({
-        page: pageSchema.nullable(),
-      }),
-      resolve: async ({ input, ctx }) => {
-        const page = ctx.pages.get(input.page_id) ?? null
-        return { page }
-      },
-    })
-    .query("listPages", {
-      input: z.void(),
-      output: z.object({
-        pages: z.array(pageSchema),
-      }),
-      resolve: async ({ ctx }) => {
-        return { pages: Array.from(ctx.pages.values()) }
-      },
-    })
-})
+export type RenderContext = Record<string, unknown>
 
-export default uiModule
+export function resolveTemplate(template: string, context: RenderContext): string {
+  return template.replace(/\{\{\s*(.+?)\s*\}\}/g, (_, expr: string) => {
+    const value = evaluateExpression(expr.trim(), context)
+    return value === undefined ? "" : String(value)
+  })
+}
+
+function evaluateExpression(expr: string, context: RenderContext): unknown {
+  const parts = expr.split(".")
+  let current: unknown = context
+
+  for (const part of parts) {
+    if (current === null || current === undefined || typeof current !== "object") {
+      return undefined
+    }
+    current = (current as Record<string, unknown>)[part]
+  }
+
+  return current
+}
+
+// ── Binding Resolver ──────────────────────────────────────────────────────────
+
+export function resolveBindings(node: ComponentNode, context: RenderContext): ComponentNode {
+  const resolved: ComponentNode = { component: node.component }
+
+  if (node.props) {
+    resolved.props = resolveProps(node.props, context)
+  }
+
+  if (typeof node.children === "string") {
+    resolved.children = resolveTemplate(node.children, context)
+  } else if (Array.isArray(node.children)) {
+    resolved.children = node.children.map((child) => resolveBindings(child, context))
+  }
+
+  if (node.bind?.item) {
+    resolved.bind = {
+      ...node.bind,
+      item: resolveBindings(node.bind.item, context),
+    }
+  }
+
+  return resolved
+}
+
+function resolveProps(
+  props: Record<string, unknown>,
+  context: RenderContext,
+): Record<string, unknown> {
+  const resolved: Record<string, unknown> = {}
+
+  for (const [key, value] of Object.entries(props)) {
+    if (typeof value === "string") {
+      resolved[key] = resolveTemplate(value, context)
+    } else {
+      resolved[key] = value
+    }
+  }
+
+  return resolved
+}
