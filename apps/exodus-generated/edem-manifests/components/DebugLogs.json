@@ -1,0 +1,329 @@
+{
+  "component": "div",
+  "props": {
+    "class": "flex h-full flex-col bg-[var(--ui-bg)]"
+  },
+  "children": [
+    {
+      "component": "div",
+      "props": {
+        "class": "flex items-center justify-between border-b border-[var(--ui-border)] px-4 py-3"
+      },
+      "children": [
+        {
+          "component": "div",
+          "props": {
+            "class": "flex items-center gap-3"
+          },
+          "children": [
+            {
+              "component": "h1",
+              "props": {
+                "class": "text-xl font-bold"
+              },
+              "children": "Logs"
+            },
+            {
+              "component": "UBadge",
+              "props": {
+                "color": "warning",
+                "variant": "subtle"
+              },
+              "children": "Paused"
+            }
+          ]
+        },
+        {
+          "component": "div",
+          "props": {
+            "class": "flex items-center gap-2"
+          },
+          "children": [
+            {
+              "component": "div",
+              "props": {
+                "class": "mr-2 hidden items-center gap-3 text-xs text-[var(--ui-text-muted)] sm:flex"
+              },
+              "children": [
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "text-[var(--ui-text-dimmed)]"
+                  },
+                  "children": "Debug"
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "font-medium tabular-nums"
+                  },
+                  "children": "{{ stats.debug }}"
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "text-[var(--ui-text-dimmed)]"
+                  },
+                  "children": "Info"
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "font-medium tabular-nums"
+                  },
+                  "children": "{{ stats.info }}"
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "text-[var(--ui-text-dimmed)]"
+                  },
+                  "children": "Warn"
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "font-medium tabular-nums"
+                  },
+                  "children": "{{ stats.warn }}"
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "text-[var(--ui-text-dimmed)]"
+                  },
+                  "children": "Error"
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "font-medium tabular-nums"
+                  },
+                  "children": "{{ stats.error }}"
+                }
+              ]
+            },
+            {
+              "component": "UButton",
+              "props": {
+                "color": "warning",
+                "variant": "subtle"
+              },
+              "events": {
+                "click": {
+                  "flow": "togglePauseLogs"
+                }
+              },
+              "children": "Resume"
+            },
+            {
+              "component": "UButton",
+              "props": {
+                "color": "error",
+                "variant": "subtle"
+              },
+              "events": {
+                "click": {
+                  "flow": "clearLogs"
+                }
+              },
+              "children": "Clear"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "component": "div",
+      "props": {
+        "class": "flex flex-wrap gap-2 border-b border-[var(--ui-border)] px-4 py-2"
+      },
+      "children": [
+        {
+          "component": "USelectMenu",
+          "props": {
+            "modelValue": "{{ levelFilter }}",
+            "items": "{{ levelOptions }}",
+            "class": "w-28"
+          }
+        },
+        {
+          "component": "USelectMenu",
+          "props": {
+            "modelValue": "{{ sourceFilter }}",
+            "items": "{{ sourceOptions }}",
+            "class": "w-28"
+          }
+        },
+        {
+          "component": "UInput",
+          "props": {
+            "modelValue": "{{ textFilter }}",
+            "placeholder": "Search logs...",
+            "class": "min-w-0 flex-1"
+          }
+        }
+      ]
+    },
+    {
+      "component": "UScrollArea",
+      "props": {
+        "class": "min-h-0 flex-1"
+      },
+      "bind": {
+        "collection": "logs",
+        "sort": [
+          "-created_at"
+        ],
+        "item": {
+          "component": "div",
+          "props": {
+            "class": "group border-b border-[var(--ui-border)] px-4 py-2 text-xs leading-relaxed hover:bg-[var(--ui-bg-elevated)]"
+          },
+          "children": [
+            {
+              "component": "div",
+              "props": {
+                "class": "group flex items-center gap-2"
+              },
+              "children": [
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "font-mono text-[var(--ui-text-muted)]"
+                  },
+                  "children": "{{ formatTime(item.timestamp) }}"
+                },
+                {
+                  "component": "UBadge",
+                  "props": {
+                    "color": "neutral",
+                    "variant": "subtle",
+                    "class": "text-[10px] uppercase"
+                  },
+                  "children": "{{ item.level }}"
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "rounded px-1.5 py-0.5 text-[10px] uppercase",
+                    "style": "{{ item.source === 'bun' ? 'background-color: rgba(59,130,246,0.1); color: #3b82f6' : 'background-color: rgba(16,185,129,0.1); color: #10b981' }}"
+                  },
+                  "children": "{{ item.source }}"
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "min-w-0 flex-1 truncate"
+                  },
+                  "children": "{{ item.message }}"
+                },
+                {
+                  "component": "UBadge",
+                  "props": {
+                    "color": "neutral",
+                    "variant": "subtle",
+                    "class": "text-[10px]"
+                  },
+                  "children": "+{{ item.count }}"
+                },
+                {
+                  "component": "UButton",
+                  "props": {
+                    "icon": "i-lucide-copy",
+                    "variant": "ghost",
+                    "size": "xs",
+                    "class": "opacity-0 transition-opacity group-hover:opacity-100"
+                  },
+                  "events": {
+                    "click": {
+                      "flow": "copyLog",
+                      "input": {
+                        "logId": "{{ item.id }}"
+                      }
+                    }
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+    {
+      "component": "div",
+      "props": {
+        "class": "flex items-center justify-between border-t border-[var(--ui-border)] px-4 py-2"
+      },
+      "children": [
+        {
+          "component": "span",
+          "props": {
+            "class": "text-xs text-[var(--ui-text-muted)]"
+          },
+          "children": "{{ total }} logs"
+        },
+        {
+          "component": "div",
+          "props": {
+            "class": "flex items-center gap-1"
+          },
+          "children": [
+            {
+              "component": "UButton",
+              "props": {
+                "icon": "i-lucide-chevrons-left",
+                "variant": "ghost",
+                "size": "xs"
+              },
+              "events": {
+                "click": {
+                  "flow": "firstPage"
+                }
+              }
+            },
+            {
+              "component": "UButton",
+              "props": {
+                "icon": "i-lucide-chevron-left",
+                "variant": "ghost",
+                "size": "xs"
+              },
+              "events": {
+                "click": {
+                  "flow": "prevPage"
+                }
+              }
+            },
+            {
+              "component": "UButton",
+              "props": {
+                "icon": "i-lucide-chevron-right",
+                "variant": "ghost",
+                "size": "xs"
+              },
+              "events": {
+                "click": {
+                  "flow": "nextPage"
+                }
+              }
+            },
+            {
+              "component": "UButton",
+              "props": {
+                "icon": "i-lucide-chevrons-right",
+                "variant": "ghost",
+                "size": "xs"
+              },
+              "events": {
+                "click": {
+                  "flow": "lastPage"
+                }
+              }
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

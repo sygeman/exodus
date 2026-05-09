@@ -1,0 +1,69 @@
+{
+  "routes": [
+    {
+      "path": "/",
+      "redirect": "/projects"
+    },
+    {
+      "path": "/projects",
+      "root": "ProjectsListPage"
+    },
+    {
+      "path": "/project/:id",
+      "redirect": "/project/:id/overview",
+      "root": "ProjectLayout",
+      "children": [
+        {
+          "path": "overview",
+          "root": "ProjectPage"
+        },
+        {
+          "path": "ideas",
+          "root": "ProjectIdeasPage"
+        },
+        {
+          "path": "ideas/:ideaId",
+          "root": "IdeaPage"
+        },
+        {
+          "path": "settings",
+          "root": "ProjectSettingsPage"
+        }
+      ]
+    },
+    {
+      "path": "/debug",
+      "redirect": "/debug/logs",
+      "root": "DebugLayout",
+      "children": [
+        {
+          "path": "logs",
+          "root": "DebugLogs"
+        },
+        {
+          "path": "state",
+          "root": "DebugState"
+        }
+      ]
+    },
+    {
+      "path": "/settings",
+      "redirect": "/settings/appearance",
+      "root": "SettingsLayout",
+      "children": [
+        {
+          "path": "appearance",
+          "root": "SettingsAppearance"
+        },
+        {
+          "path": "language",
+          "root": "SettingsLanguage"
+        }
+      ]
+    },
+    {
+      "path": "/:pathMatch(.*)*",
+      "root": "NotFound"
+    }
+  ]
+}

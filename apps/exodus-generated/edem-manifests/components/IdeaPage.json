@@ -1,0 +1,307 @@
+{
+  "component": "div",
+  "props": {
+    "class": "flex h-full flex-col"
+  },
+  "children": [
+    {
+      "component": "div",
+      "if": "loading",
+      "props": {
+        "class": "flex h-full items-center justify-center"
+      },
+      "children": [
+        {
+          "component": "UIcon",
+          "props": {
+            "name": "i-lucide-loader-2",
+            "class": "h-8 w-8 animate-spin text-[var(--ui-text-muted)]"
+          }
+        }
+      ]
+    },
+    {
+      "component": "div",
+      "elseIf": "!idea",
+      "props": {
+        "class": "flex h-full flex-col items-center justify-center gap-2 text-[var(--ui-text-muted)]"
+      },
+      "children": [
+        {
+          "component": "UIcon",
+          "props": {
+            "name": "i-lucide-file-x",
+            "class": "h-12 w-12 opacity-20"
+          }
+        },
+        {
+          "component": "p",
+          "children": "Idea not found"
+        },
+        {
+          "component": "UButton",
+          "props": {
+            "to": "/project/{{ projectId }}/ideas",
+            "variant": "link"
+          },
+          "children": "Back to ideas"
+        }
+      ]
+    },
+    {
+      "component": "div",
+      "else": true,
+      "props": {
+        "class": "flex flex-1 flex-col gap-6 overflow-y-auto"
+      },
+      "children": [
+        {
+          "component": "div",
+          "props": {
+            "class": "flex items-center justify-between border-b border-[var(--ui-border)] px-6 py-3"
+          },
+          "children": [
+            {
+              "component": "div",
+              "props": {
+                "class": "flex items-center gap-3"
+              },
+              "children": [
+                {
+                  "component": "UButton",
+                  "props": {
+                    "variant": "ghost",
+                    "size": "sm",
+                    "icon": "i-lucide-arrow-left"
+                  },
+                  "events": {
+                    "click": {
+                      "navigate": "/project/{{ projectId }}/ideas"
+                    }
+                  }
+                },
+                {
+                  "component": "div",
+                  "props": {
+                    "class": "flex flex-wrap items-center gap-2"
+                  },
+                  "children": [
+                    {
+                      "component": "UBadge",
+                      "props": {
+                        "color": "neutral",
+                        "variant": "subtle"
+                      },
+                      "children": "{{ item.level }}"
+                    },
+                    {
+                      "component": "UBadge",
+                      "props": {
+                        "color": "neutral",
+                        "variant": "soft",
+                        "size": "sm"
+                      },
+                      "children": "{{ item.type }}"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "component": "UButton",
+              "props": {
+                "color": "error",
+                "variant": "ghost",
+                "size": "sm",
+                "icon": "i-lucide-trash-2"
+              },
+              "events": {
+                "click": {
+                  "action": "deleteItem",
+                  "collection": "ideas",
+                  "data": {
+                    "id": "{{ ideaId }}"
+                  }
+                }
+              }
+            }
+          ]
+        },
+        {
+          "component": "div",
+          "props": {
+            "class": "flex flex-col gap-6 px-6 pb-6"
+          },
+          "children": [
+            {
+              "component": "UInput",
+              "props": {
+                "modelValue": "{{ item.title }}",
+                "size": "lg",
+                "class": "w-full"
+              },
+              "events": {
+                "update:modelValue": {
+                  "action": "updateItem",
+                  "collection": "ideas",
+                  "data": {
+                    "id": "{{ ideaId }}",
+                    "title": "{{ event }}"
+                  }
+                }
+              }
+            },
+            {
+              "component": "UTextarea",
+              "props": {
+                "modelValue": "{{ item.description }}",
+                "rows": 6,
+                "placeholder": "Describe this idea...",
+                "class": "w-full"
+              },
+              "events": {
+                "update:modelValue": {
+                  "action": "updateItem",
+                  "collection": "ideas",
+                  "data": {
+                    "id": "{{ ideaId }}",
+                    "description": "{{ event }}"
+                  }
+                }
+              }
+            },
+            {
+              "component": "div",
+              "props": {
+                "class": "grid grid-cols-3 gap-4"
+              },
+              "children": [
+                {
+                  "component": "div",
+                  "props": {
+                    "class": "flex flex-col gap-1.5"
+                  },
+                  "children": [
+                    {
+                      "component": "label",
+                      "props": {
+                        "class": "text-sm font-medium text-[var(--ui-text-muted)]"
+                      },
+                      "children": "Level"
+                    },
+                    {
+                      "component": "USelect",
+                      "props": {
+                        "modelValue": "{{ item.level }}",
+                        "items": [
+                          "L0",
+                          "L1",
+                          "L2",
+                          "L3",
+                          "L4"
+                        ],
+                        "size": "sm",
+                        "class": "w-full"
+                      },
+                      "events": {
+                        "update:modelValue": {
+                          "action": "updateItem",
+                          "collection": "ideas",
+                          "data": {
+                            "id": "{{ ideaId }}",
+                            "level": "{{ event }}"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "component": "div",
+                  "props": {
+                    "class": "flex flex-col gap-1.5"
+                  },
+                  "children": [
+                    {
+                      "component": "label",
+                      "props": {
+                        "class": "text-sm font-medium text-[var(--ui-text-muted)]"
+                      },
+                      "children": "Type"
+                    },
+                    {
+                      "component": "USelect",
+                      "props": {
+                        "modelValue": "{{ item.type }}",
+                        "items": [
+                          "goal",
+                          "non_goal",
+                          "constraint",
+                          "invariant",
+                          "component",
+                          "decision",
+                          "principle"
+                        ],
+                        "size": "sm",
+                        "class": "w-full"
+                      },
+                      "events": {
+                        "update:modelValue": {
+                          "action": "updateItem",
+                          "collection": "ideas",
+                          "data": {
+                            "id": "{{ ideaId }}",
+                            "type": "{{ event }}"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                },
+                {
+                  "component": "div",
+                  "props": {
+                    "class": "flex flex-col gap-1.5"
+                  },
+                  "children": [
+                    {
+                      "component": "label",
+                      "props": {
+                        "class": "text-sm font-medium text-[var(--ui-text-muted)]"
+                      },
+                      "children": "Status"
+                    },
+                    {
+                      "component": "USelect",
+                      "props": {
+                        "modelValue": "{{ item.status }}",
+                        "items": [
+                          "draft",
+                          "active",
+                          "stabilized",
+                          "archived"
+                        ],
+                        "size": "sm",
+                        "class": "w-full"
+                      },
+                      "events": {
+                        "update:modelValue": {
+                          "action": "updateItem",
+                          "collection": "ideas",
+                          "data": {
+                            "id": "{{ ideaId }}",
+                            "status": "{{ event }}"
+                          }
+                        }
+                      }
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

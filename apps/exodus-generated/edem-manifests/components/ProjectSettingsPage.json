@@ -1,0 +1,233 @@
+{
+  "component": "div",
+  "props": {
+    "class": "flex h-full"
+  },
+  "children": [
+    {
+      "component": "div",
+      "if": "!project",
+      "props": {
+        "class": "flex h-full flex-col items-center justify-center gap-2 text-[var(--ui-text-muted)]"
+      },
+      "children": [
+        {
+          "component": "UIcon",
+          "props": {
+            "name": "i-lucide-folder-x",
+            "class": "h-10 w-10"
+          }
+        },
+        {
+          "component": "p",
+          "children": "Project not found"
+        },
+        {
+          "component": "UButton",
+          "props": {
+            "to": "/projects",
+            "variant": "link"
+          },
+          "children": "Back to list"
+        }
+      ]
+    },
+    {
+      "component": "MenuLayout",
+      "props": {
+        "title": "Settings",
+        "items": "{{ navItems }}",
+        "main-class": "overflow-y-auto p-10"
+      },
+      "namedSlots": {
+        "default": [
+          {
+            "component": "div",
+            "props": {
+              "class": "w-full"
+            },
+            "children": [
+              {
+                "component": "h1",
+                "props": {
+                  "class": "mb-8 text-2xl font-bold"
+                },
+                "children": "Settings"
+              },
+              {
+                "component": "section",
+                "props": {
+                  "class": "flex flex-col gap-8"
+                },
+                "children": [
+                  {
+                    "component": "div",
+                    "props": {
+                      "class": "flex flex-col gap-4 border-b border-[var(--ui-border)] pb-8"
+                    },
+                    "children": [
+                      {
+                        "component": "div",
+                        "props": {
+                          "class": "flex flex-col gap-1"
+                        },
+                        "children": [
+                          {
+                            "component": "h3",
+                            "props": {
+                              "class": "text-base font-medium"
+                            },
+                            "children": "Name"
+                          },
+                          {
+                            "component": "p",
+                            "props": {
+                              "class": "text-sm text-[var(--ui-text-muted)]"
+                            },
+                            "children": "Display name of the project"
+                          }
+                        ]
+                      },
+                      {
+                        "component": "UInput",
+                        "props": {
+                          "modelValue": "{{ project.name }}",
+                          "class": "max-w-md"
+                        },
+                        "events": {
+                          "update:modelValue": {
+                            "action": "updateItem",
+                            "collection": "projects",
+                            "data": {
+                              "id": "{{ projectId }}",
+                              "name": "{{ event }}"
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "div",
+                    "props": {
+                      "class": "flex flex-col gap-4 border-b border-[var(--ui-border)] pb-8"
+                    },
+                    "children": [
+                      {
+                        "component": "div",
+                        "props": {
+                          "class": "flex flex-col gap-1"
+                        },
+                        "children": [
+                          {
+                            "component": "h3",
+                            "props": {
+                              "class": "text-base font-medium"
+                            },
+                            "children": "Color"
+                          },
+                          {
+                            "component": "p",
+                            "props": {
+                              "class": "text-sm text-[var(--ui-text-muted)]"
+                            },
+                            "children": "Project color for sidebar"
+                          }
+                        ]
+                      },
+                      {
+                        "component": "div",
+                        "props": {
+                          "class": "flex flex-wrap gap-2"
+                        },
+                        "bind": {
+                          "items": [
+                            "#ef4444",
+                            "#f97316",
+                            "#eab308",
+                            "#22c55e",
+                            "#06b6d4",
+                            "#3b82f6",
+                            "#8b5cf6",
+                            "#ec4899"
+                          ],
+                          "item": {
+                            "component": "button",
+                            "props": {
+                              "class": "h-8 w-8 rounded-full transition-transform hover:scale-110 focus:ring-2 focus:ring-[var(--ui-primary)] focus:outline-none",
+                              "style": "background-color: {{ item }}"
+                            },
+                            "events": {
+                              "click": {
+                                "action": "updateItem",
+                                "collection": "projects",
+                                "data": {
+                                  "id": "{{ projectId }}",
+                                  "color": "{{ item }}"
+                                }
+                              }
+                            }
+                          }
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "component": "div",
+                    "children": [
+                      {
+                        "component": "h3",
+                        "props": {
+                          "class": "mb-2 text-base font-medium text-[var(--ui-error)]"
+                        },
+                        "children": "Delete project"
+                      },
+                      {
+                        "component": "p",
+                        "props": {
+                          "class": "mb-4 text-sm text-[var(--ui-text-muted)]"
+                        },
+                        "children": "Permanently delete this project and all its ideas."
+                      },
+                      {
+                        "component": "UButton",
+                        "props": {
+                          "color": "error",
+                          "variant": "outline"
+                        },
+                        "events": {
+                          "click": {
+                            "flow": "deleteProject",
+                            "input": {
+                              "projectId": "{{ projectId }}"
+                            }
+                          }
+                        },
+                        "children": [
+                          {
+                            "component": "UIcon",
+                            "props": {
+                              "name": "i-lucide-trash-2",
+                              "class": "h-4 w-4"
+                            }
+                          },
+                          {
+                            "component": "span",
+                            "props": {
+                              "class": "ml-2"
+                            },
+                            "children": "Delete"
+                          }
+                        ]
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

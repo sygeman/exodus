@@ -1,0 +1,38 @@
+{
+  "component": "div",
+  "props": {
+    "class": "flex h-full"
+  },
+  "children": [
+    {
+      "component": "MenuLayout",
+      "props": {
+        "title": "Settings",
+        "items": "{{ navItems }}",
+        "main-class": "overflow-y-auto p-10"
+      },
+      "namedSlots": {
+        "default": [
+          {
+            "component": "div",
+            "props": {
+              "class": "w-full"
+            },
+            "children": [
+              {
+                "component": "h1",
+                "props": {
+                  "class": "mb-8 text-2xl font-bold"
+                },
+                "children": "{{ pageTitle }}"
+              },
+              {
+                "component": "RouterView"
+              }
+            ]
+          }
+        ]
+      }
+    }
+  ]
+}

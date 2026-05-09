@@ -1,0 +1,121 @@
+{
+  "component": "div",
+  "props": {
+    "class": "flex h-full flex-col p-6"
+  },
+  "children": [
+    {
+      "component": "div",
+      "props": {
+        "class": "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      },
+      "children": [
+        {
+          "component": "button",
+          "props": {
+            "class": "flex flex-col gap-2 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] p-5 text-left transition-colors hover:border-[var(--ui-primary)] hover:bg-[var(--ui-bg-elevated)]/80"
+          },
+          "events": {
+            "click": {
+              "navigate": "/project/{{ projectId }}/ideas"
+            }
+          },
+          "children": [
+            {
+              "component": "div",
+              "props": {
+                "class": "flex items-center gap-2 text-[var(--ui-text-muted)]"
+              },
+              "children": [
+                {
+                  "component": "UIcon",
+                  "props": {
+                    "name": "i-lucide-lightbulb",
+                    "class": "h-4 w-4"
+                  }
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "text-sm font-medium"
+                  },
+                  "children": "Ideas"
+                }
+              ]
+            },
+            {
+              "component": "span",
+              "props": {
+                "class": "text-3xl font-bold"
+              },
+              "children": "{{ ideas.length }}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "component": "h3",
+      "props": {
+        "class": "mt-8 mb-3 text-sm font-medium text-[var(--ui-text-muted)]"
+      },
+      "children": "Recent Ideas"
+    },
+    {
+      "component": "div",
+      "props": {
+        "class": "flex flex-col gap-2"
+      },
+      "bind": {
+        "collection": "ideas",
+        "filter": {
+          "project_id": {
+            "_eq": "{{ projectId }}"
+          }
+        },
+        "sort": [
+          "-created_at"
+        ],
+        "item": {
+          "component": "RouterLink",
+          "props": {
+            "to": "/project/{{ projectId }}/ideas/{{ item.id }}",
+            "class": "flex items-center gap-3 rounded-lg border border-[var(--ui-border)] p-4 transition-colors hover:bg-[var(--ui-bg-elevated)]"
+          },
+          "children": [
+            {
+              "component": "div",
+              "props": {
+                "class": "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded text-xs font-bold",
+                "style": "background-color: {{ getLevelColor(item.level) + '20' }}; color: {{ getLevelColor(item.level) }}"
+              },
+              "children": "{{ item.level ?? '?' }}"
+            },
+            {
+              "component": "div",
+              "props": {
+                "class": "flex flex-col"
+              },
+              "children": [
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "font-medium"
+                  },
+                  "children": "{{ item.title }}"
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "text-xs text-[var(--ui-text-muted)]"
+                  },
+                  "children": "{{ item.type }}"
+                }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
