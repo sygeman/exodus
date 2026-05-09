@@ -17,7 +17,7 @@ export const vueStage: Stage = {
 
     files.push({
       path: "src/main.ts",
-      content: generateMain(),
+      content: generateMain(ir),
     })
 
     files.push({
@@ -97,7 +97,18 @@ import { RouterView } from "vue-router"
 `
 }
 
-function generateMain(): string {
+function generateMain(ir: IR): string {
+  const splashDismiss = ir.platform.features.splash
+    ? `
+setTimeout(() => {
+  const splash = document.getElementById("splash")
+  if (splash) {
+    splash.classList.add("fade-out")
+    splash.addEventListener("transitionend", () => splash.remove(), { once: true })
+  }
+}, ${ir.platform.features.splash.duration})`
+    : ""
+
   return `import "./app.css"
 import ui from "@nuxt/ui/vue-plugin"
 import { createApp } from "vue"
@@ -111,7 +122,7 @@ void new Electroview({ rpc })
 const app = createApp(App)
 app.use(router)
 app.use(ui)
-app.mount("#app")
+app.mount("#app")${splashDismiss}
 `
 }
 
@@ -237,15 +248,106 @@ ${plugins.join("\n")}
 
 function generateIndexHtml(ir: IR): string {
   const title = capitalize(ir.project.name)
+  const hasSplash = !!ir.platform.features.splash
+
+  const splashStyle = hasSplash
+    ? `    <style>
+      #splash {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: radial-gradient(circle at 50% 50%, #1c1917 0%, #0a0a0a 100%);
+        color: #fafaf9;
+        z-index: 9999;
+        transition: opacity 0.3s ease;
+        overflow: hidden;
+      }
+      #splash::before {
+        content: "";
+        position: absolute;
+        inset: -50%;
+        background:
+          radial-gradient(circle at 30% 30%, rgba(245, 158, 11, 0.12) 0%, transparent 50%),
+          radial-gradient(circle at 70% 70%, rgba(120, 113, 108, 0.08) 0%, transparent 50%);
+        animation: splashPulse 4s ease-in-out infinite;
+      }
+      @keyframes splashPulse {
+        0%, 100% { transform: scale(1) rotate(0deg); opacity: 0.8; }
+        50% { transform: scale(1.1) rotate(3deg); opacity: 1; }
+      }
+      #splash.fade-out { opacity: 0; pointer-events: none; }
+      #splash-content {
+        position: relative;
+        z-index: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        animation: splashFadeIn 0.6s ease-out;
+      }
+      #splash-content img {
+        width: 64px;
+        height: 64px;
+        opacity: 0;
+        animation: splashIconIn 0.5s ease-out 0.1s both;
+      }
+      #splash h1 {
+        position: relative;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: 1.75rem;
+        font-weight: 500;
+        letter-spacing: 0.15em;
+        text-transform: uppercase;
+        margin: 0;
+      }
+      #splash h1::after {
+        content: "";
+        position: absolute;
+        left: 50%;
+        bottom: -8px;
+        width: 24px;
+        height: 2px;
+        background: rgba(245, 158, 11, 0.6);
+        transform: translateX(-50%);
+        animation: splashLine 0.8s ease-out 0.3s both;
+      }
+      @keyframes splashIconIn {
+        from { opacity: 0; transform: scale(0.8); }
+        to { opacity: 1; transform: scale(1); }
+      }
+      @keyframes splashFadeIn {
+        from { opacity: 0; transform: translateY(12px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+      @keyframes splashLine {
+        from { width: 0; opacity: 0; }
+        to { width: 24px; opacity: 1; }
+      }
+    </style>`
+    : ""
+
+  const splashBody = hasSplash
+    ? `    <div id="splash">
+      <div id="splash-content">
+        <img src="/src/assets/logo.svg" alt="${title}" />
+        <h1>${title}</h1>
+      </div>
+    </div>
+`
+    : ""
+
   return `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>${title}</title>
+${splashStyle}
   </head>
   <body>
-    <div id="app" class="isolate"></div>
+${splashBody}    <div id="app" class="isolate"></div>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>

@@ -30,6 +30,9 @@
     "devtools": {
       "accelerator": "Cmd+Option+I"
     },
+    "splash": {
+      "duration": 1500
+    },
     "wayland-workaround": true
   }
 }

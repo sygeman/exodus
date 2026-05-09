@@ -162,6 +162,7 @@ export interface IRPlatformConfig {
     systemDetection?: { singleton: string; fields: string[] }
     updater?: { singleton: string; checkInterval: string }
     devtools?: { accelerator: string }
+    splash?: { duration: number }
     waylandWorkaround: boolean
   }
 }

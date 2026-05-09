@@ -319,6 +319,7 @@ function parsePlatform(platform?: PlatformManifest): IRPlatformConfig {
       systemDetection: f["system-detection"] as IRPlatformConfig["features"]["systemDetection"],
       updater: f["updater"] as IRPlatformConfig["features"]["updater"],
       devtools: f["devtools"] as IRPlatformConfig["features"]["devtools"],
+      splash: f["splash"] as IRPlatformConfig["features"]["splash"],
       waylandWorkaround: !!f["wayland-workaround"],
     },
   }
