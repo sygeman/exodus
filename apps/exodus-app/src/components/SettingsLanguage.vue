@@ -1,4 +1,12 @@
 <script setup lang="ts">
+const items_SettingsLanguage_febc5q = [
+  { value: "en", label: "English", flag: "🇺🇸" },
+  { value: "ru", label: "Russian", flag: "🇷🇺" },
+  { value: "de", label: "German", flag: "🇩🇪" },
+  { value: "fr", label: "French", flag: "🇫🇷" },
+  { value: "ja", label: "Japanese", flag: "🇯🇵" },
+] as const
+
 function handleSetLocale(item) {
   edem.flows.trigger({ flow_id: "setLocale", locale: item.value })
 }
@@ -12,7 +20,11 @@ function handleSetLocale(item) {
         <h3 class="font-medium">Language</h3>
         <p class="text-muted text-sm">Select your preferred language</p>
       </div>
-      <div class="flex flex-col gap-2" v-for="(item, idx) in locales" :key="idx">
+      <div
+        class="flex flex-col gap-2"
+        v-for="(item, idx) in items_SettingsLanguage_febc5q"
+        :key="idx"
+      >
         <button
           class="hover:bg-elevated flex items-center gap-3 rounded-lg border p-3 transition-colors"
           @click="handleSetLocale(item)"

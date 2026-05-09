@@ -16,7 +16,7 @@ export const electrobunStage: Stage = {
 
     files.push({
       path: "src/bun/edem.ts",
-      content: generateBunEdem(),
+      content: generateBunEdem(ir),
     })
 
     files.push({
@@ -31,7 +31,7 @@ export const electrobunStage: Stage = {
 
     files.push({
       path: "src/edem.ts",
-      content: generateEdemProxy(),
+      content: generateEdemProxy(ir),
     })
 
     const deps = ["electrobun", "@exodus/edem-core"]
@@ -104,30 +104,72 @@ export default {
 `
 }
 
-function generateBunEdem(): string {
-  return `import { Utils } from "electrobun/bun"
-import { createEdem } from "@exodus/edem-core"
-import { dataModule } from "@exodus/edem-data"
-import { flowsModule } from "@exodus/edem-flows"
-import { electrobunModule } from "@exodus/edem-electrobun/module"
+function generateBunEdem(ir: IR): string {
+  const hasUpdater = !!ir.platform.features.updater
+  const imports = [
+    `import { Utils } from "electrobun/bun"`,
+    `import { createEdem } from "@exodus/edem-core"`,
+    `import { dataModule } from "@exodus/edem-data"`,
+    `import { flowsModule } from "@exodus/edem-flows"`,
+    `import { electrobunModule } from "@exodus/edem-electrobun/module"`,
+  ]
+  if (hasUpdater) {
+    imports.push(`import { updaterModule } from "@/platform/updater"`)
+  }
 
-export const modules = [dataModule, flowsModule, electrobunModule]
+  const moduleList = ["dataModule", "flowsModule"]
+  if (hasUpdater) moduleList.push("updaterModule")
+  moduleList.push("electrobunModule")
+
+  return `${imports.join("\n")}
+
+export const modules = [${moduleList.join(", ")}]
 export const edem = createEdem(modules, { appData: Utils.paths.userData })
 `
 }
 
 function generateBunIndex(ir: IR): string {
-  return `import { BrowserWindow, BrowserView, Updater, ApplicationMenu } from "electrobun/bun"
-import type { RPCSchema } from "electrobun"
-import { createBunEdemBridge } from "@exodus/edem-electrobun/bun"
-import type { EdemMsg } from "@exodus/edem-electrobun/types"
-import { setElectrobunDeps } from "@exodus/edem-electrobun/module"
-import { startScheduler, startDispatcher } from "@exodus/edem-flows"
-import { edem, modules } from "@/bun/edem"
-import { ensureCollections } from "@/manifest"
-import { ensureFlows } from "@/flows-bootstrap"
+  const features = ir.platform.features
+  const hasLogger = !!features.consoleLogger
+  const hasWindowState = !!features.windowPersistence
+  const hasSystemDetection = !!features.systemDetection
+  const hasDevtools = !!features.devtools
+  const hasWayland = features.waylandWorkaround
 
-const DEV_SERVER_PORT = 5173
+  const imports = [
+    `import { BrowserWindow, BrowserView, Updater, ApplicationMenu } from "electrobun/bun"`,
+    `import type { RPCSchema } from "electrobun"`,
+    `import { createBunEdemBridge } from "@exodus/edem-electrobun/bun"`,
+    `import type { EdemMsg } from "@exodus/edem-electrobun/types"`,
+    `import { setElectrobunDeps } from "@exodus/edem-electrobun/module"`,
+    `import { startScheduler, startDispatcher } from "@exodus/edem-flows"`,
+    `import { edem, modules } from "@/bun/edem"`,
+    `import { ensureCollections } from "@/manifest"`,
+    `import { ensureFlows } from "@/flows-bootstrap"`,
+  ]
+
+  if (hasLogger) imports.push(`import { logger } from "@/platform/logger"`)
+  if (hasWindowState || hasSystemDetection)
+    imports.push(
+      `import { initAppState${hasSystemDetection ? ", initStateDefaults" : ""} } from "@/platform/app-state"`,
+    )
+
+  const body: string[] = []
+
+  // Wayland workaround
+  if (hasWayland) {
+    body.push(`// Workaround for WebKitGTK + NVIDIA + Wayland rendering issue.
+if (process.platform === "linux") {
+  const wayland = process.env.WAYLAND_DISPLAY || process.env.XDG_SESSION_TYPE === "wayland"
+  if (wayland && process.env.WEBKIT_DISABLE_DMABUF_RENDERER !== "1") {
+    process.env.WEBKIT_DISABLE_DMABUF_RENDERER = "1"
+    console.log("[linux] Wayland detected: WEBKIT_DISABLE_DMABUF_RENDERER=1")
+  }
+}
+`)
+  }
+
+  body.push(`const DEV_SERVER_PORT = 5173
 const DEV_SERVER_URL = \`http://localhost:\${DEV_SERVER_PORT}\`
 
 async function getMainViewUrl(): Promise<string> {
@@ -178,13 +220,22 @@ const flowsDispatcher = await startDispatcher(edem.flows, edem.data)
 
 edemBridge.onWebviewEvent((name, payload) => {
   flowsDispatcher.emit(name, payload)
-})
+})`)
 
+  // System detection
+  if (hasSystemDetection) {
+    body.push(`
+await initStateDefaults(edem.data)`)
+  }
+
+  // Window state restoration
+  if (hasWindowState) {
+    body.push(`
 const defaultFrame = { width: 1200, height: 800, x: 0, y: 0 }
 let savedFrame = defaultFrame
 let savedMaximized = false
 try {
-  const { items } = await edem.data.queryItems({ collection_id: "app_state" })
+  const { items } = await edem.data.queryItems({ collection_id: "${features.windowPersistence!.singleton}" })
   if (items.length > 0) {
     if (items[0].data.window_frame) {
       savedFrame = items[0].data.window_frame as typeof defaultFrame
@@ -193,30 +244,42 @@ try {
   }
 } catch {
   // use defaults
-}
+}`)
+  }
 
+  body.push(`
 const win = new BrowserWindow({
   title: "${capitalize(ir.project.name)}",
   url,
-  titleBarStyle: "hiddenInset",
-  frame: savedFrame,
+  titleBarStyle: "hiddenInset",${hasWindowState ? "\n  frame: savedFrame," : ""}
   rpc,
 })
 
-if (savedMaximized) {
+${
+  hasWindowState
+    ? `if (savedMaximized) {
   win.maximize()
+}`
+    : ""
 }
 
 const { webview } = win
 
-edemBridge.attachWebview(webview)
+edemBridge.attachWebview(webview)`)
 
-ApplicationMenu.setApplicationMenu([
-  {
-    label: "App",
-    submenu: [{ label: "Quit", accelerator: "Cmd+Q", action: "quit" }],
-  },
-  {
+  // App state init (window events)
+  if (hasWindowState) {
+    body.push(`
+initAppState(win, flowsDispatcher.emit)`)
+  }
+
+  // Application menu
+  const menuItems: string[] = []
+  menuItems.push(`{
+    label: "${capitalize(ir.project.name)}",
+    submenu: [{ label: "Quit ${capitalize(ir.project.name)}", accelerator: "Cmd+Q", action: "quit" }],
+  }`)
+  menuItems.push(`{
     label: "Edit",
     submenu: [
       { role: "undo" },
@@ -227,20 +290,58 @@ ApplicationMenu.setApplicationMenu([
       { role: "paste" },
       { role: "selectAll" },
     ],
-  },
+  }`)
+  menuItems.push(`{
+    label: "Window",
+    submenu: [{ role: "minimize" }, { role: "close" }],
+  }`)
+  if (hasDevtools) {
+    menuItems.push(`{
+    label: "Developer",
+    submenu: [
+      {
+        label: "Toggle DevTools",
+        accelerator: "${features.devtools!.accelerator}",
+        action: "toggle-devtools",
+      },
+    ],
+  }`)
+  }
+
+  body.push(`
+ApplicationMenu.setApplicationMenu([
+  ${menuItems.join(",\n  ")},
 ])
 
 ApplicationMenu.on("application-menu-clicked", (event) => {
   const menuEvent = event as { data?: { action?: string } }
   if (menuEvent.data?.action === "quit") {
     process.exit(0)
+  }${
+    hasDevtools
+      ? `
+  if (menuEvent.data?.action === "toggle-devtools") {
+    webview.toggleDevTools()
+  }`
+      : ""
   }
-})
+})`)
 
+  // Logger
+  if (hasLogger) {
+    body.push(`
+logger.attach(edem.data)`)
+  }
+
+  body.push(`
 console.log("Bun process started")
 
 export { edem }
-`
+`)
+
+  return `${imports.join("\n")}
+
+${body.join("\n")}`
 }
 
 function generateEdemBridge(): string {
@@ -274,15 +375,30 @@ export { rpc, edemBridge }
 `
 }
 
-function generateEdemProxy(): string {
-  return `import { createEdemProxy, type InferModuleAPI } from "@exodus/edem-core"
-import type { dataModule } from "@exodus/edem-data"
-import type { flowsModule } from "@exodus/edem-flows"
-import { edemBridge } from "@/edem-bridge"
+function generateEdemProxy(ir: IR): string {
+  const hasUpdater = !!ir.platform.features.updater
+  const imports = [
+    `import { createEdemProxy, type InferModuleAPI } from "@exodus/edem-core"`,
+    `import type { dataModule } from "@exodus/edem-data"`,
+    `import type { flowsModule } from "@exodus/edem-flows"`,
+    `import { edemBridge } from "@/edem-bridge"`,
+  ]
+  if (hasUpdater) {
+    imports.push(`import type { updaterModule } from "@/platform/updater"`)
+  }
+
+  const typeEntries = [
+    `  data: InferModuleAPI<typeof dataModule>`,
+    `  flows: InferModuleAPI<typeof flowsModule>`,
+  ]
+  if (hasUpdater) {
+    typeEntries.push(`  updater: InferModuleAPI<typeof updaterModule>`)
+  }
+
+  return `${imports.join("\n")}
 
 type EdemAPI = {
-  data: InferModuleAPI<typeof dataModule>
-  flows: InferModuleAPI<typeof flowsModule>
+${typeEntries.join("\n")}
 }
 
 export const edem = createEdemProxy<EdemAPI>(edemBridge.workerFactory)

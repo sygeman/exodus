@@ -58,7 +58,7 @@ function generateComposable(col: IRCollection): string {
     .join(",\n")
 
   if (col.singleton) {
-    return generateSingletonComposable(typeName, itemType, fieldDefs)
+    return generateSingletonComposable(typeName, itemType, fieldDefs, col.id)
   }
 
   return generateCollectionComposable(typeName, itemType, fieldDefs, col.id)
@@ -68,6 +68,7 @@ function generateSingletonComposable(
   typeName: string,
   itemType: string,
   fieldDefs: string,
+  collectionId: string,
 ): string {
   return `import { ref, watchEffect } from "vue"
 import { edem } from "@/edem"
@@ -85,7 +86,7 @@ export function use${typeName}() {
     loading.value = true
     try {
       const result = await edem.data.queryItems({
-        collection_id: "${typeName}",
+        collection_id: "${collectionId}",
       })
       if (result.items.length > 0) {
         item.value = result.items[0] as ${itemType}

@@ -1,5 +1,14 @@
 import type { ComponentNode, UIManifest } from "@exodus/edem-ui"
-import type { IR, IRComponent, IRRoute, IRCollection, IRFlow, IRFlowTrigger } from "./ir"
+import type {
+  IR,
+  IRComponent,
+  IRRoute,
+  IRCollection,
+  IRFlow,
+  IRFlowTrigger,
+  IRLayoutInfo,
+  IRPlatformConfig,
+} from "./ir"
 
 // ── Parse manifests → IR ──────────────────────────────────────────────────────
 
@@ -7,6 +16,7 @@ export interface Manifests {
   ui: UIManifest
   data: { collections: DataCollection[] }
   flows: { flows: FlowManifest[] }
+  platform?: PlatformManifest
 }
 
 interface DataCollection {
@@ -41,11 +51,18 @@ interface FlowManifest {
   meta?: Record<string, unknown>
 }
 
+interface PlatformManifest {
+  platform: string
+  features: Record<string, unknown>
+}
+
 export function parseManifests(manifests: Manifests, projectName?: string): IR {
   const components = parseComponents(manifests.ui)
   const routes = parseRoutes(manifests.ui, components)
   const collections = parseCollections(manifests.data)
   const flows = parseFlows(manifests.flows)
+  const layout = parseLayout(manifests.ui)
+  const platform = parsePlatform(manifests.platform)
 
   return {
     project: { name: projectName ?? "app", identifier: `${projectName ?? "app"}.local` },
@@ -53,6 +70,8 @@ export function parseManifests(manifests: Manifests, projectName?: string): IR {
     routes,
     collections,
     flows,
+    layout,
+    platform,
   }
 }
 
@@ -255,4 +274,65 @@ function parseTrigger(trigger: { type: string; event?: string; every?: string })
 
 function kebabCase(str: string): string {
   return str.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()
+}
+
+// ── Layout ────────────────────────────────────────────────────────────────────
+
+function parseLayout(ui: UIManifest): IRLayoutInfo {
+  const hasAppLayout = "AppLayout" in ui.components
+  const hasSidebar = "AppSidebar" in ui.components
+  const hasTopMenu = "AppTopMenu" in ui.components
+
+  const navigation: IRLayoutInfo["navigation"] = []
+  if (hasSidebar) {
+    const sidebar = ui.components["AppSidebar"]
+    extractNavigation(sidebar, navigation)
+  }
+
+  return { hasAppLayout, hasSidebar, hasTopMenu, navigation }
+}
+
+function extractNavigation(node: ComponentNode, navigation: IRLayoutInfo["navigation"]): void {
+  if (node.bind?.items && Array.isArray(node.bind.items)) {
+    for (const item of node.bind.items) {
+      if (typeof item === "object" && item !== null && "label" in item && "to" in item) {
+        const nav = item as { label: string; to: string; icon?: string }
+        navigation.push({ label: nav.label, route: nav.to, icon: nav.icon })
+      }
+    }
+  }
+
+  if (Array.isArray(node.children)) {
+    for (const child of node.children) {
+      extractNavigation(child, navigation)
+    }
+  }
+}
+
+// ── Platform ──────────────────────────────────────────────────────────────────
+
+function parsePlatform(platform?: PlatformManifest): IRPlatformConfig {
+  if (!platform) {
+    return {
+      platform: "electrobun",
+      features: {
+        waylandWorkaround: false,
+      },
+    }
+  }
+
+  const f = platform.features ?? {}
+  return {
+    platform: platform.platform ?? "electrobun",
+    features: {
+      consoleLogger: f["console-logger"] as IRPlatformConfig["features"]["consoleLogger"],
+      windowPersistence: f[
+        "window-persistence"
+      ] as IRPlatformConfig["features"]["windowPersistence"],
+      systemDetection: f["system-detection"] as IRPlatformConfig["features"]["systemDetection"],
+      updater: f["updater"] as IRPlatformConfig["features"]["updater"],
+      devtools: f["devtools"] as IRPlatformConfig["features"]["devtools"],
+      waylandWorkaround: !!f["wayland-workaround"],
+    },
+  }
 }

@@ -16,6 +16,7 @@
     "tailwindcss": "4.3.0",
     "vue": "3.5.34",
     "vue-router": "5.0.6",
+    "zod": "4.4.3",
     "@exodus/edem-core": "workspace:*",
     "@exodus/edem-flows": "workspace:*",
     "@exodus/edem-electrobun": "workspace:*",

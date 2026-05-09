@@ -14,6 +14,17 @@ const edem = useEdem()
 function handleCreateIdea() {
   edem.flows.trigger({ flow_id: "createIdea", projectId: route.params.projectId })
 }
+
+function getLevelColor(level: string): string {
+  const colors: Record<string, string> = {
+    L0: "#22c55e",
+    L1: "#06b6d4",
+    L2: "#eab308",
+    L3: "#f97316",
+    L4: "#ef4444",
+  }
+  return colors[level] ?? "#6b7280"
+}
 </script>
 
 <template>

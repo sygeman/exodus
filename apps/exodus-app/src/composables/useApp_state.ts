@@ -18,7 +18,7 @@ export function useApp_state() {
     loading.value = true
     try {
       const result = await edem.data.queryItems({
-        collection_id: "App_state",
+        collection_id: "app_state",
       })
       if (result.items.length > 0) {
         item.value = result.items[0] as App_stateItem

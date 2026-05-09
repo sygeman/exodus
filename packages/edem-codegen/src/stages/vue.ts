@@ -11,7 +11,7 @@ export const vueStage: Stage = {
 
     files.push({
       path: "src/App.vue",
-      content: generateApp(),
+      content: generateApp(ir),
     })
 
     files.push({
@@ -65,7 +65,20 @@ export const vueStage: Stage = {
 
 // ── Generators ────────────────────────────────────────────────────────────────
 
-function generateApp(): string {
+function generateApp(ir: IR): string {
+  if (ir.layout.hasAppLayout) {
+    return `<script setup lang="ts">
+import AppLayout from "@/components/AppLayout.vue"
+</script>
+
+<template>
+  <UApp>
+    <AppLayout />
+  </UApp>
+</template>
+`
+  }
+
   return `<script setup lang="ts">
 import { RouterView } from "vue-router"
 </script>
@@ -97,14 +110,14 @@ app.mount("#app")
 }
 
 function generateRouter(ir: IR): string {
-  const imports: string[] = []
+  const imports = new Set<string>()
   const entries: string[] = []
 
   for (const route of ir.routes) {
     if (route.redirect) {
       entries.push(`    { path: "${route.path}", redirect: "${route.redirect}" },`)
     } else if (route.componentName) {
-      imports.push(`import ${route.componentName} from "@/components/${route.componentName}.vue"`)
+      imports.add(`import ${route.componentName} from "@/components/${route.componentName}.vue"`)
 
       const name = route.name ? `name: "${route.name}", ` : ""
       const props = route.params.length > 0 ? "props: true, " : ""
@@ -116,7 +129,7 @@ function generateRouter(ir: IR): string {
 
   return `import { createRouter, createWebHashHistory } from "vue-router"
 
-${imports.join("\n")}
+${[...imports].join("\n")}
 
 const routes = [
 ${entries.join("\n")}

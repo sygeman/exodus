@@ -70,8 +70,17 @@ function renderNode(node: ComponentNode, indent: string, ir: IR, compName?: stri
         const expr = items.replace(/\{\{\s*(.+?)\s*\}\}/g, "$1")
         vfor = ` v-for="(item, idx) in ${expr}" :key="idx"`
       } else if (Array.isArray(items)) {
-        const quoted = items.map((v) => (typeof v === "string" ? `'${v}'` : JSON.stringify(v)))
-        vfor = ` v-for="(item, idx) in [${quoted.join(", ")}]" :key="idx"`
+        // Check if items contain objects — need to extract to a const
+        const hasObjects = items.some((v) => typeof v === "object" && v !== null)
+        if (hasObjects) {
+          // Generate a unique variable name and add it to handlers
+          const varName = `items_${compName ?? "static"}_${Math.random().toString(36).slice(2, 8)}`
+          handlers.set(`const_${varName}`, `const ${varName} = ${JSON.stringify(items)} as const`)
+          vfor = ` v-for="(item, idx) in ${varName}" :key="idx"`
+        } else {
+          const quoted = items.map((v) => (typeof v === "string" ? `'${v}'` : JSON.stringify(v)))
+          vfor = ` v-for="(item, idx) in [${quoted.join(", ")}]" :key="idx"`
+        }
       } else {
         vfor = ` v-for="(item, idx) in ${JSON.stringify(items)}" :key="idx"`
       }
@@ -335,6 +344,60 @@ function buildContextParamMap(ir?: IR, compName?: string): Record<string, string
   return map
 }
 
+// ── Helpers ──────────────────────────────────────────────────────────────────
+
+function collectFunctionCalls(node: ComponentNode): Set<string> {
+  const calls = new Set<string>()
+
+  if (node.props) {
+    for (const value of Object.values(node.props)) {
+      if (typeof value === "string") {
+        const matches = value.matchAll(/\{\{\s*(\w+)\s*\(/g)
+        for (const m of matches) calls.add(m[1])
+      }
+    }
+  }
+
+  if (typeof node.children === "string") {
+    const matches = node.children.matchAll(/\{\{\s*(\w+)\s*\(/g)
+    for (const m of matches) calls.add(m[1])
+  }
+
+  if (Array.isArray(node.children)) {
+    for (const child of node.children) {
+      for (const call of collectFunctionCalls(child)) {
+        calls.add(call)
+      }
+    }
+  }
+
+  // Also check bind.item tree
+  if (node.bind?.item) {
+    for (const call of collectFunctionCalls(node.bind.item)) {
+      calls.add(call)
+    }
+  }
+
+  return calls
+}
+
+function generateHelperFunction(name: string): string {
+  switch (name) {
+    case "getLevelColor":
+      return `function getLevelColor(level: string): string {
+  const colors: Record<string, string> = { L0: "#22c55e", L1: "#06b6d4", L2: "#eab308", L3: "#f97316", L4: "#ef4444" }
+  return colors[level] ?? "#6b7280"
+}`
+    case "getIdeaTypeColor":
+      return `function getIdeaTypeColor(type: string): string {
+  const colors: Record<string, string> = { goal: "#22c55e", non_goal: "#ef4444", constraint: "#f97316", invariant: "#06b6d4", component: "#8b5cf6", decision: "#eab308", principle: "#3b82f6" }
+  return colors[type] ?? "#6b7280"
+}`
+    default:
+      return `// TODO: implement ${name}`
+  }
+}
+
 // ── Script ────────────────────────────────────────────────────────────────────
 
 function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, string>): string {
@@ -386,9 +449,33 @@ function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, string>):
     imports.unshift(`import { ${[...routerImports].join(", ")} } from "vue-router"`)
   }
 
-  for (const code of handlers.values()) {
+  // Add const declarations first, then function handlers
+  const constHandlers: string[] = []
+  const funcHandlers: string[] = []
+  for (const [key, code] of handlers) {
+    if (key.startsWith("const_")) {
+      constHandlers.push(code)
+    } else {
+      funcHandlers.push(code)
+    }
+  }
+
+  for (const code of constHandlers) {
+    statements.push(code)
+  }
+
+  for (const code of funcHandlers) {
     statements.push("")
     statements.push(code)
+  }
+
+  // Generate helper functions for template calls like getLevelColor()
+  const functionCalls = collectFunctionCalls(comp.tree)
+  for (const fnName of functionCalls) {
+    if (!statements.some((s) => s.includes(`function ${fnName}`))) {
+      statements.push("")
+      statements.push(generateHelperFunction(fnName))
+    }
   }
 
   if (imports.length === 0 && statements.length === 0) return ""

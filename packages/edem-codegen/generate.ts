@@ -10,6 +10,7 @@ const manifests = {
   ui: JSON.parse(readFileSync(join(MOCKS_DIR, "ui.json"), "utf-8")),
   data: JSON.parse(readFileSync(join(MOCKS_DIR, "data.json"), "utf-8")),
   flows: JSON.parse(readFileSync(join(MOCKS_DIR, "flows.json"), "utf-8")),
+  platform: JSON.parse(readFileSync(join(MOCKS_DIR, "platform.json"), "utf-8")),
 }
 
 const edem = createEdem([codegenModule])

@@ -163,6 +163,506 @@
         "system": true,
         "description": "Persists settings on change"
       }
+    },
+    {
+      "id": "createProject",
+      "name": "Create Project",
+      "trigger": {
+        "type": "manual"
+      },
+      "nodes": [
+        {
+          "id": "n1",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "n2",
+          "type": "action",
+          "position": {
+            "x": 100,
+            "y": 0
+          },
+          "data": {
+            "module": "data",
+            "proc": "createItem",
+            "args": {
+              "collection_id": "projects",
+              "data": {
+                "name": "New Project",
+                "slug": "new-project",
+                "type": "desktop",
+                "sort_order": 0
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1",
+          "target": "n2"
+        }
+      ]
+    },
+    {
+      "id": "deleteProject",
+      "name": "Delete Project",
+      "trigger": {
+        "type": "manual"
+      },
+      "nodes": [
+        {
+          "id": "n1",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "data": {
+            "input": {
+              "projectId": "string"
+            }
+          }
+        },
+        {
+          "id": "n2",
+          "type": "action",
+          "position": {
+            "x": 100,
+            "y": 0
+          },
+          "data": {
+            "module": "data",
+            "proc": "deleteItem",
+            "args": {
+              "item_id": "{{ trigger.projectId }}"
+            }
+          }
+        },
+        {
+          "id": "n3",
+          "type": "action",
+          "position": {
+            "x": 200,
+            "y": 0
+          },
+          "data": {
+            "module": "electrobun",
+            "proc": "navigate",
+            "args": {
+              "path": "/projects"
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1",
+          "target": "n2"
+        },
+        {
+          "id": "e2",
+          "source": "n2",
+          "target": "n3"
+        }
+      ]
+    },
+    {
+      "id": "createIdea",
+      "name": "Create Idea",
+      "trigger": {
+        "type": "manual"
+      },
+      "nodes": [
+        {
+          "id": "n1",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "data": {
+            "input": {
+              "projectId": "string"
+            }
+          }
+        },
+        {
+          "id": "n2",
+          "type": "action",
+          "position": {
+            "x": 100,
+            "y": 0
+          },
+          "data": {
+            "module": "data",
+            "proc": "createItem",
+            "args": {
+              "collection_id": "ideas",
+              "data": {
+                "project_id": "{{ trigger.projectId }}",
+                "title": "New Idea",
+                "status": "draft"
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1",
+          "target": "n2"
+        }
+      ]
+    },
+    {
+      "id": "togglePauseLogs",
+      "name": "Toggle Pause Logs",
+      "trigger": {
+        "type": "manual"
+      },
+      "nodes": [
+        {
+          "id": "n1",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "n2",
+          "type": "action",
+          "position": {
+            "x": 100,
+            "y": 0
+          },
+          "data": {
+            "module": "electrobun",
+            "proc": "emitEvent",
+            "args": {
+              "event": "logs:toggle-pause"
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1",
+          "target": "n2"
+        }
+      ]
+    },
+    {
+      "id": "clearLogs",
+      "name": "Clear Logs",
+      "trigger": {
+        "type": "manual"
+      },
+      "nodes": [
+        {
+          "id": "n1",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "n2",
+          "type": "action",
+          "position": {
+            "x": 100,
+            "y": 0
+          },
+          "data": {
+            "module": "electrobun",
+            "proc": "emitEvent",
+            "args": {
+              "event": "logs:clear"
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1",
+          "target": "n2"
+        }
+      ]
+    },
+    {
+      "id": "setLogFilter",
+      "name": "Set Log Filter",
+      "trigger": {
+        "type": "manual"
+      },
+      "nodes": [
+        {
+          "id": "n1",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "data": {
+            "input": {
+              "level": "string?",
+              "source": "string?",
+              "text": "string?"
+            }
+          }
+        },
+        {
+          "id": "n2",
+          "type": "action",
+          "position": {
+            "x": 100,
+            "y": 0
+          },
+          "data": {
+            "module": "electrobun",
+            "proc": "emitEvent",
+            "args": {
+              "event": "logs:set-filter",
+              "payload": {
+                "level": "{{ trigger.level }}",
+                "source": "{{ trigger.source }}",
+                "text": "{{ trigger.text }}"
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1",
+          "target": "n2"
+        }
+      ]
+    },
+    {
+      "id": "copyLog",
+      "name": "Copy Log",
+      "trigger": {
+        "type": "manual"
+      },
+      "nodes": [
+        {
+          "id": "n1",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "data": {
+            "input": {
+              "logId": "string"
+            }
+          }
+        },
+        {
+          "id": "n2",
+          "type": "action",
+          "position": {
+            "x": 100,
+            "y": 0
+          },
+          "data": {
+            "module": "electrobun",
+            "proc": "emitEvent",
+            "args": {
+              "event": "logs:copy",
+              "payload": {
+                "logId": "{{ trigger.logId }}"
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1",
+          "target": "n2"
+        }
+      ]
+    },
+    {
+      "id": "refreshState",
+      "name": "Refresh State",
+      "trigger": {
+        "type": "manual"
+      },
+      "nodes": [
+        {
+          "id": "n1",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "n2",
+          "type": "action",
+          "position": {
+            "x": 100,
+            "y": 0
+          },
+          "data": {
+            "module": "electrobun",
+            "proc": "emitEvent",
+            "args": {
+              "event": "state:refresh"
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1",
+          "target": "n2"
+        }
+      ]
+    },
+    {
+      "id": "toggleDarkMode",
+      "name": "Toggle Dark Mode",
+      "trigger": {
+        "type": "manual"
+      },
+      "nodes": [
+        {
+          "id": "n1",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "n2",
+          "type": "action",
+          "position": {
+            "x": 100,
+            "y": 0
+          },
+          "data": {
+            "module": "electrobun",
+            "proc": "emitEvent",
+            "args": {
+              "event": "app-state:setting-changed",
+              "payload": {
+                "key": "theme",
+                "value": "{{ trigger.event }}"
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1",
+          "target": "n2"
+        }
+      ]
+    },
+    {
+      "id": "setLocale",
+      "name": "Set Locale",
+      "trigger": {
+        "type": "manual"
+      },
+      "nodes": [
+        {
+          "id": "n1",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "data": {
+            "input": {
+              "locale": "string"
+            }
+          }
+        },
+        {
+          "id": "n2",
+          "type": "action",
+          "position": {
+            "x": 100,
+            "y": 0
+          },
+          "data": {
+            "module": "electrobun",
+            "proc": "emitEvent",
+            "args": {
+              "event": "app-state:setting-changed",
+              "payload": {
+                "key": "locale",
+                "value": "{{ trigger.locale }}"
+              }
+            }
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1",
+          "target": "n2"
+        }
+      ]
+    },
+    {
+      "id": "startUpdate",
+      "name": "Start Update",
+      "trigger": {
+        "type": "manual"
+      },
+      "nodes": [
+        {
+          "id": "n1",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "n2",
+          "type": "action",
+          "position": {
+            "x": 100,
+            "y": 0
+          },
+          "data": {
+            "module": "electrobun",
+            "proc": "startUpdate"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "n1",
+          "target": "n2"
+        }
+      ]
     }
   ]
 }

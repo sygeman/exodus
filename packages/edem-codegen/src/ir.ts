@@ -2,7 +2,7 @@ import type { ComponentNode } from "@exodus/edem-ui"
 
 // ── Intermediate Representation (IR) ──────────────────────────────────────────
 // Framework-agnostic description of the application.
-// Generated from manifests (data.json + flows.json + ui.json).
+// Generated from manifests (data.json + flows.json + ui.json + platform.json).
 
 export interface IR {
   project: IRProject
@@ -10,6 +10,8 @@ export interface IR {
   routes: IRRoute[]
   collections: IRCollection[]
   flows: IRFlow[]
+  layout: IRLayoutInfo
+  platform: IRPlatformConfig
 }
 
 export interface IRProject {
@@ -77,6 +79,31 @@ export interface IRFlowEdge {
   id: string
   source: string
   target: string
+}
+
+export interface IRLayoutInfo {
+  hasAppLayout: boolean
+  hasSidebar: boolean
+  hasTopMenu: boolean
+  navigation: Array<{ label: string; route: string; icon?: string }>
+}
+
+export interface IRPlatformConfig {
+  platform: string
+  features: {
+    consoleLogger?: { collection: string; dedup: boolean; dedupWindow: number }
+    windowPersistence?: {
+      singleton: string
+      fields: string[]
+      debounce: number
+      minWidth: number
+      minHeight: number
+    }
+    systemDetection?: { singleton: string; fields: string[] }
+    updater?: { singleton: string; checkInterval: string }
+    devtools?: { accelerator: string }
+    waylandWorkaround: boolean
+  }
 }
 
 // ── Output File ───────────────────────────────────────────────────────────────

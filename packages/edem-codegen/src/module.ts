@@ -2,12 +2,28 @@ import { z } from "zod"
 import { createEdemModule } from "@exodus/edem-core"
 import { parseManifests, type Manifests } from "./parse"
 import { validateIR } from "./validate"
-import { bunStage, electrobunStage, vueStage, dataStage, flowsStage, appStage } from "./stages"
+import {
+  bunStage,
+  electrobunStage,
+  vueStage,
+  dataStage,
+  flowsStage,
+  appStage,
+  platformStage,
+} from "./stages"
 import type { Stage, OutputFile } from "./ir"
 
 // ── Pipeline ──────────────────────────────────────────────────────────────────
 
-const stages: Stage[] = [bunStage, electrobunStage, vueStage, dataStage, flowsStage, appStage]
+const stages: Stage[] = [
+  bunStage,
+  electrobunStage,
+  vueStage,
+  dataStage,
+  flowsStage,
+  appStage,
+  platformStage,
+]
 
 // ── Module ────────────────────────────────────────────────────────────────────
 
@@ -144,7 +160,7 @@ export const codegenModule = createEdemModule("codegen", (module) => {
           await installProc.exited
         }
 
-        // 8. Write manifests
+        // 9. Write manifests
         const manifestsDir = join(input.output, "edem-manifests")
         mkdirSync(manifestsDir, { recursive: true })
         writeFileSync(join(manifestsDir, "ui.json"), JSON.stringify(manifests.ui, null, 2), "utf-8")
@@ -158,8 +174,15 @@ export const codegenModule = createEdemModule("codegen", (module) => {
           JSON.stringify(manifests.flows, null, 2),
           "utf-8",
         )
+        if (manifests.platform) {
+          writeFileSync(
+            join(manifestsDir, "platform.json"),
+            JSON.stringify(manifests.platform, null, 2),
+            "utf-8",
+          )
+        }
 
-        // 9. Write generated files
+        // 10. Write generated files
         for (const file of allFiles) {
           const outPath = join(input.output, file.path)
           const dir = dirname(outPath)
@@ -169,7 +192,7 @@ export const codegenModule = createEdemModule("codegen", (module) => {
           writeFileSync(outPath, file.content, "utf-8")
         }
 
-        return { files: allFiles.length + 3, output: input.output }
+        return { files: allFiles.length + 3 + (manifests.platform ? 1 : 0), output: input.output }
       },
     })
 })

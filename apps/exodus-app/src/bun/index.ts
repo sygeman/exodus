@@ -7,6 +7,17 @@ import { startScheduler, startDispatcher } from "@exodus/edem-flows"
 import { edem, modules } from "@/bun/edem"
 import { ensureCollections } from "@/manifest"
 import { ensureFlows } from "@/flows-bootstrap"
+import { logger } from "@/platform/logger"
+import { initAppState, initStateDefaults } from "@/platform/app-state"
+
+// Workaround for WebKitGTK + NVIDIA + Wayland rendering issue.
+if (process.platform === "linux") {
+  const wayland = process.env.WAYLAND_DISPLAY || process.env.XDG_SESSION_TYPE === "wayland"
+  if (wayland && process.env.WEBKIT_DISABLE_DMABUF_RENDERER !== "1") {
+    process.env.WEBKIT_DISABLE_DMABUF_RENDERER = "1"
+    console.log("[linux] Wayland detected: WEBKIT_DISABLE_DMABUF_RENDERER=1")
+  }
+}
 
 const DEV_SERVER_PORT = 5173
 const DEV_SERVER_URL = `http://localhost:${DEV_SERVER_PORT}`
@@ -61,6 +72,8 @@ edemBridge.onWebviewEvent((name, payload) => {
   flowsDispatcher.emit(name, payload)
 })
 
+await initStateDefaults(edem.data)
+
 const defaultFrame = { width: 1200, height: 800, x: 0, y: 0 }
 let savedFrame = defaultFrame
 let savedMaximized = false
@@ -92,10 +105,12 @@ const { webview } = win
 
 edemBridge.attachWebview(webview)
 
+initAppState(win, flowsDispatcher.emit)
+
 ApplicationMenu.setApplicationMenu([
   {
-    label: "App",
-    submenu: [{ label: "Quit", accelerator: "Cmd+Q", action: "quit" }],
+    label: "Exodus",
+    submenu: [{ label: "Quit Exodus", accelerator: "Cmd+Q", action: "quit" }],
   },
   {
     label: "Edit",
@@ -109,6 +124,20 @@ ApplicationMenu.setApplicationMenu([
       { role: "selectAll" },
     ],
   },
+  {
+    label: "Window",
+    submenu: [{ role: "minimize" }, { role: "close" }],
+  },
+  {
+    label: "Developer",
+    submenu: [
+      {
+        label: "Toggle DevTools",
+        accelerator: "Cmd+Option+I",
+        action: "toggle-devtools",
+      },
+    ],
+  },
 ])
 
 ApplicationMenu.on("application-menu-clicked", (event) => {
@@ -116,7 +145,12 @@ ApplicationMenu.on("application-menu-clicked", (event) => {
   if (menuEvent.data?.action === "quit") {
     process.exit(0)
   }
+  if (menuEvent.data?.action === "toggle-devtools") {
+    webview.toggleDevTools()
+  }
 })
+
+logger.attach(edem.data)
 
 console.log("Bun process started")
 

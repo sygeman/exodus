@@ -52,7 +52,7 @@ function handleCopyLog(item) {
       <div
         class="group hover:bg-elevated flex items-center gap-3 border-b px-4 py-2 transition-colors"
       >
-        <span class="text-muted w-20 font-mono text-xs">{{ item.timestamp }}</span>
+        <span class="text-muted w-20 font-mono text-xs">{{ item.created_at }}</span>
         <UBadge :color="item.level" variant="subtle" class="text-[10px] uppercase">{{
           item.level
         }}</UBadge>

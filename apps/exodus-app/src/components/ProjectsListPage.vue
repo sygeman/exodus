@@ -14,9 +14,7 @@ function handleCreateProject() {
   <div class="flex h-full flex-col p-6">
     <div class="mb-4 flex items-center gap-2">
       <h1 class="text-lg font-bold">Projects</h1>
-      <UBadge color="neutral" variant="subtle" v-for="item in projects" :key="item.id">
-        <span>{{ item.projects.length }}</span>
-      </UBadge>
+      <UBadge color="neutral" variant="subtle">{{ projects.length }}</UBadge>
     </div>
     <UButton size="sm" @click="handleCreateProject()">
       <UIcon name="i-lucide-plus" />
@@ -34,7 +32,7 @@ function handleCreateProject() {
         </div>
         <div class="flex flex-col">
           <span class="font-medium">{{ item.name }}</span>
-          <span class="text-muted text-sm">{{ item.idea_count }} ideas</span>
+          <span class="text-muted text-sm">{{ item.description }}</span>
         </div>
       </div>
     </UScrollArea>

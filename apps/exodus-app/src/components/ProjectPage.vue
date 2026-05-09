@@ -8,6 +8,17 @@ const {
   update: updateIdeas,
   remove: removeIdeas,
 } = useIdeas({ filter: { id: { _eq: route.params.id } } })
+
+function getLevelColor(level: string): string {
+  const colors: Record<string, string> = {
+    L0: "#22c55e",
+    L1: "#06b6d4",
+    L2: "#eab308",
+    L3: "#f97316",
+    L4: "#ef4444",
+  }
+  return colors[level] ?? "#6b7280"
+}
 </script>
 
 <template>
@@ -19,9 +30,7 @@ const {
         <UIcon name="i-lucide-lightbulb" class="text-primary" />
         <div class="flex flex-col">
           <span class="text-muted text-sm">Ideas</span>
-          <span class="text-2xl font-bold" v-for="item in ideas" :key="item.id">
-            <span>{{ item.ideas.length }}</span>
-          </span>
+          <span class="text-2xl font-bold">{{ ideas.length }}</span>
         </div>
       </div>
     </div>

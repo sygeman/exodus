@@ -17,7 +17,7 @@ function handleRefreshState() {
       <UButton variant="subtle" @click="handleRefreshState()">Refresh</UButton>
     </div>
     <UScrollArea class="min-h-0 flex-1" v-for="item in app_state" :key="item.id">
-      <pre class="p-4 font-mono text-xs">{{ JSON.stringify(item.data, null, 2) }}</pre>
+      <pre class="p-4 font-mono text-xs">{{ JSON.stringify(item, null, 2) }}</pre>
     </UScrollArea>
   </div>
 </template>

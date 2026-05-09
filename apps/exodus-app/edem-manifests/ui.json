@@ -46,6 +46,169 @@
     }
   ],
   "components": {
+    "AppLayout": {
+      "component": "div",
+      "props": {
+        "class": "flex h-screen bg-[var(--ui-bg-elevated)] pr-2 pb-2"
+      },
+      "children": [
+        {
+          "component": "AppSidebar",
+          "props": {
+            "class": "pt-8"
+          }
+        },
+        {
+          "component": "div",
+          "props": {
+            "class": "flex flex-1 flex-col overflow-hidden"
+          },
+          "children": [
+            {
+              "component": "AppTopMenu"
+            },
+            {
+              "component": "main",
+              "props": {
+                "class": "flex-1 overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-bg)] shadow-sm"
+              },
+              "children": [
+                {
+                  "component": "RouterView"
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    "AppSidebar": {
+      "component": "aside",
+      "props": {
+        "class": "flex w-56 flex-col border-r border-[var(--ui-border)] bg-[var(--ui-bg)]"
+      },
+      "children": [
+        {
+          "component": "div",
+          "props": {
+            "class": "flex items-center gap-2 px-4 pb-4"
+          },
+          "children": [
+            {
+              "component": "UIcon",
+              "props": {
+                "name": "i-lucide-box",
+                "class": "text-primary text-lg"
+              }
+            },
+            {
+              "component": "span",
+              "props": {
+                "class": "font-bold"
+              },
+              "children": "Exodus"
+            }
+          ]
+        },
+        {
+          "component": "UNavigationMenu",
+          "props": {
+            "orientation": "vertical"
+          },
+          "bind": {
+            "items": [
+              {
+                "label": "Projects",
+                "icon": "i-lucide-folder",
+                "to": "/projects"
+              },
+              {
+                "label": "Debug Logs",
+                "icon": "i-lucide-terminal",
+                "to": "/debug/logs"
+              },
+              {
+                "label": "Debug State",
+                "icon": "i-lucide-database",
+                "to": "/debug/state"
+              },
+              {
+                "label": "Appearance",
+                "icon": "i-lucide-palette",
+                "to": "/settings/appearance"
+              },
+              {
+                "label": "Language",
+                "icon": "i-lucide-globe",
+                "to": "/settings/language"
+              }
+            ],
+            "item": {
+              "component": "div",
+              "props": {
+                "class": "flex items-center gap-2"
+              },
+              "children": [
+                {
+                  "component": "UIcon",
+                  "props": {
+                    "name": "{{ item.icon }}"
+                  }
+                },
+                {
+                  "component": "span",
+                  "children": "{{ item.label }}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    "AppTopMenu": {
+      "component": "div",
+      "props": {
+        "class": "flex items-center justify-between border-b border-[var(--ui-border)] px-4 py-2"
+      },
+      "children": [
+        {
+          "component": "div",
+          "props": {
+            "class": "flex items-center gap-2"
+          },
+          "children": [
+            {
+              "component": "UButton",
+              "props": {
+                "variant": "ghost",
+                "size": "sm",
+                "icon": "i-lucide-arrow-left"
+              },
+              "events": {
+                "click": {
+                  "navigate": "/projects"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "component": "div",
+          "props": {
+            "class": "flex items-center gap-2"
+          },
+          "children": [
+            {
+              "component": "span",
+              "props": {
+                "class": "text-xs text-muted"
+              },
+              "children": "v0.42.0"
+            }
+          ]
+        }
+      ]
+    },
     "ProjectsListPage": {
       "component": "div",
       "props": {
@@ -71,16 +234,7 @@
                 "color": "neutral",
                 "variant": "subtle"
               },
-              "bind": {
-                "collection": "projects",
-                "sort": [
-                  "sort_order"
-                ],
-                "item": {
-                  "component": "span",
-                  "children": "{{ item.projects.length }}"
-                }
-              }
+              "children": "{{ projects.length }}"
             }
           ]
         },
@@ -149,7 +303,7 @@
                       "props": {
                         "class": "text-sm text-muted"
                       },
-                      "children": "{{ item.idea_count }} ideas"
+                      "children": "{{ item.description }}"
                     }
                   ]
                 }
@@ -202,21 +356,7 @@
                       "props": {
                         "class": "text-2xl font-bold"
                       },
-                      "bind": {
-                        "collection": "ideas",
-                        "filter": {
-                          "project_id": {
-                            "_eq": "{{ context.projectId }}"
-                          }
-                        },
-                        "sort": [
-                          "-created_at"
-                        ],
-                        "item": {
-                          "component": "span",
-                          "children": "{{ item.ideas.length }}"
-                        }
-                      }
+                      "children": "{{ ideas.length }}"
                     }
                   ]
                 }
@@ -959,7 +1099,7 @@
                   "props": {
                     "class": "w-20 text-xs text-muted font-mono"
                   },
-                  "children": "{{ item.timestamp }}"
+                  "children": "{{ item.created_at }}"
                 },
                 {
                   "component": "UBadge",
@@ -1052,7 +1192,7 @@
               "props": {
                 "class": "p-4 text-xs font-mono"
               },
-              "children": "{{ JSON.stringify(item.data, null, 2) }}"
+              "children": "{{ JSON.stringify(item, null, 2) }}"
             }
           }
         }
@@ -1157,7 +1297,33 @@
                 "class": "flex flex-col gap-2"
               },
               "bind": {
-                "items": "{{ locales }}",
+                "items": [
+                  {
+                    "value": "en",
+                    "label": "English",
+                    "flag": "🇺🇸"
+                  },
+                  {
+                    "value": "ru",
+                    "label": "Russian",
+                    "flag": "🇷🇺"
+                  },
+                  {
+                    "value": "de",
+                    "label": "German",
+                    "flag": "🇩🇪"
+                  },
+                  {
+                    "value": "fr",
+                    "label": "French",
+                    "flag": "🇫🇷"
+                  },
+                  {
+                    "value": "ja",
+                    "label": "Japanese",
+                    "flag": "🇯🇵"
+                  }
+                ],
                 "item": {
                   "component": "button",
                   "props": {

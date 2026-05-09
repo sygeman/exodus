@@ -17,7 +17,7 @@ export function useUpdater_status() {
     loading.value = true
     try {
       const result = await edem.data.queryItems({
-        collection_id: "Updater_status",
+        collection_id: "updater_status",
       })
       if (result.items.length > 0) {
         item.value = result.items[0] as Updater_statusItem
