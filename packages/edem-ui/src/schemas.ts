@@ -12,7 +12,7 @@ export interface ComponentNode {
 
 export interface DataBinding {
   collection?: string
-  items?: unknown[]
+  items?: unknown[] | string
   filter?: Record<string, unknown>
   sort?: string[]
   item?: ComponentNode
@@ -57,7 +57,7 @@ export const dataBindingSchema: z.ZodType<DataBinding> = z.lazy(
   () =>
     z.object({
       collection: z.string().optional(),
-      items: z.array(z.any()).optional(),
+      items: z.union([z.array(z.any()), z.string()]).optional(),
       filter: z.record(z.string(), z.any()).optional(),
       sort: z.array(z.string()).optional(),
       item: componentNodeSchema.optional(),

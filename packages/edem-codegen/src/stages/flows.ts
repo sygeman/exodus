@@ -31,7 +31,7 @@ export const flowsStage: Stage = {
 
 function generateFlowsManifest(): string {
   return `import type { FlowsManifest } from "@exodus/edem-flows"
-import manifest from "../flows.json"
+import manifest from "../edem-manifests/flows.json"
 
 export const SYSTEM_FLOWS_MANIFEST: FlowsManifest = manifest as FlowsManifest
 `

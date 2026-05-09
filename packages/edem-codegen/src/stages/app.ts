@@ -65,7 +65,16 @@ function renderNode(node: ComponentNode, indent: string, ir: IR, compName?: stri
     if (node.bind.collection) {
       vfor = ` v-for="item in ${node.bind.collection}" :key="item.id"`
     } else if (node.bind.items) {
-      vfor = ` v-for="(item, idx) in ${JSON.stringify(node.bind.items)}" :key="idx"`
+      const items = node.bind.items
+      if (typeof items === "string" && items.includes("{{")) {
+        const expr = items.replace(/\{\{\s*(.+?)\s*\}\}/g, "$1")
+        vfor = ` v-for="(item, idx) in ${expr}" :key="idx"`
+      } else if (Array.isArray(items)) {
+        const quoted = items.map((v) => (typeof v === "string" ? `'${v}'` : JSON.stringify(v)))
+        vfor = ` v-for="(item, idx) in [${quoted.join(", ")}]" :key="idx"`
+      } else {
+        vfor = ` v-for="(item, idx) in ${JSON.stringify(items)}" :key="idx"`
+      }
     }
 
     return {
@@ -123,7 +132,13 @@ function renderProps(props: Record<string, unknown>): string {
         if (value.includes("{{ ")) {
           // Multi-expression or single → :attr="expr"
           const resolved = value.replace(/\{\{\s*(.+?)\s*\}\}/g, (_, e: string) => `\${${e}}`)
-          if (resolved.startsWith("{{ ")) return ` :${attr}="${extractExpr(value)}"`
+          if (
+            resolved.startsWith("${") &&
+            resolved.endsWith("}") &&
+            !resolved.slice(2, -1).includes("${")
+          ) {
+            return ` :${attr}="${resolved.slice(2, -1)}"`
+          }
           // style="background-color: {{ item.color }}" → :style="{ backgroundColor: item.color }"
           if (key === "style") {
             // "background-color: {{ item.color }}" → :style="{ backgroundColor: item.color }"
@@ -145,6 +160,10 @@ function renderProps(props: Record<string, unknown>): string {
       if (value === null || value === undefined) {
         return ""
       }
+      if (Array.isArray(value)) {
+        const items = value.map((v) => (typeof v === "string" ? `'${v}'` : JSON.stringify(v)))
+        return ` :${attr}="[${items.join(", ")}]"`
+      }
       return ` :${attr}="${JSON.stringify(value)}"`
     })
     .join("")
@@ -156,7 +175,13 @@ function renderEvents(events: Record<string, EventBinding> | undefined): string 
   const parts: string[] = []
   for (const [eventName, binding] of Object.entries(events)) {
     if ("flow" in binding) {
-      parts.push(` @${kebabCase(eventName)}="handle${capitalize(binding.flow)}()"`)
+      const hasEvent = binding.input && JSON.stringify(binding.input).includes("{{ event }}")
+      const hasItem = binding.input && JSON.stringify(binding.input).includes("{{ item")
+      const args: string[] = []
+      if (hasEvent) args.push("$event")
+      if (hasItem) args.push("item")
+      const argStr = args.length > 0 ? `(${args.join(", ")})` : "()"
+      parts.push(` @${kebabCase(eventName)}="handle${capitalize(binding.flow)}${argStr}"`)
     }
     if ("navigate" in binding) {
       parts.push(` @${kebabCase(eventName)}="handleNavigate${slugify(binding.navigate)}()"`)
@@ -185,14 +210,32 @@ function collectHandlerCode(
   for (const [, binding] of Object.entries(events)) {
     if ("flow" in binding) {
       const input = binding.input ? resolveContextParams(binding.input, ir, compName) : ""
-      const inputParam = input ? `, ${input}` : ""
       const handlerName = `handle${capitalize(binding.flow)}`
-      handlers.set(
-        handlerName,
-        `function ${handlerName}() {
-  edem.flows.trigger({ flow_id: "${binding.flow}"${inputParam} })
+      if (input) {
+        const hasEvent = input.includes("__EVENT__")
+        const hasItem = input.includes("item.")
+        const params: string[] = []
+        if (hasEvent) params.push("$event")
+        if (hasItem) params.push("item")
+        const paramStr = params.join(", ")
+        const inputEntries = input
+          .slice(1, -1)
+          .trim()
+          .replace(/__EVENT__/g, "$event")
+        handlers.set(
+          handlerName,
+          `function ${handlerName}(${paramStr}) {
+  edem.flows.trigger({ flow_id: "${binding.flow}", ${inputEntries} })
 }`,
-      )
+        )
+      } else {
+        handlers.set(
+          handlerName,
+          `function ${handlerName}() {
+  edem.flows.trigger({ flow_id: "${binding.flow}" })
+}`,
+        )
+      }
     }
 
     if ("navigate" in binding) {
@@ -223,7 +266,7 @@ function collectHandlerCode(
         const data = resolveContextParams(binding.data ?? {}, ir, compName)
         handlers.set(
           `handleUpdate${capitalize(col)}`,
-          `function handleUpdate${capitalize(col)}(v: any) {
+          `function handleUpdate${capitalize(col)}(v: unknown) {
   const data = ${data.replace(/__EVENT__/g, "v")}
   ${updateFn}(data.id as string, data)
 }`,
@@ -248,12 +291,20 @@ function collectHandlerCode(
 
 function resolveContextParams(obj: Record<string, unknown>, ir?: IR, compName?: string): string {
   const paramMap = buildContextParamMap(ir, compName)
-  return JSON.stringify(obj)
-    .replace(
-      /"{{\s*context\.(\w+)\s*}}"/g,
-      (_, key: string) => paramMap[`context.${key}`] ?? `route.params.${key}`,
-    )
-    .replace(/"{{\s*event\s*}}"/g, "__EVENT__")
+
+  const entries = Object.entries(obj).map(([key, value]) => {
+    const resolved = String(value)
+      .replace(
+        /\{\{\s*context\.(\w+)\s*\}\}/g,
+        (_, ctxKey: string) => paramMap[`context.${ctxKey}`] ?? `route.params.${ctxKey}`,
+      )
+      .replace(/\{\{\s*event\s*\}\}/g, "__EVENT__")
+      .replace(/\{\{\s*item\.(\w+)\s*\}\}/g, (_, field: string) => `item.${field}`)
+      .replace(/\{\{\s*item\s*\}\}/g, "item")
+    return `${key}: ${resolved}`
+  })
+
+  return `{ ${entries.join(", ")} }`
 }
 
 function resolveTemplateString(template: string, ir?: IR, compName?: string): string {
@@ -396,7 +447,9 @@ function slugify(str: string): string {
   return str
     .replace(/\//g, "-")
     .replace(/\{\{\s*(.+?)\s*\}\}/g, "$1")
-    .replace(/[^a-zA-Z0-9-]/g, "")
+    .replace(/[^a-zA-Z0-9]/g, "_")
+    .replace(/_+/g, "_")
+    .replace(/^_|_$/g, "")
 }
 
 function escapeAttr(str: string): string {

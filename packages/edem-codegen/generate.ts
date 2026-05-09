@@ -17,5 +17,6 @@ const result = await edem.codegen.generateProject({
   project_id: "exodus-app",
   output: OUTPUT,
   manifests,
+  project_name: "Exodus",
 })
 console.log(`${result.files} files → ${result.output}`)

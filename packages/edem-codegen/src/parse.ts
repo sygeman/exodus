@@ -41,14 +41,14 @@ interface FlowManifest {
   meta?: Record<string, unknown>
 }
 
-export function parseManifests(manifests: Manifests): IR {
+export function parseManifests(manifests: Manifests, projectName?: string): IR {
   const components = parseComponents(manifests.ui)
   const routes = parseRoutes(manifests.ui, components)
   const collections = parseCollections(manifests.data)
   const flows = parseFlows(manifests.flows)
 
   return {
-    project: { name: "app", identifier: "app.local" },
+    project: { name: projectName ?? "app", identifier: `${projectName ?? "app"}.local` },
     components,
     routes,
     collections,

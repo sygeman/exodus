@@ -90,7 +90,7 @@ export default {
       "dist/index.html": "views/mainview/index.html",
       "dist/assets": "views/mainview/assets",
     },
-    watch: ["src/modules/**"],
+    watch: ["src/components/**", "src/composables/**"],
     watchIgnore: ["dist/**"],
     mac: {
       bundleCEF: false,

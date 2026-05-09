@@ -48,20 +48,24 @@
     },
     "apps/exodus-app": {
       "name": "exodus-app",
+      "version": "0.0.0",
       "dependencies": {
+        "@exodus/edem-core": "workspace:*",
+        "@exodus/edem-data": "workspace:*",
+        "@exodus/edem-electrobun": "workspace:*",
+        "@exodus/edem-flows": "workspace:*",
         "@nuxt/ui": "4.7.1",
-        "@vitejs/plugin-vue": "6.0.6",
         "electrobun": "1.18.1",
-        "vite": "8.0.11",
+        "tailwindcss": "4.3.0",
         "vue": "3.5.34",
         "vue-router": "5.0.6",
-        "vue-tsc": "3.2.8",
       },
       "devDependencies": {
-        "@types/bun": "latest",
-      },
-      "peerDependencies": {
+        "@types/bun": "1.3.13",
+        "@vitejs/plugin-vue": "6.0.6",
         "typescript": "6.0.3",
+        "vite": "8.0.11",
+        "vue-tsc": "3.2.8",
       },
     },
     "packages/edem-codegen": {
@@ -1226,6 +1230,8 @@
     "csso/css-tree": ["css-tree@2.2.1", "", { "dependencies": { "mdn-data": "2.0.28", "source-map-js": "^1.0.1" } }, "sha512-OA0mILzGc1kCOCSJerOeqDxDQ4HOh+G8NbOJFOTgOCzpw7fCBubk0fEyxp8AgOL/jvLgYA/uV0cMbe43ElF1JA=="],
 
     "dom-serializer/entities": ["entities@4.5.0", "", {}, "sha512-V0hjH4dGPh9Ao5p0MoRY6BVqtwCjhz6vI5LT8AJ55H+4g9/4vbHx1I54fS0XuclLhDHArPQCiMjDxjaL8fPxhw=="],
+
+    "exodus-app/tailwindcss": ["tailwindcss@4.3.0", "", {}, "sha512-y6nxMGB1nMW9R6k96e5gdIFzcfL/gTJRNaqGes1YvkLnPVXzWgbqFF2yLC0T8G774n24cx3Pe8XrKoniCOAH+Q=="],
 
     "exodus-app/vite": ["vite@8.0.11", "", { "dependencies": { "lightningcss": "^1.32.0", "picomatch": "^4.0.4", "postcss": "^8.5.14", "rolldown": "1.0.0-rc.18", "tinyglobby": "^0.2.16" }, "optionalDependencies": { "fsevents": "~2.3.3" }, "peerDependencies": { "@types/node": "^20.19.0 || >=22.12.0", "@vitejs/devtools": "^0.1.18", "esbuild": "^0.27.0 || ^0.28.0", "jiti": ">=1.21.0", "less": "^4.0.0", "sass": "^1.70.0", "sass-embedded": "^1.70.0", "stylus": ">=0.54.8", "sugarss": "^5.0.0", "terser": "^5.16.0", "tsx": "^4.8.1", "yaml": "^2.4.2" }, "optionalPeers": ["@types/node", "@vitejs/devtools", "esbuild", "jiti", "less", "sass", "sass-embedded", "stylus", "sugarss", "terser", "tsx", "yaml"], "bin": { "vite": "bin/vite.js" } }, "sha512-Jz1mxtUBR5xTT65VOdJZUUeoyLtqljmFkiUXhPTLZka3RDc9vpi/xXkyrnsdRcm2lIi3l3GPMnAidTsEGIj3Ow=="],
 

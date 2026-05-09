@@ -34,7 +34,7 @@ export const dataStage: Stage = {
 function generateManifest(): string {
   return `import type { dataModule, Manifest } from "@exodus/edem-data"
 import type { InferModuleAPI } from "@exodus/edem-core"
-import manifest from "../data.json"
+import manifest from "../edem-manifests/data.json"
 
 type EdemData = InferModuleAPI<typeof dataModule>
 

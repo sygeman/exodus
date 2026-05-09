@@ -49,10 +49,17 @@ export const vueStage: Stage = {
       content: generateTsconfig(),
     })
 
-    const deps = ["vue", "vue-router", "@nuxt/ui"]
-    const devDeps = ["@vitejs/plugin-vue", "typescript", "vite", "vue-tsc"]
+    const deps = ["vue", "vue-router", "@nuxt/ui", "tailwindcss"]
+    const devDeps = ["@vitejs/plugin-vue", "typescript", "vite", "vue-tsc", "@types/bun"]
 
-    return { files, deps: [...deps, ...devDeps] }
+    const scripts = {
+      dev: "electrobun dev --watch",
+      "dev:webview": "vite --port 5173",
+      build: "vite build",
+      "build:stable": "vite build && electrobun build --env=stable",
+    }
+
+    return { files, deps, devDeps, scripts }
   },
 }
 
@@ -196,8 +203,21 @@ function generateIndexHtml(ir: IR): string {
 function generateTsconfig(): string {
   return JSON.stringify(
     {
-      extends: "@exodus/typescript-config/tsconfig",
       compilerOptions: {
+        target: "ESNext",
+        useDefineForClassFields: true,
+        module: "ESNext",
+        resolveJsonModule: true,
+        allowJs: true,
+        isolatedModules: true,
+        moduleDetection: "force",
+        noEmit: true,
+        strict: true,
+        noUnusedLocals: true,
+        noUnusedParameters: true,
+        noFallthroughCasesInSwitch: true,
+        moduleResolution: "bundler",
+        skipLibCheck: true,
         paths: {
           "@/*": ["./src/*"],
         },

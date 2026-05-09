@@ -98,6 +98,8 @@ export interface StageInput {
 export interface StageOutput {
   files: OutputFile[]
   deps: string[]
+  devDeps?: string[]
+  scripts?: Record<string, string>
 }
 
 export interface Stage {

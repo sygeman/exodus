@@ -19,6 +19,7 @@ export const codegenModule = createEdemModule("codegen", (module) => {
         project_id: z.string(),
         output: z.string(),
         manifests: z.any(),
+        project_name: z.string().optional(),
       }),
       output: z.object({
         files: z.number(),
@@ -30,7 +31,7 @@ export const codegenModule = createEdemModule("codegen", (module) => {
         const { join } = await import("path")
 
         // 1. Parse manifests → IR
-        const ir = parseManifests(manifests)
+        const ir = parseManifests(manifests, input.project_name)
 
         // 2. Validate
         const errors = validateIR(ir)
@@ -50,6 +51,8 @@ export const codegenModule = createEdemModule("codegen", (module) => {
         // 4. Run stages
         const allFiles: OutputFile[] = []
         const allDeps: string[] = []
+        const allDevDeps: string[] = []
+        const allScripts: Record<string, string> = {}
         const context: Record<string, unknown> = { manifests }
 
         for (const stage of stages) {
@@ -61,6 +64,10 @@ export const codegenModule = createEdemModule("codegen", (module) => {
           })
           allFiles.push(...result.files)
           allDeps.push(...result.deps)
+          if (result.devDeps) allDevDeps.push(...result.devDeps)
+          if (result.scripts) {
+            Object.assign(allScripts, result.scripts)
+          }
         }
 
         // 5. Separate workspace and external deps
@@ -68,7 +75,27 @@ export const codegenModule = createEdemModule("codegen", (module) => {
         const workspaceDeps = uniqueDeps.filter((d) => d.startsWith("@exodus/"))
         const externalDeps = uniqueDeps.filter((d) => !d.startsWith("@exodus/"))
 
-        // 6. Install external dependencies via bun add
+        const uniqueDevDeps = [...new Set(allDevDeps)]
+        const workspaceDevDeps = uniqueDevDeps.filter((d) => d.startsWith("@exodus/"))
+        const externalDevDeps = uniqueDevDeps.filter((d) => !d.startsWith("@exodus/"))
+
+        // 6. Write package.json (without workspace deps first)
+        const pkg = {
+          name: input.project_id,
+          version: "0.0.0",
+          description: ir.project.name,
+          type: "module" as const,
+          private: true,
+          scripts: allScripts,
+          dependencies: {} as Record<string, string>,
+          devDependencies: {} as Record<string, string>,
+        }
+
+        const { dirname } = await import("path")
+        const pkgPath = join(input.output, "package.json")
+        writeFileSync(pkgPath, JSON.stringify(pkg, null, 2), "utf-8")
+
+        // 7. Install external dependencies via bun add
         if (externalDeps.length > 0) {
           const proc = Bun.spawn(["bun", "add", ...externalDeps], {
             cwd: input.output,
@@ -82,15 +109,39 @@ export const codegenModule = createEdemModule("codegen", (module) => {
           }
         }
 
-        // 7. Add workspace deps to package.json (after bun add)
-        if (workspaceDeps.length > 0) {
-          const pkgPath = join(input.output, "package.json")
-          const pkg = JSON.parse(readFileSync(pkgPath, "utf-8"))
-          pkg.dependencies = pkg.dependencies ?? {}
-          for (const dep of workspaceDeps) {
-            pkg.dependencies[dep] = "workspace:*"
+        if (externalDevDeps.length > 0) {
+          const proc = Bun.spawn(["bun", "add", "--dev", ...externalDevDeps], {
+            cwd: input.output,
+            stdout: "pipe",
+            stderr: "pipe",
+          })
+          const exitCode = await proc.exited
+          if (exitCode !== 0) {
+            const stderr = await new Response(proc.stderr).text()
+            throw new Error(`bun add --dev failed (exit ${exitCode}): ${stderr}`)
           }
-          writeFileSync(pkgPath, JSON.stringify(pkg, null, 2), "utf-8")
+        }
+
+        // 8. Add workspace deps to package.json (after bun add)
+        if (workspaceDeps.length > 0 || workspaceDevDeps.length > 0) {
+          const updatedPkg = JSON.parse(readFileSync(pkgPath, "utf-8"))
+          updatedPkg.dependencies = updatedPkg.dependencies ?? {}
+          for (const dep of workspaceDeps) {
+            updatedPkg.dependencies[dep] = "workspace:*"
+          }
+          updatedPkg.devDependencies = updatedPkg.devDependencies ?? {}
+          for (const dep of workspaceDevDeps) {
+            updatedPkg.devDependencies[dep] = "workspace:*"
+          }
+          writeFileSync(pkgPath, JSON.stringify(updatedPkg, null, 2), "utf-8")
+
+          // Re-install to link workspace deps
+          const installProc = Bun.spawn(["bun", "install"], {
+            cwd: input.output,
+            stdout: "pipe",
+            stderr: "pipe",
+          })
+          await installProc.exited
         }
 
         // 8. Write manifests
@@ -109,8 +160,6 @@ export const codegenModule = createEdemModule("codegen", (module) => {
         )
 
         // 9. Write generated files
-        const { dirname } = await import("path")
-
         for (const file of allFiles) {
           const outPath = join(input.output, file.path)
           const dir = dirname(outPath)
