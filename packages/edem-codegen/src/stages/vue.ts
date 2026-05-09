@@ -113,18 +113,31 @@ function generateRouter(ir: IR): string {
   const imports = new Set<string>()
   const entries: string[] = []
 
-  for (const route of ir.routes) {
-    if (route.redirect) {
-      entries.push(`    { path: "${route.path}", redirect: "${route.redirect}" },`)
-    } else if (route.componentName) {
-      imports.add(`import ${route.componentName} from "@/components/${route.componentName}.vue"`)
+  function processRoute(route: import("../ir").IRRoute, indent: string): string {
+    const parts: string[] = []
+    parts.push(`path: "${route.path}"`)
 
+    if (route.redirect) {
+      parts.push(`redirect: "${route.redirect}"`)
+    }
+
+    if (route.componentName) {
+      imports.add(`import ${route.componentName} from "@/components/${route.componentName}.vue"`)
       const name = route.name ? `name: "${route.name}", ` : ""
       const props = route.params.length > 0 ? "props: true, " : ""
-      entries.push(
-        `    { path: "${route.path}", ${name}${props}component: ${route.componentName} },`,
-      )
+      parts.push(`${name}${props}component: ${route.componentName}`)
     }
+
+    if (route.children && route.children.length > 0) {
+      const childEntries = route.children.map((child) => processRoute(child, indent + "  "))
+      parts.push(`children: [\n${childEntries.join("\n")}\n${indent}]`)
+    }
+
+    return `${indent}{ ${parts.join(", ")} },`
+  }
+
+  for (const route of ir.routes) {
+    entries.push(processRoute(route, "    "))
   }
 
   return `import { createRouter, createWebHashHistory } from "vue-router"

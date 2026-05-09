@@ -1,5 +1,58 @@
 import type { ComponentNode } from "@exodus/edem-ui"
 
+// ── Extended ComponentNode ─────────────────────────────────────────────────────
+// Adds conditional rendering, modals, teleport, slots, navigation links,
+// and skeleton/empty states on top of the base ComponentNode.
+
+export interface ExtendedComponentNode extends Omit<ComponentNode, "children"> {
+  children?: ExtendedComponentNode[] | string
+
+  /** v-if condition: "{{ expr }}" */
+  if?: string
+  /** v-else-if condition: "{{ expr }}" */
+  elseIf?: string
+  /** v-else marker */
+  else?: boolean
+
+  /** Render as RouterLink with :to binding */
+  link?: string
+  /** Render as ULink with :to binding */
+  ulink?: string
+
+  /** Wrap in UModal — vModel controls open state */
+  modal?: {
+    vModel: string
+    title?: string
+    description?: string
+    footer?: ExtendedComponentNode[]
+  }
+
+  /** Wrap in <Teleport to="..."> */
+  teleport?: string
+
+  /** Transition classes */
+  transition?: {
+    enterActiveClass?: string
+    enterFromClass?: string
+    enterToClass?: string
+    leaveActiveClass?: string
+    leaveFromClass?: string
+    leaveToClass?: string
+  }
+
+  /** Named slots — key = slot name, value = node tree */
+  namedSlots?: Record<string, ExtendedComponentNode[]>
+
+  /** Skeleton loader shown while loading is true */
+  skeleton?: boolean
+  /** Empty state shown when collection is empty */
+  empty?: {
+    icon?: string
+    text?: string
+    action?: ExtendedComponentNode
+  }
+}
+
 // ── Intermediate Representation (IR) ──────────────────────────────────────────
 // Framework-agnostic description of the application.
 // Generated from manifests (data.json + flows.json + ui.json + platform.json).
@@ -21,7 +74,7 @@ export interface IRProject {
 
 export interface IRComponent {
   name: string
-  tree: ComponentNode
+  tree: ExtendedComponentNode
   usedCollections: string[]
   usedFlows: string[]
   routeParams: string[]
@@ -36,6 +89,7 @@ export interface IRRoute {
   redirect?: string
   name: string
   params: string[]
+  children?: IRRoute[]
 }
 
 export interface IRCollection {

@@ -14,6 +14,7 @@ import type {
 
 export interface Manifests {
   ui: UIManifest
+  components: Record<string, ComponentNode>
   data: { collections: DataCollection[] }
   flows: { flows: FlowManifest[] }
   platform?: PlatformManifest
@@ -57,11 +58,11 @@ interface PlatformManifest {
 }
 
 export function parseManifests(manifests: Manifests, projectName?: string): IR {
-  const components = parseComponents(manifests.ui)
+  const components = parseComponents(manifests.components)
   const routes = parseRoutes(manifests.ui, components)
   const collections = parseCollections(manifests.data)
   const flows = parseFlows(manifests.flows)
-  const layout = parseLayout(manifests.ui)
+  const layout = parseLayout(manifests.components)
   const platform = parsePlatform(manifests.platform)
 
   return {
@@ -77,8 +78,8 @@ export function parseManifests(manifests: Manifests, projectName?: string): IR {
 
 // ── Components ────────────────────────────────────────────────────────────────
 
-function parseComponents(ui: UIManifest): IRComponent[] {
-  return Object.entries(ui.components).map(([name, tree]) => ({
+function parseComponents(components: Record<string, ComponentNode>): IRComponent[] {
+  return Object.entries(components).map(([name, tree]) => ({
     name,
     tree,
     usedCollections: extractUsedCollections(tree),
@@ -95,6 +96,32 @@ function extractUsedCollections(node: ComponentNode): string[] {
 
   if (node.bind?.collection) {
     collections.add(node.bind.collection)
+  }
+
+  if (node.bind?.item) {
+    for (const col of extractUsedCollections(node.bind.item)) {
+      collections.add(col)
+    }
+  }
+
+  if (node.modal) {
+    if (node.modal.footer) {
+      for (const child of node.modal.footer) {
+        for (const col of extractUsedCollections(child)) collections.add(col)
+      }
+    }
+  }
+
+  if (node.namedSlots) {
+    for (const slotNodes of Object.values(node.namedSlots)) {
+      for (const child of slotNodes) {
+        for (const col of extractUsedCollections(child)) collections.add(col)
+      }
+    }
+  }
+
+  if (node.empty?.action) {
+    for (const col of extractUsedCollections(node.empty.action)) collections.add(col)
   }
 
   if (Array.isArray(node.children)) {
@@ -119,6 +146,30 @@ function extractUsedFlows(node: ComponentNode): string[] {
     }
   }
 
+  if (node.bind?.item) {
+    for (const flow of extractUsedFlows(node.bind.item)) flows.add(flow)
+  }
+
+  if (node.modal) {
+    if (node.modal.footer) {
+      for (const child of node.modal.footer) {
+        for (const flow of extractUsedFlows(child)) flows.add(flow)
+      }
+    }
+  }
+
+  if (node.namedSlots) {
+    for (const slotNodes of Object.values(node.namedSlots)) {
+      for (const child of slotNodes) {
+        for (const flow of extractUsedFlows(child)) flows.add(flow)
+      }
+    }
+  }
+
+  if (node.empty?.action) {
+    for (const flow of extractUsedFlows(node.empty.action)) flows.add(flow)
+  }
+
   if (Array.isArray(node.children)) {
     for (const child of node.children) {
       for (const flow of extractUsedFlows(child)) {
@@ -131,11 +182,27 @@ function extractUsedFlows(node: ComponentNode): string[] {
 }
 
 function extractNeedsRouter(node: ComponentNode): boolean {
+  if (node.link) return true
+
   if (node.events) {
     for (const binding of Object.values(node.events)) {
       if ("navigate" in binding) return true
     }
   }
+
+  if (node.bind?.item && extractNeedsRouter(node.bind.item)) return true
+
+  if (node.modal) {
+    if (node.modal.footer?.some(extractNeedsRouter)) return true
+  }
+
+  if (node.namedSlots) {
+    for (const slotNodes of Object.values(node.namedSlots)) {
+      if (slotNodes.some(extractNeedsRouter)) return true
+    }
+  }
+
+  if (node.empty?.action && extractNeedsRouter(node.empty.action)) return true
 
   if (Array.isArray(node.children)) {
     return node.children.some(extractNeedsRouter)
@@ -151,6 +218,20 @@ function extractNeedsEdem(node: ComponentNode): boolean {
     }
   }
 
+  if (node.bind?.item && extractNeedsEdem(node.bind.item)) return true
+
+  if (node.modal) {
+    if (node.modal.footer?.some(extractNeedsEdem)) return true
+  }
+
+  if (node.namedSlots) {
+    for (const slotNodes of Object.values(node.namedSlots)) {
+      if (slotNodes.some(extractNeedsEdem)) return true
+    }
+  }
+
+  if (node.empty?.action && extractNeedsEdem(node.empty.action)) return true
+
   if (Array.isArray(node.children)) {
     return node.children.some(extractNeedsEdem)
   }
@@ -165,6 +246,20 @@ function extractHasFormBindings(node: ComponentNode): boolean {
     }
   }
 
+  if (node.bind?.item && extractHasFormBindings(node.bind.item)) return true
+
+  if (node.modal) {
+    if (node.modal.footer?.some(extractHasFormBindings)) return true
+  }
+
+  if (node.namedSlots) {
+    for (const slotNodes of Object.values(node.namedSlots)) {
+      if (slotNodes.some(extractHasFormBindings)) return true
+    }
+  }
+
+  if (node.empty?.action && extractHasFormBindings(node.empty.action)) return true
+
   if (Array.isArray(node.children)) {
     return node.children.some(extractHasFormBindings)
   }
@@ -175,18 +270,26 @@ function extractHasFormBindings(node: ComponentNode): boolean {
 // ── Routes ────────────────────────────────────────────────────────────────────
 
 function parseRoutes(ui: UIManifest, _components: IRComponent[]): IRRoute[] {
-  return ui.routes.map((route) => {
-    const params = extractParams(route.path)
-    const name = route.redirect ? "" : route.root ? kebabCase(route.root) : ""
+  return ui.routes.map((route) => parseRoute(route))
+}
 
-    return {
-      path: route.path,
-      componentName: route.root,
-      redirect: route.redirect,
-      name,
-      params,
-    }
-  })
+function parseRoute(route: UIManifest["routes"][0]): IRRoute {
+  const params = extractParams(route.path)
+  const name = route.redirect ? "" : route.root ? kebabCase(route.root) : ""
+
+  const irRoute: IRRoute = {
+    path: route.path,
+    componentName: route.root,
+    redirect: typeof route.redirect === "string" ? route.redirect : undefined,
+    name,
+    params,
+  }
+
+  if (route.children && route.children.length > 0) {
+    irRoute.children = route.children.map((child) => parseRoute(child))
+  }
+
+  return irRoute
 }
 
 function extractParams(path: string): string[] {
@@ -278,14 +381,14 @@ function kebabCase(str: string): string {
 
 // ── Layout ────────────────────────────────────────────────────────────────────
 
-function parseLayout(ui: UIManifest): IRLayoutInfo {
-  const hasAppLayout = "AppLayout" in ui.components
-  const hasSidebar = "AppSidebar" in ui.components
-  const hasTopMenu = "AppTopMenu" in ui.components
+function parseLayout(components: Record<string, ComponentNode>): IRLayoutInfo {
+  const hasAppLayout = "AppLayout" in components
+  const hasSidebar = "AppSidebar" in components
+  const hasTopMenu = "AppTopMenu" in components
 
   const navigation: IRLayoutInfo["navigation"] = []
   if (hasSidebar) {
-    const sidebar = ui.components["AppSidebar"]
+    const sidebar = components["AppSidebar"]
     extractNavigation(sidebar, navigation)
   }
 

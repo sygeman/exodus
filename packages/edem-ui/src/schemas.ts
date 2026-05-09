@@ -8,6 +8,44 @@ export interface ComponentNode {
   children?: ComponentNode[] | string
   events?: Record<string, EventBinding>
   bind?: DataBinding
+
+  // ── Extended fields (codegen) ──────────────────────────────────────────────
+  /** v-if condition: "{{ expr }}" */
+  if?: string
+  /** v-else-if condition: "{{ expr }}" */
+  elseIf?: string
+  /** v-else marker */
+  else?: boolean
+  /** Render as RouterLink with :to binding */
+  link?: string
+  /** Wrap in UModal — vModel controls open state */
+  modal?: {
+    vModel: string
+    title?: string
+    description?: string
+    footer?: ComponentNode[]
+  }
+  /** Wrap in <Teleport to="..."> */
+  teleport?: string
+  /** Transition classes */
+  transition?: {
+    enterActiveClass?: string
+    enterFromClass?: string
+    enterToClass?: string
+    leaveActiveClass?: string
+    leaveFromClass?: string
+    leaveToClass?: string
+  }
+  /** Named slots — key = slot name, value = node tree */
+  namedSlots?: Record<string, ComponentNode[]>
+  /** Skeleton loader shown while loading is true */
+  skeleton?: boolean
+  /** Empty state shown when collection is empty */
+  empty?: {
+    icon?: string
+    text?: string
+    action?: ComponentNode
+  }
 }
 
 export interface DataBinding {
@@ -27,6 +65,7 @@ export interface Route {
   path: string
   root?: string
   redirect?: string
+  children?: Route[]
 }
 
 export interface UIManifest {
@@ -72,14 +111,50 @@ export const componentNodeSchema: z.ZodType<ComponentNode> = z.lazy(
       children: z.union([z.array(componentNodeSchema), z.string()]).optional(),
       events: z.record(z.string(), eventBindingSchema).optional(),
       bind: dataBindingSchema.optional(),
+      if: z.string().optional(),
+      elseIf: z.string().optional(),
+      else: z.boolean().optional(),
+      link: z.string().optional(),
+      modal: z
+        .object({
+          vModel: z.string(),
+          title: z.string().optional(),
+          description: z.string().optional(),
+          footer: z.array(componentNodeSchema).optional(),
+        })
+        .optional(),
+      teleport: z.string().optional(),
+      transition: z
+        .object({
+          enterActiveClass: z.string().optional(),
+          enterFromClass: z.string().optional(),
+          enterToClass: z.string().optional(),
+          leaveActiveClass: z.string().optional(),
+          leaveFromClass: z.string().optional(),
+          leaveToClass: z.string().optional(),
+        })
+        .optional(),
+      namedSlots: z.record(z.string(), z.array(componentNodeSchema)).optional(),
+      skeleton: z.boolean().optional(),
+      empty: z
+        .object({
+          icon: z.string().optional(),
+          text: z.string().optional(),
+          action: componentNodeSchema.optional(),
+        })
+        .optional(),
     }) as z.ZodType<ComponentNode>,
 )
 
-export const routeSchema = z.object({
-  path: z.string(),
-  root: z.string().optional(),
-  redirect: z.string().optional(),
-})
+export const routeSchema: z.ZodType<Route> = z.lazy(
+  () =>
+    z.object({
+      path: z.string(),
+      root: z.string().optional(),
+      redirect: z.string().optional(),
+      children: z.array(routeSchema).optional(),
+    }) as z.ZodType<Route>,
+)
 
 export const uiManifestSchema = z.object({
   routes: z.array(routeSchema),

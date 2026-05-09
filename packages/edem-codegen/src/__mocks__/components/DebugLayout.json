@@ -1,0 +1,9 @@
+{
+  "component": "MenuLayout",
+  "props": { "title": "Debug", "items": "{{ navItems }}", "main-class": "overflow-hidden" },
+  "namedSlots": {
+    "default": [
+      { "component": "RouterView" }
+    ]
+  }
+}

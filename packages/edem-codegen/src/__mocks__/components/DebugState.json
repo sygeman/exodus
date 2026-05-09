@@ -1,0 +1,30 @@
+{
+  "component": "div",
+  "props": { "class": "flex h-full flex-col bg-[var(--ui-bg)]" },
+  "children": [
+    {
+      "component": "div",
+      "props": { "class": "flex items-center justify-between border-b border-[var(--ui-border)] px-4 py-3" },
+      "children": [
+        { "component": "h1", "props": { "class": "text-xl font-bold" }, "children": "State" },
+        {
+          "component": "UButton",
+          "props": { "variant": "subtle", "loading": "{{ loading }}" },
+          "events": { "click": { "flow": "refreshState" } },
+          "children": "Refresh"
+        }
+      ]
+    },
+    {
+      "component": "UScrollArea",
+      "props": { "class": "min-h-0 flex-1" },
+      "children": [
+        {
+          "component": "pre",
+          "props": { "class": "p-4 font-mono text-xs leading-relaxed text-[var(--ui-text)]" },
+          "children": "{{ formatJson(appState) }}"
+        }
+      ]
+    }
+  ]
+}

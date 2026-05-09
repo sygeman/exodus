@@ -1,0 +1,65 @@
+{
+  "component": "Teleport",
+  "teleport": "body",
+  "children": [
+    {
+      "component": "Transition",
+      "transition": {
+        "enter-active-class": "transition-opacity duration-300",
+        "enter-from-class": "opacity-0",
+        "enter-to-class": "opacity-100",
+        "leave-active-class": "transition-opacity duration-300",
+        "leave-from-class": "opacity-100",
+        "leave-to-class": "opacity-0"
+      },
+      "children": [
+        {
+          "component": "div",
+          "if": "isUpdating",
+          "props": {
+            "role": "status",
+            "aria-live": "polite",
+            "class": "fixed inset-0 z-50 flex flex-col items-center justify-center bg-[var(--ui-bg)]/95"
+          },
+          "children": [
+            {
+              "component": "div",
+              "props": { "class": "mb-8 flex items-center justify-center" },
+              "children": [
+                {
+                  "component": "div",
+                  "props": { "class": "relative" },
+                  "children": [
+                    {
+                      "component": "div",
+                      "props": { "class": "flex h-16 w-16 animate-pulse items-center justify-center rounded-2xl bg-[var(--ui-primary)]/10" },
+                      "children": [
+                        { "component": "UIcon", "props": { "name": "i-lucide-arrow-up-circle", "class": "h-8 w-8 text-[var(--ui-primary)]" } }
+                      ]
+                    },
+                    {
+                      "component": "div",
+                      "props": { "class": "absolute inset-0 h-16 w-16 animate-ping rounded-2xl bg-[var(--ui-primary)]/20" }
+                    }
+                  ]
+                }
+              ]
+            },
+            { "component": "h2", "props": { "class": "mb-6 text-xl font-semibold text-[var(--ui-text)]" }, "children": "Updating..." },
+            {
+              "component": "div",
+              "props": { "class": "flex items-center gap-3" },
+              "children": [
+                {
+                  "component": "span",
+                  "props": { "class": "inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--ui-border)] border-t-[var(--ui-primary)]" }
+                },
+                { "component": "span", "props": { "class": "text-sm font-medium text-[var(--ui-text)]" }, "children": "{{ statusText }}" }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

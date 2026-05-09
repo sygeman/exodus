@@ -2,6 +2,10 @@
 
 export { codegenModule } from "./module"
 
+// ── Loader ────────────────────────────────────────────────────────────────────
+
+export { loadManifests } from "./load"
+
 // ── Core ──────────────────────────────────────────────────────────────────────
 
 export type {

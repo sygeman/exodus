@@ -1,0 +1,38 @@
+{
+  "component": "section",
+  "props": { "class": "flex flex-col gap-8" },
+  "children": [
+    {
+      "component": "div",
+      "props": { "class": "flex flex-col gap-4" },
+      "children": [
+        {
+          "component": "div",
+          "props": { "class": "flex flex-col gap-1" },
+          "children": [
+            { "component": "h3", "props": { "class": "text-base font-medium" }, "children": "Language" },
+            { "component": "p", "props": { "class": "text-sm text-[var(--ui-text-muted)]" }, "children": "Select your preferred language" }
+          ]
+        },
+        {
+          "component": "div",
+          "props": { "class": "flex flex-col gap-3" },
+          "bind": {
+            "items": "{{ locales }}",
+            "item": {
+              "component": "button",
+              "props": {
+                "class": "flex items-center gap-3 rounded-md border p-3 text-left text-sm transition-all"
+              },
+              "events": { "click": { "flow": "setLocale", "input": { "locale": "{{ item.value }}" } } },
+              "children": [
+                { "component": "span", "props": { "class": "text-2xl" }, "children": "{{ item.flag }}" },
+                { "component": "span", "props": { "class": "font-medium" }, "children": "{{ item.label }}" }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

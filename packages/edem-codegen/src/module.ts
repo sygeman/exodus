@@ -164,6 +164,18 @@ export const codegenModule = createEdemModule("codegen", (module) => {
         const manifestsDir = join(input.output, "edem-manifests")
         mkdirSync(manifestsDir, { recursive: true })
         writeFileSync(join(manifestsDir, "ui.json"), JSON.stringify(manifests.ui, null, 2), "utf-8")
+        // Write components/ directory
+        if (manifests.components && Object.keys(manifests.components).length > 0) {
+          const componentsDir = join(manifestsDir, "components")
+          mkdirSync(componentsDir, { recursive: true })
+          for (const [name, tree] of Object.entries(manifests.components)) {
+            writeFileSync(
+              join(componentsDir, `${name}.json`),
+              JSON.stringify(tree, null, 2),
+              "utf-8",
+            )
+          }
+        }
         writeFileSync(
           join(manifestsDir, "data.json"),
           JSON.stringify(manifests.data, null, 2),

@@ -1,8 +1,9 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test"
-import { existsSync, rmSync, readdirSync, readFileSync } from "fs"
+import { existsSync, rmSync, readdirSync } from "fs"
 import { join } from "path"
 import { createEdem } from "@exodus/edem-core"
 import { codegenModule } from "./module"
+import { loadManifests } from "./load"
 
 const TEST_OUTPUT = join(import.meta.dir, "__test_output__")
 const MOCKS_DIR = join(import.meta.dir, "__mocks__")
@@ -13,21 +14,13 @@ function cleanup() {
   }
 }
 
-function loadManifests() {
-  return {
-    ui: JSON.parse(readFileSync(join(MOCKS_DIR, "ui.json"), "utf-8")),
-    data: JSON.parse(readFileSync(join(MOCKS_DIR, "data.json"), "utf-8")),
-    flows: JSON.parse(readFileSync(join(MOCKS_DIR, "flows.json"), "utf-8")),
-  }
-}
-
 describe("codegenModule", () => {
   beforeEach(cleanup)
   afterEach(cleanup)
 
   it("generateProject writes edem-manifests/ first, then generates code", async () => {
     const edem = createEdem([codegenModule])
-    const manifests = loadManifests()
+    const manifests = loadManifests(MOCKS_DIR)
 
     const result = await edem.codegen.generateProject({
       project_id: "test",

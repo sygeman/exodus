@@ -1,0 +1,56 @@
+{
+  "component": "div",
+  "props": { "class": "electrobun-webkit-app-region-drag flex h-8 items-center justify-between px-3 select-none" },
+  "children": [
+    {
+      "component": "div",
+      "props": { "class": "electrobun-webkit-app-region-no-drag flex items-center select-none" },
+      "children": [
+        {
+          "component": "button",
+          "props": { "class": "flex h-6 w-6 items-center justify-center rounded text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg)] hover:text-[var(--ui-text)]" },
+          "events": { "click": { "navigate": "back" } },
+          "children": [
+            { "component": "UIcon", "props": { "name": "i-lucide-arrow-left", "class": "h-3.5 w-3.5" } }
+          ]
+        },
+        {
+          "component": "button",
+          "props": { "class": "flex h-6 w-6 items-center justify-center rounded text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg)] hover:text-[var(--ui-text)]" },
+          "events": { "click": { "navigate": "forward" } },
+          "children": [
+            { "component": "UIcon", "props": { "name": "i-lucide-arrow-right", "class": "h-3.5 w-3.5" } }
+          ]
+        }
+      ]
+    },
+    {
+      "component": "div",
+      "props": { "class": "electrobun-webkit-app-region-no-drag flex items-center gap-2 select-none" },
+      "children": [
+        {
+          "component": "RouterLink",
+          "props": {
+            "to": "/debug",
+            "class": "flex h-6 w-6 items-center justify-center rounded text-[var(--ui-text-muted)] transition-colors hover:bg-[var(--ui-bg)] hover:text-[var(--ui-text)]",
+            "active-class": "bg-[var(--ui-bg)] text-[var(--ui-text)]"
+          },
+          "children": [
+            { "component": "UIcon", "props": { "name": "i-lucide-bug", "class": "h-3.5 w-3.5" } }
+          ]
+        },
+        {
+          "component": "div",
+          "props": { "class": "flex items-center select-text" },
+          "children": [
+            {
+              "component": "UBadge",
+              "props": { "color": "neutral", "variant": "subtle", "size": "sm" },
+              "children": "v0.42.0"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}

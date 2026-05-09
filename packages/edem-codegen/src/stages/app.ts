@@ -1,5 +1,13 @@
-import type { Stage, StageInput, StageOutput, OutputFile, IR, IRComponent } from "../ir"
-import type { ComponentNode, EventBinding } from "@exodus/edem-ui"
+import type {
+  Stage,
+  StageInput,
+  StageOutput,
+  OutputFile,
+  IR,
+  IRComponent,
+  ExtendedComponentNode,
+} from "../ir"
+import type { EventBinding } from "@exodus/edem-ui"
 
 // ── App Stage ─────────────────────────────────────────────────────────────────
 
@@ -46,17 +54,155 @@ interface RenderResult {
   handlers: Map<string, string>
 }
 
-function renderNode(node: ComponentNode, indent: string, ir: IR, compName?: string): RenderResult {
-  const tag = node.component
-  const props = node.props ? renderProps(node.props) : ""
-  const events = renderEvents(node.events)
-
+function renderNode(
+  node: ExtendedComponentNode,
+  indent: string,
+  ir: IR,
+  compName?: string,
+): RenderResult {
   const handlers = new Map<string, string>()
+
+  // Collect handlers from events
   if (node.events) {
     collectHandlerCode(node.events, handlers, ir, compName)
   }
 
-  // bind.item = list iteration → render item template as child with v-for
+  // ── Conditional rendering ────────────────────────────────────────────────
+  let ifAttr = ""
+  if (node.if) {
+    ifAttr = ` v-if="${extractExpr(node.if)}"`
+  } else if (node.elseIf) {
+    ifAttr = ` v-else-if="${extractExpr(node.elseIf)}"`
+  } else if (node.else) {
+    ifAttr = " v-else"
+  }
+
+  // ── Skeleton state ───────────────────────────────────────────────────────
+  if (node.skeleton) {
+    return {
+      template: `${indent}<div${ifAttr} class="flex flex-1 flex-col gap-4">\n${indent}  <div class="mb-4 flex items-center justify-between">\n${indent}    <USkeleton class="h-8 w-40" />\n${indent}    <USkeleton class="h-9 w-32" />\n${indent}  </div>\n${indent}  <div v-for="i in 5" :key="i" class="flex items-center gap-4 rounded-lg border border-[var(--ui-border)] p-4">\n${indent}    <USkeleton class="h-10 w-10 flex-shrink-0 rounded-lg" />\n${indent}    <USkeleton class="h-5 w-48" />\n${indent}  </div>\n${indent}</div>`,
+      handlers,
+    }
+  }
+
+  // ── Empty state ──────────────────────────────────────────────────────────
+  if (node.empty) {
+    const emptyIcon = node.empty.icon ?? "i-lucide-inbox"
+    const emptyText = node.empty.text ?? "Nothing here yet"
+    const emptyAction = node.empty.action
+      ? `\n${indent}  ${renderNode(node.empty.action, indent + "  ", ir, compName).template}`
+      : ""
+    return {
+      template: `${indent}<div${ifAttr} class="flex flex-1 flex-col items-center justify-center gap-4">\n${indent}  <UIcon name="${emptyIcon}" class="h-12 w-12 text-[var(--ui-text-muted)]" />\n${indent}  <p class="text-lg text-[var(--ui-text-muted)]">${emptyText}</p>${emptyAction}\n${indent}</div>`,
+      handlers,
+    }
+  }
+
+  const tag = node.component
+  const props = node.props ? renderProps(node.props) : ""
+  const events = renderEvents(node.events)
+
+  // ── Link (RouterLink) ────────────────────────────────────────────────────
+  if (typeof node.link === "string") {
+    const to = resolveExprInString(node.link, ir, compName)
+    const tagProps = props ? ` :to="${to}"${props}` : ` :to="${to}"`
+    if (typeof node.children === "string") {
+      return {
+        template: `${indent}<RouterLink${tagProps}${ifAttr}${events}>${node.children}</RouterLink>`,
+        handlers,
+      }
+    }
+    if (Array.isArray(node.children) && node.children.length > 0) {
+      const childResults = node.children.map((child) =>
+        renderNode(child, indent + "  ", ir, compName),
+      )
+      for (const r of childResults) {
+        for (const [k, v] of r.handlers) handlers.set(k, v)
+      }
+      const children = childResults.map((r) => r.template).join("\n")
+      return {
+        template: `${indent}<RouterLink${tagProps}${ifAttr}${events}>\n${children}\n${indent}</RouterLink>`,
+        handlers,
+      }
+    }
+    return {
+      template: `${indent}<RouterLink${tagProps}${ifAttr}${events} />`,
+      handlers,
+    }
+  }
+
+  // ── Modal wrapping ───────────────────────────────────────────────────────
+  if (node.modal) {
+    const vModel = node.modal.vModel
+    const footerResult = node.modal.footer
+      ? node.modal.footer.map((f) => renderNode(f, indent + "    ", ir, compName))
+      : []
+    for (const r of footerResult) {
+      for (const [k, v] of r.handlers) handlers.set(k, v)
+    }
+    const footerHtml = footerResult.map((r) => r.template).join("\n")
+    const title = node.modal.title ? ` title="${escapeAttr(node.modal.title)}"` : ""
+    const desc = node.modal.description
+      ? ` description="${escapeAttr(node.modal.description)}"`
+      : ""
+    return {
+      template: `${indent}<UModal v-model:open="${vModel}"${title}${desc}>\n${indent}  <template #footer>\n${indent}    <div class="flex w-full justify-end gap-3">\n${footerHtml}\n${indent}    </div>\n${indent}  </template>\n${indent}</UModal>`,
+      handlers,
+    }
+  }
+
+  // ── Teleport ─────────────────────────────────────────────────────────────
+  if (node.teleport) {
+    const inner = renderNode(
+      { ...node, teleport: undefined, component: "div" },
+      indent + "  ",
+      ir,
+      compName,
+    )
+    for (const [k, v] of inner.handlers) handlers.set(k, v)
+    return {
+      template: `${indent}<Teleport to="${node.teleport}">\n${inner.template}\n${indent}</Teleport>`,
+      handlers,
+    }
+  }
+
+  // ── Transition wrapping ──────────────────────────────────────────────────
+  if (node.transition) {
+    const t = node.transition
+    const attrs = [
+      t.enterActiveClass ? ` enter-active-class="${escapeAttr(t.enterActiveClass)}"` : "",
+      t.enterFromClass ? ` enter-from-class="${escapeAttr(t.enterFromClass)}"` : "",
+      t.enterToClass ? ` enter-to-class="${escapeAttr(t.enterToClass)}"` : "",
+      t.leaveActiveClass ? ` leave-active-class="${escapeAttr(t.leaveActiveClass)}"` : "",
+      t.leaveFromClass ? ` leave-from-class="${escapeAttr(t.leaveFromClass)}"` : "",
+      t.leaveToClass ? ` leave-to-class="${escapeAttr(t.leaveToClass)}"` : "",
+    ].join("")
+    const inner = renderNode({ ...node, transition: undefined }, indent + "  ", ir, compName)
+    for (const [k, v] of inner.handlers) handlers.set(k, v)
+    return {
+      template: `${indent}<Transition${attrs}>\n${inner.template}\n${indent}</Transition>`,
+      handlers,
+    }
+  }
+
+  // ── Named slots ──────────────────────────────────────────────────────────
+  if (node.namedSlots && tag !== "RouterView") {
+    // Render as component with named slots
+    const slotEntries = Object.entries(node.namedSlots)
+    const slotParts = slotEntries.map(([name, slotNodes]) => {
+      const slotContent = slotNodes.map((n) => renderNode(n, indent + "    ", ir, compName))
+      for (const r of slotContent) {
+        for (const [k, v] of r.handlers) handlers.set(k, v)
+      }
+      return `${indent}  <template #${name}>\n${slotContent.map((r) => r.template).join("\n")}\n${indent}  </template>`
+    })
+    return {
+      template: `${indent}<${tag}${props}${ifAttr}${events}>\n${slotParts.join("\n")}\n${indent}</${tag}>`,
+      handlers,
+    }
+  }
+
+  // ── bind.item = list iteration ───────────────────────────────────────────
   if (node.bind?.item) {
     const itemResult = renderNode(node.bind.item, indent + "  ", ir, compName)
     for (const [k, v] of itemResult.handlers) handlers.set(k, v)
@@ -70,10 +216,8 @@ function renderNode(node: ComponentNode, indent: string, ir: IR, compName?: stri
         const expr = items.replace(/\{\{\s*(.+?)\s*\}\}/g, "$1")
         vfor = ` v-for="(item, idx) in ${expr}" :key="idx"`
       } else if (Array.isArray(items)) {
-        // Check if items contain objects — need to extract to a const
         const hasObjects = items.some((v) => typeof v === "object" && v !== null)
         if (hasObjects) {
-          // Generate a unique variable name and add it to handlers
           const varName = `items_${compName ?? "static"}_${Math.random().toString(36).slice(2, 8)}`
           handlers.set(`const_${varName}`, `const ${varName} = ${JSON.stringify(items)} as const`)
           vfor = ` v-for="(item, idx) in ${varName}" :key="idx"`
@@ -87,37 +231,43 @@ function renderNode(node: ComponentNode, indent: string, ir: IR, compName?: stri
     }
 
     return {
-      template: `${indent}<${tag}${props}${vfor}${events}>\n${itemResult.template}\n${indent}</${tag}>`,
+      template: `${indent}<${tag}${props}${vfor}${ifAttr}${events}>\n${itemResult.template}\n${indent}</${tag}>`,
       handlers,
     }
   }
 
-  // String children
+  // ── String children ──────────────────────────────────────────────────────
   if (typeof node.children === "string") {
+    const content = resolveVueTemplateString(node.children, ir, compName)
     return {
-      template: `${indent}<${tag}${props}${events}>${node.children}</${tag}>`,
+      template: `${indent}<${tag}${props}${ifAttr}${events}>${content}</${tag}>`,
       handlers,
     }
   }
 
-  // Array children
+  // ── Array children ───────────────────────────────────────────────────────
   if (Array.isArray(node.children) && node.children.length > 0) {
-    const childResults = node.children.map((child) =>
-      renderNode(child, indent + "  ", ir, compName),
-    )
+    const childResults = node.children.map((child) => {
+      // Handle string children in arrays
+      if (typeof child === "string") {
+        const resolved = resolveVueTemplateString(child, ir, compName)
+        return { template: `${indent}  ${resolved}`, handlers: new Map<string, string>() }
+      }
+      return renderNode(child, indent + "  ", ir, compName)
+    })
     for (const r of childResults) {
       for (const [k, v] of r.handlers) handlers.set(k, v)
     }
     const children = childResults.map((r) => r.template).join("\n")
     return {
-      template: `${indent}<${tag}${props}${events}>\n${children}\n${indent}</${tag}>`,
+      template: `${indent}<${tag}${props}${ifAttr}${events}>\n${children}\n${indent}</${tag}>`,
       handlers,
     }
   }
 
-  // Self-closing
+  // ── Self-closing ─────────────────────────────────────────────────────────
   return {
-    template: `${indent}<${tag}${props}${events} />`,
+    template: `${indent}<${tag}${props}${ifAttr}${events} />`,
     handlers,
   }
 }
@@ -310,6 +460,12 @@ function resolveContextParams(obj: Record<string, unknown>, ir?: IR, compName?: 
       .replace(/\{\{\s*event\s*\}\}/g, "__EVENT__")
       .replace(/\{\{\s*item\.(\w+)\s*\}\}/g, (_, field: string) => `item.${field}`)
       .replace(/\{\{\s*item\s*\}\}/g, "item")
+      // Resolve plain variable names like {{ projectId }} → route.params.id
+      .replace(/\{\{\s*(\w+)\s*\}\}/g, (_, varName: string) => {
+        if (varName === "projectId") return "route.params.id"
+        if (varName === "ideaId") return "route.params.ideaId"
+        return paramMap[`context.${varName}`] ?? `route.params.${varName}`
+      })
     return `${key}: ${resolved}`
   })
 
@@ -318,9 +474,15 @@ function resolveContextParams(obj: Record<string, unknown>, ir?: IR, compName?: 
 
 function resolveTemplateString(template: string, ir?: IR, compName?: string): string {
   const paramMap = buildContextParamMap(ir, compName)
-  return template.replace(/\{\{\s*context\.(\w+)\s*\}\}/g, (_, key: string) => {
-    return `\${${paramMap[`context.${key}`] ?? `route.params.${key}`}}`
-  })
+  return template
+    .replace(/\{\{\s*context\.(\w+)\s*\}\}/g, (_, key: string) => {
+      return `\${${paramMap[`context.${key}`] ?? `route.params.${key}`}}`
+    })
+    .replace(/\{\{\s*(\w+)\s*\}\}/g, (_, varName: string) => {
+      if (varName === "projectId") return `\${route.params.id}`
+      if (varName === "ideaId") return `\${route.params.ideaId}`
+      return `\${route.params.${varName}}`
+    })
 }
 
 function resolveTemplateExpr(expr: string, ir?: IR, compName?: string): string {
@@ -328,12 +490,21 @@ function resolveTemplateExpr(expr: string, ir?: IR, compName?: string): string {
   for (const [ctxKey, paramValue] of Object.entries(paramMap)) {
     if (expr.includes(ctxKey)) return paramValue
   }
+  // Handle plain variable names
+  if (expr === "{{ projectId }}") return "route.params.id"
+  if (expr === "{{ ideaId }}") return "route.params.ideaId"
+  if (expr.startsWith("{{ ") && expr.endsWith(" }}")) {
+    const varName = expr.slice(3, -3).trim()
+    if (varName === "projectId") return "route.params.id"
+    if (varName === "ideaId") return "route.params.ideaId"
+    return `route.params.${varName}`
+  }
   return expr
 }
 
 function buildContextParamMap(ir?: IR, compName?: string): Record<string, string> {
   const map: Record<string, string> = {}
-  const route = ir?.routes.find((r) => r.componentName === compName)
+  const route = findRouteForComponent(ir, compName)
   if (!route) return map
 
   for (const param of route.params) {
@@ -344,9 +515,28 @@ function buildContextParamMap(ir?: IR, compName?: string): Record<string, string
   return map
 }
 
+function findRouteForComponent(ir?: IR, compName?: string): import("../ir").IRRoute | undefined {
+  if (!ir || !compName) return undefined
+  return findRouteInList(ir.routes, compName)
+}
+
+function findRouteInList(
+  routes: import("../ir").IRRoute[],
+  compName: string,
+): import("../ir").IRRoute | undefined {
+  for (const route of routes) {
+    if (route.componentName === compName) return route
+    if (route.children) {
+      const found = findRouteInList(route.children, compName)
+      if (found) return found
+    }
+  }
+  return undefined
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
-function collectFunctionCalls(node: ComponentNode): Set<string> {
+function collectFunctionCalls(node: ExtendedComponentNode): Set<string> {
   const calls = new Set<string>()
 
   if (node.props) {
@@ -371,11 +561,28 @@ function collectFunctionCalls(node: ComponentNode): Set<string> {
     }
   }
 
-  // Also check bind.item tree
   if (node.bind?.item) {
     for (const call of collectFunctionCalls(node.bind.item)) {
       calls.add(call)
     }
+  }
+
+  if (node.modal?.footer) {
+    for (const child of node.modal.footer) {
+      for (const call of collectFunctionCalls(child)) calls.add(call)
+    }
+  }
+
+  if (node.namedSlots) {
+    for (const slotNodes of Object.values(node.namedSlots)) {
+      for (const child of slotNodes) {
+        for (const call of collectFunctionCalls(child)) calls.add(call)
+      }
+    }
+  }
+
+  if (node.empty?.action) {
+    for (const call of collectFunctionCalls(node.empty.action)) calls.add(call)
   }
 
   return calls
@@ -405,11 +612,13 @@ function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, string>):
   const statements: string[] = []
   const routerImports = new Set<string>()
 
-  const route = ir.routes.find((r) => r.componentName === comp.name)
+  const route = findRouteForComponent(ir, comp.name)
   if (route && route.params.length > 0) {
     routerImports.add("useRoute")
     statements.push(`const route = useRoute()`)
   }
+
+  const needsComputed = new Set<string>()
 
   for (const colId of comp.usedCollections) {
     const fnName = `use${capitalize(colId)}`
@@ -423,9 +632,22 @@ function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, string>):
       )
     } else {
       const filterParam = buildFilterParam(colId, comp, ir)
+      const hasFilter = filterParam.length > 0
       statements.push(
-        `const { items: ${varName}, update: update${capitalize(colId)}, remove: remove${capitalize(colId)} } = ${fnName}(${filterParam})`,
+        `const { items: ${varName}, loading, update: update${capitalize(colId)}, remove: remove${capitalize(colId)} } = ${fnName}(${filterParam})`,
       )
+
+      // If filtered by route param → create a computed `item` for detail pages
+      if (hasFilter && route && route.params.length > 0) {
+        const paramName = route.params.find((p) => {
+          const isPrimaryKey = p === "id" || p.toLowerCase() === `${colId}id` || p === `${colId}Id`
+          return isPrimaryKey
+        })
+        if (paramName) {
+          statements.push(`const item = computed(() => ${varName}.value[0] ?? null)`)
+          needsComputed.add("computed")
+        }
+      }
     }
   }
 
@@ -447,6 +669,14 @@ function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, string>):
 
   if (routerImports.size > 0) {
     imports.unshift(`import { ${[...routerImports].join(", ")} } from "vue-router"`)
+  }
+
+  // Add Vue imports as needed
+  if (needsComputed.size > 0 || needsRef(comp)) {
+    const vueItems: string[] = []
+    if (needsComputed.size > 0) vueItems.push("computed")
+    if (needsRef(comp)) vueItems.push("ref")
+    imports.unshift(`import { ${vueItems.join(", ")} } from "vue"`)
   }
 
   // Add const declarations first, then function handlers
@@ -484,8 +714,22 @@ function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, string>):
   return `${importBlock}${statements.join("\n")}`
 }
 
+function needsRef(comp: IRComponent): boolean {
+  // Check if any child uses modal (needs ref for vModel)
+  return hasModal(comp.tree)
+}
+
+function hasModal(node: ExtendedComponentNode): boolean {
+  if (node.modal) return true
+  if (node.bind?.item && hasModal(node.bind.item)) return true
+  if (Array.isArray(node.children)) {
+    return node.children.some(hasModal)
+  }
+  return false
+}
+
 function buildFilterParam(colId: string, comp: IRComponent, ir: IR): string {
-  const route = ir.routes.find((r) => r.componentName === comp.name)
+  const route = findRouteForComponent(ir, comp.name)
   if (!route || route.params.length === 0) return ""
 
   const col = ir.collections.find((c) => c.id === colId)
@@ -514,8 +758,45 @@ function buildFilterParam(colId: string, comp: IRComponent, ir: IR): string {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function extractExpr(template: string): string {
+  // If it's already a raw expression (no {{ }}), return as-is
+  if (!template.includes("{{")) return template
   const match = template.match(/\{\{\s*(.+?)\s*\}\}/)
-  return match ? match[1] : ""
+  return match ? match[1] : template
+}
+
+function resolveExprInString(value: unknown, ir?: IR, compName?: string): string {
+  if (typeof value !== "string") return String(value ?? "")
+  if (!value.includes("{{")) return value
+  const paramMap = buildContextParamMap(ir, compName)
+
+  // First resolve context.xxx → route.params.xxx
+  let result = value.replace(/\{\{\s*context\.(\w+)\s*\}\}/g, (_, key: string) => {
+    return `\${${paramMap[`context.${key}`] ?? `route.params.${key}`}}`
+  })
+
+  // Then resolve remaining {{ expr }} → ${expr} for template literals
+  result = result.replace(/\{\{\s*(.+?)\s*\}\}/g, (_, expr: string) => {
+    const paramName = paramMap[`context.${expr}`]
+    if (paramName) return `\${${paramName}}`
+    if (expr === "projectId") return `\${route.params.id}`
+    if (expr === "ideaId") return `\${route.params.ideaId}`
+    return `\${${expr}}`
+  })
+
+  return result
+}
+
+/** Resolves template expressions for Vue template content, keeping {{ }} syntax */
+function resolveVueTemplateString(value: string, ir?: IR, compName?: string): string {
+  if (!value.includes("{{")) return value
+  const paramMap = buildContextParamMap(ir, compName)
+
+  return value
+    .replace(/\{\{\s*context\.(\w+)\s*\}\}/g, (_, key: string) => {
+      const param = paramMap[`context.${key}`] ?? `route.params.${key}`
+      return `{{ ${param} }}`
+    })
+    .replace(/\{\{\s*context\.projectId\s*\}\}/g, "{{ route.params.id }}")
 }
 
 function kebabCase(str: string): string {
