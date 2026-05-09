@@ -1,4 +1,5 @@
 import type { Stage, StageInput, StageOutput, OutputFile, IR } from "../ir"
+import { capitalize } from "../utils"
 
 // ── Electrobun Stage ──────────────────────────────────────────────────────────
 // Generates Electrobun platform files: config, bridge, bun entry.
@@ -407,10 +408,4 @@ export function useEdem() {
   return edem
 }
 `
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1)
 }

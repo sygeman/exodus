@@ -8,7 +8,10 @@ import type {
   IRFlowTrigger,
   IRLayoutInfo,
   IRPlatformConfig,
+  ExtendedComponentNode,
 } from "./ir"
+import { kebabCase } from "./utils"
+import { collectFromTree, someInTree } from "./walker"
 
 // ── Parse manifests → IR ──────────────────────────────────────────────────────
 
@@ -59,7 +62,7 @@ interface PlatformManifest {
 
 export function parseManifests(manifests: Manifests, projectName?: string): IR {
   const components = parseComponents(manifests.components)
-  const routes = parseRoutes(manifests.ui, components)
+  const routes = parseRoutes(manifests.ui)
   const collections = parseCollections(manifests.data)
   const flows = parseFlows(manifests.flows)
   const layout = parseLayout(manifests.components)
@@ -81,195 +84,67 @@ export function parseManifests(manifests: Manifests, projectName?: string): IR {
 function parseComponents(components: Record<string, ComponentNode>): IRComponent[] {
   return Object.entries(components).map(([name, tree]) => ({
     name,
-    tree,
-    usedCollections: extractUsedCollections(tree),
-    usedFlows: extractUsedFlows(tree),
+    tree: tree as ExtendedComponentNode,
+    usedCollections: extractUsedCollections(tree as ExtendedComponentNode),
+    usedFlows: extractUsedFlows(tree as ExtendedComponentNode),
     routeParams: [],
-    needsRouter: extractNeedsRouter(tree),
-    needsEdem: extractNeedsEdem(tree),
-    hasFormBindings: extractHasFormBindings(tree),
+    needsRouter: extractNeedsRouter(tree as ExtendedComponentNode),
+    needsEdem: extractNeedsEdem(tree as ExtendedComponentNode),
+    hasFormBindings: extractHasFormBindings(tree as ExtendedComponentNode),
   }))
 }
 
-function extractUsedCollections(node: ComponentNode): string[] {
-  const collections = new Set<string>()
-
-  if (node.bind?.collection) {
-    collections.add(node.bind.collection)
-  }
-
-  if (node.bind?.item) {
-    for (const col of extractUsedCollections(node.bind.item)) {
-      collections.add(col)
-    }
-  }
-
-  if (node.modal) {
-    if (node.modal.footer) {
-      for (const child of node.modal.footer) {
-        for (const col of extractUsedCollections(child)) collections.add(col)
+function extractUsedCollections(node: ExtendedComponentNode): string[] {
+  return collectFromTree(node, (n) => {
+    const cols: string[] = []
+    if (n.bind?.collection) cols.push(n.bind.collection)
+    if (n.events) {
+      for (const binding of Object.values(n.events)) {
+        if ("action" in binding && binding.collection) cols.push(binding.collection)
       }
     }
-  }
-
-  if (node.namedSlots) {
-    for (const slotNodes of Object.values(node.namedSlots)) {
-      for (const child of slotNodes) {
-        for (const col of extractUsedCollections(child)) collections.add(col)
-      }
-    }
-  }
-
-  if (node.empty?.action) {
-    for (const col of extractUsedCollections(node.empty.action)) collections.add(col)
-  }
-
-  if (Array.isArray(node.children)) {
-    for (const child of node.children) {
-      for (const col of extractUsedCollections(child)) {
-        collections.add(col)
-      }
-    }
-  }
-
-  return [...collections]
+    return cols
+  })
 }
 
-function extractUsedFlows(node: ComponentNode): string[] {
-  const flows = new Set<string>()
-
-  if (node.events) {
-    for (const binding of Object.values(node.events)) {
-      if ("flow" in binding) {
-        flows.add(binding.flow)
-      }
-    }
-  }
-
-  if (node.bind?.item) {
-    for (const flow of extractUsedFlows(node.bind.item)) flows.add(flow)
-  }
-
-  if (node.modal) {
-    if (node.modal.footer) {
-      for (const child of node.modal.footer) {
-        for (const flow of extractUsedFlows(child)) flows.add(flow)
-      }
-    }
-  }
-
-  if (node.namedSlots) {
-    for (const slotNodes of Object.values(node.namedSlots)) {
-      for (const child of slotNodes) {
-        for (const flow of extractUsedFlows(child)) flows.add(flow)
-      }
-    }
-  }
-
-  if (node.empty?.action) {
-    for (const flow of extractUsedFlows(node.empty.action)) flows.add(flow)
-  }
-
-  if (Array.isArray(node.children)) {
-    for (const child of node.children) {
-      for (const flow of extractUsedFlows(child)) {
-        flows.add(flow)
-      }
-    }
-  }
-
-  return [...flows]
+function extractUsedFlows(node: ExtendedComponentNode): string[] {
+  return collectFromTree(node, (n) => {
+    if (!n.events) return []
+    return Object.values(n.events)
+      .filter((b): b is { flow: string } & Record<string, unknown> => "flow" in b)
+      .map((b) => b.flow)
+  })
 }
 
-function extractNeedsRouter(node: ComponentNode): boolean {
-  if (node.link) return true
-
-  if (node.events) {
-    for (const binding of Object.values(node.events)) {
-      if ("navigate" in binding) return true
+function extractNeedsRouter(node: ExtendedComponentNode): boolean {
+  return someInTree(node, (n) => {
+    if (n.link) return true
+    if (n.events) {
+      for (const binding of Object.values(n.events)) {
+        if ("navigate" in binding) return true
+      }
     }
-  }
-
-  if (node.bind?.item && extractNeedsRouter(node.bind.item)) return true
-
-  if (node.modal) {
-    if (node.modal.footer?.some(extractNeedsRouter)) return true
-  }
-
-  if (node.namedSlots) {
-    for (const slotNodes of Object.values(node.namedSlots)) {
-      if (slotNodes.some(extractNeedsRouter)) return true
-    }
-  }
-
-  if (node.empty?.action && extractNeedsRouter(node.empty.action)) return true
-
-  if (Array.isArray(node.children)) {
-    return node.children.some(extractNeedsRouter)
-  }
-
-  return false
+    return false
+  })
 }
 
-function extractNeedsEdem(node: ComponentNode): boolean {
-  if (node.events) {
-    for (const binding of Object.values(node.events)) {
-      if ("flow" in binding) return true
-    }
-  }
-
-  if (node.bind?.item && extractNeedsEdem(node.bind.item)) return true
-
-  if (node.modal) {
-    if (node.modal.footer?.some(extractNeedsEdem)) return true
-  }
-
-  if (node.namedSlots) {
-    for (const slotNodes of Object.values(node.namedSlots)) {
-      if (slotNodes.some(extractNeedsEdem)) return true
-    }
-  }
-
-  if (node.empty?.action && extractNeedsEdem(node.empty.action)) return true
-
-  if (Array.isArray(node.children)) {
-    return node.children.some(extractNeedsEdem)
-  }
-
-  return false
+function extractNeedsEdem(node: ExtendedComponentNode): boolean {
+  return someInTree(node, (n) => {
+    if (!n.events) return false
+    return Object.values(n.events).some((b) => "flow" in b)
+  })
 }
 
-function extractHasFormBindings(node: ComponentNode): boolean {
-  if (node.events) {
-    for (const binding of Object.values(node.events)) {
-      if ("action" in binding) return true
-    }
-  }
-
-  if (node.bind?.item && extractHasFormBindings(node.bind.item)) return true
-
-  if (node.modal) {
-    if (node.modal.footer?.some(extractHasFormBindings)) return true
-  }
-
-  if (node.namedSlots) {
-    for (const slotNodes of Object.values(node.namedSlots)) {
-      if (slotNodes.some(extractHasFormBindings)) return true
-    }
-  }
-
-  if (node.empty?.action && extractHasFormBindings(node.empty.action)) return true
-
-  if (Array.isArray(node.children)) {
-    return node.children.some(extractHasFormBindings)
-  }
-
-  return false
+function extractHasFormBindings(node: ExtendedComponentNode): boolean {
+  return someInTree(node, (n) => {
+    if (!n.events) return false
+    return Object.values(n.events).some((b) => "action" in b)
+  })
 }
 
 // ── Routes ────────────────────────────────────────────────────────────────────
 
-function parseRoutes(ui: UIManifest, _components: IRComponent[]): IRRoute[] {
+function parseRoutes(ui: UIManifest): IRRoute[] {
   return ui.routes.map((route) => parseRoute(route))
 }
 
@@ -371,12 +246,6 @@ function parseTrigger(trigger: { type: string; event?: string; every?: string })
     default:
       return { type: "manual" }
   }
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function kebabCase(str: string): string {
-  return str.replace(/([a-z0-9])([A-Z])/g, "$1-$2").toLowerCase()
 }
 
 // ── Layout ────────────────────────────────────────────────────────────────────

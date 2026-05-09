@@ -1,4 +1,5 @@
 import type { Stage, StageInput, StageOutput, OutputFile, IRCollection } from "../ir"
+import { capitalize } from "../utils"
 
 // ── Data Stage ────────────────────────────────────────────────────────────────
 // Generates data composables and manifest loader.
@@ -191,10 +192,4 @@ export function use${typeName}(options?: { filter?: Record<string, unknown> }) {
   return { items, loading, create, update, remove, reload: load }
 }
 `
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1)
 }

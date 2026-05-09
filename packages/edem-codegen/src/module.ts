@@ -208,5 +208,3 @@ export const codegenModule = createEdemModule("codegen", (module) => {
       },
     })
 })
-
-export default codegenModule

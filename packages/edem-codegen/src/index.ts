@@ -19,6 +19,8 @@ export type {
   IRFlowTrigger,
   IRFlowNode,
   IRFlowEdge,
+  IRLayoutInfo,
+  IRPlatformConfig,
   OutputFile,
   Stage,
   StageInput,
@@ -27,6 +29,9 @@ export type {
 
 export { parseManifests, type Manifests } from "./parse"
 export { validateIR, type ValidationError } from "./validate"
+export { walkComponentTree, collectFromTree, someInTree } from "./walker"
+export { buildParamMap, findRouteForComponent, type ExpressionContext } from "./expressions"
+export { capitalize, kebabCase, camelCase, slugify, escapeAttr } from "./utils"
 
 // ── Stages ────────────────────────────────────────────────────────────────────
 
@@ -36,6 +41,7 @@ export { vueStage } from "./stages/vue"
 export { dataStage } from "./stages/data"
 export { flowsStage } from "./stages/flows"
 export { appStage } from "./stages/app"
+export { platformStage } from "./stages/platform"
 
 // ── Re-exports from edem-ui ───────────────────────────────────────────────────
 

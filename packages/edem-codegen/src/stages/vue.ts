@@ -1,4 +1,5 @@
 import type { Stage, StageInput, StageOutput, OutputFile, IR } from "../ir"
+import { capitalize } from "../utils"
 
 // ── Vue Stage ─────────────────────────────────────────────────────────────────
 // Generates Vue renderer files: App.vue, main.ts, router, css, env.d.ts.
@@ -254,10 +255,4 @@ function generateTsconfig(): string {
     null,
     2,
   )
-}
-
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-function capitalize(str: string): string {
-  return str.charAt(0).toUpperCase() + str.slice(1)
 }

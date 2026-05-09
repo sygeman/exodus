@@ -25,9 +25,12 @@
               "bind": {
                 "items": "{{ navItems }}",
                 "item": {
-                  "component": "UIcon",
-                  "props": { "name": "{{ item.icon }}", "class": "h-4 w-4" },
-                  "children": "{{ item.label }}"
+                  "component": "span",
+                  "props": { "class": "flex items-center gap-3" },
+                  "children": [
+                    { "component": "UIcon", "props": { "name": "{{ item.icon }}", "class": "h-4 w-4" } },
+                    "{{ item.label }}"
+                  ]
                 }
               }
             }

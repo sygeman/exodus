@@ -4,13 +4,13 @@ import { codegenModule } from "./src/module"
 import { loadManifests } from "./src/load"
 
 const MOCKS_DIR = join(import.meta.dir, "src/__mocks__")
-const OUTPUT = join(import.meta.dir, "../../apps/exodus-app")
+const OUTPUT = join(import.meta.dir, "../../apps/exodus-generated")
 
 const manifests = loadManifests(MOCKS_DIR)
 
 const edem = createEdem([codegenModule])
 const result = await edem.codegen.generateProject({
-  project_id: "exodus-app",
+  project_id: "exodus-generated",
   output: OUTPUT,
   manifests,
   project_name: "Exodus",

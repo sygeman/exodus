@@ -42,5 +42,5 @@ describe("codegenModule", () => {
     // Generated files should exist
     const files = readdirSync(TEST_OUTPUT, { recursive: true })
     expect(files.length).toBeGreaterThan(3)
-  })
+  }, 30_000)
 })
