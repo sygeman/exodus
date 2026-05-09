@@ -5,7 +5,7 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "electrobun dev --watch",
+    "dev": "vite build && electrobun dev --watch",
     "dev:webview": "vite --port 5173",
     "build": "vite build",
     "build:stable": "vite build && electrobun build --env=stable"

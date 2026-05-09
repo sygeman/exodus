@@ -53,7 +53,7 @@ export const vueStage: Stage = {
     const devDeps = ["@vitejs/plugin-vue", "typescript", "vite", "vue-tsc", "@types/bun"]
 
     const scripts = {
-      dev: "electrobun dev --watch",
+      dev: "vite build && electrobun dev --watch",
       "dev:webview": "vite --port 5173",
       build: "vite build",
       "build:stable": "vite build && electrobun build --env=stable",
