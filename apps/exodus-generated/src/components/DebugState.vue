@@ -17,7 +17,9 @@ function handleRefreshState() {
       <UButton variant="subtle" :loading="loading" @click="handleRefreshState()">Refresh</UButton>
     </div>
     <UScrollArea class="min-h-0 flex-1">
-      <pre class="p-4 font-mono text-xs leading-relaxed text-[var(--ui-text)]">{{ formatJson(appState) }}</pre>
+      <pre class="p-4 font-mono text-xs leading-relaxed text-[var(--ui-text)]">{{
+        formatJson(appState)
+      }}</pre>
     </UScrollArea>
   </div>
 </template>

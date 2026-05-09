@@ -3,10 +3,10 @@ import { edem } from "@/edem"
 
 export interface LogsItem {
   id: string
-  level: string,
-  message: string,
-  source: string,
-  args: unknown | null,
+  level: string
+  message: string
+  source: string
+  args: unknown | null
   count: number | null
 }
 

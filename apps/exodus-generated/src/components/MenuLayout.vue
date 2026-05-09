@@ -11,7 +11,12 @@ const router = useRouter()
         <h2 class="px-2 text-xl font-bold">{{ title }}</h2>
       </div>
       <nav class="flex flex-col gap-0.5">
-        <RouterLink :to="item.to" class="text-muted hover:bg-elevated hover:text-default flex items-center gap-3 rounded-md px-2 py-1.5 text-sm font-medium transition-colors" v-for="(item, idx) in navItems" :key="idx">
+        <RouterLink
+          :to="item.to"
+          class="text-muted hover:bg-elevated hover:text-default flex items-center gap-3 rounded-md px-2 py-1.5 text-sm font-medium transition-colors"
+          v-for="(item, idx) in navItems"
+          :key="idx"
+        >
           <span class="flex items-center gap-3">
             <UIcon :name="item.icon" class="h-4 w-4" />
             {{ item.label }}

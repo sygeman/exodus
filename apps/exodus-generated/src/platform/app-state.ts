@@ -76,7 +76,6 @@ export async function initStateDefaults(data: EdemData) {
   }
 }
 
-
 export function initAppState(
   win: BrowserWindow,
   emit?: (name: string, payload: Record<string, unknown>) => void,
@@ -113,4 +112,3 @@ export function initAppState(
     emit?.("window:frame_changed", { frame: currentFrame, maximized: win.isMaximized() })
   })
 }
-

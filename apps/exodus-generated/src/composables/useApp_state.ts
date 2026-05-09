@@ -3,10 +3,10 @@ import { edem } from "@/edem"
 
 export interface App_stateItem {
   id: string
-  last_route: unknown | null,
-  locale: string | null,
-  theme: string | null,
-  window_frame: unknown | null,
+  last_route: unknown | null
+  locale: string | null
+  theme: string | null
+  window_frame: unknown | null
   window_maximized: boolean | null
 }
 

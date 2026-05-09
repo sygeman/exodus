@@ -12,7 +12,13 @@ import {
 } from "./schemas"
 
 export type { RoutesManifest, ComponentNode, Route, DataBinding, EventBinding }
-export { routesManifestSchema, componentNodeSchema, routeSchema, dataBindingSchema, eventBindingSchema }
+export {
+  routesManifestSchema,
+  componentNodeSchema,
+  routeSchema,
+  dataBindingSchema,
+  eventBindingSchema,
+}
 
 // ── Template Engine ───────────────────────────────────────────────────────────
 

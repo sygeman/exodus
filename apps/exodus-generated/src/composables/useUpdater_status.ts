@@ -3,9 +3,9 @@ import { edem } from "@/edem"
 
 export interface Updater_statusItem {
   id: string
-  status: string,
-  current_version: string | null,
-  latest_version: string | null,
+  status: string
+  current_version: string | null
+  latest_version: string | null
   error: string | null
 }
 

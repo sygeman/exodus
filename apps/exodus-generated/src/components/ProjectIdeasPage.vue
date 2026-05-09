@@ -14,7 +14,13 @@ function handleCreateIdea() {
 }
 
 function getLevelColor(level: string): string {
-  const colors: Record<string, string> = { L0: "#22c55e", L1: "#06b6d4", L2: "#eab308", L3: "#f97316", L4: "#ef4444" }
+  const colors: Record<string, string> = {
+    L0: "#22c55e",
+    L1: "#06b6d4",
+    L2: "#eab308",
+    L3: "#f97316",
+    L4: "#ef4444",
+  }
   return colors[level] ?? "#6b7280"
 }
 </script>
@@ -33,7 +39,11 @@ function getLevelColor(level: string): string {
         <USkeleton class="h-8 w-40" />
         <USkeleton class="h-9 w-32" />
       </div>
-      <div v-for="i in 5" :key="i" class="flex items-center gap-4 rounded-lg border border-[var(--ui-border)] p-4">
+      <div
+        v-for="i in 5"
+        :key="i"
+        class="flex items-center gap-4 rounded-lg border border-[var(--ui-border)] p-4"
+      >
         <USkeleton class="h-10 w-10 flex-shrink-0 rounded-lg" />
         <USkeleton class="h-5 w-48" />
       </div>
@@ -41,7 +51,7 @@ function getLevelColor(level: string): string {
     <div class="flex flex-1 flex-col items-center justify-center gap-4">
       <UIcon name="i-lucide-lightbulb" class="h-12 w-12 text-[var(--ui-text-muted)]" />
       <p class="text-lg text-[var(--ui-text-muted)]">No ideas yet</p>
-            <UButton size="sm" @click="handleCreateIdea()">Create first idea</UButton>
+      <UButton size="sm" @click="handleCreateIdea()">Create first idea</UButton>
     </div>
   </div>
 </template>

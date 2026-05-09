@@ -5,7 +5,9 @@ const route = useRoute()
 </script>
 
 <template>
-  <div class="flex h-full flex-col items-center justify-center gap-4 p-6 text-[var(--ui-text-muted)]">
+  <div
+    class="flex h-full flex-col items-center justify-center gap-4 p-6 text-[var(--ui-text-muted)]"
+  >
     <UIcon name="i-lucide-ghost" class="h-16 w-16 opacity-20" />
     <div class="text-center">
       <h1 class="text-2xl font-bold text-[var(--ui-text)]">Page not found</h1>

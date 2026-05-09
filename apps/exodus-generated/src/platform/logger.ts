@@ -6,7 +6,17 @@ type EdemData = InferModuleAPI<typeof dataModule>
 let edemData: EdemData | null = null
 
 // Dedup: repeated warn/error within 1000ms get count++
-const pending = new Map<string, { level: string; message: string; source: string; args?: unknown; count: number; timer: ReturnType<typeof setTimeout> }>()
+const pending = new Map<
+  string,
+  {
+    level: string
+    message: string
+    source: string
+    args?: unknown
+    count: number
+    timer: ReturnType<typeof setTimeout>
+  }
+>()
 
 function flush(entry: { level: string; message: string; source: string; args?: unknown }) {
   if (!edemData) return
@@ -23,7 +33,12 @@ function add(level: string, args: unknown[]) {
     clearTimeout(existing.timer)
     existing.timer = setTimeout(() => {
       pending.delete(key)
-      flush({ level: existing.level, message: existing.message, source: existing.source, args: existing.args })
+      flush({
+        level: existing.level,
+        message: existing.message,
+        source: existing.source,
+        args: existing.args,
+      })
     }, 1000)
     return
   }
@@ -33,9 +48,15 @@ function add(level: string, args: unknown[]) {
     flush({ level, message, source: "bun", args: args.length > 1 ? args : undefined })
   }, 1000)
 
-  pending.set(key, { level, message, source: "bun", args: args.length > 1 ? args : undefined, count: 1, timer })
+  pending.set(key, {
+    level,
+    message,
+    source: "bun",
+    args: args.length > 1 ? args : undefined,
+    count: 1,
+    timer,
+  })
 }
-
 
 class Logger {
   attach(data: EdemData) {

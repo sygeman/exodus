@@ -1,6 +1,4 @@
-<script setup lang="ts">
-
-</script>
+<script setup lang="ts"></script>
 
 <template>
   <MenuLayout title="Debug" :items="navItems" main-class="overflow-hidden">

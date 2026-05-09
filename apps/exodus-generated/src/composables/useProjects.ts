@@ -3,12 +3,12 @@ import { edem } from "@/edem"
 
 export interface ProjectsItem {
   id: string
-  name: string,
-  slug: string,
-  description: string | null,
-  icon: string | null,
-  color: string | null,
-  type: string | null,
+  name: string
+  slug: string
+  description: string | null
+  icon: string | null
+  color: string | null
+  type: string | null
   sort_order: number | null
 }
 
