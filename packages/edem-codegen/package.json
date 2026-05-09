@@ -22,7 +22,11 @@
     "bun-types": "1.3.13",
     "typescript": "6.0.3"
   },
+  "bin": {
+    "exodus-gen": "./generate.ts"
+  },
   "scripts": {
+    "exodus-gen": "bun run generate.ts",
     "check-types": "tsc --noEmit",
     "test": "bun test"
   }
