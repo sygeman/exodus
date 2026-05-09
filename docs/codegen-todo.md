@@ -3,7 +3,7 @@
 ## Текущее состояние
 
 Базовый пайплайн работает:
-- `ui.json` (routes) + `components/*.json` → IR → Vue компоненты
+- `routes.json` (routes) + `components/*.json` → IR → Vue компоненты
 - Nested routes генерируются
 - Conditional rendering (`v-if`/`v-else-if`/`v-else`)
 - Skeleton/empty states

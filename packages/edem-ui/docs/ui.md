@@ -11,7 +11,7 @@ Reference: **Storybook** (component-driven development)
 ## Архитектура
 
 ```
-ui.json (дерево компонентов)
+routes.json (дерево компонентов)
         ↓
     Рендерер (Vue)
         ↓

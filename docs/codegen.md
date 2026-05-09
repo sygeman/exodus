@@ -417,5 +417,5 @@ packages/edem-codegen/src/
 └── __mocks__/
     ├── data.json
     ├── flows.json
-    └── ui.json
+    └── routes.json
 ```
