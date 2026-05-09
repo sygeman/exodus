@@ -55,7 +55,7 @@ export interface ExtendedComponentNode extends Omit<ComponentNode, "children"> {
 
 // ── Intermediate Representation (IR) ──────────────────────────────────────────
 // Framework-agnostic description of the application.
-// Generated from manifests (data.json + flows.json + routes.json + platform.json).
+// Generated from manifests (data.json + flows.json + routes.json + platform.json + assets.json).
 
 export interface IR {
   project: IRProject
@@ -63,6 +63,7 @@ export interface IR {
   routes: IRRoute[]
   collections: IRCollection[]
   flows: IRFlow[]
+  assets: IRAsset[]
   layout: IRLayoutInfo
   platform: IRPlatformConfig
 }
@@ -133,6 +134,11 @@ export interface IRFlowEdge {
   id: string
   source: string
   target: string
+}
+
+export interface IRAsset {
+  name: string
+  src: string
 }
 
 export interface IRLayoutInfo {

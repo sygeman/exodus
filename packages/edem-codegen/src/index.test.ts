@@ -26,6 +26,7 @@ describe("codegenModule", () => {
       project_id: "test",
       output: TEST_OUTPUT,
       manifests,
+      manifests_dir: MOCKS_DIR,
     })
 
     expect(result.files).toBeGreaterThan(0)

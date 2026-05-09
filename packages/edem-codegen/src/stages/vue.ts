@@ -32,12 +32,12 @@ export const vueStage: Stage = {
 
     files.push({
       path: "src/env.d.ts",
-      content: generateEnvDts(),
+      content: generateEnvDts(ir),
     })
 
     files.push({
       path: "vite.config.ts",
-      content: generateViteConfig(),
+      content: generateViteConfig(ir),
     })
 
     files.push({
@@ -52,6 +52,10 @@ export const vueStage: Stage = {
 
     const deps = ["vue", "vue-router", "@nuxt/ui", "tailwindcss"]
     const devDeps = ["@vitejs/plugin-vue", "typescript", "vite", "vue-tsc", "@types/bun"]
+
+    if (ir.assets.length > 0) {
+      devDeps.push("vite-svg-loader")
+    }
 
     const scripts = {
       dev: "vite build && electrobun dev --watch",
@@ -162,8 +166,8 @@ function generateAppCss(): string {
 `
 }
 
-function generateEnvDts(): string {
-  return `/// <reference types="vite/client" />
+function generateEnvDts(ir: IR): string {
+  let content = `/// <reference types="vite/client" />
 
 declare module "*.vue" {
   import type { DefineComponent } from "vue"
@@ -171,26 +175,46 @@ declare module "*.vue" {
   export default component
 }
 `
+
+  if (ir.assets.length > 0) {
+    content += `
+declare module "*.svg" {
+  import type { DefineComponent } from "vue"
+  const component: DefineComponent
+  export default component
+}
+`
+  }
+
+  return content
 }
 
-function generateViteConfig(): string {
+function generateViteConfig(ir: IR): string {
+  const plugins = [
+    "    vue(),",
+    `    ui({`,
+    `      colorMode: true,`,
+    `      ui: {`,
+    `        colors: {`,
+    `          primary: "amber",`,
+    `          neutral: "neutral",`,
+    `        },`,
+    `      },`,
+    `    }),`,
+  ]
+
+  if (ir.assets.length > 0) {
+    plugins.push("    svgLoader(),")
+  }
+
   return `import ui from "@nuxt/ui/vite"
 import vue from "@vitejs/plugin-vue"
 import { defineConfig } from "vite"
 import path from "path"
-
+${ir.assets.length > 0 ? 'import svgLoader from "vite-svg-loader"\n' : ""}
 export default defineConfig({
   plugins: [
-    vue(),
-    ui({
-      colorMode: true,
-      ui: {
-        colors: {
-          primary: "amber",
-          neutral: "neutral",
-        },
-      },
-    }),
+${plugins.join("\n")}
   ],
   resolve: {
     alias: {

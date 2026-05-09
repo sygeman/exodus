@@ -44,5 +44,9 @@ export function loadManifests(dir: string): Manifests {
     ? JSON.parse(readFileSync(platformPath, "utf-8"))
     : undefined
 
-  return { routes, components, data, flows, platform }
+  // Load assets.json (optional)
+  const assetsPath = join(dir, "assets.json")
+  const assets = existsSync(assetsPath) ? JSON.parse(readFileSync(assetsPath, "utf-8")) : undefined
+
+  return { routes, components, data, flows, assets, platform }
 }

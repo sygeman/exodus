@@ -6,6 +6,7 @@ import type {
   IRCollection,
   IRFlow,
   IRFlowTrigger,
+  IRAsset,
   IRLayoutInfo,
   IRPlatformConfig,
   ExtendedComponentNode,
@@ -20,6 +21,7 @@ export interface Manifests {
   components: Record<string, ComponentNode>
   data: { collections: DataCollection[] }
   flows: { flows: FlowManifest[] }
+  assets?: AssetsManifest
   platform?: PlatformManifest
 }
 
@@ -60,11 +62,16 @@ interface PlatformManifest {
   features: Record<string, unknown>
 }
 
+interface AssetsManifest {
+  assets: Array<{ name: string; src: string }>
+}
+
 export function parseManifests(manifests: Manifests, projectName?: string): IR {
   const components = parseComponents(manifests.components)
   const routes = parseRoutes(manifests.routes)
   const collections = parseCollections(manifests.data)
   const flows = parseFlows(manifests.flows)
+  const assets = parseAssets(manifests.assets)
   const layout = parseLayout(manifests.components)
   const platform = parsePlatform(manifests.platform)
 
@@ -74,6 +81,7 @@ export function parseManifests(manifests: Manifests, projectName?: string): IR {
     routes,
     collections,
     flows,
+    assets,
     layout,
     platform,
   }
@@ -246,6 +254,13 @@ function parseTrigger(trigger: { type: string; event?: string; every?: string })
     default:
       return { type: "manual" }
   }
+}
+
+// ── Assets ────────────────────────────────────────────────────────────────────
+
+function parseAssets(manifest?: AssetsManifest): IRAsset[] {
+  if (!manifest?.assets) return []
+  return manifest.assets.map((a) => ({ name: a.name, src: a.src }))
 }
 
 // ── Layout ────────────────────────────────────────────────────────────────────

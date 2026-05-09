@@ -19,6 +19,7 @@ function makeIR(
     routes: routes.map((r) => ({ ...r, name: "", children: undefined })),
     collections: [],
     flows: [],
+    assets: [],
     layout: { hasAppLayout: false, hasSidebar: false, hasTopMenu: false, navigation: [] },
     platform: { platform: "electrobun", features: { waylandWorkaround: false } },
   }

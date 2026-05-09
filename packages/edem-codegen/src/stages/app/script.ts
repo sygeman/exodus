@@ -54,6 +54,13 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
     imports.push(`import { use${capitalize(colId)} } from "@/composables/use${capitalize(colId)}"`)
   }
 
+  // Generate asset imports (e.g. SVG components)
+  for (const asset of ir.assets) {
+    if (someInTree(comp.tree, (n) => n.component === asset.name)) {
+      imports.unshift(`import ${asset.name} from "@/assets/${asset.src}"`)
+    }
+  }
+
   // Generate showSkeleton ref if component has skeleton states
   if (hasSkeleton(comp.tree)) {
     statements.push(`const showSkeleton = ref(false)`)

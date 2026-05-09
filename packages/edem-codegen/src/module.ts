@@ -36,6 +36,7 @@ export const codegenModule = createEdemModule("codegen", (module) => {
         output: z.string(),
         manifests: z.any(),
         project_name: z.string().optional(),
+        manifests_dir: z.string().optional(),
       }),
       output: z.object({
         files: z.number(),
@@ -43,7 +44,8 @@ export const codegenModule = createEdemModule("codegen", (module) => {
       }),
       resolve: async ({ input }) => {
         const manifests = input.manifests as Manifests
-        const { mkdirSync, writeFileSync, readFileSync, existsSync, rmSync } = await import("fs")
+        const { mkdirSync, writeFileSync, readFileSync, readdirSync, existsSync, rmSync } =
+          await import("fs")
         const { join } = await import("path")
 
         // 1. Parse manifests → IR
@@ -196,6 +198,41 @@ export const codegenModule = createEdemModule("codegen", (module) => {
             JSON.stringify(manifests.platform, null, 2),
             "utf-8",
           )
+        }
+        if (manifests.assets) {
+          writeFileSync(
+            join(manifestsDir, "assets.json"),
+            JSON.stringify(manifests.assets, null, 2),
+            "utf-8",
+          )
+          // Copy assets/ directory into edem-manifests/assets/
+          if (input.manifests_dir) {
+            const assetsSrcDir = join(input.manifests_dir, "assets")
+            if (existsSync(assetsSrcDir)) {
+              const assetsManifestDir = join(manifestsDir, "assets")
+              mkdirSync(assetsManifestDir, { recursive: true })
+              const assetFiles = readdirSync(assetsSrcDir)
+              for (const file of assetFiles) {
+                writeFileSync(join(assetsManifestDir, file), readFileSync(join(assetsSrcDir, file)))
+              }
+            }
+          }
+        }
+
+        // Copy asset files (e.g. SVGs) from manifests dir to output
+        if (ir.assets.length > 0 && input.manifests_dir) {
+          const assetsSrcDir = join(input.manifests_dir, "assets")
+          const assetsOutDir = join(input.output, "src", "assets")
+          if (existsSync(assetsSrcDir)) {
+            mkdirSync(assetsOutDir, { recursive: true })
+            for (const asset of ir.assets) {
+              const srcFile = join(assetsSrcDir, asset.src)
+              if (existsSync(srcFile)) {
+                const content = readFileSync(srcFile, "utf-8")
+                writeFileSync(join(assetsOutDir, asset.src), content, "utf-8")
+              }
+            }
+          }
         }
 
         // 10. Write generated files

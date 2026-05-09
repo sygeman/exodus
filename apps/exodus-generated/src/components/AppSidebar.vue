@@ -1,4 +1,6 @@
-<script setup lang="ts"></script>
+<script setup lang="ts">
+import LogoSvg from "@/assets/logo.svg"
+</script>
 
 <template>
   <aside
