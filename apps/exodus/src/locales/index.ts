@@ -1,40 +1,7 @@
 import en from "./en"
 import ru from "./ru"
-import settings from "@/modules/settings/i18n"
-import debug from "@/modules/debug/i18n"
-import projects from "@/modules/projects/i18n"
-import updater from "@/modules/updater/i18n"
 
-const base = { en, ru }
-
-const modules = [settings, debug, projects, updater]
-
-type MessageShape = Record<string, Record<string, unknown>>
-
-function mergeForLocale(locale: keyof typeof base) {
-  const baseMessages = base[locale] as MessageShape
-  const moduleMessages = modules.map((m) => m[locale] as MessageShape)
-
-  const merged = {
-    ...baseMessages,
-    ...moduleMessages.reduce((acc, m) => ({ ...acc, ...m }), {}),
-    common: moduleMessages.reduce((acc, m) => ({ ...acc, ...m.common }), baseMessages.common),
-    events: moduleMessages.reduce((acc, m) => ({ ...acc, ...m.events }), baseMessages.events),
-    settings: moduleMessages.find((m) => m.settings)?.settings,
-    projects: moduleMessages.find((m) => m.projects)?.projects,
-    updater: moduleMessages.find((m) => m.updater)?.updater,
-    debug: moduleMessages.find((m) => m.debug)?.debug,
-  }
-
-  return Object.fromEntries(
-    Object.entries(merged).filter(([, v]) => v !== undefined),
-  ) as MessageShape
-}
-
-export const messages = {
-  en: mergeForLocale("en"),
-  ru: mergeForLocale("ru"),
-}
+export const messages = { en, ru }
 
 export type Locale = keyof typeof messages
 export const defaultLocale: Locale = "en"
