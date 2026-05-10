@@ -1,23 +1,9 @@
 <script setup lang="ts">
 import { computed } from "vue"
-import { useI18n } from "vue-i18n"
+import { useT } from "@/composables/useT"
 import { useUpdaterStatus } from "@/composables/useUpdaterStatus"
 
-const { t } = useI18n({
-  messages: {
-    en: {
-      "Downloading...": "Downloading...",
-      "Applying...": "Applying...",
-      "Updating application": "Updating application",
-    },
-    ru: {
-      "Downloading...": "Загрузка...",
-      "Applying...": "Установка...",
-      "Updating application": "Обновление приложения",
-    },
-  },
-})
-
+const t = useT()
 const { updateStatus } = useUpdaterStatus()
 
 const isUpdating = computed(
@@ -25,8 +11,8 @@ const isUpdating = computed(
 )
 
 const statusText = computed(() => {
-  if (updateStatus.value === "downloading") return t("Downloading...")
-  if (updateStatus.value === "applying") return t("Applying...")
+  if (updateStatus.value === "downloading") return t({ en: "Downloading...", ru: "Загрузка..." })
+  if (updateStatus.value === "applying") return t({ en: "Applying...", ru: "Установка..." })
   return ""
 })
 </script>
@@ -61,7 +47,7 @@ const statusText = computed(() => {
 
         <!-- Заголовок -->
         <h2 class="text-default mb-6 text-xl font-semibold">
-          {{ t("Updating application") }}
+          {{ t({ en: "Updating application", ru: "Обновление приложения" }) }}
         </h2>
 
         <!-- Статус с индикатором -->

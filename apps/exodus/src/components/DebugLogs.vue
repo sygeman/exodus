@@ -1,52 +1,9 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
-import { useI18n } from "vue-i18n"
+import { useT } from "@/composables/useT"
 import { useLogger } from "@/composables/useLogs"
 
-const { t } = useI18n({
-  messages: {
-    en: {
-      Logs: "Logs",
-      Paused: "Paused",
-      Resume: "Resume",
-      Pause: "Pause",
-      Clear: "Clear",
-      Debug: "Debug",
-      Info: "Info",
-      Warn: "Warn",
-      Error: "Error",
-      All: "All",
-      Bun: "Bun",
-      Webview: "Webview",
-      Copy: "Copy",
-      Copied: "Copied",
-      "No logs.": "No logs.",
-      "Search logs": "Search logs",
-      "{total} logs": "{total} logs",
-      "page {page} of {totalPages}": "page {page} of {totalPages}",
-    },
-    ru: {
-      Logs: "Логи",
-      Paused: "Пауза",
-      Resume: "Продолжить",
-      Pause: "Пауза",
-      Clear: "Очистить",
-      Debug: "Отладка",
-      Info: "Информация",
-      Warn: "Предупреждение",
-      Error: "Ошибка",
-      All: "Все",
-      Bun: "Bun",
-      Webview: "Webview",
-      Copy: "Копировать",
-      Copied: "Скопировано",
-      "No logs.": "Нет логов.",
-      "Search logs": "Поиск логов",
-      "{total} logs": "{total} логов",
-      "page {page} of {totalPages}": "страница {page} из {totalPages}",
-    },
-  },
-})
+const t = useT()
 
 const {
   logs,
@@ -90,17 +47,17 @@ function copyLog(log: (typeof logs.value)[0]) {
 }
 
 const levelOptions = computed<{ label: string; value: string }[]>(() => [
-  { label: t("All"), value: "all" },
-  { label: t("Debug"), value: "debug" },
-  { label: t("Info"), value: "info" },
-  { label: t("Warn"), value: "warn" },
-  { label: t("Error"), value: "error" },
+  { label: t({ en: "All", ru: "Все" }), value: "all" },
+  { label: t({ en: "Debug", ru: "Отладка" }), value: "debug" },
+  { label: t({ en: "Info", ru: "Информация" }), value: "info" },
+  { label: t({ en: "Warn", ru: "Предупреждение" }), value: "warn" },
+  { label: t({ en: "Error", ru: "Ошибка" }), value: "error" },
 ])
 
 const sourceOptions = computed<{ label: string; value: string }[]>(() => [
-  { label: t("All"), value: "all" },
-  { label: t("Bun"), value: "bun" },
-  { label: t("Webview"), value: "webview" },
+  { label: t({ en: "All", ru: "Все" }), value: "all" },
+  { label: "Bun", value: "bun" },
+  { label: "Webview", value: "webview" },
 ])
 
 const levelBadgeColor = (level: string) => {
@@ -127,32 +84,36 @@ function formatArgs(args: unknown[]) {
     <!-- Header -->
     <div class="border-default flex items-center justify-between border-b px-4 py-3">
       <div class="flex items-center gap-3">
-        <h1 class="text-xl font-bold">{{ t("Logs") }}</h1>
-        <UBadge v-if="isPaused" color="warning" variant="subtle">{{ t("Paused") }}</UBadge>
+        <h1 class="text-xl font-bold">{{ t({ en: "Logs", ru: "Логи" }) }}</h1>
+        <UBadge v-if="isPaused" color="warning" variant="subtle">
+          {{ t({ en: "Paused", ru: "Пауза" }) }}
+        </UBadge>
       </div>
       <div class="flex items-center gap-2">
         <div class="text-muted mr-2 hidden items-center gap-3 text-xs sm:flex">
           <div class="flex items-center gap-1">
-            <span class="text-dimmed">{{ t("Debug") }}</span>
+            <span class="text-dimmed">{{ t({ en: "Debug", ru: "Отладка" }) }}</span>
             <span class="font-medium tabular-nums">{{ stats.debug }}</span>
           </div>
           <div class="flex items-center gap-1">
-            <span class="text-dimmed">{{ t("Info") }}</span>
+            <span class="text-dimmed">{{ t({ en: "Info", ru: "Информация" }) }}</span>
             <span class="font-medium tabular-nums">{{ stats.info }}</span>
           </div>
           <div class="flex items-center gap-1">
-            <span class="text-dimmed">{{ t("Warn") }}</span>
+            <span class="text-dimmed">{{ t({ en: "Warn", ru: "Предупреждение" }) }}</span>
             <span class="font-medium tabular-nums">{{ stats.warn }}</span>
           </div>
           <div class="flex items-center gap-1">
-            <span class="text-dimmed">{{ t("Error") }}</span>
+            <span class="text-dimmed">{{ t({ en: "Error", ru: "Ошибка" }) }}</span>
             <span class="font-medium tabular-nums">{{ stats.error }}</span>
           </div>
         </div>
         <UButton :color="isPaused ? 'warning' : 'neutral'" variant="subtle" @click="togglePause">
-          {{ isPaused ? t("Resume") : t("Pause") }}
+          {{ isPaused ? t({ en: "Resume", ru: "Продолжить" }) : t({ en: "Pause", ru: "Пауза" }) }}
         </UButton>
-        <UButton color="error" variant="subtle" @click="clear">{{ t("Clear") }}</UButton>
+        <UButton color="error" variant="subtle" @click="clear">
+          {{ t({ en: "Clear", ru: "Очистить" }) }}
+        </UButton>
       </div>
     </div>
 
@@ -160,7 +121,11 @@ function formatArgs(args: unknown[]) {
     <div class="border-default flex flex-wrap gap-2 border-b px-4 py-2">
       <USelectMenu v-model="levelFilter" :items="levelOptions" value-key="value" class="w-28" />
       <USelectMenu v-model="sourceFilter" :items="sourceOptions" value-key="value" class="w-28" />
-      <UInput v-model="textFilter" :placeholder="t('Search logs')" class="min-w-0 flex-1" />
+      <UInput
+        v-model="textFilter"
+        :placeholder="t({ en: 'Search logs', ru: 'Поиск логов' })"
+        class="min-w-0 flex-1"
+      />
     </div>
 
     <!-- Logs list -->
@@ -199,7 +164,11 @@ function formatArgs(args: unknown[]) {
             +{{ log.count }}
           </UBadge>
           <UTooltip
-            :text="copiedLogId === log.id ? t('Copied') : t('Copy')"
+            :text="
+              copiedLogId === log.id
+                ? t({ en: 'Copied', ru: 'Скопировано' })
+                : t({ en: 'Copy', ru: 'Копировать' })
+            "
             :open="copiedLogId === log.id"
             :delay-duration="0"
           >
@@ -218,20 +187,21 @@ function formatArgs(args: unknown[]) {
         </div>
       </div>
       <div v-if="logs.length === 0" class="text-muted p-8 text-center text-sm">
-        {{ t("No logs.") }}
+        {{ t({ en: "No logs.", ru: "Нет логов." }) }}
       </div>
     </UScrollArea>
 
     <!-- Pagination -->
     <div class="border-default flex items-center justify-between border-t px-4 py-2">
       <span class="text-muted text-xs">
-        {{
-          t("{total} logs", {
-            total,
-          })
-        }}
+        {{ t({ en: "{total} logs", ru: "{total} логов" }, { total }) }}
         ·
-        {{ t("page {page} of {totalPages}", { page, totalPages }) }}
+        {{
+          t(
+            { en: "page {page} of {totalPages}", ru: "страница {page} из {totalPages}" },
+            { page, totalPages },
+          )
+        }}
       </span>
       <div class="flex items-center gap-1">
         <UButton

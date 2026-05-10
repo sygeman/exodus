@@ -1,23 +1,12 @@
 <script setup lang="ts">
 import { computed, watch } from "vue"
 import { useI18n } from "vue-i18n"
+import { useT } from "@/composables/useT"
 import { locales, type Locale } from "@/locales"
 import { edemBridge } from "@/edem-bridge"
 
-const { t, locale } = useI18n({
-  messages: {
-    en: {
-      Language: "Language",
-      "Select the language you want to use in the app.":
-        "Select the language you want to use in the app.",
-    },
-    ru: {
-      Language: "Язык",
-      "Select the language you want to use in the app.":
-        "Выберите язык, который хотите использовать в приложении.",
-    },
-  },
-})
+const { locale } = useI18n()
+const t = useT()
 
 const selectedLocale = computed<Locale>({
   get() {
@@ -40,9 +29,16 @@ watch(selectedLocale, (value) => {
   <section class="flex flex-col gap-8">
     <div class="flex flex-col gap-4">
       <div class="flex flex-col gap-1">
-        <h3 class="text-base font-medium">{{ t("Language") }}</h3>
+        <h3 class="text-base font-medium">
+          {{ t({ en: "Language", ru: "Язык" }) }}
+        </h3>
         <p class="text-sm text-[var(--ui-text-muted)]">
-          {{ t("Select the language you want to use in the app.") }}
+          {{
+            t({
+              en: "Select the language you want to use in the app.",
+              ru: "Выберите язык, который хотите использовать в приложении.",
+            })
+          }}
         </p>
       </div>
 

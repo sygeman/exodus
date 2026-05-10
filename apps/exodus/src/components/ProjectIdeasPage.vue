@@ -1,29 +1,11 @@
 <script setup lang="ts">
-import { useI18n } from "vue-i18n"
+import { useT } from "@/composables/useT"
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref, watch } from "vue"
 import { useIdeas } from "@/composables/useIdeas"
 import { getLevelColor } from "@/composables/useLevelColor"
 
-const { t } = useI18n({
-  messages: {
-    en: {
-      Ideas: "Ideas",
-      "New Idea": "New Idea",
-      "No ideas yet": "No ideas yet",
-      "Create first idea": "Create first idea",
-      Stabilized: "Stabilized",
-    },
-    ru: {
-      Ideas: "Идеи",
-      "New Idea": "Новая идея",
-      "No ideas yet": "Пока нет идей",
-      "Create first idea": "Создать первую идею",
-      Stabilized: "Стабилизирована",
-    },
-  },
-})
-
+const t = useT()
 const route = useRoute()
 const router = useRouter()
 const projectId = computed(() => route.params.id as string)
@@ -64,10 +46,10 @@ function ideaLink(id: string) {
   <div class="flex h-full flex-col p-6">
     <!-- Toolbar -->
     <div class="mb-4 flex items-center justify-between">
-      <h2 class="text-lg font-semibold">{{ t("Ideas") }}</h2>
+      <h2 class="text-lg font-semibold">{{ t({ en: "Ideas", ru: "Идеи" }) }}</h2>
       <UButton size="sm" @click="handleCreate">
         <UIcon name="i-lucide-plus" class="h-4 w-4" />
-        {{ t("New Idea") }}
+        {{ t({ en: "New Idea", ru: "Новая идея" }) }}
       </UButton>
     </div>
 
@@ -89,8 +71,10 @@ function ideaLink(id: string) {
       class="text-muted flex flex-1 flex-col items-center justify-center gap-2"
     >
       <UIcon name="i-lucide-lightbulb" class="h-12 w-12 opacity-20" />
-      <p class="text-lg">{{ t("No ideas yet") }}</p>
-      <UButton size="sm" @click="handleCreate">{{ t("Create first idea") }}</UButton>
+      <p class="text-lg">{{ t({ en: "No ideas yet", ru: "Пока нет идей" }) }}</p>
+      <UButton size="sm" @click="handleCreate">
+        {{ t({ en: "Create first idea", ru: "Создать первую идею" }) }}
+      </UButton>
     </div>
 
     <!-- List -->
@@ -118,7 +102,7 @@ function ideaLink(id: string) {
           v-if="idea.status === 'stabilized'"
           class="ml-auto inline-flex h-5 items-center rounded bg-green-500/10 px-1.5 text-xs text-green-500"
         >
-          {{ t("Stabilized") }}
+          {{ t({ en: "Stabilized", ru: "Стабилизирована" }) }}
         </span>
       </RouterLink>
     </div>

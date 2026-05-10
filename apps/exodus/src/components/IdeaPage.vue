@@ -1,49 +1,11 @@
 <script setup lang="ts">
-import { useI18n } from "vue-i18n"
+import { useT } from "@/composables/useT"
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref, watch, nextTick } from "vue"
 import { useIdeas } from "@/composables/useIdeas"
 import { getLevelColor } from "@/composables/useLevelColor"
 
-const { t } = useI18n({
-  messages: {
-    en: {
-      Delete: "Delete",
-      Cancel: "Cancel",
-      Level: "Level",
-      Type: "Type",
-      Status: "Status",
-      "No level": "No level",
-      "No type": "No type",
-      Draft: "Draft",
-      Stabilized: "Stabilized",
-      "Idea not found": "Idea not found",
-      "Back to ideas": "Back to ideas",
-      "Idea description (optional)": "Idea description (optional)",
-      "Delete idea?": "Delete idea?",
-      "Are you sure you want to delete this idea? This action cannot be undone.":
-        "Are you sure you want to delete this idea? This action cannot be undone.",
-    },
-    ru: {
-      Delete: "Удалить",
-      Cancel: "Отмена",
-      Level: "Уровень",
-      Type: "Тип",
-      Status: "Статус",
-      "No level": "Без уровня",
-      "No type": "Без типа",
-      Draft: "Черновик",
-      Stabilized: "Стабилизирована",
-      "Idea not found": "Идея не найдена",
-      "Back to ideas": "Назад к идеям",
-      "Idea description (optional)": "Описание идеи (опционально)",
-      "Delete idea?": "Удалить идею?",
-      "Are you sure you want to delete this idea? This action cannot be undone.":
-        "Вы уверены, что хотите удалить эту идею? Это действие необратимо.",
-    },
-  },
-})
-
+const t = useT()
 const route = useRoute()
 const router = useRouter()
 const projectId = computed(() => route.params.id as string)
@@ -126,18 +88,18 @@ const LEVELS = ["L0", "L1", "L2", "L3", "L4"]
 const TYPES = ["goal", "non_goal", "constraint", "invariant", "component", "decision", "principle"]
 
 const levelItems = [
-  { label: t("No level"), value: null },
+  { label: t({ en: "No level", ru: "Без уровня" }), value: null },
   ...LEVELS.map((l) => ({ label: l, value: l })),
 ]
 
 const typeItems = [
-  { label: t("No type"), value: null },
+  { label: t({ en: "No type", ru: "Без типа" }), value: null },
   ...TYPES.map((type) => ({ label: type, value: type })),
 ]
 
 const statusItems = [
-  { label: t("Draft"), value: "draft" },
-  { label: t("Stabilized"), value: "stabilized" },
+  { label: t({ en: "Draft", ru: "Черновик" }), value: "draft" },
+  { label: t({ en: "Stabilized", ru: "Стабилизирована" }), value: "stabilized" },
 ]
 </script>
 
@@ -154,8 +116,10 @@ const statusItems = [
       class="text-muted flex h-full flex-col items-center justify-center gap-2"
     >
       <UIcon name="i-lucide-file-x" class="h-12 w-12 opacity-20" />
-      <p>{{ t("Idea not found") }}</p>
-      <UButton :to="backLink" variant="link">{{ t("Back to ideas") }}</UButton>
+      <p>{{ t({ en: "Idea not found", ru: "Идея не найдена" }) }}</p>
+      <UButton :to="backLink" variant="link">
+        {{ t({ en: "Back to ideas", ru: "Назад к идеям" }) }}
+      </UButton>
     </div>
 
     <!-- Idea edit -->
@@ -164,11 +128,11 @@ const statusItems = [
       <div class="border-default flex items-center justify-between border-b px-6 py-3">
         <div class="flex items-center gap-3">
           <UButton :to="backLink" variant="ghost" size="sm" icon="i-lucide-arrow-left">
-            {{ t("Back to ideas") }}
+            {{ t({ en: "Back to ideas", ru: "Назад к идеям" }) }}
           </UButton>
           <div class="flex flex-wrap items-center gap-2">
             <UBadge
-              :label="idea.level || t('No level')"
+              :label="idea.level || t({ en: 'No level', ru: 'Без уровня' })"
               color="neutral"
               variant="subtle"
               :style="{
@@ -180,7 +144,7 @@ const statusItems = [
             <UBadge v-if="idea.type" :label="idea.type" color="neutral" variant="soft" size="sm" />
             <UBadge
               v-if="idea.status === 'stabilized'"
-              :label="t('Stabilized')"
+              :label="t({ en: 'Stabilized', ru: 'Стабилизирована' })"
               color="success"
               variant="subtle"
               size="sm"
@@ -194,7 +158,7 @@ const statusItems = [
           icon="i-lucide-trash-2"
           @click="openDeleteModal"
         >
-          {{ t("Delete") }}
+          {{ t({ en: "Delete", ru: "Удалить" }) }}
         </UButton>
       </div>
 
@@ -212,7 +176,7 @@ const statusItems = [
         <!-- Description -->
         <UTextarea
           v-model="description"
-          :placeholder="t('Idea description (optional)')"
+          :placeholder="t({ en: 'Idea description (optional)', ru: 'Описание идеи (опционально)' })"
           :rows="6"
           class="w-full"
           @blur="updateDescription"
@@ -221,7 +185,9 @@ const statusItems = [
         <!-- Fields row -->
         <div class="grid grid-cols-3 gap-4">
           <div class="flex flex-col gap-1.5">
-            <label class="text-muted text-sm font-medium">{{ t("Level") }}</label>
+            <label class="text-muted text-sm font-medium">
+              {{ t({ en: "Level", ru: "Уровень" }) }}
+            </label>
             <USelect
               v-model="level"
               :items="levelItems"
@@ -233,7 +199,9 @@ const statusItems = [
           </div>
 
           <div class="flex flex-col gap-1.5">
-            <label class="text-muted text-sm font-medium">{{ t("Type") }}</label>
+            <label class="text-muted text-sm font-medium">
+              {{ t({ en: "Type", ru: "Тип" }) }}
+            </label>
             <USelect
               v-model="typeValue"
               :items="typeItems"
@@ -245,7 +213,9 @@ const statusItems = [
           </div>
 
           <div class="flex flex-col gap-1.5">
-            <label class="text-muted text-sm font-medium">{{ t("Status") }}</label>
+            <label class="text-muted text-sm font-medium">
+              {{ t({ en: "Status", ru: "Статус" }) }}
+            </label>
             <USelect
               v-model="status"
               :items="statusItems"
@@ -261,16 +231,21 @@ const statusItems = [
       <!-- Delete confirmation modal -->
       <UModal
         v-model:open="deleteModalOpen"
-        :title="t('Delete idea?')"
-        :description="t('Are you sure you want to delete this idea? This action cannot be undone.')"
+        :title="t({ en: 'Delete idea?', ru: 'Удалить идею?' })"
+        :description="
+          t({
+            en: 'Are you sure you want to delete this idea? This action cannot be undone.',
+            ru: 'Вы уверены, что хотите удалить эту идею? Это действие необратимо.',
+          })
+        "
       >
         <template #footer>
           <div class="flex w-full justify-end gap-3">
             <UButton variant="ghost" @click="deleteModalOpen = false">
-              {{ t("Cancel") }}
+              {{ t({ en: "Cancel", ru: "Отмена" }) }}
             </UButton>
             <UButton color="error" @click="confirmDelete">
-              {{ t("Delete") }}
+              {{ t({ en: "Delete", ru: "Удалить" }) }}
             </UButton>
           </div>
         </template>

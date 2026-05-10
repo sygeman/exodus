@@ -1,17 +1,11 @@
 <script setup lang="ts">
 import { computed } from "vue"
-import { useI18n } from "vue-i18n"
+import { useT } from "@/composables/useT"
 import { useRouter } from "vue-router"
 import { edem } from "@/edem"
 import { useUpdaterStatus } from "@/composables/useUpdaterStatus"
 
-const { t } = useI18n({
-  messages: {
-    en: { "Update to": "Update to" },
-    ru: { "Update to": "Обновить до" },
-  },
-})
-
+const t = useT()
 const router = useRouter()
 const { updateStatus, latestVersion } = useUpdaterStatus()
 
@@ -74,7 +68,7 @@ function goForward() {
           <template #leading>
             <UIcon name="i-lucide-arrow-up-circle" />
           </template>
-          {{ t("Update to") }} v{{ latestVersion }}
+          {{ t({ en: "Update to", ru: "Обновить до" }) }} v{{ latestVersion }}
         </UButton>
         <UBadge v-else color="neutral" variant="subtle" size="sm">
           {{ version }}

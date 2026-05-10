@@ -1,32 +1,10 @@
 <script setup lang="ts">
-import { useI18n } from "vue-i18n"
+import { useT } from "@/composables/useT"
 import { useProjects, type Project } from "@/composables/useProjects"
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref } from "vue"
 
-const { t } = useI18n({
-  messages: {
-    en: {
-      Delete: "Delete",
-      Cancel: "Cancel",
-      "New project": "New project",
-      "Project settings": "Project settings",
-      "Delete project?": "Delete project?",
-      "Are you sure you want to delete this project? This action cannot be undone.":
-        "Are you sure you want to delete this project? This action cannot be undone.",
-    },
-    ru: {
-      Delete: "Удалить",
-      Cancel: "Отмена",
-      "New project": "Новый проект",
-      "Project settings": "Настройки проекта",
-      "Delete project?": "Удалить проект?",
-      "Are you sure you want to delete this project? This action cannot be undone.":
-        "Вы уверены, что хотите удалить этот проект? Это действие необратимо.",
-    },
-  },
-})
-
+const t = useT()
 const { projects, createAndOpen, remove } = useProjects()
 const router = useRouter()
 const route = useRoute()
@@ -55,13 +33,13 @@ function confirmDelete() {
 function getContextMenuItems(project: Project) {
   return [
     {
-      label: t("Project settings"),
+      label: t({ en: "Project settings", ru: "Настройки проекта" }),
       icon: "i-lucide-settings",
       onSelect: () => router.push(`/project/${project.id}/settings`),
     },
     { type: "separator" as const },
     {
-      label: t("Delete"),
+      label: t({ en: "Delete", ru: "Удалить" }),
       icon: "i-lucide-trash-2",
       color: "error" as const,
       onSelect: () => openDeleteModal(project),
@@ -114,7 +92,11 @@ function getInitials(name: string): string {
       </UTooltip>
     </UContextMenu>
 
-    <UTooltip :text="t('New project')" :content="tooltipContent" :delay-duration="0">
+    <UTooltip
+      :text="t({ en: 'New project', ru: 'Новый проект' })"
+      :content="tooltipContent"
+      :delay-duration="0"
+    >
       <button
         class="electrobun-webkit-app-region-no-drag text-muted hover:bg-default hover:text-default flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors"
         @click="handleCreate"
@@ -129,20 +111,29 @@ function getInitials(name: string): string {
           <template #header>
             <div class="flex items-center gap-2">
               <UIcon name="i-lucide-alert-triangle" class="text-error h-5 w-5" />
-              <h3 class="text-base font-semibold">{{ t("Delete project?") }}</h3>
+              <h3 class="text-base font-semibold">
+                {{ t({ en: "Delete project?", ru: "Удалить проект?" }) }}
+              </h3>
             </div>
           </template>
 
           <p class="text-muted text-sm">
-            {{ t("Are you sure you want to delete this project? This action cannot be undone.") }}
+            {{
+              t({
+                en: "Are you sure you want to delete this project? This action cannot be undone.",
+                ru: "Вы уверены, что хотите удалить этот проект? Это действие необратимо.",
+              })
+            }}
           </p>
 
           <template #footer>
             <div class="flex justify-end gap-2">
               <UButton variant="ghost" @click="deleteModalOpen = false">
-                {{ t("Cancel") }}
+                {{ t({ en: "Cancel", ru: "Отмена" }) }}
               </UButton>
-              <UButton color="error" @click="confirmDelete">{{ t("Delete") }}</UButton>
+              <UButton color="error" @click="confirmDelete">
+                {{ t({ en: "Delete", ru: "Удалить" }) }}
+              </UButton>
             </div>
           </template>
         </UCard>
