@@ -3,7 +3,12 @@ import { ref, onMounted } from "vue"
 import { useI18n } from "vue-i18n"
 import { edem } from "@/edem"
 
-const { t } = useI18n()
+const { t } = useI18n({
+  messages: {
+    en: { State: "State", Refresh: "Refresh", "Loading...": "Loading..." },
+    ru: { State: "Состояние", Refresh: "Обновить", "Loading...": "Загрузка..." },
+  },
+})
 
 const appState = ref<Record<string, unknown> | null>(null)
 const loading = ref(false)
@@ -40,11 +45,11 @@ function formatJson(data: unknown) {
     <!-- Header -->
     <div class="flex items-center justify-between border-b border-[var(--ui-border)] px-4 py-3">
       <div class="flex items-center gap-3">
-        <h1 class="text-xl font-bold">{{ t("common.state") }}</h1>
+        <h1 class="text-xl font-bold">{{ t("State") }}</h1>
       </div>
       <div class="flex items-center gap-2">
         <UButton variant="subtle" :loading="loading" @click="fetchAppState">
-          {{ t("common.refresh") }}
+          {{ t("Refresh") }}
         </UButton>
       </div>
     </div>
@@ -55,7 +60,7 @@ function formatJson(data: unknown) {
         formatJson(appState)
       }}</pre>
       <div v-else class="p-4 text-sm text-[var(--ui-text-muted)]">
-        {{ t("common.loading") }}
+        {{ t("Loading...") }}
       </div>
     </UScrollArea>
   </div>

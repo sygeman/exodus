@@ -4,7 +4,20 @@ import { useI18n } from "vue-i18n"
 import { locales, type Locale } from "@/locales"
 import { edemBridge } from "@/edem-bridge"
 
-const { t, locale } = useI18n()
+const { t, locale } = useI18n({
+  messages: {
+    en: {
+      Language: "Language",
+      "Select the language you want to use in the app.":
+        "Select the language you want to use in the app.",
+    },
+    ru: {
+      Language: "Язык",
+      "Select the language you want to use in the app.":
+        "Выберите язык, который хотите использовать в приложении.",
+    },
+  },
+})
 
 const selectedLocale = computed<Locale>({
   get() {
@@ -27,8 +40,10 @@ watch(selectedLocale, (value) => {
   <section class="flex flex-col gap-8">
     <div class="flex flex-col gap-4">
       <div class="flex flex-col gap-1">
-        <h3 class="text-base font-medium">{{ t("common.language") }}</h3>
-        <p class="text-sm text-[var(--ui-text-muted)]">{{ t("settings.languageDescription") }}</p>
+        <h3 class="text-base font-medium">{{ t("Language") }}</h3>
+        <p class="text-sm text-[var(--ui-text-muted)]">
+          {{ t("Select the language you want to use in the app.") }}
+        </p>
       </div>
 
       <div class="flex flex-col gap-3">

@@ -3,7 +3,50 @@ import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
 import { useLogger } from "@/composables/useLogs"
 
-const { t } = useI18n()
+const { t } = useI18n({
+  messages: {
+    en: {
+      Logs: "Logs",
+      Paused: "Paused",
+      Resume: "Resume",
+      Pause: "Pause",
+      Clear: "Clear",
+      Debug: "Debug",
+      Info: "Info",
+      Warn: "Warn",
+      Error: "Error",
+      All: "All",
+      Bun: "Bun",
+      Webview: "Webview",
+      Copy: "Copy",
+      Copied: "Copied",
+      "No logs.": "No logs.",
+      "Search logs": "Search logs",
+      "{total} logs": "{total} logs",
+      "page {page} of {totalPages}": "page {page} of {totalPages}",
+    },
+    ru: {
+      Logs: "Логи",
+      Paused: "Пауза",
+      Resume: "Продолжить",
+      Pause: "Пауза",
+      Clear: "Очистить",
+      Debug: "Отладка",
+      Info: "Информация",
+      Warn: "Предупреждение",
+      Error: "Ошибка",
+      All: "Все",
+      Bun: "Bun",
+      Webview: "Webview",
+      Copy: "Копировать",
+      Copied: "Скопировано",
+      "No logs.": "Нет логов.",
+      "Search logs": "Поиск логов",
+      "{total} logs": "{total} логов",
+      "page {page} of {totalPages}": "страница {page} из {totalPages}",
+    },
+  },
+})
 
 const {
   logs,
@@ -47,17 +90,17 @@ function copyLog(log: (typeof logs.value)[0]) {
 }
 
 const levelOptions = computed<{ label: string; value: string }[]>(() => [
-  { label: t("common.all"), value: "all" },
-  { label: t("common.debug"), value: "debug" },
-  { label: t("common.info"), value: "info" },
-  { label: t("common.warn"), value: "warn" },
-  { label: t("common.error"), value: "error" },
+  { label: t("All"), value: "all" },
+  { label: t("Debug"), value: "debug" },
+  { label: t("Info"), value: "info" },
+  { label: t("Warn"), value: "warn" },
+  { label: t("Error"), value: "error" },
 ])
 
 const sourceOptions = computed<{ label: string; value: string }[]>(() => [
-  { label: t("common.all"), value: "all" },
-  { label: t("common.bun"), value: "bun" },
-  { label: t("common.webview"), value: "webview" },
+  { label: t("All"), value: "all" },
+  { label: t("Bun"), value: "bun" },
+  { label: t("Webview"), value: "webview" },
 ])
 
 const levelBadgeColor = (level: string) => {
@@ -84,32 +127,32 @@ function formatArgs(args: unknown[]) {
     <!-- Header -->
     <div class="border-default flex items-center justify-between border-b px-4 py-3">
       <div class="flex items-center gap-3">
-        <h1 class="text-xl font-bold">{{ t("common.logs") }}</h1>
-        <UBadge v-if="isPaused" color="warning" variant="subtle">{{ t("common.paused") }}</UBadge>
+        <h1 class="text-xl font-bold">{{ t("Logs") }}</h1>
+        <UBadge v-if="isPaused" color="warning" variant="subtle">{{ t("Paused") }}</UBadge>
       </div>
       <div class="flex items-center gap-2">
         <div class="text-muted mr-2 hidden items-center gap-3 text-xs sm:flex">
           <div class="flex items-center gap-1">
-            <span class="text-dimmed">{{ t("common.debug") }}</span>
+            <span class="text-dimmed">{{ t("Debug") }}</span>
             <span class="font-medium tabular-nums">{{ stats.debug }}</span>
           </div>
           <div class="flex items-center gap-1">
-            <span class="text-dimmed">{{ t("common.info") }}</span>
+            <span class="text-dimmed">{{ t("Info") }}</span>
             <span class="font-medium tabular-nums">{{ stats.info }}</span>
           </div>
           <div class="flex items-center gap-1">
-            <span class="text-dimmed">{{ t("common.warn") }}</span>
+            <span class="text-dimmed">{{ t("Warn") }}</span>
             <span class="font-medium tabular-nums">{{ stats.warn }}</span>
           </div>
           <div class="flex items-center gap-1">
-            <span class="text-dimmed">{{ t("common.error") }}</span>
+            <span class="text-dimmed">{{ t("Error") }}</span>
             <span class="font-medium tabular-nums">{{ stats.error }}</span>
           </div>
         </div>
         <UButton :color="isPaused ? 'warning' : 'neutral'" variant="subtle" @click="togglePause">
-          {{ isPaused ? t("common.resume") : t("common.pause") }}
+          {{ isPaused ? t("Resume") : t("Pause") }}
         </UButton>
-        <UButton color="error" variant="subtle" @click="clear">{{ t("common.clear") }}</UButton>
+        <UButton color="error" variant="subtle" @click="clear">{{ t("Clear") }}</UButton>
       </div>
     </div>
 
@@ -117,7 +160,7 @@ function formatArgs(args: unknown[]) {
     <div class="border-default flex flex-wrap gap-2 border-b px-4 py-2">
       <USelectMenu v-model="levelFilter" :items="levelOptions" value-key="value" class="w-28" />
       <USelectMenu v-model="sourceFilter" :items="sourceOptions" value-key="value" class="w-28" />
-      <UInput v-model="textFilter" :placeholder="t('debug.searchLogs')" class="min-w-0 flex-1" />
+      <UInput v-model="textFilter" :placeholder="t('Search logs')" class="min-w-0 flex-1" />
     </div>
 
     <!-- Logs list -->
@@ -156,7 +199,7 @@ function formatArgs(args: unknown[]) {
             +{{ log.count }}
           </UBadge>
           <UTooltip
-            :text="copiedLogId === log.id ? t('common.copied') : t('common.copy')"
+            :text="copiedLogId === log.id ? t('Copied') : t('Copy')"
             :open="copiedLogId === log.id"
             :delay-duration="0"
           >
@@ -175,7 +218,7 @@ function formatArgs(args: unknown[]) {
         </div>
       </div>
       <div v-if="logs.length === 0" class="text-muted p-8 text-center text-sm">
-        {{ t("common.noLogs") }}
+        {{ t("No logs.") }}
       </div>
     </UScrollArea>
 
@@ -183,11 +226,12 @@ function formatArgs(args: unknown[]) {
     <div class="border-default flex items-center justify-between border-t px-4 py-2">
       <span class="text-muted text-xs">
         {{
-          t("debug.totalLogs", {
+          t("{total} logs", {
             total,
-            pageInfo: t("debug.pageOf", { page, totalPages }),
           })
         }}
+        ·
+        {{ t("page {page} of {totalPages}", { page, totalPages }) }}
       </span>
       <div class="flex items-center gap-1">
         <UButton

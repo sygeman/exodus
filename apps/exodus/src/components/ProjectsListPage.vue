@@ -4,7 +4,21 @@ import { useProjects } from "@/composables/useProjects"
 import { useRouter } from "vue-router"
 import { ref, watch } from "vue"
 
-const { t } = useI18n()
+const { t } = useI18n({
+  messages: {
+    en: {
+      Projects: "Projects",
+      "No projects yet": "No projects yet",
+      "Create project": "Create project",
+    },
+    ru: {
+      Projects: "Проекты",
+      "No projects yet": "Пока нет проектов",
+      "Create project": "Создать проект",
+    },
+  },
+})
+
 const { projects, loading, createAndOpen } = useProjects()
 const router = useRouter()
 
@@ -61,14 +75,14 @@ function getInitials(name: string): string {
       class="flex flex-1 flex-col items-center justify-center gap-4"
     >
       <UIcon name="i-lucide-folder-open" class="text-muted h-12 w-12" />
-      <p class="text-muted text-lg">{{ t("projects.empty") }}</p>
-      <UButton @click="handleCreate">{{ t("projects.create") }}</UButton>
+      <p class="text-muted text-lg">{{ t("No projects yet") }}</p>
+      <UButton @click="handleCreate">{{ t("Create project") }}</UButton>
     </div>
 
     <div v-else class="flex flex-col gap-2">
       <div class="mb-4 flex items-center justify-between">
-        <h1 class="text-2xl font-bold">{{ t("projects.title") }}</h1>
-        <UButton @click="handleCreate">{{ t("projects.create") }}</UButton>
+        <h1 class="text-2xl font-bold">{{ t("Projects") }}</h1>
+        <UButton @click="handleCreate">{{ t("Create project") }}</UButton>
       </div>
 
       <RouterLink

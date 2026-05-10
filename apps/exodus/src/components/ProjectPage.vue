@@ -5,7 +5,13 @@ import { computed } from "vue"
 import { useIdeas } from "@/composables/useIdeas"
 import { getLevelColor } from "@/composables/useLevelColor"
 
-const { t } = useI18n()
+const { t } = useI18n({
+  messages: {
+    en: { Ideas: "Ideas", "Recent ideas": "Recent ideas", Stabilized: "Stabilized" },
+    ru: { Ideas: "Идеи", "Recent ideas": "Последние идеи", Stabilized: "Стабилизирована" },
+  },
+})
+
 const route = useRoute()
 const router = useRouter()
 const projectId = computed(() => route.params.id as string)
@@ -27,7 +33,7 @@ function goToIdeas() {
       >
         <div class="flex items-center gap-2 text-[var(--ui-text-muted)]">
           <UIcon name="i-lucide-lightbulb" class="h-4 w-4" />
-          <span class="text-sm font-medium">{{ t("projects.ideas") }}</span>
+          <span class="text-sm font-medium">{{ t("Ideas") }}</span>
         </div>
         <span class="text-3xl font-bold">{{ ideas.length }}</span>
       </button>
@@ -36,7 +42,7 @@ function goToIdeas() {
     <!-- Recent ideas -->
     <div v-if="ideas.length > 0" class="mt-8">
       <h3 class="mb-3 text-sm font-medium text-[var(--ui-text-muted)]">
-        {{ t("projects.recentIdeas") }}
+        {{ t("Recent ideas") }}
       </h3>
       <div class="flex flex-col gap-2">
         <RouterLink
@@ -64,7 +70,7 @@ function goToIdeas() {
             v-if="idea.status === 'stabilized'"
             class="ml-auto inline-flex h-5 items-center rounded bg-green-500/10 px-1.5 text-xs text-green-500"
           >
-            {{ t("projects.statusStabilized") }}
+            {{ t("Stabilized") }}
           </span>
         </RouterLink>
       </div>

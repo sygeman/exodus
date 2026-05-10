@@ -3,7 +3,12 @@ import { useI18n } from "vue-i18n"
 import LogoSvg from "@/assets/logo.svg"
 import ProjectsSidebar from "@/components/ProjectsSidebar.vue"
 
-const { t } = useI18n()
+const { t } = useI18n({
+  messages: {
+    en: { Settings: "Settings" },
+    ru: { Settings: "Настройки" },
+  },
+})
 
 const tooltipContent = {
   align: "center" as const,
@@ -29,7 +34,7 @@ const tooltipContent = {
 
     <!-- Системная навигация -->
     <div class="my-2 flex shrink-0 flex-col items-center gap-1">
-      <UTooltip :text="t('common.settings')" :content="tooltipContent" :delay-duration="0">
+      <UTooltip :text="t('Settings')" :content="tooltipContent" :delay-duration="0">
         <RouterLink
           to="/settings"
           class="electrobun-webkit-app-region-no-drag text-muted hover:bg-default hover:text-default relative flex h-10 w-10 items-center justify-center rounded-lg transition-colors"

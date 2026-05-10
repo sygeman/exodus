@@ -5,7 +5,45 @@ import { computed, ref, watch, nextTick } from "vue"
 import { useIdeas } from "@/composables/useIdeas"
 import { getLevelColor } from "@/composables/useLevelColor"
 
-const { t } = useI18n()
+const { t } = useI18n({
+  messages: {
+    en: {
+      Delete: "Delete",
+      Cancel: "Cancel",
+      Level: "Level",
+      Type: "Type",
+      Status: "Status",
+      "No level": "No level",
+      "No type": "No type",
+      Draft: "Draft",
+      Stabilized: "Stabilized",
+      "Idea not found": "Idea not found",
+      "Back to ideas": "Back to ideas",
+      "Idea description (optional)": "Idea description (optional)",
+      "Delete idea?": "Delete idea?",
+      "Are you sure you want to delete this idea? This action cannot be undone.":
+        "Are you sure you want to delete this idea? This action cannot be undone.",
+    },
+    ru: {
+      Delete: "Удалить",
+      Cancel: "Отмена",
+      Level: "Уровень",
+      Type: "Тип",
+      Status: "Статус",
+      "No level": "Без уровня",
+      "No type": "Без типа",
+      Draft: "Черновик",
+      Stabilized: "Стабилизирована",
+      "Idea not found": "Идея не найдена",
+      "Back to ideas": "Назад к идеям",
+      "Idea description (optional)": "Описание идеи (опционально)",
+      "Delete idea?": "Удалить идею?",
+      "Are you sure you want to delete this idea? This action cannot be undone.":
+        "Вы уверены, что хотите удалить эту идею? Это действие необратимо.",
+    },
+  },
+})
+
 const route = useRoute()
 const router = useRouter()
 const projectId = computed(() => route.params.id as string)
@@ -88,18 +126,18 @@ const LEVELS = ["L0", "L1", "L2", "L3", "L4"]
 const TYPES = ["goal", "non_goal", "constraint", "invariant", "component", "decision", "principle"]
 
 const levelItems = [
-  { label: t("projects.levelNone"), value: null },
+  { label: t("No level"), value: null },
   ...LEVELS.map((l) => ({ label: l, value: l })),
 ]
 
 const typeItems = [
-  { label: t("projects.typeNone"), value: null },
+  { label: t("No type"), value: null },
   ...TYPES.map((type) => ({ label: type, value: type })),
 ]
 
 const statusItems = [
-  { label: t("projects.statusDraft"), value: "draft" },
-  { label: t("projects.statusStabilized"), value: "stabilized" },
+  { label: t("Draft"), value: "draft" },
+  { label: t("Stabilized"), value: "stabilized" },
 ]
 </script>
 
@@ -116,8 +154,8 @@ const statusItems = [
       class="text-muted flex h-full flex-col items-center justify-center gap-2"
     >
       <UIcon name="i-lucide-file-x" class="h-12 w-12 opacity-20" />
-      <p>{{ t("projects.ideaNotFound") }}</p>
-      <UButton :to="backLink" variant="link">{{ t("projects.backToIdeas") }}</UButton>
+      <p>{{ t("Idea not found") }}</p>
+      <UButton :to="backLink" variant="link">{{ t("Back to ideas") }}</UButton>
     </div>
 
     <!-- Idea edit -->
@@ -126,11 +164,11 @@ const statusItems = [
       <div class="border-default flex items-center justify-between border-b px-6 py-3">
         <div class="flex items-center gap-3">
           <UButton :to="backLink" variant="ghost" size="sm" icon="i-lucide-arrow-left">
-            {{ t("projects.backToIdeas") }}
+            {{ t("Back to ideas") }}
           </UButton>
           <div class="flex flex-wrap items-center gap-2">
             <UBadge
-              :label="idea.level || t('projects.levelNone')"
+              :label="idea.level || t('No level')"
               color="neutral"
               variant="subtle"
               :style="{
@@ -142,7 +180,7 @@ const statusItems = [
             <UBadge v-if="idea.type" :label="idea.type" color="neutral" variant="soft" size="sm" />
             <UBadge
               v-if="idea.status === 'stabilized'"
-              :label="t('projects.statusStabilized')"
+              :label="t('Stabilized')"
               color="success"
               variant="subtle"
               size="sm"
@@ -156,7 +194,7 @@ const statusItems = [
           icon="i-lucide-trash-2"
           @click="openDeleteModal"
         >
-          {{ t("common.delete") }}
+          {{ t("Delete") }}
         </UButton>
       </div>
 
@@ -174,7 +212,7 @@ const statusItems = [
         <!-- Description -->
         <UTextarea
           v-model="description"
-          :placeholder="t('projects.ideaDescriptionPlaceholder')"
+          :placeholder="t('Idea description (optional)')"
           :rows="6"
           class="w-full"
           @blur="updateDescription"
@@ -183,7 +221,7 @@ const statusItems = [
         <!-- Fields row -->
         <div class="grid grid-cols-3 gap-4">
           <div class="flex flex-col gap-1.5">
-            <label class="text-muted text-sm font-medium">{{ t("projects.fieldLevel") }}</label>
+            <label class="text-muted text-sm font-medium">{{ t("Level") }}</label>
             <USelect
               v-model="level"
               :items="levelItems"
@@ -195,7 +233,7 @@ const statusItems = [
           </div>
 
           <div class="flex flex-col gap-1.5">
-            <label class="text-muted text-sm font-medium">{{ t("projects.fieldType") }}</label>
+            <label class="text-muted text-sm font-medium">{{ t("Type") }}</label>
             <USelect
               v-model="typeValue"
               :items="typeItems"
@@ -207,7 +245,7 @@ const statusItems = [
           </div>
 
           <div class="flex flex-col gap-1.5">
-            <label class="text-muted text-sm font-medium">{{ t("projects.fieldStatus") }}</label>
+            <label class="text-muted text-sm font-medium">{{ t("Status") }}</label>
             <USelect
               v-model="status"
               :items="statusItems"
@@ -223,16 +261,16 @@ const statusItems = [
       <!-- Delete confirmation modal -->
       <UModal
         v-model:open="deleteModalOpen"
-        :title="t('projects.deleteIdeaConfirmTitle')"
-        :description="t('projects.deleteIdeaConfirmDescription')"
+        :title="t('Delete idea?')"
+        :description="t('Are you sure you want to delete this idea? This action cannot be undone.')"
       >
         <template #footer>
           <div class="flex w-full justify-end gap-3">
             <UButton variant="ghost" @click="deleteModalOpen = false">
-              {{ t("common.cancel") }}
+              {{ t("Cancel") }}
             </UButton>
             <UButton color="error" @click="confirmDelete">
-              {{ t("common.delete") }}
+              {{ t("Delete") }}
             </UButton>
           </div>
         </template>

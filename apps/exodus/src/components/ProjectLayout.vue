@@ -4,7 +4,25 @@ import { useRoute } from "vue-router"
 import { useProjects } from "@/composables/useProjects"
 import { computed } from "vue"
 
-const { t } = useI18n()
+const { t } = useI18n({
+  messages: {
+    en: {
+      Overview: "Overview",
+      Ideas: "Ideas",
+      Settings: "Settings",
+      "Project not found": "Project not found",
+      "Back to projects": "Back to projects",
+    },
+    ru: {
+      Overview: "Обзор",
+      Ideas: "Идеи",
+      Settings: "Настройки",
+      "Project not found": "Проект не найден",
+      "Back to projects": "Назад к проектам",
+    },
+  },
+})
+
 const route = useRoute()
 const { projects, loading } = useProjects()
 
@@ -14,17 +32,17 @@ const project = computed(() => projects.value.find((p) => p.id === projectId.val
 const tabs = computed(() => [
   {
     to: `/project/${projectId.value}/overview`,
-    label: t("projects.overview"),
+    label: t("Overview"),
     icon: "i-lucide-layout-grid",
   },
   {
     to: `/project/${projectId.value}/ideas`,
-    label: t("projects.ideas"),
+    label: t("Ideas"),
     icon: "i-lucide-lightbulb",
   },
   {
     to: `/project/${projectId.value}/settings`,
-    label: t("common.settings"),
+    label: t("Settings"),
     icon: "i-lucide-settings",
   },
 ])
@@ -67,7 +85,7 @@ const tabs = computed(() => [
     class="text-muted flex h-full flex-col items-center justify-center gap-2"
   >
     <UIcon name="i-lucide-folder-x" class="h-10 w-10" />
-    <p>{{ t("projects.notFound") }}</p>
-    <UButton to="/projects" variant="link">{{ t("projects.backToList") }}</UButton>
+    <p>{{ t("Project not found") }}</p>
+    <UButton to="/projects" variant="link">{{ t("Back to projects") }}</UButton>
   </div>
 </template>

@@ -8,7 +8,7 @@ import router from "./router"
 import { rpc } from "./edem-bridge"
 import { Electroview } from "electrobun/view"
 import { webviewLogger } from "./platform/logger"
-import { defaultLocale, messages, resolveLocale } from "./locales"
+import { defaultLocale, resolveLocale } from "./locales"
 import { useAppState } from "./composables/useAppState"
 
 webviewLogger.init()
@@ -34,7 +34,7 @@ const i18n = createI18n({
   legacy: false,
   locale: defaultLocale,
   fallbackLocale: "en",
-  messages,
+  messages: { en: {}, ru: {} },
 })
 
 app.use(router)

@@ -4,7 +4,29 @@ import { useProjects, type Project } from "@/composables/useProjects"
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref } from "vue"
 
-const { t } = useI18n()
+const { t } = useI18n({
+  messages: {
+    en: {
+      Delete: "Delete",
+      Cancel: "Cancel",
+      "New project": "New project",
+      "Project settings": "Project settings",
+      "Delete project?": "Delete project?",
+      "Are you sure you want to delete this project? This action cannot be undone.":
+        "Are you sure you want to delete this project? This action cannot be undone.",
+    },
+    ru: {
+      Delete: "Удалить",
+      Cancel: "Отмена",
+      "New project": "Новый проект",
+      "Project settings": "Настройки проекта",
+      "Delete project?": "Удалить проект?",
+      "Are you sure you want to delete this project? This action cannot be undone.":
+        "Вы уверены, что хотите удалить этот проект? Это действие необратимо.",
+    },
+  },
+})
+
 const { projects, createAndOpen, remove } = useProjects()
 const router = useRouter()
 const route = useRoute()
@@ -33,13 +55,13 @@ function confirmDelete() {
 function getContextMenuItems(project: Project) {
   return [
     {
-      label: t("projects.projectSettings"),
+      label: t("Project settings"),
       icon: "i-lucide-settings",
       onSelect: () => router.push(`/project/${project.id}/settings`),
     },
     { type: "separator" as const },
     {
-      label: t("common.delete"),
+      label: t("Delete"),
       icon: "i-lucide-trash-2",
       color: "error" as const,
       onSelect: () => openDeleteModal(project),
@@ -92,7 +114,7 @@ function getInitials(name: string): string {
       </UTooltip>
     </UContextMenu>
 
-    <UTooltip :text="t('common.newProject')" :content="tooltipContent" :delay-duration="0">
+    <UTooltip :text="t('New project')" :content="tooltipContent" :delay-duration="0">
       <button
         class="electrobun-webkit-app-region-no-drag text-muted hover:bg-default hover:text-default flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg transition-colors"
         @click="handleCreate"
@@ -107,20 +129,20 @@ function getInitials(name: string): string {
           <template #header>
             <div class="flex items-center gap-2">
               <UIcon name="i-lucide-alert-triangle" class="text-error h-5 w-5" />
-              <h3 class="text-base font-semibold">{{ t("projects.deleteConfirmTitle") }}</h3>
+              <h3 class="text-base font-semibold">{{ t("Delete project?") }}</h3>
             </div>
           </template>
 
           <p class="text-muted text-sm">
-            {{ t("projects.deleteConfirmDescription") }}
+            {{ t("Are you sure you want to delete this project? This action cannot be undone.") }}
           </p>
 
           <template #footer>
             <div class="flex justify-end gap-2">
               <UButton variant="ghost" @click="deleteModalOpen = false">
-                {{ t("common.cancel") }}
+                {{ t("Cancel") }}
               </UButton>
-              <UButton color="error" @click="confirmDelete">{{ t("common.delete") }}</UButton>
+              <UButton color="error" @click="confirmDelete">{{ t("Delete") }}</UButton>
             </div>
           </template>
         </UCard>

@@ -5,7 +5,13 @@ import { useRouter } from "vue-router"
 import { edem } from "@/edem"
 import { useUpdaterStatus } from "@/composables/useUpdaterStatus"
 
-const { t } = useI18n()
+const { t } = useI18n({
+  messages: {
+    en: { "Update to": "Update to" },
+    ru: { "Update to": "Обновить до" },
+  },
+})
+
 const router = useRouter()
 const { updateStatus, latestVersion } = useUpdaterStatus()
 
@@ -68,7 +74,7 @@ function goForward() {
           <template #leading>
             <UIcon name="i-lucide-arrow-up-circle" />
           </template>
-          {{ t("updater.updateTo") }} v{{ latestVersion }}
+          {{ t("Update to") }} v{{ latestVersion }}
         </UButton>
         <UBadge v-else color="neutral" variant="subtle" size="sm">
           {{ version }}
