@@ -4,7 +4,13 @@
 import type { EventBinding } from "@exodus/edem-ui"
 import type { IR, ExtendedComponentNode } from "../../ir"
 import { capitalize, kebabCase, slugify, escapeAttr } from "../../utils"
-import { resolveVueExpression, resolveInString, type ExpressionContext } from "../../expressions"
+import {
+  resolveVueExpression,
+  resolveInString,
+  isTranslation,
+  renderT,
+  type ExpressionContext,
+} from "../../expressions"
 import { collectHandlerCode, buildExprCtx } from "./handlers"
 
 export interface RenderResult {
@@ -45,7 +51,10 @@ export function renderNode(
   // ── Empty state ──────────────────────────────────────────────────────────
   if (node.empty) {
     const emptyIcon = node.empty.icon ?? "i-lucide-inbox"
-    const emptyText = node.empty.text ?? "Nothing here yet"
+    const emptyTextRaw = node.empty.text ?? "Nothing here yet"
+    const emptyText = isTranslation(emptyTextRaw)
+      ? `{{ ${renderT(emptyTextRaw)} }}`
+      : String(emptyTextRaw)
     const emptyAction = node.empty.action
       ? `\n${indent}  ${renderNode(node.empty.action, indent + "  ", ir, compName).template}`
       : ""
@@ -108,9 +117,15 @@ export function renderNode(
       for (const [k, v] of r.handlers) handlers.set(k, v)
     }
     const footerHtml = footerResult.map((r) => r.template).join("\n")
-    const title = node.modal.title ? ` title="${escapeAttr(node.modal.title)}"` : ""
+    const title = node.modal.title
+      ? isTranslation(node.modal.title)
+        ? ` :title="${renderT(node.modal.title)}"`
+        : ` title="${escapeAttr(node.modal.title)}"`
+      : ""
     const desc = node.modal.description
-      ? ` description="${escapeAttr(node.modal.description)}"`
+      ? isTranslation(node.modal.description)
+        ? ` :description="${renderT(node.modal.description)}"`
+        : ` description="${escapeAttr(node.modal.description)}"`
       : ""
     return {
       template: `${indent}<UModal v-model:open="${vModel}"${title}${desc}>\n${indent}  <template #footer>\n${indent}    <div class="flex w-full justify-end gap-3">\n${footerHtml}\n${indent}    </div>\n${indent}  </template>\n${indent}</UModal>`,
@@ -225,12 +240,31 @@ export function renderNode(
     }
   }
 
+  // ── Translation children (i18n) ─────────────────────────────────────────
+  if (
+    typeof node.children === "object" &&
+    !Array.isArray(node.children) &&
+    isTranslation(node.children)
+  ) {
+    const content = renderT(node.children)
+    return {
+      template: `${indent}<${tag}${props}${ifAttr}${events}>{{ ${content} }}</${tag}>`,
+      handlers,
+    }
+  }
+
   // ── Array children ───────────────────────────────────────────────────────
   if (Array.isArray(node.children) && node.children.length > 0) {
     const childResults = node.children.map((child) => {
       if (typeof child === "string") {
         const resolved = resolveVueExpression(child, exprCtx)
         return { template: `${indent}  ${resolved}`, handlers: new Map<string, string>() }
+      }
+      if (typeof child === "object" && !Array.isArray(child) && isTranslation(child)) {
+        return {
+          template: `${indent}  {{ ${renderT(child)} }}`,
+          handlers: new Map<string, string>(),
+        }
       }
       return renderNode(child, indent + "  ", ir, compName)
     })
@@ -264,6 +298,16 @@ export function renderProps(props: Record<string, unknown>, ctx?: ExpressionCont
           return ` :model-value="${extractExpr(value)}"`
         }
         return ` :model-value="${JSON.stringify(value)}"`
+      }
+
+      // Translation object in prop
+      if (
+        typeof value === "object" &&
+        value !== null &&
+        !Array.isArray(value) &&
+        isTranslation(value)
+      ) {
+        return ` :${attr}="${renderT(value)}"`
       }
 
       if (typeof value === "string") {
@@ -330,7 +374,7 @@ export function renderProps(props: Record<string, unknown>, ctx?: ExpressionCont
         const items = value.map((v) => (typeof v === "string" ? `'${v}'` : JSON.stringify(v)))
         return ` :${attr}="[${items.join(", ")}]"`
       }
-      return ` :${attr}="${JSON.stringify(value)}"`
+      return ` :${attr}="${escapeAttr(JSON.stringify(value))}"`
     })
     .join("")
 }

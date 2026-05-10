@@ -17,7 +17,7 @@
           },
           "events": {
             "click": {
-              "navigate": "/project/{{ projectId }}/ideas"
+              "navigate": "/project/{{ id }}/ideas"
             }
           },
           "children": [
@@ -39,7 +39,11 @@
                   "props": {
                     "class": "text-sm font-medium"
                   },
-                  "children": "Ideas"
+                  "children": {
+                    "$type": "translation",
+                    "en": "Ideas",
+                    "ru": "Идеи"
+                  }
                 }
               ]
             },
@@ -59,7 +63,11 @@
       "props": {
         "class": "mt-8 mb-3 text-sm font-medium text-[var(--ui-text-muted)]"
       },
-      "children": "Recent Ideas"
+      "children": {
+        "$type": "translation",
+        "en": "Recent Ideas",
+        "ru": "Последние идеи"
+      }
     },
     {
       "component": "div",
@@ -70,7 +78,7 @@
         "collection": "ideas",
         "filter": {
           "project_id": {
-            "_eq": "{{ projectId }}"
+            "_eq": "{{ id }}"
           }
         },
         "sort": [
@@ -79,7 +87,7 @@
         "item": {
           "component": "RouterLink",
           "props": {
-            "to": "/project/{{ projectId }}/ideas/{{ item.id }}",
+            "to": "/project/{{ id }}/ideas/{{ item.id }}",
             "class": "flex items-center gap-3 rounded-lg border border-[var(--ui-border)] p-4 transition-colors hover:bg-[var(--ui-bg-elevated)]"
           },
           "children": [

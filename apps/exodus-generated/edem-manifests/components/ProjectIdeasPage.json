@@ -15,7 +15,11 @@
           "props": {
             "class": "text-lg font-semibold"
           },
-          "children": "Ideas"
+          "children": {
+            "$type": "translation",
+            "en": "Ideas",
+            "ru": "Идеи"
+          }
         },
         {
           "component": "UButton",
@@ -26,7 +30,7 @@
             "click": {
               "flow": "createIdea",
               "input": {
-                "projectId": "{{ projectId }}"
+                "projectId": "{{ id }}"
               }
             }
           },
@@ -51,7 +55,11 @@
       "component": "div",
       "empty": {
         "icon": "i-lucide-lightbulb",
-        "text": "No ideas yet",
+        "text": {
+          "$type": "translation",
+          "en": "No ideas yet",
+          "ru": "Пока нет идей"
+        },
         "action": {
           "component": "UButton",
           "props": {
@@ -61,11 +69,15 @@
             "click": {
               "flow": "createIdea",
               "input": {
-                "projectId": "{{ projectId }}"
+                "projectId": "{{ id }}"
               }
             }
           },
-          "children": "Create first idea"
+          "children": {
+            "$type": "translation",
+            "en": "Create first idea",
+            "ru": "Создать первую идею"
+          }
         }
       },
       "children": [
@@ -78,7 +90,7 @@
             "collection": "ideas",
             "filter": {
               "project_id": {
-                "_eq": "{{ projectId }}"
+                "_eq": "{{ id }}"
               }
             },
             "sort": [
@@ -87,7 +99,7 @@
             "item": {
               "component": "RouterLink",
               "props": {
-                "to": "/project/{{ projectId }}/ideas/{{ item.id }}",
+                "to": "/project/{{ id }}/ideas/{{ item.id }}",
                 "class": "flex items-center gap-3 rounded-lg border border-[var(--ui-border)] p-4 transition-colors hover:bg-[var(--ui-bg-elevated)]"
               },
               "children": [

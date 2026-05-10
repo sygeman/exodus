@@ -6,12 +6,13 @@ import {
   eventBindingSchema,
   type RoutesManifest,
   type ComponentNode,
+  type Translation,
   type Route,
   type DataBinding,
   type EventBinding,
 } from "./schemas"
 
-export type { RoutesManifest, ComponentNode, Route, DataBinding, EventBinding }
+export type { RoutesManifest, ComponentNode, Translation, Route, DataBinding, EventBinding }
 export {
   routesManifestSchema,
   componentNodeSchema,

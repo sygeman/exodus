@@ -1,61 +1,156 @@
 {
   "component": "div",
-  "props": { "class": "flex h-full flex-col p-8" },
+  "props": {
+    "class": "flex h-full flex-col p-8"
+  },
   "children": [
     {
       "component": "div",
       "if": "loading && showSkeleton",
-      "props": { "class": "flex flex-1 flex-col gap-4" },
+      "props": {
+        "class": "flex flex-1 flex-col gap-4"
+      },
       "children": [
         {
           "component": "div",
-          "props": { "class": "mb-4 flex items-center justify-between" },
+          "props": {
+            "class": "mb-4 flex items-center justify-between"
+          },
           "children": [
-            { "component": "USkeleton", "props": { "class": "h-8 w-40" } },
-            { "component": "USkeleton", "props": { "class": "h-9 w-32" } }
+            {
+              "component": "USkeleton",
+              "props": {
+                "class": "h-8 w-40"
+              }
+            },
+            {
+              "component": "USkeleton",
+              "props": {
+                "class": "h-9 w-32"
+              }
+            }
           ]
         },
         {
           "component": "div",
-          "bind": { "items": [1, 2, 3, 4, 5], "item": {
-            "component": "div",
-            "props": { "class": "flex items-center gap-4 rounded-lg border border-[var(--ui-border)] p-4" },
-            "children": [
-              { "component": "USkeleton", "props": { "class": "h-10 w-10 flex-shrink-0 rounded-lg" } },
-              { "component": "USkeleton", "props": { "class": "h-5 w-48" } }
-            ]
-          }}
+          "bind": {
+            "items": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "item": {
+              "component": "div",
+              "props": {
+                "class": "flex items-center gap-4 rounded-lg border border-[var(--ui-border)] p-4"
+              },
+              "children": [
+                {
+                  "component": "USkeleton",
+                  "props": {
+                    "class": "h-10 w-10 flex-shrink-0 rounded-lg"
+                  }
+                },
+                {
+                  "component": "USkeleton",
+                  "props": {
+                    "class": "h-5 w-48"
+                  }
+                }
+              ]
+            }
+          }
         }
       ]
     },
     {
       "component": "div",
       "elseIf": "!loading && projects.length === 0",
-      "props": { "class": "flex flex-1 flex-col items-center justify-center gap-4" },
+      "props": {
+        "class": "flex flex-1 flex-col items-center justify-center gap-4"
+      },
       "children": [
-        { "component": "UIcon", "props": { "name": "i-lucide-folder-open", "class": "h-12 w-12 text-[var(--ui-text-muted)]" } },
-        { "component": "p", "props": { "class": "text-lg text-[var(--ui-text-muted)]" }, "children": "No projects yet" },
-        { "component": "UButton", "events": { "click": { "flow": "createProject" } }, "children": "Create project" }
+        {
+          "component": "UIcon",
+          "props": {
+            "name": "i-lucide-folder-open",
+            "class": "h-12 w-12 text-[var(--ui-text-muted)]"
+          }
+        },
+        {
+          "component": "p",
+          "props": {
+            "class": "text-lg text-[var(--ui-text-muted)]"
+          },
+          "children": {
+            "$type": "translation",
+            "en": "No projects yet",
+            "ru": "Пока нет проектов"
+          }
+        },
+        {
+          "component": "UButton",
+          "events": {
+            "click": {
+              "flow": "createProject"
+            }
+          },
+          "children": {
+            "$type": "translation",
+            "en": "Create project",
+            "ru": "Создать проект"
+          }
+        }
       ]
     },
     {
       "component": "div",
       "else": true,
-      "props": { "class": "flex flex-col gap-2" },
+      "props": {
+        "class": "flex flex-col gap-2"
+      },
       "children": [
         {
           "component": "div",
-          "props": { "class": "mb-4 flex items-center justify-between" },
+          "props": {
+            "class": "mb-4 flex items-center justify-between"
+          },
           "children": [
-            { "component": "h1", "props": { "class": "text-2xl font-bold" }, "children": "Projects" },
-            { "component": "UButton", "events": { "click": { "flow": "createProject" } }, "children": "New project" }
+            {
+              "component": "h1",
+              "props": {
+                "class": "text-2xl font-bold"
+              },
+              "children": {
+                "$type": "translation",
+                "en": "Projects",
+                "ru": "Проекты"
+              }
+            },
+            {
+              "component": "UButton",
+              "events": {
+                "click": {
+                  "flow": "createProject"
+                }
+              },
+              "children": {
+                "$type": "translation",
+                "en": "New project",
+                "ru": "Новый проект"
+              }
+            }
           ]
         },
         {
           "component": "RouterLink",
           "bind": {
             "collection": "projects",
-            "sort": ["sort_order"],
+            "sort": [
+              "sort_order"
+            ],
             "item": {
               "component": "RouterLink",
               "props": {
@@ -71,7 +166,13 @@
                   },
                   "children": "{{ item.name }}"
                 },
-                { "component": "span", "props": { "class": "font-medium" }, "children": "{{ item.name }}" }
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "font-medium"
+                  },
+                  "children": "{{ item.name }}"
+                }
               ]
             }
           }

@@ -21,14 +21,22 @@
               "props": {
                 "class": "text-base font-medium"
               },
-              "children": "Dark Mode"
+              "children": {
+                "$type": "translation",
+                "en": "Dark Mode",
+                "ru": "Тёмная тема"
+              }
             },
             {
               "component": "p",
               "props": {
                 "class": "text-sm text-[var(--ui-text-muted)]"
               },
-              "children": "Toggle dark mode appearance"
+              "children": {
+                "$type": "translation",
+                "en": "Toggle dark mode appearance",
+                "ru": "Переключить тёмный режим"
+              }
             }
           ]
         },

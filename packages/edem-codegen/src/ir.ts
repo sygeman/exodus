@@ -1,11 +1,11 @@
-import type { ComponentNode } from "@exodus/edem-ui"
+import type { ComponentNode, Translation } from "@exodus/edem-ui"
 
 // ── Extended ComponentNode ─────────────────────────────────────────────────────
 // Adds conditional rendering, modals, teleport, slots, navigation links,
 // and skeleton/empty states on top of the base ComponentNode.
 
 export interface ExtendedComponentNode extends Omit<ComponentNode, "children"> {
-  children?: ExtendedComponentNode[] | string
+  children?: ExtendedComponentNode[] | string | Translation
 
   /** v-if condition: "{{ expr }}" */
   if?: string
@@ -22,8 +22,8 @@ export interface ExtendedComponentNode extends Omit<ComponentNode, "children"> {
   /** Wrap in UModal — vModel controls open state */
   modal?: {
     vModel: string
-    title?: string
-    description?: string
+    title?: string | Translation
+    description?: string | Translation
     footer?: ExtendedComponentNode[]
   }
 
@@ -48,7 +48,7 @@ export interface ExtendedComponentNode extends Omit<ComponentNode, "children"> {
   /** Empty state shown when collection is empty */
   empty?: {
     icon?: string
-    text?: string
+    text?: string | Translation
     action?: ExtendedComponentNode
   }
 }

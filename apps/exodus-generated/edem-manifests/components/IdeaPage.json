@@ -36,15 +36,23 @@
         },
         {
           "component": "p",
-          "children": "Idea not found"
+          "children": {
+            "$type": "translation",
+            "en": "Idea not found",
+            "ru": "Идея не найдена"
+          }
         },
         {
           "component": "UButton",
           "props": {
-            "to": "/project/{{ projectId }}/ideas",
+            "to": "/project/{{ id }}/ideas",
             "variant": "link"
           },
-          "children": "Back to ideas"
+          "children": {
+            "$type": "translation",
+            "en": "Back to ideas",
+            "ru": "Назад к идеям"
+          }
         }
       ]
     },
@@ -76,7 +84,7 @@
                   },
                   "events": {
                     "click": {
-                      "navigate": "/project/{{ projectId }}/ideas"
+                      "navigate": "/project/{{ id }}/ideas"
                     }
                   }
                 },
@@ -156,7 +164,11 @@
               "props": {
                 "modelValue": "{{ item.description }}",
                 "rows": 6,
-                "placeholder": "Describe this idea...",
+                "placeholder": {
+                  "$type": "translation",
+                  "en": "Describe this idea...",
+                  "ru": "Опишите эту идею..."
+                },
                 "class": "w-full"
               },
               "events": {
@@ -187,7 +199,11 @@
                       "props": {
                         "class": "text-sm font-medium text-[var(--ui-text-muted)]"
                       },
-                      "children": "Level"
+                      "children": {
+                        "$type": "translation",
+                        "en": "Level",
+                        "ru": "Уровень"
+                      }
                     },
                     {
                       "component": "USelect",
@@ -227,7 +243,11 @@
                       "props": {
                         "class": "text-sm font-medium text-[var(--ui-text-muted)]"
                       },
-                      "children": "Type"
+                      "children": {
+                        "$type": "translation",
+                        "en": "Type",
+                        "ru": "Тип"
+                      }
                     },
                     {
                       "component": "USelect",
@@ -269,7 +289,11 @@
                       "props": {
                         "class": "text-sm font-medium text-[var(--ui-text-muted)]"
                       },
-                      "children": "Status"
+                      "children": {
+                        "$type": "translation",
+                        "en": "Status",
+                        "ru": "Статус"
+                      }
                     },
                     {
                       "component": "USelect",

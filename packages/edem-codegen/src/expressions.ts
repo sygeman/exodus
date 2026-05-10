@@ -2,6 +2,7 @@
 // Resolves template expressions ({{ expr }}) in different output contexts.
 // Centralizes route param mapping — no more hardcoded projectId/ideaId.
 
+import type { Translation } from "@exodus/edem-ui"
 import type { IR, IRRoute } from "./ir"
 
 export interface ExpressionContext {
@@ -158,4 +159,32 @@ function findRouteInList(routes: IRRoute[], compName: string): IRRoute | undefin
     }
   }
   return undefined
+}
+
+// ── i18n Translation Helpers ──────────────────────────────────────────────────
+
+/**
+ * Checks if an object is a translation record by looking for the `$type: "translation"` marker.
+ */
+export function isTranslation(obj: unknown): obj is Translation {
+  return (
+    typeof obj === "object" &&
+    obj !== null &&
+    !Array.isArray(obj) &&
+    "$type" in obj &&
+    (obj as Record<string, unknown>).$type === "translation"
+  )
+}
+
+/**
+ * Renders a translation object as a t() call.
+ * Filters out the $type marker. Uses single quotes for values to avoid
+ * conflicts with HTML attribute double quotes.
+ */
+export function renderT(translations: Translation): string {
+  const entries = Object.entries(translations)
+    .filter(([k]) => k !== "$type")
+    .map(([lang, text]) => `${lang}: '${text.replace(/'/g, "\\'")}'`)
+    .join(", ")
+  return `t({ ${entries} })`
 }

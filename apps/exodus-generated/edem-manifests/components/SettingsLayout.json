@@ -7,7 +7,11 @@
     {
       "component": "MenuLayout",
       "props": {
-        "title": "Settings",
+        "title": {
+          "$type": "translation",
+          "en": "Settings",
+          "ru": "Настройки"
+        },
         "items": "{{ navItems }}",
         "main-class": "overflow-y-auto p-10"
       },

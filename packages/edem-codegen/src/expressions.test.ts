@@ -6,6 +6,8 @@ import {
   resolveExpr,
   resolveInString,
   resolveVueExpression,
+  isTranslation,
+  renderT,
 } from "./expressions"
 import type { ExpressionContext } from "./expressions"
 import type { IR } from "./ir"
@@ -120,5 +122,60 @@ describe("resolveVueExpression", () => {
 
   it("returns strings without expressions as-is", () => {
     expect(resolveVueExpression("hello", ctx())).toBe("hello")
+  })
+})
+
+describe("isTranslation", () => {
+  it("returns true for translation objects with $type marker", () => {
+    expect(isTranslation({ $type: "translation", en: "Delete", ru: "Удалить" })).toBe(true)
+  })
+
+  it("returns true for single language with $type", () => {
+    expect(isTranslation({ $type: "translation", en: "Hello" })).toBe(true)
+  })
+
+  it("returns false for object without $type", () => {
+    expect(isTranslation({ en: "Delete", ru: "Удалить" })).toBe(false)
+  })
+
+  it("returns false for ComponentNode", () => {
+    expect(isTranslation({ component: "div", children: "text" })).toBe(false)
+  })
+
+  it("returns false for strings", () => {
+    expect(isTranslation("hello")).toBe(false)
+  })
+
+  it("returns false for null", () => {
+    expect(isTranslation(null)).toBe(false)
+  })
+
+  it("returns false for arrays", () => {
+    expect(isTranslation([{ $type: "translation", en: "test" }])).toBe(false)
+  })
+
+  it("returns false if $type is not 'translation'", () => {
+    expect(isTranslation({ $type: "other", en: "Hello" })).toBe(false)
+  })
+})
+
+describe("renderT", () => {
+  it("renders a translation object as t() call, filtering $type", () => {
+    const result = renderT({ $type: "translation", en: "Delete", ru: "Удалить" })
+    expect(result).toBe("t({ en: 'Delete', ru: 'Удалить' })")
+  })
+
+  it("renders single language", () => {
+    const result = renderT({ $type: "translation", en: "Hello" })
+    expect(result).toBe("t({ en: 'Hello' })")
+  })
+
+  it("escapes quotes in text", () => {
+    const result = renderT({
+      $type: "translation",
+      en: "He said 'hello'",
+      ru: "Он сказал 'привет'",
+    })
+    expect(result).toBe("t({ en: 'He said \\'hello\\'', ru: 'Он сказал \\'привет\\'' })")
   })
 })

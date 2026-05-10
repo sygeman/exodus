@@ -64,7 +64,11 @@
               "props": {
                 "class": "mb-6 text-xl font-semibold text-[var(--ui-text)]"
               },
-              "children": "Updating..."
+              "children": {
+                "$type": "translation",
+                "en": "Updating...",
+                "ru": "Обновление..."
+              }
             },
             {
               "component": "div",

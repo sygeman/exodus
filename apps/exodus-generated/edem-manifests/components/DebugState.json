@@ -15,7 +15,11 @@
           "props": {
             "class": "text-xl font-bold"
           },
-          "children": "State"
+          "children": {
+            "$type": "translation",
+            "en": "State",
+            "ru": "Состояние"
+          }
         },
         {
           "component": "UButton",
@@ -28,7 +32,11 @@
               "flow": "refreshState"
             }
           },
-          "children": "Refresh"
+          "children": {
+            "$type": "translation",
+            "en": "Refresh",
+            "ru": "Обновить"
+          }
         }
       ]
     },

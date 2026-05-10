@@ -1,47 +1,93 @@
 {
   "component": "div",
-  "props": { "class": "flex h-full flex-col p-6" },
+  "props": {
+    "class": "flex h-full flex-col p-6"
+  },
   "children": [
     {
       "component": "div",
-      "props": { "class": "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3" },
+      "props": {
+        "class": "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      },
       "children": [
         {
           "component": "button",
           "props": {
             "class": "flex flex-col gap-2 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] p-5 text-left transition-colors hover:border-[var(--ui-primary)] hover:bg-[var(--ui-bg-elevated)]/80"
           },
-          "events": { "click": { "navigate": "/project/{{ projectId }}/ideas" } },
+          "events": {
+            "click": {
+              "navigate": "/project/{{ id }}/ideas"
+            }
+          },
           "children": [
             {
               "component": "div",
-              "props": { "class": "flex items-center gap-2 text-[var(--ui-text-muted)]" },
+              "props": {
+                "class": "flex items-center gap-2 text-[var(--ui-text-muted)]"
+              },
               "children": [
-                { "component": "UIcon", "props": { "name": "i-lucide-lightbulb", "class": "h-4 w-4" } },
-                { "component": "span", "props": { "class": "text-sm font-medium" }, "children": "Ideas" }
+                {
+                  "component": "UIcon",
+                  "props": {
+                    "name": "i-lucide-lightbulb",
+                    "class": "h-4 w-4"
+                  }
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "text-sm font-medium"
+                  },
+                  "children": {
+                    "$type": "translation",
+                    "en": "Ideas",
+                    "ru": "Идеи"
+                  }
+                }
               ]
             },
-            { "component": "span", "props": { "class": "text-3xl font-bold" }, "children": "{{ ideas.length }}" }
+            {
+              "component": "span",
+              "props": {
+                "class": "text-3xl font-bold"
+              },
+              "children": "{{ ideas.length }}"
+            }
           ]
         }
       ]
     },
     {
       "component": "h3",
-      "props": { "class": "mt-8 mb-3 text-sm font-medium text-[var(--ui-text-muted)]" },
-      "children": "Recent Ideas"
+      "props": {
+        "class": "mt-8 mb-3 text-sm font-medium text-[var(--ui-text-muted)]"
+      },
+      "children": {
+        "$type": "translation",
+        "en": "Recent Ideas",
+        "ru": "Последние идеи"
+      }
     },
     {
       "component": "div",
-      "props": { "class": "flex flex-col gap-2" },
+      "props": {
+        "class": "flex flex-col gap-2"
+      },
       "bind": {
         "collection": "ideas",
-        "filter": { "project_id": { "_eq": "{{ projectId }}" } },
-        "sort": ["-created_at"],
+        "filter": {
+          "project_id": {
+            "_eq": "{{ id }}"
+          }
+        },
+        "sort": [
+          "-created_at"
+        ],
         "item": {
           "component": "RouterLink",
           "props": {
-            "to": "/project/{{ projectId }}/ideas/{{ item.id }}",
+            "to": "/project/{{ id }}/ideas/{{ item.id }}",
             "class": "flex items-center gap-3 rounded-lg border border-[var(--ui-border)] p-4 transition-colors hover:bg-[var(--ui-bg-elevated)]"
           },
           "children": [
@@ -55,10 +101,24 @@
             },
             {
               "component": "div",
-              "props": { "class": "flex flex-col" },
+              "props": {
+                "class": "flex flex-col"
+              },
               "children": [
-                { "component": "span", "props": { "class": "font-medium" }, "children": "{{ item.title }}" },
-                { "component": "span", "props": { "class": "text-xs text-[var(--ui-text-muted)]" }, "children": "{{ item.type }}" }
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "font-medium"
+                  },
+                  "children": "{{ item.title }}"
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "text-xs text-[var(--ui-text-muted)]"
+                  },
+                  "children": "{{ item.type }}"
+                }
               ]
             }
           ]

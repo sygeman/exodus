@@ -21,7 +21,11 @@
               "props": {
                 "class": "text-xl font-bold"
               },
-              "children": "Logs"
+              "children": {
+                "$type": "translation",
+                "en": "Logs",
+                "ru": "Логи"
+              }
             },
             {
               "component": "UBadge",
@@ -29,7 +33,11 @@
                 "color": "warning",
                 "variant": "subtle"
               },
-              "children": "Paused"
+              "children": {
+                "$type": "translation",
+                "en": "Paused",
+                "ru": "Приостановлено"
+              }
             }
           ]
         },
@@ -50,7 +58,11 @@
                   "props": {
                     "class": "text-[var(--ui-text-dimmed)]"
                   },
-                  "children": "Debug"
+                  "children": {
+                    "$type": "translation",
+                    "en": "Debug",
+                    "ru": "Отладка"
+                  }
                 },
                 {
                   "component": "span",
@@ -114,7 +126,11 @@
                   "flow": "togglePauseLogs"
                 }
               },
-              "children": "Resume"
+              "children": {
+                "$type": "translation",
+                "en": "Resume",
+                "ru": "Продолжить"
+              }
             },
             {
               "component": "UButton",
@@ -127,7 +143,11 @@
                   "flow": "clearLogs"
                 }
               },
-              "children": "Clear"
+              "children": {
+                "$type": "translation",
+                "en": "Clear",
+                "ru": "Очистить"
+              }
             }
           ]
         }
@@ -159,7 +179,11 @@
           "component": "UInput",
           "props": {
             "modelValue": "{{ textFilter }}",
-            "placeholder": "Search logs...",
+            "placeholder": {
+              "$type": "translation",
+              "en": "Search logs...",
+              "ru": "Поиск по логам..."
+            },
             "class": "min-w-0 flex-1"
           }
         }

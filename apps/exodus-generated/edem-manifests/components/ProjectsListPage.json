@@ -84,7 +84,11 @@
           "props": {
             "class": "text-lg text-[var(--ui-text-muted)]"
           },
-          "children": "No projects yet"
+          "children": {
+            "$type": "translation",
+            "en": "No projects yet",
+            "ru": "Пока нет проектов"
+          }
         },
         {
           "component": "UButton",
@@ -93,7 +97,11 @@
               "flow": "createProject"
             }
           },
-          "children": "Create project"
+          "children": {
+            "$type": "translation",
+            "en": "Create project",
+            "ru": "Создать проект"
+          }
         }
       ]
     },
@@ -115,7 +123,11 @@
               "props": {
                 "class": "text-2xl font-bold"
               },
-              "children": "Projects"
+              "children": {
+                "$type": "translation",
+                "en": "Projects",
+                "ru": "Проекты"
+              }
             },
             {
               "component": "UButton",
@@ -124,7 +136,11 @@
                   "flow": "createProject"
                 }
               },
-              "children": "New project"
+              "children": {
+                "$type": "translation",
+                "en": "New project",
+                "ru": "Новый проект"
+              }
             }
           ]
         },

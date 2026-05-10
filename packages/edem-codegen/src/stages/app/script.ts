@@ -3,7 +3,7 @@
 
 import type { IR, IRComponent, ExtendedComponentNode } from "../../ir"
 import { capitalize, camelCase } from "../../utils"
-import { findRouteForComponent } from "../../expressions"
+import { findRouteForComponent, isTranslation } from "../../expressions"
 import { collectFromTree, someInTree } from "../../walker"
 
 export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, string>): string {
@@ -70,13 +70,9 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
   // Generate route param computed variables
   if (route && route.params.length > 0) {
     for (const param of route.params) {
-      const paramName = param.replace(/Id$/, "")
-      if (paramName !== param) {
-        // e.g. projectId → computed(() => route.params.id)
-        const routeParam = paramName.toLowerCase() === "project" ? "id" : param
-        statements.push(`const ${param} = computed(() => route.params.${routeParam})`)
-        needsComputed.add("computed")
-      }
+      if (param.includes("(") || param.includes("*") || param.includes(".")) continue
+      statements.push(`const ${param} = computed(() => route.params.${param})`)
+      needsComputed.add("computed")
     }
   }
 
@@ -94,6 +90,24 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
 
   if (routerImports.size > 0) {
     imports.unshift(`import { ${[...routerImports].join(", ")} } from "vue-router"`)
+  }
+
+  // Check for translations (i18n)
+  const hasTranslations = someInTree(comp.tree, (n) => {
+    if (isTranslation(n)) return true
+    if (typeof n.children === "object" && !Array.isArray(n.children) && isTranslation(n.children))
+      return true
+    if (n.props) {
+      for (const v of Object.values(n.props)) {
+        if (typeof v === "object" && v !== null && isTranslation(v)) return true
+      }
+    }
+    return false
+  })
+
+  if (hasTranslations) {
+    imports.push(`import { useT } from "@/composables/useT"`)
+    statements.push(`const t = useT()`)
   }
 
   if (needsComputed.size > 0 || needsRef_flag || needsRef(comp)) {
@@ -141,7 +155,18 @@ function needsRef(comp: IRComponent): boolean {
 }
 
 function hasSkeleton(node: ExtendedComponentNode): boolean {
-  return someInTree(node, (n) => !!n.skeleton)
+  return someInTree(node, (n) => {
+    if (n.skeleton) return true
+    if (Array.isArray(n.children)) {
+      return n.children.some(
+        (c) =>
+          typeof c === "object" &&
+          "component" in c &&
+          (c as ExtendedComponentNode).component === "USkeleton",
+      )
+    }
+    return false
+  })
 }
 
 function collectFunctionCalls(node: ExtendedComponentNode): Set<string> {
@@ -205,6 +230,15 @@ function generateHelperFunction(name: string): string {
       return `function getIdeaTypeColor(type: string): string {
   const colors: Record<string, string> = { goal: "#22c55e", non_goal: "#ef4444", constraint: "#f97316", invariant: "#06b6d4", component: "#8b5cf6", decision: "#eab308", principle: "#3b82f6" }
   return colors[type] ?? "#6b7280"
+}`
+    case "getInitials":
+      return `function getInitials(name: string): string {
+  return name.slice(0, 2).toUpperCase()
+}`
+    case "formatTime":
+      return `function formatTime(ts: number | string | Date): string {
+  const d = new Date(ts)
+  return d.toLocaleTimeString()
 }`
     default:
       return `// TODO: implement ${name}`

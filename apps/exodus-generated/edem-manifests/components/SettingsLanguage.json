@@ -21,14 +21,22 @@
               "props": {
                 "class": "text-base font-medium"
               },
-              "children": "Language"
+              "children": {
+                "$type": "translation",
+                "en": "Language",
+                "ru": "Язык"
+              }
             },
             {
               "component": "p",
               "props": {
                 "class": "text-sm text-[var(--ui-text-muted)]"
               },
-              "children": "Select your preferred language"
+              "children": {
+                "$type": "translation",
+                "en": "Select your preferred language",
+                "ru": "Выберите предпочтительный язык"
+              }
             }
           ]
         },

@@ -22,14 +22,22 @@
           "props": {
             "class": "text-2xl font-bold text-[var(--ui-text)]"
           },
-          "children": "Page not found"
+          "children": {
+            "$type": "translation",
+            "en": "Page not found",
+            "ru": "Страница не найдена"
+          }
         },
         {
           "component": "p",
           "props": {
             "class": "mt-2 text-sm opacity-60"
           },
-          "children": "The page you're looking for doesn't exist."
+          "children": {
+            "$type": "translation",
+            "en": "The page you're looking for doesn't exist.",
+            "ru": "Запрашиваемая страница не существует."
+          }
         }
       ]
     },
@@ -39,7 +47,11 @@
         "to": "/projects",
         "color": "primary"
       },
-      "children": "Go to projects"
+      "children": {
+        "$type": "translation",
+        "en": "Go to projects",
+        "ru": "Перейти к проектам"
+      }
     }
   ]
 }

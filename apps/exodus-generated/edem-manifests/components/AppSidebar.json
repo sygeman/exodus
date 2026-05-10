@@ -31,7 +31,11 @@
         {
           "component": "UTooltip",
           "props": {
-            "text": "Settings",
+            "text": {
+              "$type": "translation",
+              "en": "Settings",
+              "ru": "Настройки"
+            },
             "delay-duration": 0
           },
           "children": [

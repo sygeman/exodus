@@ -1,6 +1,8 @@
 {
   "component": "aside",
-  "props": { "class": "electrobun-webkit-app-region-drag flex w-16 flex-col items-center select-none [&&>*]:select-none" },
+  "props": {
+    "class": "electrobun-webkit-app-region-drag flex w-16 flex-col items-center select-none [&&>*]:select-none"
+  },
   "children": [
     {
       "component": "RouterLink",
@@ -9,17 +11,33 @@
         "class": "electrobun-webkit-app-region-no-drag flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-lg"
       },
       "children": [
-        { "component": "LogoSvg", "props": { "class": "h-8 w-8" } }
+        {
+          "component": "LogoSvg",
+          "props": {
+            "class": "h-8 w-8"
+          }
+        }
       ]
     },
-    { "component": "ProjectsSidebar" },
+    {
+      "component": "ProjectsSidebar"
+    },
     {
       "component": "div",
-      "props": { "class": "my-2 flex flex-shrink-0 flex-col items-center gap-1" },
+      "props": {
+        "class": "my-2 flex flex-shrink-0 flex-col items-center gap-1"
+      },
       "children": [
         {
           "component": "UTooltip",
-          "props": { "text": "Settings", "delay-duration": 0 },
+          "props": {
+            "text": {
+              "$type": "translation",
+              "en": "Settings",
+              "ru": "Настройки"
+            },
+            "delay-duration": 0
+          },
           "children": [
             {
               "component": "RouterLink",
@@ -29,7 +47,13 @@
                 "active-class": "bg-[var(--ui-bg)] text-[var(--ui-text)]"
               },
               "children": [
-                { "component": "UIcon", "props": { "name": "i-lucide-settings", "class": "h-5 w-5" } }
+                {
+                  "component": "UIcon",
+                  "props": {
+                    "name": "i-lucide-settings",
+                    "class": "h-5 w-5"
+                  }
+                }
               ]
             }
           ]

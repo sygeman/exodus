@@ -20,7 +20,11 @@
         },
         {
           "component": "p",
-          "children": "Project not found"
+          "children": {
+            "$type": "translation",
+            "en": "Project not found",
+            "ru": "Проект не найден"
+          }
         },
         {
           "component": "UButton",
@@ -28,14 +32,22 @@
             "to": "/projects",
             "variant": "link"
           },
-          "children": "Back to list"
+          "children": {
+            "$type": "translation",
+            "en": "Back to list",
+            "ru": "Назад к списку"
+          }
         }
       ]
     },
     {
       "component": "MenuLayout",
       "props": {
-        "title": "Settings",
+        "title": {
+          "$type": "translation",
+          "en": "Settings",
+          "ru": "Настройки"
+        },
         "items": "{{ navItems }}",
         "main-class": "overflow-y-auto p-10"
       },
@@ -52,7 +64,11 @@
                 "props": {
                   "class": "mb-8 text-2xl font-bold"
                 },
-                "children": "Settings"
+                "children": {
+                  "$type": "translation",
+                  "en": "Settings",
+                  "ru": "Настройки"
+                }
               },
               {
                 "component": "section",
@@ -77,14 +93,22 @@
                             "props": {
                               "class": "text-base font-medium"
                             },
-                            "children": "Name"
+                            "children": {
+                              "$type": "translation",
+                              "en": "Name",
+                              "ru": "Название"
+                            }
                           },
                           {
                             "component": "p",
                             "props": {
                               "class": "text-sm text-[var(--ui-text-muted)]"
                             },
-                            "children": "Display name of the project"
+                            "children": {
+                              "$type": "translation",
+                              "en": "Display name of the project",
+                              "ru": "Отображаемое название проекта"
+                            }
                           }
                         ]
                       },
@@ -99,7 +123,7 @@
                             "action": "updateItem",
                             "collection": "projects",
                             "data": {
-                              "id": "{{ projectId }}",
+                              "id": "{{ id }}",
                               "name": "{{ event }}"
                             }
                           }
@@ -124,14 +148,22 @@
                             "props": {
                               "class": "text-base font-medium"
                             },
-                            "children": "Color"
+                            "children": {
+                              "$type": "translation",
+                              "en": "Color",
+                              "ru": "Цвет"
+                            }
                           },
                           {
                             "component": "p",
                             "props": {
                               "class": "text-sm text-[var(--ui-text-muted)]"
                             },
-                            "children": "Project color for sidebar"
+                            "children": {
+                              "$type": "translation",
+                              "en": "Project color for sidebar",
+                              "ru": "Цвет проекта для боковой панели"
+                            }
                           }
                         ]
                       },
@@ -162,7 +194,7 @@
                                 "action": "updateItem",
                                 "collection": "projects",
                                 "data": {
-                                  "id": "{{ projectId }}",
+                                  "id": "{{ id }}",
                                   "color": "{{ item }}"
                                 }
                               }
@@ -180,14 +212,22 @@
                         "props": {
                           "class": "mb-2 text-base font-medium text-[var(--ui-error)]"
                         },
-                        "children": "Delete project"
+                        "children": {
+                          "$type": "translation",
+                          "en": "Delete project",
+                          "ru": "Удалить проект"
+                        }
                       },
                       {
                         "component": "p",
                         "props": {
                           "class": "mb-4 text-sm text-[var(--ui-text-muted)]"
                         },
-                        "children": "Permanently delete this project and all its ideas."
+                        "children": {
+                          "$type": "translation",
+                          "en": "Permanently delete this project and all its ideas.",
+                          "ru": "Безвозвратно удалить этот проект и все его идеи."
+                        }
                       },
                       {
                         "component": "UButton",
@@ -199,7 +239,7 @@
                           "click": {
                             "flow": "deleteProject",
                             "input": {
-                              "projectId": "{{ projectId }}"
+                              "projectId": "{{ id }}"
                             }
                           }
                         },
@@ -216,7 +256,11 @@
                             "props": {
                               "class": "ml-2"
                             },
-                            "children": "Delete"
+                            "children": {
+                              "$type": "translation",
+                              "en": "Delete",
+                              "ru": "Удалить"
+                            }
                           }
                         ]
                       }

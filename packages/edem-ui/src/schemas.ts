@@ -2,10 +2,15 @@ import { z } from "zod"
 
 // ── Types (manual, to break circular lazy inference) ──────────────────────────
 
+export interface Translation {
+  $type: "translation"
+  [lang: string]: string
+}
+
 export interface ComponentNode {
   component: string
   props?: Record<string, unknown>
-  children?: ComponentNode[] | string
+  children?: ComponentNode[] | string | Translation
   events?: Record<string, EventBinding>
   bind?: DataBinding
 
@@ -21,8 +26,8 @@ export interface ComponentNode {
   /** Wrap in UModal — vModel controls open state */
   modal?: {
     vModel: string
-    title?: string
-    description?: string
+    title?: string | Translation
+    description?: string | Translation
     footer?: ComponentNode[]
   }
   /** Wrap in <Teleport to="..."> */
@@ -43,7 +48,7 @@ export interface ComponentNode {
   /** Empty state shown when collection is empty */
   empty?: {
     icon?: string
-    text?: string
+    text?: string | Translation
     action?: ComponentNode
   }
 }
@@ -103,12 +108,14 @@ export const dataBindingSchema: z.ZodType<DataBinding> = z.lazy(
     }) as z.ZodType<DataBinding>,
 )
 
+const translationSchema = z.object({ $type: z.literal("translation") }).catchall(z.string())
+
 export const componentNodeSchema: z.ZodType<ComponentNode> = z.lazy(
   () =>
     z.object({
       component: z.string(),
       props: z.record(z.string(), z.any()).optional(),
-      children: z.union([z.array(componentNodeSchema), z.string()]).optional(),
+      children: z.union([z.array(componentNodeSchema), z.string(), translationSchema]).optional(),
       events: z.record(z.string(), eventBindingSchema).optional(),
       bind: dataBindingSchema.optional(),
       if: z.string().optional(),
@@ -118,8 +125,8 @@ export const componentNodeSchema: z.ZodType<ComponentNode> = z.lazy(
       modal: z
         .object({
           vModel: z.string(),
-          title: z.string().optional(),
-          description: z.string().optional(),
+          title: z.union([z.string(), translationSchema]).optional(),
+          description: z.union([z.string(), translationSchema]).optional(),
           footer: z.array(componentNodeSchema).optional(),
         })
         .optional(),
@@ -139,7 +146,7 @@ export const componentNodeSchema: z.ZodType<ComponentNode> = z.lazy(
       empty: z
         .object({
           icon: z.string().optional(),
-          text: z.string().optional(),
+          text: z.union([z.string(), translationSchema]).optional(),
           action: componentNodeSchema.optional(),
         })
         .optional(),

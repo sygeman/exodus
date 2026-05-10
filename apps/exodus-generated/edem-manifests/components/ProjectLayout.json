@@ -13,7 +13,7 @@
         {
           "component": "RouterLink",
           "props": {
-            "to": "/project/{{ projectId }}/overview",
+            "to": "/project/{{ id }}/overview",
             "class": "text-lg font-semibold transition-colors hover:text-[var(--ui-primary)]"
           },
           "children": "{{ project.name }}"
@@ -27,7 +27,7 @@
             {
               "component": "RouterLink",
               "props": {
-                "to": "/project/{{ projectId }}/overview",
+                "to": "/project/{{ id }}/overview",
                 "class": "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
               },
               "children": [
@@ -44,7 +44,7 @@
             {
               "component": "RouterLink",
               "props": {
-                "to": "/project/{{ projectId }}/ideas",
+                "to": "/project/{{ id }}/ideas",
                 "class": "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
               },
               "children": [
@@ -61,7 +61,7 @@
             {
               "component": "RouterLink",
               "props": {
-                "to": "/project/{{ projectId }}/settings",
+                "to": "/project/{{ id }}/settings",
                 "class": "flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
               },
               "children": [

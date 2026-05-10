@@ -1,20 +1,32 @@
 {
   "component": "div",
-  "props": { "class": "flex h-full w-full" },
+  "props": {
+    "class": "flex h-full w-full"
+  },
   "children": [
     {
       "component": "aside",
-      "props": { "class": "border-default flex w-56 flex-col gap-6 border-r p-4" },
+      "props": {
+        "class": "border-default flex w-56 flex-col gap-6 border-r p-4"
+      },
       "children": [
         {
           "component": "div",
           "children": [
-            { "component": "h2", "props": { "class": "px-2 text-xl font-bold" }, "children": "{{ title }}" }
+            {
+              "component": "h2",
+              "props": {
+                "class": "px-2 text-xl font-bold"
+              },
+              "children": "{{ title }}"
+            }
           ]
         },
         {
           "component": "nav",
-          "props": { "class": "flex flex-col gap-0.5" },
+          "props": {
+            "class": "flex flex-col gap-0.5"
+          },
           "children": [
             {
               "component": "RouterLink",
@@ -26,9 +38,17 @@
                 "items": "{{ navItems }}",
                 "item": {
                   "component": "span",
-                  "props": { "class": "flex items-center gap-3" },
+                  "props": {
+                    "class": "flex items-center gap-3"
+                  },
                   "children": [
-                    { "component": "UIcon", "props": { "name": "{{ item.icon }}", "class": "h-4 w-4" } },
+                    {
+                      "component": "UIcon",
+                      "props": {
+                        "name": "{{ item.icon }}",
+                        "class": "h-4 w-4"
+                      }
+                    },
                     "{{ item.label }}"
                   ]
                 }
@@ -40,10 +60,14 @@
     },
     {
       "component": "main",
-      "props": { "class": "w-full flex-1" },
+      "props": {
+        "class": "w-full flex-1"
+      },
       "namedSlots": {
         "default": [
-          { "component": "RouterView" }
+          {
+            "component": "RouterView"
+          }
         ]
       }
     }
