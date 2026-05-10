@@ -1,4 +1,7 @@
 # Exodus vs Generated — Comparison
+Мы делаем apps/exodus генерируемыем через edem, результат apps/exodus-generated
+За генерацию отвечает packages/edem-codegen, команда exodus-gen
+Сейчас приложение еще не полностью работает, ниже ключевые отличия
 
 ## Критичное
 

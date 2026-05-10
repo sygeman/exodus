@@ -27,16 +27,7 @@ export interface Idea {
   updated_at: number
 }
 
-const PROJECT_COLORS = [
-  "#ef4444",
-  "#f97316",
-  "#eab308",
-  "#22c55e",
-  "#06b6d4",
-  "#3b82f6",
-  "#a855f7",
-  "#ec4899",
-]
+import { PROJECT_COLORS } from "./constants"
 
 function getRandomColor(): string {
   return PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)]
