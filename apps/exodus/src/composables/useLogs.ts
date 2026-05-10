@@ -1,7 +1,6 @@
 import { ref, computed, watch, onMounted, onUnmounted } from "vue"
 import { edem } from "@/edem"
-import { webviewLogger } from "@/modules/logger/webview"
-import type { LogEntry } from "@/modules/logger/types"
+import { webviewLogger, type LogEntry } from "@/platform/logger"
 
 const PAGE_SIZE = 100
 const COLLECTION_ID = "logs"

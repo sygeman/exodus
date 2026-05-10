@@ -14,28 +14,6 @@ interface WindowFrame {
 const MIN_WINDOW_WIDTH = 400
 const MIN_WINDOW_HEIGHT = 300
 
-const COLLECTION_ID = "app_state"
-
-let stateItemId: string | null = null
-
-export async function ensureStateItem(data: EdemData): Promise<string> {
-  if (stateItemId) return stateItemId
-  const { items } = await data.queryItems({ collection_id: COLLECTION_ID })
-  if (items.length > 0) {
-    stateItemId = items[0].id
-    return stateItemId
-  }
-  const { id } = await data.createItem({
-    collection_id: COLLECTION_ID,
-    data: {
-      window_frame: null,
-      window_maximized: false,
-    },
-  })
-  stateItemId = id
-  return id
-}
-
 function getSystemLocale(): string {
   try {
     return Intl.DateTimeFormat().resolvedOptions().locale
@@ -84,8 +62,8 @@ function getSystemTheme(): "dark" | "light" {
 }
 
 export async function initStateDefaults(data: EdemData) {
-  const id = await ensureStateItem(data)
-  const { items } = await data.queryItems({ collection_id: COLLECTION_ID })
+  const { items } = await data.queryItems({ collection_id: "app_state" })
+  if (items.length === 0) return
   const item = items[0]
   const patch: Record<string, unknown> = {}
 
@@ -97,7 +75,7 @@ export async function initStateDefaults(data: EdemData) {
   }
 
   if (Object.keys(patch).length > 0) {
-    await data.updateItem({ item_id: id, data: patch })
+    await data.updateItem({ item_id: item.id, data: patch })
   }
 }
 

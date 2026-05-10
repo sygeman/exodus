@@ -3,7 +3,7 @@ import { computed } from "vue"
 import { useI18n } from "vue-i18n"
 import { useRouter } from "vue-router"
 import { edem } from "@/edem"
-import { useUpdaterStatus } from "@/modules/updater/composables/useUpdaterStatus"
+import { useUpdaterStatus } from "@/composables/useUpdaterStatus"
 
 const { t } = useI18n()
 const router = useRouter()

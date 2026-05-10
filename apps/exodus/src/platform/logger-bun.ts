@@ -1,10 +1,19 @@
-import type { LogLevel } from "@/modules/logger/types"
+import type { dataModule } from "@exodus/edem-data"
+import type { InferModuleAPI } from "@exodus/edem-core"
 
-interface DedupState {
-  count: number
-  lastArgs: unknown[]
-  timeout: ReturnType<typeof setTimeout>
+export type LogLevel = "debug" | "info" | "warn" | "error"
+
+export interface LogEntry {
+  id: string
+  timestamp: number
+  level: LogLevel
+  source: "bun" | "webview"
+  message: string
+  args: unknown[]
+  count?: number
 }
+
+type EdemData = InferModuleAPI<typeof dataModule>
 
 const DEDUP_WINDOW_MS = 1000
 const MAX_RECENT_LOGS = 1000
@@ -31,11 +40,18 @@ function cloneArgs(args: unknown[]): unknown[] {
   })
 }
 
-export function createDedup(
+function createDedup(
   insertFn: (entry: { level: LogLevel; message: string; args: unknown[]; count?: number }) => void,
 ) {
   const recentLogs = new Map<string, number>()
-  const pendingDedups = new Map<string, DedupState>()
+  const pendingDedups = new Map<
+    string,
+    {
+      count: number
+      lastArgs: unknown[]
+      timeout: ReturnType<typeof setTimeout>
+    }
+  >()
 
   function shouldDedupe(level: LogLevel, message: string): boolean {
     if (level !== "warn" && level !== "error") return false
@@ -95,3 +111,48 @@ export function createDedup(
 
   return { add }
 }
+
+class BunLogger {
+  private edemData: EdemData | null = null
+  private patched = false
+
+  attach(data: EdemData) {
+    this.edemData = data
+    this.patchConsole()
+  }
+
+  private patchConsole() {
+    if (this.patched) return
+    this.patched = true
+
+    const original = {
+      log: console.log,
+      info: console.info,
+      warn: console.warn,
+      error: console.error,
+      debug: console.debug,
+    }
+
+    const { add } = createDedup((entry) => {
+      if (!this.edemData) return
+      this.edemData
+        .createItem({ collection_id: "logs", data: { ...entry, source: "bun" } })
+        .catch(() => {})
+    })
+
+    const createHandler =
+      (level: LogLevel) =>
+      (...args: unknown[]) => {
+        original[level].apply(console, args)
+        add(level, args)
+      }
+
+    console.log = createHandler("info")
+    console.info = createHandler("info")
+    console.warn = createHandler("warn")
+    console.error = createHandler("error")
+    console.debug = createHandler("debug")
+  }
+}
+
+export const bunLogger = new BunLogger()

@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
-import { useProjects } from "@/modules/projects/webview"
+import { useProjects, PROJECT_COLORS } from "@/composables/useProjects"
 import { computed, ref } from "vue"
 import SettingsLayout from "@/components/SettingsLayout.vue"
 import type { MenuLayoutItem } from "@/components/MenuLayout.vue"
-import { PROJECT_COLORS } from "@/modules/projects/constants"
 import { useCollectionLabels } from "@/composables/useCollectionLabels"
 
 const { t } = useI18n()

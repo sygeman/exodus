@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
 import { useRoute } from "vue-router"
-import { useProjects } from "@/modules/projects/webview"
+import { useProjects } from "@/composables/useProjects"
 import { computed } from "vue"
 
 const { t } = useI18n()

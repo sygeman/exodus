@@ -1,14 +1,11 @@
-import de from "./de"
 import en from "./en"
-import pl from "./pl"
 import ru from "./ru"
-import zh from "./zh"
 import settings from "@/modules/settings/i18n"
 import debug from "@/modules/debug/i18n"
 import projects from "@/modules/projects/i18n"
 import updater from "@/modules/updater/i18n"
 
-const base = { de, en, pl, ru, zh }
+const base = { en, ru }
 
 const modules = [settings, debug, projects, updater]
 
@@ -35,21 +32,15 @@ function mergeForLocale(locale: keyof typeof base) {
 }
 
 export const messages = {
-  de: mergeForLocale("de"),
   en: mergeForLocale("en"),
-  pl: mergeForLocale("pl"),
   ru: mergeForLocale("ru"),
-  zh: mergeForLocale("zh"),
 }
 
 export type Locale = keyof typeof messages
 export const defaultLocale: Locale = "en"
 export const locales: { value: Locale; label: string; flag: string }[] = [
-  { value: "de", label: "Deutsch", flag: "🇩🇪" },
   { value: "en", label: "English", flag: "🇺🇸" },
-  { value: "pl", label: "Polski", flag: "🇵🇱" },
   { value: "ru", label: "Русский", flag: "🇷🇺" },
-  { value: "zh", label: "简体中文", flag: "🇨🇳" },
 ]
 
 export function resolveLocale(systemLocale: string | null): Locale {

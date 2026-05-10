@@ -2,8 +2,8 @@
 import { useI18n } from "vue-i18n"
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref, watch } from "vue"
-import { useIdeas } from "@/modules/projects/webview"
-import { getLevelColor } from "@/modules/projects/composables/useLevelColor"
+import { useIdeas } from "@/composables/useIdeas"
+import { getLevelColor } from "@/composables/useLevelColor"
 
 const { t } = useI18n()
 const route = useRoute()

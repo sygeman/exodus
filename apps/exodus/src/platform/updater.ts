@@ -1,7 +1,7 @@
-import { createEdemModule, type InferModuleAPI } from "@exodus/edem-core"
-import type { dataModule } from "@exodus/edem-data"
-import { z } from "zod"
 import { Updater } from "electrobun/bun"
+import type { dataModule } from "@exodus/edem-data"
+import { createEdemModule, type InferModuleAPI } from "@exodus/edem-core"
+import { z } from "zod"
 
 type EdemData = InferModuleAPI<typeof dataModule>
 

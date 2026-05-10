@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
 import { useI18n } from "vue-i18n"
-import { useLogger } from "@/modules/logger/composables/useLogger"
+import { useLogger } from "@/composables/useLogs"
 
 const { t } = useI18n()
 

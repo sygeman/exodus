@@ -1,17 +1,13 @@
 import "./app.css"
 import ui from "@nuxt/ui/vue-plugin"
 import { createApp, watch } from "vue"
-import { createRouter, createWebHashHistory } from "vue-router"
 import { createI18n } from "vue-i18n"
 import { useColorMode } from "@vueuse/core"
 import App from "./App.vue"
-import { projectsRoutes } from "@/modules/projects/routes"
-import { debugRoutes } from "@/modules/debug/routes"
-import { settingsRoutes } from "@/modules/settings/routes"
-import NotFound from "./pages/NotFound.vue"
+import router from "./router"
 import { rpc } from "./edem-bridge"
 import { Electroview } from "electrobun/view"
-import { webviewLogger } from "@/modules/logger/webview"
+import { webviewLogger } from "./platform/logger"
 import { defaultLocale, messages, resolveLocale } from "./locales"
 import { useAppState } from "./composables/useAppState"
 
@@ -30,17 +26,6 @@ window.addEventListener("unhandledrejection", (e) => {
 })
 
 const app = createApp(App)
-
-const router = createRouter({
-  routes: [
-    { path: "/", redirect: "/projects" },
-    ...projectsRoutes,
-    ...debugRoutes,
-    ...settingsRoutes,
-    { path: "/:pathMatch(.*)*", component: NotFound },
-  ],
-  history: createWebHashHistory(),
-})
 
 const { startWatching, systemLocale, systemTheme } = useAppState(router)
 startWatching()

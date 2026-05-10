@@ -1,7 +1,7 @@
 import { createEdemProxy, type InferModuleAPI } from "@exodus/edem-core"
 import type { dataModule } from "@exodus/edem-data"
 import type { flowsModule } from "@exodus/edem-flows"
-import type { updaterModule } from "@/modules/updater/edem"
+import type { updaterModule } from "@/platform/updater"
 import { edemBridge } from "@/edem-bridge"
 
 type EdemAPI = {

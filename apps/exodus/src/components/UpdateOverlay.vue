@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useI18n } from "vue-i18n"
-import { useUpdaterStatus } from "@/modules/updater/composables/useUpdaterStatus"
+import { useUpdaterStatus } from "@/composables/useUpdaterStatus"
 
 const { t } = useI18n()
 const { updateStatus } = useUpdaterStatus()

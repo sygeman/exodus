@@ -7,8 +7,8 @@ import { startScheduler, startDispatcher } from "@exodus/edem-flows"
 import { edem, modules } from "@/bun/edem"
 import { ensureCollections } from "@/manifest"
 import { ensureFlows } from "@/flows-bootstrap"
-import { bunLogger } from "@/modules/logger/bun"
-import { initAppState, initStateDefaults } from "@/modules/app-state/bun"
+import { bunLogger } from "@/platform/logger-bun"
+import { initAppState, initStateDefaults } from "@/platform/app-state"
 
 // Workaround for WebKitGTK + NVIDIA + Wayland rendering issue.
 // The DMA-BUF renderer fails to create GBM buffers on NVIDIA in Wayland

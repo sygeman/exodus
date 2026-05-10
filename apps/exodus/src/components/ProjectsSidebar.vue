@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { useI18n } from "vue-i18n"
-import { useProjects, type Project } from "@/modules/projects/webview"
+import { useProjects, type Project } from "@/composables/useProjects"
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref } from "vue"
 

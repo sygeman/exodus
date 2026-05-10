@@ -4,7 +4,7 @@ import { useI18n } from "vue-i18n"
 import * as nuxtLocales from "@nuxt/ui/locale"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppTopMenu from "@/components/AppTopMenu.vue"
-import UpdateOverlay from "@/modules/updater/components/UpdateOverlay.vue"
+import UpdateOverlay from "@/components/UpdateOverlay.vue"
 const { locale } = useI18n()
 const appLocale = computed(
   () => (nuxtLocales as Record<string, (typeof nuxtLocales)["en"]>)[locale.value] ?? nuxtLocales.en,
