@@ -107,13 +107,13 @@ const statusItems = [
   <div class="flex h-full flex-col">
     <!-- Loading -->
     <div v-if="loading" class="flex h-full items-center justify-center">
-      <UIcon name="i-lucide-loader-2" class="h-8 w-8 animate-spin text-[var(--ui-text-muted)]" />
+      <UIcon name="i-lucide-loader-2" class="text-muted h-8 w-8 animate-spin" />
     </div>
 
     <!-- Not found -->
     <div
       v-else-if="!idea"
-      class="flex h-full flex-col items-center justify-center gap-2 text-[var(--ui-text-muted)]"
+      class="text-muted flex h-full flex-col items-center justify-center gap-2"
     >
       <UIcon name="i-lucide-file-x" class="h-12 w-12 opacity-20" />
       <p>{{ t("projects.ideaNotFound") }}</p>
@@ -123,7 +123,7 @@ const statusItems = [
     <!-- Idea edit -->
     <div v-else class="flex flex-1 flex-col gap-6 overflow-y-auto">
       <!-- Top bar -->
-      <div class="flex items-center justify-between border-b border-[var(--ui-border)] px-6 py-3">
+      <div class="border-default flex items-center justify-between border-b px-6 py-3">
         <div class="flex items-center gap-3">
           <UButton :to="backLink" variant="ghost" size="sm" icon="i-lucide-arrow-left">
             {{ t("projects.backToIdeas") }}
@@ -183,9 +183,7 @@ const statusItems = [
         <!-- Fields row -->
         <div class="grid grid-cols-3 gap-4">
           <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium text-[var(--ui-text-muted)]">{{
-              t("projects.fieldLevel")
-            }}</label>
+            <label class="text-muted text-sm font-medium">{{ t("projects.fieldLevel") }}</label>
             <USelect
               v-model="level"
               :items="levelItems"
@@ -197,9 +195,7 @@ const statusItems = [
           </div>
 
           <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium text-[var(--ui-text-muted)]">{{
-              t("projects.fieldType")
-            }}</label>
+            <label class="text-muted text-sm font-medium">{{ t("projects.fieldType") }}</label>
             <USelect
               v-model="typeValue"
               :items="typeItems"
@@ -211,9 +207,7 @@ const statusItems = [
           </div>
 
           <div class="flex flex-col gap-1.5">
-            <label class="text-sm font-medium text-[var(--ui-text-muted)]">{{
-              t("projects.fieldStatus")
-            }}</label>
+            <label class="text-muted text-sm font-medium">{{ t("projects.fieldStatus") }}</label>
             <USelect
               v-model="status"
               :items="statusItems"

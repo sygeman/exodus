@@ -49,9 +49,9 @@ function getInitials(name: string): string {
       <div
         v-for="i in 5"
         :key="i"
-        class="flex items-center gap-4 rounded-lg border border-[var(--ui-border)] p-4"
+        class="border-default flex items-center gap-4 rounded-lg border p-4"
       >
-        <USkeleton class="h-10 w-10 flex-shrink-0 rounded-lg" />
+        <USkeleton class="h-10 w-10 shrink-0 rounded-lg" />
         <USkeleton class="h-5 w-48" />
       </div>
     </div>
@@ -60,8 +60,8 @@ function getInitials(name: string): string {
       v-else-if="!loading && projects.length === 0"
       class="flex flex-1 flex-col items-center justify-center gap-4"
     >
-      <UIcon name="i-lucide-folder-open" class="h-12 w-12 text-[var(--ui-text-muted)]" />
-      <p class="text-lg text-[var(--ui-text-muted)]">{{ t("projects.empty") }}</p>
+      <UIcon name="i-lucide-folder-open" class="text-muted h-12 w-12" />
+      <p class="text-muted text-lg">{{ t("projects.empty") }}</p>
       <UButton @click="handleCreate">{{ t("projects.create") }}</UButton>
     </div>
 
@@ -75,10 +75,10 @@ function getInitials(name: string): string {
         v-for="project in projects"
         :key="project.id"
         :to="`/project/${project.id}/overview`"
-        class="flex items-center gap-4 rounded-lg border border-[var(--ui-border)] p-4 transition-colors hover:bg-[var(--ui-bg-elevated)]"
+        class="border-default hover:bg-elevated flex items-center gap-4 rounded-lg border p-4 transition-colors"
       >
         <div
-          class="flex h-10 w-10 flex-shrink-0 items-center justify-center rounded-lg border-2 border-solid bg-[var(--ui-bg-elevated)] font-semibold"
+          class="bg-elevated flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-2 border-solid font-semibold"
           :style="{ color: project.color ?? undefined, borderColor: project.color ?? undefined }"
         >
           {{ getInitials(project.name) }}

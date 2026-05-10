@@ -31,33 +31,31 @@ const statusText = computed(() => {
         v-if="isUpdating"
         role="status"
         aria-live="polite"
-        class="fixed inset-0 z-50 flex flex-col items-center justify-center bg-[var(--ui-bg)]/95"
+        class="bg-default/95 fixed inset-0 z-50 flex flex-col items-center justify-center"
       >
         <!-- Логотип / иконка -->
         <div class="mb-8 flex items-center justify-center">
           <div class="relative">
             <div
-              class="flex h-16 w-16 animate-pulse items-center justify-center rounded-2xl bg-[var(--ui-primary)]/10"
+              class="bg-primary/10 flex h-16 w-16 animate-pulse items-center justify-center rounded-2xl"
             >
-              <UIcon name="i-lucide-arrow-up-circle" class="h-8 w-8 text-[var(--ui-primary)]" />
+              <UIcon name="i-lucide-arrow-up-circle" class="text-primary h-8 w-8" />
             </div>
-            <div
-              class="absolute inset-0 h-16 w-16 animate-ping rounded-2xl bg-[var(--ui-primary)]/20"
-            />
+            <div class="bg-primary/20 absolute inset-0 h-16 w-16 animate-ping rounded-2xl" />
           </div>
         </div>
 
         <!-- Заголовок -->
-        <h2 class="mb-6 text-xl font-semibold text-[var(--ui-text)]">
+        <h2 class="text-default mb-6 text-xl font-semibold">
           {{ t("updater.updateInProgress") }}
         </h2>
 
         <!-- Статус с индикатором -->
         <div class="flex items-center gap-3">
           <span
-            class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--ui-border)] border-t-[var(--ui-primary)]"
+            class="border-default border-t-primary inline-block h-4 w-4 animate-spin rounded-full border-2"
           />
-          <span class="text-sm font-medium text-[var(--ui-text)]">{{ statusText }}</span>
+          <span class="text-default text-sm font-medium">{{ statusText }}</span>
         </div>
       </div>
     </Transition>

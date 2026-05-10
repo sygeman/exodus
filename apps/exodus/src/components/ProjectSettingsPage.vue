@@ -54,10 +54,10 @@ function confirmDelete() {
       :page-title="t('projects.settingsTitle')"
     >
       <section class="flex flex-col gap-8">
-        <div class="flex flex-col gap-4 border-b border-[var(--ui-border)] pb-8">
+        <div class="border-default flex flex-col gap-4 border-b pb-8">
           <div class="flex flex-col gap-1">
             <h3 class="text-base font-medium">{{ t("projects.fieldName") }}</h3>
-            <p class="text-sm text-[var(--ui-text-muted)]">{{ t("projects.nameDescription") }}</p>
+            <p class="text-muted text-sm">{{ t("projects.nameDescription") }}</p>
           </div>
           <UInput
             class="max-w-md"
@@ -67,29 +67,29 @@ function confirmDelete() {
           />
         </div>
 
-        <div class="flex flex-col gap-4 border-b border-[var(--ui-border)] pb-8">
+        <div class="border-default flex flex-col gap-4 border-b pb-8">
           <div class="flex flex-col gap-1">
             <h3 class="text-base font-medium">{{ t("projects.fieldColor") }}</h3>
-            <p class="text-sm text-[var(--ui-text-muted)]">{{ t("projects.colorDescription") }}</p>
+            <p class="text-muted text-sm">{{ t("projects.colorDescription") }}</p>
           </div>
           <div class="flex flex-wrap gap-2">
             <button
               v-for="c in PROJECT_COLORS"
               :key="c"
               type="button"
-              class="h-8 w-8 rounded-full transition-transform hover:scale-110 focus:ring-2 focus:ring-[var(--ui-primary)] focus:outline-none"
+              class="focus:ring-primary h-8 w-8 rounded-full transition-transform hover:scale-110 focus:ring-2 focus:outline-none"
               :style="{ backgroundColor: c }"
-              :class="{ 'ring-2 ring-[var(--ui-primary)]': project?.color === c }"
+              :class="{ 'ring-primary ring-2': project?.color === c }"
               @click="updateColor(c)"
             />
           </div>
         </div>
 
         <div>
-          <h3 class="mb-2 text-base font-medium text-[var(--ui-error)]">
+          <h3 class="text-error mb-2 text-base font-medium">
             {{ t("projects.deleteTitle") }}
           </h3>
-          <p class="mb-4 text-sm text-[var(--ui-text-muted)]">
+          <p class="text-muted mb-4 text-sm">
             {{ t("projects.deleteDescription") }}
           </p>
           <UButton color="error" variant="outline" @click="openDeleteModal">
@@ -118,7 +118,7 @@ function confirmDelete() {
 
   <div
     v-else-if="!loading"
-    class="flex h-full flex-col items-center justify-center gap-2 text-[var(--ui-text-muted)]"
+    class="text-muted flex h-full flex-col items-center justify-center gap-2"
   >
     <UIcon name="i-lucide-folder-x" class="h-10 w-10" />
     <p>{{ t("projects.notFound") }}</p>

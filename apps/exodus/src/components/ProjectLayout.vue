@@ -32,12 +32,10 @@ const tabs = computed(() => [
 
 <template>
   <div v-if="project" class="flex h-full flex-col">
-    <header
-      class="flex h-12 flex-shrink-0 items-center justify-between border-b border-[var(--ui-border)] px-6"
-    >
+    <header class="border-default flex h-12 shrink-0 items-center justify-between border-b px-6">
       <RouterLink
         :to="`/project/${projectId}/overview`"
-        class="text-lg font-semibold transition-colors hover:text-[var(--ui-primary)]"
+        class="hover:text-primary text-lg font-semibold transition-colors"
       >
         {{ project.name }}
       </RouterLink>
@@ -49,10 +47,8 @@ const tabs = computed(() => [
           :to="tab.to"
           class="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
           :class="{
-            'text-[var(--ui-primary)]': route.path.startsWith(tab.to),
-            'text-[var(--ui-text-muted)] hover:text-[var(--ui-text)]': !route.path.startsWith(
-              tab.to,
-            ),
+            'text-primary': route.path.startsWith(tab.to),
+            'text-muted hover:text-default': !route.path.startsWith(tab.to),
           }"
         >
           <UIcon :name="tab.icon" class="h-4 w-4" />
@@ -68,7 +64,7 @@ const tabs = computed(() => [
 
   <div
     v-else-if="!loading"
-    class="flex h-full flex-col items-center justify-center gap-2 text-[var(--ui-text-muted)]"
+    class="text-muted flex h-full flex-col items-center justify-center gap-2"
   >
     <UIcon name="i-lucide-folder-x" class="h-10 w-10" />
     <p>{{ t("projects.notFound") }}</p>

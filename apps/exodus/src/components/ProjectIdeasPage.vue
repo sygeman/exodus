@@ -58,9 +58,9 @@ function ideaLink(id: string) {
       <div
         v-for="i in 3"
         :key="i"
-        class="flex items-center gap-3 rounded-lg border border-[var(--ui-border)] p-4"
+        class="border-default flex items-center gap-3 rounded-lg border p-4"
       >
-        <USkeleton class="h-8 w-8 flex-shrink-0 rounded" />
+        <USkeleton class="h-8 w-8 shrink-0 rounded" />
         <USkeleton class="h-5 w-48" />
       </div>
     </div>
@@ -68,7 +68,7 @@ function ideaLink(id: string) {
     <!-- Empty -->
     <div
       v-else-if="!loading && ideas.length === 0"
-      class="flex flex-1 flex-col items-center justify-center gap-2 text-[var(--ui-text-muted)]"
+      class="text-muted flex flex-1 flex-col items-center justify-center gap-2"
     >
       <UIcon name="i-lucide-lightbulb" class="h-12 w-12 opacity-20" />
       <p class="text-lg">{{ t("projects.emptyIdeas") }}</p>
@@ -81,10 +81,10 @@ function ideaLink(id: string) {
         v-for="idea in ideas"
         :key="idea.id"
         :to="ideaLink(idea.id)"
-        class="flex items-center gap-3 rounded-lg border border-[var(--ui-border)] p-4 transition-colors hover:bg-[var(--ui-bg-elevated)]"
+        class="border-default hover:bg-elevated flex items-center gap-3 rounded-lg border p-4 transition-colors"
       >
         <div
-          class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded text-xs font-bold"
+          class="flex h-8 w-8 shrink-0 items-center justify-center rounded text-xs font-bold"
           :style="{
             backgroundColor: getLevelColor(idea.level) + '20',
             color: getLevelColor(idea.level),
@@ -94,7 +94,7 @@ function ideaLink(id: string) {
         </div>
         <div class="flex flex-col">
           <span class="font-medium">{{ idea.title }}</span>
-          <span v-if="idea.type" class="text-xs text-[var(--ui-text-muted)]">{{ idea.type }}</span>
+          <span v-if="idea.type" class="text-muted text-xs">{{ idea.type }}</span>
         </div>
         <span
           v-if="idea.status === 'stabilized'"

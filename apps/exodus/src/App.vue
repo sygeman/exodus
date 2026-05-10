@@ -13,7 +13,7 @@ const appLocale = computed(
 
 <template>
   <UApp :locale="appLocale">
-    <div class="flex h-screen bg-[var(--ui-bg-elevated)] pr-2 pb-2">
+    <div class="bg-elevated flex h-screen pr-2 pb-2">
       <AppSidebar class="pt-8" />
 
       <!-- Обёртка для top menu + main -->
@@ -21,9 +21,7 @@ const appLocale = computed(
         <AppTopMenu />
 
         <!-- Основной контент -->
-        <main
-          class="flex-1 overflow-hidden rounded-xl border border-[var(--ui-border)] bg-[var(--ui-bg)] shadow-sm"
-        >
+        <main class="border-default bg-default flex-1 overflow-hidden rounded-xl border shadow-sm">
           <RouterView />
         </main>
       </div>
