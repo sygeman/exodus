@@ -18,4 +18,24 @@ export function initLogs(writeFn: (entry: LogEntry) => void) {
       count: entry.count,
     })
   })
+
+  window.addEventListener("error", (e) => {
+    writeFn({
+      timestamp: Date.now(),
+      level: "error",
+      source: "webview",
+      message: `[webview error] ${e.message}`,
+      args: [e.filename, e.lineno],
+    })
+  })
+
+  window.addEventListener("unhandledrejection", (e) => {
+    writeFn({
+      timestamp: Date.now(),
+      level: "error",
+      source: "webview",
+      message: `[webview unhandledrejection]`,
+      args: [e.reason],
+    })
+  })
 }
