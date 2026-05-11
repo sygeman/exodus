@@ -238,7 +238,7 @@ edemBridge.onWebviewEvent((name, payload) => {
   // System detection
   if (hasSystemDetection) {
     body.push(`
-await initStateDefaults(edem.data)`)
+await initStateDefaults()`)
   }
 
   // Window state restoration
@@ -283,7 +283,7 @@ edemBridge.attachWebview(webview)`)
   // App state init (window events)
   if (hasWindowState) {
     body.push(`
-onWindowFrameChange(win, (f) => persistWindowFrame(edem.data, f.frame, f.maximized))`)
+onWindowFrameChange(win, (f) => persistWindowFrame(f.frame, f.maximized ?? false))`)
   }
 
   // Application menu

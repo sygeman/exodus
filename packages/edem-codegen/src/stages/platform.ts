@@ -145,11 +145,8 @@ function generateAppState(
   const hasSystem = !!systemDetection
   const collectionId = (windowPersistence ?? systemDetection)!.singleton
 
-  return `import type { dataModule } from "@exodus/edem-data"
-import type { InferModuleAPI } from "@exodus/edem-core"
+  return `import { edem } from "@/bun/edem"
 ${hasSystem ? `import { getSystemLocale, getSystemTheme } from "@exodus/edem-electrobun/system"` : ""}
-
-type EdemData = InferModuleAPI<typeof dataModule>
 
 interface WindowFrame {
   x: number
@@ -166,14 +163,14 @@ const MIN_WINDOW_WIDTH = ${windowPersistence!.minWidth}
 const MIN_WINDOW_HEIGHT = ${windowPersistence!.minHeight}
 
 export async function persistWindowFrame(
-  data: EdemData,
   frame: WindowFrame,
-  maximized?: boolean,
+  maximized: boolean,
 ): Promise<void> {
   if (frame.width < MIN_WINDOW_WIDTH || frame.height < MIN_WINDOW_HEIGHT) return
-  const patch: Record<string, unknown> = { window_frame: frame }
-  if (maximized !== undefined) patch.window_maximized = maximized
-  await data.updateSingleton({ collection_id: COLLECTION_ID, data: patch })
+  await edem.data.updateSingleton({
+    collection_id: COLLECTION_ID,
+    data: { window_frame: frame, window_maximized: maximized },
+  })
 }
 `
     : ""
@@ -181,8 +178,8 @@ export async function persistWindowFrame(
 ${
   hasSystem
     ? `
-export async function initStateDefaults(data: EdemData) {
-  const { item } = await data.getSingleton({ collection_id: COLLECTION_ID })
+export async function initStateDefaults() {
+  const { item } = await edem.data.getSingleton({ collection_id: COLLECTION_ID })
   if (!item) return
   const patch: Record<string, unknown> = {}
 
@@ -194,7 +191,7 @@ export async function initStateDefaults(data: EdemData) {
   }
 
   if (Object.keys(patch).length > 0) {
-    await data.updateSingleton({ collection_id: COLLECTION_ID, data: patch })
+    await edem.data.updateSingleton({ collection_id: COLLECTION_ID, data: patch })
   }
 }
 `

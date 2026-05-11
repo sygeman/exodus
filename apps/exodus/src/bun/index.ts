@@ -83,7 +83,7 @@ edemBridge.onWebviewEvent((name, payload) => {
   flowsDispatcher.emit(name, payload)
 })
 
-await initStateDefaults(edem.data)
+await initStateDefaults()
 
 const defaultFrame = { width: 1200, height: 800, x: 0, y: 0 }
 let savedFrame = defaultFrame
@@ -116,7 +116,7 @@ const { webview } = win
 
 edemBridge.attachWebview(webview)
 
-onWindowFrameChange(win, (f) => persistWindowFrame(edem.data, f.frame, f.maximized))
+onWindowFrameChange(win, (f) => persistWindowFrame(f.frame, f.maximized ?? false))
 
 ApplicationMenu.setApplicationMenu([
   {
