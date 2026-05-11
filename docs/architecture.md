@@ -1,35 +1,25 @@
-# Архитектура Exodus
+# Архитектура Edem
+
+> Стадии развития и процесс см. в [stages.md](./stages.md)
 
 ## Видение
 
-Edem — фреймворк для **декларативных приложений**. Вместо написания кода разработчик описывает, что должно делать приложение, через три JSON-файла. Универсальный рантайм интерпретирует эти манифесты.
-
-Exodus — IDE для построения Edem-приложений. Сам является Edem-приложением:
+Edem — фреймворк для **декларативных приложений**. Разработчик описывает приложение через JSON-манифесты. Codegen генерирует готовый код.
 
 ```
-build(exodus) = exodus
-```
-
-## Ключевой принцип
-
-```
-Традиционная разработка:
-  Код → Компиляция → Приложение
-
-Edem:
-  Манифесты (data.json + flows.json + routes.json) → Рантайм → Приложение
+Манифесты → Codegen → Готовое приложение
 ```
 
 Разработчик **объявляет**, никогда не пишет код:
 - **data.json** — какие данные существуют, какие поля, какие связи
 - **flows.json** — что происходит когда (триггеры → действия)
-- **routes.json** — маршруты и навигация
-
-Рантайм **интерпретирует** манифесты. Один рантайм для всех приложений.
+- **routes.json** — маршруты, навигация, компоненты (UI)
+- **platform.json** — платформенные фичи (логгер, апдейтер, persistence)
+- **assets.json** — статические ресурсы (иконки, SVG)
 
 ## Принципы
 
-1. **Декларативность** — разработчик описывает, интерпретатор выполняет
+1. **Декларативность** — разработчик описывает, codegen генерирует
 2. **Разделение** — данные, логика, представление отделены друг от друга
 3. **Фреймворк-агностичность** — манифесты не привязаны к Vue/React/Svelte
 4. **Самореферентность** — приложение собирает себя из своих же данных
@@ -37,58 +27,41 @@ Edem:
 ## Артефакт
 
 ```
-Артефакт = data.json + flows.json + routes.json + Рантайм + Рендерер + Среда
+Артефакт = 5 манифестов + Codegen + Runtime + Renderer + Среда
 ```
 
 | Компонент | Формат | Описание |
 |-----------|--------|----------|
 | data.json | Декларативный JSON | Коллекции, поля, связи, валидации |
 | flows.json | Декларативный JSON | Граф нод, триггеры, соединения |
-| routes.json | Декларативный JSON | Маршруты, навигация |
-| Runtime | JS bundle | edem-core + модули edem — один для всех приложений |
-| Renderer | Фреймворк-специфичный | Компоненты Vue / React / Svelte, которые интерпретируют routes.json |
+| routes.json | Декларативный JSON | Маршруты, навигация, компоненты |
+| platform.json | Декларативный JSON | Логгер, апдейтер, persistence, devtools |
+| assets.json | Декларативный JSON | Статические ресурсы |
+| Codegen | CLI / Модуль | Генерирует приложение из манифестов |
+| Runtime | JS bundle | edem-core + модули edem |
+| Renderer | Фреймворк-специфичный | Компоненты Vue / React / Svelte |
 | Окружение | Обёртка платформы | Electrobun (десктоп), браузер, CLI |
 
 ## Архитектура
 
 ```
-Манифесты (3 JSON-файла)
+Манифесты (5 JSON-файлов)
         ↓
-    Рантайм
+    Codegen (edem-codegen)
+        ├── Генерирует boilerplate (manifest.ts, flows-bootstrap, bridge)
+        ├── Генерирует platform-код (logger, app-state, updater)
+        ├── Генерирует composables (use{Collection})
+        ├── Генерирует компоненты (.vue из component trees)
+        └── Генерирует конфиги (vite, electrobun, router)
+        ↓
+    Готовое приложение
     ├── edem-core      — контракт коммуникации
     ├── edem-data      — хранение данных
     ├── edem-flows     — бизнес-логика
-    └── edem-ui        — представление
-        ↓
-    Рендерер (Vue / React / Svelte / ...)
-        ↓
-    Среда (Electrobun / Browser / CLI)
+    ├── edem-ui        — представление
+    └── Platform       — Electrobun / Browser / CLI
         ↓
     Standalone-приложение
-```
-
-## Три базовых модуля
-
-Всё в Edem-приложении построено на трёх мета-модулях:
-
-| Модуль | Роль |
-|--------|------|
-| **edem-data** | Хранение данных (мета-уровень) |
-| **edem-flows** | Движок бизнес-логики |
-| **edem-ui** | Интерпретация UI (читает routes.json) |
-
-Все фичи приложения (логи, настройки, состояние) — НЕ отдельные модули. Это **коллекции + потоки + UI**, определённые через три базовых модуля.
-
-```
-Логи:
-  data:   коллекция "logs" { level, message, timestamp, source }
-  flow:   на "log:entry" → вставить item в "logs"
-  ui:     страница "/debug/logs" → компонент list, привязанный к "logs"
-
-Настройки:
-  data:   коллекция "settings" { key, value, type }
-  flow:   на "setting:changed" → обновить item в "settings"
-  ui:     страница "/settings" → компонент form, привязанный к "settings"
 ```
 
 ## Пакеты Edem
@@ -99,9 +72,10 @@ Edem:
 | edem-data | Коллекции, items, поля — мета-уровень |
 | edem-flows | Триггеры, ноды, действия, DAG-движок |
 | edem-ui | Интерпретация UI, резолвинг компонентов |
+| edem-electrobun | Мост Bun ↔ Webview (RPC bridge) |
+| edem-codegen | Генератор приложений из манифестов |
 | edem-mcp | Интеграция MCP-инструментов |
 | edem-runners | Распределённое выполнение задач |
-| edem-electrobun | Мост Bun ↔ Webview |
 
 ## edem-data как мета-уровень
 
@@ -188,48 +162,78 @@ SQLite (edem-data)
         └── "/task/:id" { components: [detail, form, ...] }
 ```
 
-### 2. Сборка
+### 2. Codegen
 
-Читает манифесты из SQLite, упаковывает в артефакт:
+Читает манифесты из SQLite, генерирует код:
 
 ```
-вход:  SQLite
+вход:  Манифесты (data.json + flows.json + routes.json + platform.json + assets.json)
+        ↓
+    Codegen (edem-codegen)
+        ├── parseManifests() → IR (Intermediate Representation)
+        ├── validateIR() → ошибки/предупреждения
+        └── stages[] → OutputFile[]
+        ↓
 выход: dist/
-        ├── data.json      ← коллекции + поля + связи
-        ├── flows.json     ← графы потоков
-        ├── routes.json    ← маршруты
-        ├── runtime.js     ← бандл edem
-        └── app            ← обёртка среды
+        ├── src/
+        │   ├── manifest.ts          ← dataStage
+        │   ├── flows-manifest.ts    ← flowsStage
+        │   ├── flows-bootstrap.ts   ← flowsStage
+        │   ├── edem-bridge.ts       ← electrobunStage
+        │   ├── edem.ts              ← electrobunStage
+        │   ├── bun/                 ← electrobunStage
+        │   ├── platform/            ← platformStage
+        │   ├── composables/         ← dataStage
+        │   ├── components/          ← appStage
+        │   ├── main.ts, router.ts   ← vueStage
+        │   └── ...
+        ├── edem-manifests/          ← копия манифестов
+        ├── package.json             ← из deps/stages
+        └── ...
 ```
 
 ### 3. Рантайм (на машине пользователя)
 
 ```
 Рантайм
-├── data.json → загружается раз, определяет валидные коллекции/поля
-├── flows.json → загружается раз, регистрирует триггеры/действия
-├── routes.json → загружается раз, рендерит страницы
+├── edem-manifests/
+│   ├── data.json     → загружается раз, определяет валидные коллекции/поля
+│   ├── flows.json    → загружается раз, регистрирует триггеры/действия
+│   ├── routes.json   → загружается раз, рендерит страницы
+│   ├── platform.json → загружается раз, конфигурирует platform-фичи
+│   └── assets.json   → загружается раз, определяет ресурсы
 └── data.db → SQLite для данных пользователя (items, связи, файлы)
 ```
 
 ## Самореферентная архитектура
+
+Exodus — IDE для построения Edem-приложений. Сам является Edem-приложением:
+
+```
+build(exodus) = exodus
+```
 
 Exodus хранит свою собственную схему в своей SQLite:
 
 ```
 SQLite Exodus
 ├── коллекции
+│   ├── projects { name, slug, description, icon, color, type, sort_order }
+│   ├── ideas { project_id, title, description, level, type, status }
 │   ├── logs { level, message, source, args, count }
 │   ├── app_state (singleton) { last_route, locale, theme, window_frame, window_maximized }
 │   └── updater_status (singleton) { status, current_version, latest_version, error }
 │
 └── items
+    ├── projects: [...]
+    ├── ideas: [...]
     ├── logs: [...]
     └── ...
 ```
 
 Когда Exodus собирает себя:
 1. Читает свои коллекции из SQLite
-2. Извлекает data.json, flows.json, routes.json
-3. Упаковывает с edem-runtime + Electrobun
-4. Результат = тот же Exodus
+2. Извлекает data.json, flows.json, routes.json, platform.json, assets.json
+3. Codegen генерирует код из манифестов
+4. Упаковывает с edem-runtime + Electrobun
+5. Результат = тот же Exodus
