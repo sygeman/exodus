@@ -89,12 +89,12 @@ const defaultFrame = { width: 1200, height: 800, x: 0, y: 0 }
 let savedFrame = defaultFrame
 let savedMaximized = false
 try {
-  const { items } = await edem.data.queryItems({ collection_id: "app_state" })
-  if (items.length > 0) {
-    if (items[0].data.window_frame) {
-      savedFrame = items[0].data.window_frame as typeof defaultFrame
+  const { item } = await edem.data.getSingleton({ collection_id: "app_state" })
+  if (item) {
+    if (item.data.window_frame) {
+      savedFrame = item.data.window_frame as typeof defaultFrame
     }
-    savedMaximized = (items[0].data.window_maximized as boolean) ?? false
+    savedMaximized = (item.data.window_maximized as boolean) ?? false
   }
 } catch {
   // use defaults

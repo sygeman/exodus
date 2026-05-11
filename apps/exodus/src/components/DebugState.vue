@@ -11,9 +11,9 @@ const loading = ref(false)
 async function fetchAppState() {
   loading.value = true
   try {
-    const { items } = await edem.data.queryItems({ collection_id: "app_state" })
-    if (items.length > 0) {
-      appState.value = { ...items[0].data }
+    const { item } = await edem.data.getSingleton({ collection_id: "app_state" })
+    if (item) {
+      appState.value = { ...item.data }
     }
   } catch {
     // ignore

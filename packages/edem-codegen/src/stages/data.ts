@@ -71,7 +71,7 @@ function generateSingletonComposable(
   fieldDefs: string,
   collectionId: string,
 ): string {
-  return `import { ref, watchEffect } from "vue"
+  return `import { ref, onMounted, onUnmounted } from "vue"
 import { edem } from "@/edem"
 
 export interface ${itemType} {
@@ -82,29 +82,39 @@ ${fieldDefs}
 export function use${typeName}() {
   const item = ref<${itemType} | null>(null)
   const loading = ref(true)
+  let unsub: (() => void) | null = null
 
   async function load() {
     loading.value = true
     try {
-      const result = await edem.data.queryItems({
+      const result = await edem.data.getSingleton({
         collection_id: "${collectionId}",
       })
-      if (result.items.length > 0) {
-        item.value = result.items[0] as ${itemType}
-      }
+      item.value = result.item as ${itemType} | null
     } finally {
       loading.value = false
     }
   }
 
-  watchEffect(() => {
-    load()
+  onMounted(async () => {
+    await load()
+    unsub = edem.data.itemUpdated(({ event }) => {
+      if (event.collection_id === "${collectionId}") {
+        item.value = event as ${itemType}
+      }
+    })
+  })
+
+  onUnmounted(() => {
+    unsub?.()
+    unsub = null
   })
 
   async function update(data: Record<string, unknown>) {
-    if (!item.value) return
-    const result = await edem.data.updateItem({ item_id: item.value.id, data })
-    await load()
+    const result = await edem.data.updateSingleton({
+      collection_id: "${collectionId}",
+      data,
+    })
     return result
   }
 

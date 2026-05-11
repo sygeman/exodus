@@ -69,4 +69,30 @@ export class EdemClient<TManifest> {
       for (const unsub of unsubs) unsub()
     }
   }
+
+  async getSingleton<K extends keyof CM<TManifest> & string>(
+    collectionId: K,
+  ): Promise<{ item: TypedItem<CM<TManifest>[K]> | null }> {
+    const { item } = await this.data.getSingleton({ collection_id: collectionId })
+    return { item: item as TypedItem<CM<TManifest>[K]> | null }
+  }
+
+  async updateSingleton<K extends keyof CM<TManifest> & string>(
+    collectionId: K,
+    data: Record<string, unknown>,
+  ): Promise<string> {
+    const { id } = await this.data.updateSingleton({ collection_id: collectionId, data })
+    return id
+  }
+
+  subscribeSingleton<K extends keyof CM<TManifest> & string>(
+    collectionId: K,
+    onUpdated: (item: TypedItem<CM<TManifest>[K]>) => void,
+  ): () => void {
+    return this.data.itemUpdated(({ event: item }) => {
+      if (item.collection_id === collectionId) {
+        onUpdated(item as TypedItem<CM<TManifest>[K]>)
+      }
+    })
+  }
 }

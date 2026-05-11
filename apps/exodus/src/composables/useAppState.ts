@@ -25,9 +25,8 @@ export function useAppState(router: Router) {
 
   async function startWatching() {
     try {
-      const { items } = await edem.data.queryItems({ collection_id: COLLECTION_ID })
-      if (items.length > 0) {
-        const item = items[0]
+      const { item } = await edem.data.getSingleton({ collection_id: COLLECTION_ID })
+      if (item) {
         itemId = item.id
         savedHash = item.data.last_route?.hash ?? null
         systemLocale.value = (item.data.locale as string) ?? null
@@ -56,8 +55,8 @@ export function useAppState(router: Router) {
 
     router.afterEach(() => {
       if (itemId) {
-        edem.data.updateItem({
-          item_id: itemId,
+        edem.data.updateSingleton({
+          collection_id: COLLECTION_ID,
           data: { last_route: { hash: window.location.hash } },
         })
       }

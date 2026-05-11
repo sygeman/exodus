@@ -555,6 +555,17 @@ export const dataModule = createEdemModule("data", (module) => {
             throw new Error(`Collection ${input.collection_id} not found`)
           }
 
+          if (collection.singleton) {
+            const existing = await ctx.db.query.items.findFirst({
+              where: eq(schema.items.collection_id, input.collection_id),
+            })
+            if (existing) {
+              throw new Error(
+                `Cannot create item in singleton collection "${input.collection_id}". Use updateSingleton instead.`,
+              )
+            }
+          }
+
           const fields = await ctx.db.query.fields.findMany({
             where: eq(schema.fields.collection_id, input.collection_id),
           })
@@ -1434,13 +1445,18 @@ export const dataModule = createEdemModule("data", (module) => {
                     defaultData[fieldDef.name] = fieldDef.default
                   }
                 }
+                const id = crypto.randomUUID()
                 await ctx.db.insert(schema.items).values({
-                  id: crypto.randomUUID(),
+                  id,
                   collection_id: colDef.id,
                   data: JSON.stringify(defaultData),
                   created_at: now,
                   updated_at: now,
                 })
+                const item = await ctx.db.query.items.findFirst({
+                  where: eq(schema.items.id, id),
+                })
+                if (item) await emit.itemCreated(parseItem(item))
               }
             }
           }
@@ -1448,6 +1464,97 @@ export const dataModule = createEdemModule("data", (module) => {
           return { created, updated, skipped }
         },
       })
+      // ── Singleton helpers ─────────────────────────────────────────────────
+      .query("getSingleton", {
+        input: z.object({ collection_id: z.string() }),
+        output: z.object({ item: itemSchema.nullable() }),
+        resolve: async ({ input, ctx }) => {
+          const collection = await ctx.db.query.collections.findFirst({
+            where: and(
+              eq(schema.collections.id, input.collection_id),
+              isNull(schema.collections.deleted_at),
+            ),
+          })
+          if (!collection) {
+            throw new Error(`Collection ${input.collection_id} not found`)
+          }
+
+          const row = await ctx.db.query.items.findFirst({
+            where: eq(schema.items.collection_id, input.collection_id),
+          })
+          return { item: row ? parseItem(row) : null }
+        },
+      })
+      .mutation("updateSingleton", {
+        input: z.object({
+          collection_id: z.string(),
+          data: z.record(z.string(), z.any()),
+          source: z.string().optional(),
+        }),
+        output: z.object({ id: z.string() }),
+        resolve: async ({ input, ctx, emit }) => {
+          const collection = await ctx.db.query.collections.findFirst({
+            where: and(
+              eq(schema.collections.id, input.collection_id),
+              isNull(schema.collections.deleted_at),
+            ),
+          })
+          if (!collection) {
+            throw new Error(`Collection ${input.collection_id} not found`)
+          }
+
+          const row = await ctx.db.query.items.findFirst({
+            where: eq(schema.items.collection_id, input.collection_id),
+          })
+          if (!row) {
+            throw new Error(
+              `Singleton item for collection "${input.collection_id}" not found. Call applyManifest first.`,
+            )
+          }
+
+          const currentData = safeJsonParse<Record<string, unknown>>(
+            row.data,
+            `singleton item ${row.id}`,
+          )
+          const mergedData = { ...currentData, ...input.data }
+
+          const fields = await ctx.db.query.fields.findMany({
+            where: eq(schema.fields.collection_id, input.collection_id),
+          })
+
+          for (const field of fields) {
+            const value = input.data[field.name]
+            const fieldType = field.type as FieldType
+            if (value !== undefined && !validateFieldValue(fieldType, value)) {
+              throw new Error(`Invalid value for field "${field.name}" of type "${field.type}"`)
+            }
+            if (
+              field.required &&
+              (mergedData[field.name] === null || mergedData[field.name] === undefined)
+            ) {
+              throw new Error(`Field "${field.name}" is required`)
+            }
+          }
+
+          const now = Date.now()
+          await ctx.db
+            .update(schema.items)
+            .set({
+              data: JSON.stringify(mergedData),
+              source: input.source,
+              updated_at: now,
+            })
+            .where(eq(schema.items.id, row.id))
+
+          const updated = await ctx.db.query.items.findFirst({
+            where: eq(schema.items.id, row.id),
+          })
+          if (!updated) throw new Error(`Singleton item ${row.id} not found after update`)
+          await emit.itemUpdated(parseItem(updated))
+          return { id: row.id }
+        },
+      })
+      .subscription("singletonUpdated", { output: itemSchema })
   )
 })
 

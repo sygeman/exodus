@@ -9,6 +9,7 @@ export const {
   useCreateItem,
   useUpdateItem,
   useDeleteItem,
+  useSingleton,
 } = createEdemHooks<typeof dataManifest>(client)
 
 export const { useUpdateStatus, useVersion, useCheckUpdate, useStartUpdate } =

@@ -865,5 +865,194 @@ describe("data module", () => {
       expect(items).toHaveLength(1)
       expect(items[0].data).toEqual({})
     })
+
+    it("should emit itemCreated when bootstrapping singleton", async () => {
+      const events: string[] = []
+      edem.data.itemCreated(({ event }) => {
+        if (event.collection_id === "settings") {
+          events.push("created")
+        }
+      })
+
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "settings",
+              name: "Settings",
+              singleton: true,
+              fields: [{ name: "theme", type: "string", default: "dark" }],
+            },
+          ],
+        },
+      })
+
+      expect(events).toEqual(["created"])
+    })
+  })
+
+  describe("getSingleton", () => {
+    it("should return singleton item", async () => {
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "settings",
+              name: "Settings",
+              singleton: true,
+              fields: [{ name: "theme", type: "string", default: "dark" }],
+            },
+          ],
+        },
+      })
+
+      const { item } = await edem.data.getSingleton({ collection_id: "settings" })
+      expect(item).not.toBeNull()
+      expect(item?.data.theme).toBe("dark")
+    })
+
+    it("should return null for empty collection", async () => {
+      await edem.data.createCollection({
+        id: "posts",
+        name: "Posts",
+      })
+
+      const { item } = await edem.data.getSingleton({ collection_id: "posts" })
+      expect(item).toBeNull()
+    })
+
+    it("should throw for non-existent collection", async () => {
+      await expect(edem.data.getSingleton({ collection_id: "non-existent" })).rejects.toThrow(
+        "not found",
+      )
+    })
+  })
+
+  describe("updateSingleton", () => {
+    it("should update singleton item", async () => {
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "settings",
+              name: "Settings",
+              singleton: true,
+              fields: [{ name: "theme", type: "string", default: "dark" }],
+            },
+          ],
+        },
+      })
+
+      await edem.data.updateSingleton({
+        collection_id: "settings",
+        data: { theme: "light" },
+      })
+
+      const { item } = await edem.data.getSingleton({ collection_id: "settings" })
+      expect(item?.data.theme).toBe("light")
+    })
+
+    it("should emit itemUpdated", async () => {
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "settings",
+              name: "Settings",
+              singleton: true,
+              fields: [{ name: "theme", type: "string", default: "dark" }],
+            },
+          ],
+        },
+      })
+
+      const events: string[] = []
+      edem.data.itemUpdated(({ event }) => {
+        if (event.collection_id === "settings") {
+          events.push("updated")
+        }
+      })
+
+      await edem.data.updateSingleton({
+        collection_id: "settings",
+        data: { theme: "light" },
+      })
+
+      expect(events).toEqual(["updated"])
+    })
+
+    it("should throw if singleton not bootstrapped", async () => {
+      await edem.data.createCollection({
+        id: "settings",
+        name: "Settings",
+      })
+
+      await expect(
+        edem.data.updateSingleton({
+          collection_id: "settings",
+          data: { theme: "light" },
+        }),
+      ).rejects.toThrow("not found")
+    })
+
+    it("should validate field types", async () => {
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "settings",
+              name: "Settings",
+              singleton: true,
+              fields: [{ name: "count", type: "number" }],
+            },
+          ],
+        },
+      })
+
+      await expect(
+        edem.data.updateSingleton({
+          collection_id: "settings",
+          data: { count: "not a number" },
+        }),
+      ).rejects.toThrow('Invalid value for field "count" of type "number"')
+    })
+  })
+
+  describe("createItem singleton constraint", () => {
+    it("should throw when creating item in singleton collection", async () => {
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "settings",
+              name: "Settings",
+              singleton: true,
+              fields: [{ name: "theme", type: "string" }],
+            },
+          ],
+        },
+      })
+
+      await expect(
+        edem.data.createItem({
+          collection_id: "settings",
+          data: { theme: "light" },
+        }),
+      ).rejects.toThrow("Cannot create item in singleton collection")
+    })
+
+    it("should allow creating item in non-singleton collection", async () => {
+      await edem.data.createCollection({
+        id: "posts",
+        name: "Posts",
+      })
+
+      const { id } = await edem.data.createItem({
+        collection_id: "posts",
+        data: { title: "Test" },
+      })
+
+      expect(id).toBeDefined()
+    })
   })
 })

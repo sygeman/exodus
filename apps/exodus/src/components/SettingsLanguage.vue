@@ -3,13 +3,12 @@ import { computed, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useT } from "@exodus/edem-vue"
 import { locales, type Locale } from "@/locales"
-import { useSingletonQuery, useUpdateItem } from "@/hooks"
+import { useSingleton } from "@/hooks"
 
 const { locale } = useI18n()
 const t = useT()
 
-const { data: appState } = useSingletonQuery("app_state")
-const [updateSetting] = useUpdateItem()
+const { data: appState, update: updateSetting } = useSingleton("app_state")
 
 const selectedLocale = computed<Locale>({
   get() {
@@ -22,7 +21,7 @@ const selectedLocale = computed<Locale>({
 
 watch(selectedLocale, (value) => {
   if (appState.value) {
-    updateSetting(appState.value.id, { locale: value })
+    updateSetting({ locale: value })
   }
 })
 </script>

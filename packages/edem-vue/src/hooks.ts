@@ -192,5 +192,59 @@ export function createEdemHooks<TManifest>(client: EdemClient<TManifest>) {
     return [mutate, { loading, error }] as const
   }
 
-  return { useCollectionQuery, useSingletonQuery, useCreateItem, useUpdateItem, useDeleteItem }
+  function useSingleton<K extends keyof CM<TManifest> & string>(collectionId: K) {
+    const data = shallowRef<TypedItem<CM<TManifest>[K]> | null>(null)
+    const loading = ref(true)
+    const error = ref<string | null>(null)
+    let unsub: (() => void) | null = null
+
+    async function load() {
+      loading.value = true
+      error.value = null
+      try {
+        const result = await client.getSingleton(collectionId)
+        data.value = result.item
+      } catch (e) {
+        error.value = e instanceof Error ? e.message : String(e)
+      } finally {
+        loading.value = false
+      }
+    }
+
+    async function update(fields: Record<string, unknown>) {
+      loading.value = true
+      error.value = null
+      try {
+        await client.updateSingleton(collectionId, fields)
+      } catch (e) {
+        error.value = e instanceof Error ? e.message : String(e)
+        throw e
+      } finally {
+        loading.value = false
+      }
+    }
+
+    onMounted(async () => {
+      await load()
+      unsub = client.subscribeSingleton(collectionId, (item) => {
+        data.value = item
+      })
+    })
+
+    onUnmounted(() => {
+      unsub?.()
+      unsub = null
+    })
+
+    return { data, loading, error, update, reload: load }
+  }
+
+  return {
+    useCollectionQuery,
+    useSingletonQuery,
+    useCreateItem,
+    useUpdateItem,
+    useDeleteItem,
+    useSingleton,
+  }
 }

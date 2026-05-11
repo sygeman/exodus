@@ -2,13 +2,12 @@
 import { computed, watch } from "vue"
 import { useT } from "@exodus/edem-vue"
 import { useColorMode } from "@vueuse/core"
-import { useSingletonQuery, useUpdateItem } from "@/hooks"
+import { useSingleton } from "@/hooks"
 
 const t = useT()
 
 const colorMode = useColorMode()
-const { data: appState } = useSingletonQuery("app_state")
-const [updateSetting] = useUpdateItem()
+const { data: appState, update: updateSetting } = useSingleton("app_state")
 
 const isDark = computed({
   get() {
@@ -21,7 +20,7 @@ const isDark = computed({
 
 watch(isDark, (value) => {
   if (appState.value) {
-    updateSetting(appState.value.id, { theme: value ? "dark" : "light" })
+    updateSetting({ theme: value ? "dark" : "light" })
   }
 })
 </script>
