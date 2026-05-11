@@ -1,35 +1,17 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue"
+import { computed } from "vue"
 import { useT } from "@exodus/edem-vue"
 import { useRouter } from "vue-router"
-import { edem } from "@/edem"
+import { useVersion, useUpdateStatus, useStartUpdate } from "@/hooks"
 
 const t = useT()
 const router = useRouter()
 
-const version = ref("")
-const updateStatus = ref<string>("idle")
-const latestVersion = ref("")
+const { version } = useVersion()
+const { status: updateStatus, latestVersion } = useUpdateStatus()
+const [startUpdate] = useStartUpdate()
 
 const isUpdateAvailable = computed(() => updateStatus.value === "available")
-
-let unsub: (() => void) | undefined
-
-onMounted(async () => {
-  const { version: v } = await edem.electrobun.getVersion({})
-  version.value = v
-
-  unsub = edem.electrobun.updateStatus(({ event }) => {
-    updateStatus.value = event.status
-    if (event.latest_version) latestVersion.value = event.latest_version
-  })
-})
-
-onUnmounted(() => unsub?.())
-
-function startUpdate() {
-  edem.electrobun.startUpdate({})
-}
 
 function goBack() {
   router.back()
@@ -77,7 +59,7 @@ function goForward() {
           variant="soft"
           size="xs"
           :ui="{ leadingIcon: 'size-3.5' }"
-          @click="startUpdate"
+          @click="startUpdate()"
         >
           <template #leading>
             <UIcon name="i-lucide-arrow-up-circle" />

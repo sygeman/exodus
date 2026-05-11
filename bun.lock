@@ -143,6 +143,8 @@
       "dependencies": {
         "@exodus/edem-core": "workspace:*",
         "@exodus/edem-data": "workspace:*",
+        "@exodus/edem-electrobun": "workspace:*",
+        "@exodus/edem-flows": "workspace:*",
       },
       "devDependencies": {
         "@exodus/typescript-config": "workspace:*",

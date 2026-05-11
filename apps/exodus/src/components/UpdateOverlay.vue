@@ -1,30 +1,18 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from "vue"
+import { computed } from "vue"
 import { useT } from "@exodus/edem-vue"
-import { edem } from "@/edem"
+import { useUpdateStatus } from "@/hooks"
 
 const t = useT()
-const updateStatus = ref<string>("idle")
+const { status } = useUpdateStatus()
 
-const isUpdating = computed(
-  () => updateStatus.value === "downloading" || updateStatus.value === "applying",
-)
+const isUpdating = computed(() => status.value === "downloading" || status.value === "applying")
 
 const statusText = computed(() => {
-  if (updateStatus.value === "downloading") return t({ en: "Downloading...", ru: "Загрузка..." })
-  if (updateStatus.value === "applying") return t({ en: "Applying...", ru: "Установка..." })
+  if (status.value === "downloading") return t({ en: "Downloading...", ru: "Загрузка..." })
+  if (status.value === "applying") return t({ en: "Applying...", ru: "Установка..." })
   return ""
 })
-
-let unsub: (() => void) | undefined
-
-onMounted(() => {
-  unsub = edem.electrobun.updateStatus(({ event }) => {
-    updateStatus.value = event.status
-  })
-})
-
-onUnmounted(() => unsub?.())
 </script>
 
 <template>
