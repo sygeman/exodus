@@ -44,15 +44,5 @@ export const dataManifest = {
         { name: "window_maximized", type: "boolean", default: false },
       ],
     },
-    {
-      id: "updater_status",
-      singleton: true,
-      fields: [
-        { name: "status", type: "string", required: true, default: "idle" },
-        { name: "current_version", type: "string" },
-        { name: "latest_version", type: "string" },
-        { name: "error", type: "string" },
-      ],
-    },
   ],
 } as const

@@ -1,12 +1,10 @@
 <script setup lang="ts">
-import { computed } from "vue"
+import { ref, computed, onMounted, onUnmounted } from "vue"
 import { useT } from "@exodus/edem-vue"
-import { useSingletonQuery } from "@/hooks"
+import { edem } from "@/edem"
 
 const t = useT()
-const { data: statusItem } = useSingletonQuery("updater_status")
-
-const updateStatus = computed(() => statusItem.value?.data?.status ?? "idle")
+const updateStatus = ref<string>("idle")
 
 const isUpdating = computed(
   () => updateStatus.value === "downloading" || updateStatus.value === "applying",
@@ -17,6 +15,16 @@ const statusText = computed(() => {
   if (updateStatus.value === "applying") return t({ en: "Applying...", ru: "Установка..." })
   return ""
 })
+
+let unsub: (() => void) | undefined
+
+onMounted(() => {
+  unsub = edem.electrobun.updateStatus(({ event }) => {
+    updateStatus.value = event.status
+  })
+})
+
+onUnmounted(() => unsub?.())
 </script>
 
 <template>

@@ -1,20 +1,31 @@
 <script setup lang="ts">
-import { computed } from "vue"
+import { ref, computed, onMounted, onUnmounted } from "vue"
 import { useT } from "@exodus/edem-vue"
-import { useSingletonQuery } from "@/hooks"
 import { useRouter } from "vue-router"
 import { edem } from "@/edem"
 
 const t = useT()
 const router = useRouter()
-const { data: statusItem } = useSingletonQuery("updater_status")
 
-const version = __APP_VERSION__
-
-const updateStatus = computed(() => statusItem.value?.data?.status ?? "idle")
-const latestVersion = computed(() => statusItem.value?.data?.latest_version ?? "")
+const version = ref("")
+const updateStatus = ref<string>("idle")
+const latestVersion = ref("")
 
 const isUpdateAvailable = computed(() => updateStatus.value === "available")
+
+let unsub: (() => void) | undefined
+
+onMounted(async () => {
+  const { version: v } = await edem.electrobun.getVersion({})
+  version.value = v
+
+  unsub = edem.electrobun.updateStatus(({ event }) => {
+    updateStatus.value = event.status
+    if (event.latest_version) latestVersion.value = event.latest_version
+  })
+})
+
+onUnmounted(() => unsub?.())
 
 function startUpdate() {
   edem.electrobun.startUpdate({})

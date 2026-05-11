@@ -17,10 +17,6 @@
       "singleton": "app_state",
       "fields": ["locale", "theme"]
     },
-    "updater": {
-      "singleton": "updater_status",
-      "checkInterval": "15m"
-    },
     "devtools": {
       "accelerator": "Cmd+Option+I"
     },

@@ -1,8 +1,5 @@
-import { createEdemModule, type InferModuleAPI } from "@exodus/edem-core"
-import type { dataModule } from "@exodus/edem-data"
+import { createEdemModule } from "@exodus/edem-core"
 import { z } from "zod"
-
-type EdemData = InferModuleAPI<typeof dataModule>
 
 type UpdaterAPI = {
   checkForUpdate: () => Promise<{
@@ -21,7 +18,6 @@ type UpdaterAPI = {
 
 export interface ElectrobunDeps {
   Updater?: UpdaterAPI
-  data?: EdemData
 }
 
 let deps: ElectrobunDeps = {}
@@ -30,110 +26,102 @@ export function setElectrobunDeps(d: ElectrobunDeps): void {
   deps = d
 }
 
-const COLLECTION_ID = "updater_status"
+const UpdateStatusSchema = z.object({
+  status: z.enum(["idle", "checking", "available", "latest", "error", "downloading", "applying"]),
+  current_version: z.string().optional(),
+  latest_version: z.string().optional(),
+  error: z.string().optional(),
+})
 
-let statusItemId: string | null = null
-
-async function ensureStatusItem(data: EdemData): Promise<string> {
-  if (statusItemId) return statusItemId
-  const { items } = await data.queryItems({ collection_id: COLLECTION_ID })
-  if (items.length > 0 && items[0].id) {
-    statusItemId = items[0].id
-    return statusItemId
-  }
-  const { id } = await data.createItem({
-    collection_id: COLLECTION_ID,
-    data: { status: "idle" },
-  })
-  statusItemId = id
-  return id
-}
-
-async function sendStatus(
-  data: EdemData,
-  payload: {
-    status: "idle" | "checking" | "available" | "latest" | "error" | "downloading" | "applying"
-    current_version?: string
-    latest_version?: string
-    error?: string
-  },
-) {
-  const id = await ensureStatusItem(data)
-  await data.updateItem({ item_id: id, data: payload })
-}
-
-async function checkForUpdate(data: EdemData) {
-  if (!deps.Updater) return
-  try {
-    await sendStatus(data, { status: "checking" })
-    const result = await deps.Updater.checkForUpdate()
-    const currentVersion = await deps.Updater.localInfo.version()
-    const currentHash = await deps.Updater.localInfo.hash()
-
-    const isActuallyAvailable =
-      result.updateAvailable && result.version !== currentVersion && result.hash !== currentHash
-
-    if (result.error) {
-      await sendStatus(data, { status: "error", error: result.error })
-    } else if (isActuallyAvailable) {
-      await sendStatus(data, {
-        status: "available",
-        current_version: currentVersion,
-        latest_version: result.version,
-      })
-    } else {
-      await sendStatus(data, { status: "latest", current_version: currentVersion })
-    }
-  } catch (err) {
-    console.error("[updater] checkUpdate error:", err)
-    await sendStatus(data, {
-      status: "error",
-      error: (err as Error).message || String(err),
+export const electrobunModule = createEdemModule("electrobun", (module) =>
+  module
+    .context(async () => ({
+      updater: deps.Updater!,
+    }))
+    .query("getVersion", {
+      input: z.object({}),
+      output: z.object({ version: z.string() }),
+      resolve: async ({ ctx }) => {
+        const version = await ctx.updater.localInfo.version()
+        return { version }
+      },
     })
-  }
-}
-
-async function startUpdate(data: EdemData) {
-  if (!deps.Updater) return
-  try {
-    await sendStatus(data, { status: "downloading" })
-    await deps.Updater.downloadUpdate()
-    await sendStatus(data, { status: "applying" })
-    await deps.Updater.applyUpdate()
-  } catch (err) {
-    console.error("[updater] update failed:", err)
-    await sendStatus(data, {
-      status: "error",
-      error: (err as Error).message || String(err),
+    .subscription("updateStatus", {
+      output: UpdateStatusSchema,
     })
-  }
-}
-
-export const electrobunModule = createEdemModule(
-  "electrobun",
-  (module) =>
-    module
-      .mutation("checkUpdate", {
-        input: z.object({}),
-        output: z.object({ status: z.string() }),
-        resolve: async () => {
-          if (deps.data) await checkForUpdate(deps.data)
-          return { status: "ok" }
-        },
-      })
-      .mutation("startUpdate", {
-        input: z.object({}),
-        output: z.object({ status: z.string() }),
-        resolve: async () => {
-          if (deps.data) await startUpdate(deps.data)
-          return { status: "ok" }
-        },
+    .mutation("checkUpdate", {
+      input: z.object({}),
+      output: z.object({
+        available: z.boolean(),
+        current_version: z.string().optional(),
+        latest_version: z.string().optional(),
+        error: z.string().nullable().optional(),
       }),
-  () => {
-    if (deps.data) {
-      ensureStatusItem(deps.data).then(() => checkForUpdate(deps.data!))
-    }
-  },
+      resolve: async ({ ctx, emit }) => {
+        if (!ctx.updater) {
+          return { available: false, error: "Updater not available" }
+        }
+
+        try {
+          await emit.updateStatus({ status: "checking" })
+
+          const result = await ctx.updater.checkForUpdate()
+          const currentVersion = await ctx.updater.localInfo.version()
+          const currentHash = await ctx.updater.localInfo.hash()
+
+          const isAvailable =
+            result.updateAvailable &&
+            result.version !== currentVersion &&
+            result.hash !== currentHash
+
+          if (result.error) {
+            await emit.updateStatus({ status: "error", error: result.error })
+            return { available: false, error: result.error }
+          }
+
+          if (isAvailable) {
+            await emit.updateStatus({
+              status: "available",
+              current_version: currentVersion,
+              latest_version: result.version,
+            })
+            return {
+              available: true,
+              current_version: currentVersion,
+              latest_version: result.version,
+            }
+          }
+
+          await emit.updateStatus({ status: "latest", current_version: currentVersion })
+          return { available: false, current_version: currentVersion }
+        } catch (err) {
+          const error = (err as Error).message || String(err)
+          await emit.updateStatus({ status: "error", error })
+          return { available: false, error }
+        }
+      },
+    })
+    .mutation("startUpdate", {
+      input: z.object({}),
+      output: z.object({ success: z.boolean(), error: z.string().nullable().optional() }),
+      resolve: async ({ ctx, emit }) => {
+        if (!ctx.updater) {
+          return { success: false, error: "Updater not available" }
+        }
+
+        try {
+          await emit.updateStatus({ status: "downloading" })
+          await ctx.updater.downloadUpdate()
+          await emit.updateStatus({ status: "applying" })
+          await ctx.updater.applyUpdate()
+          return { success: true }
+        } catch (err) {
+          const error = (err as Error).message || String(err)
+          await emit.updateStatus({ status: "error", error })
+          return { success: false, error }
+        }
+      },
+    }),
 )
 
 export default electrobunModule

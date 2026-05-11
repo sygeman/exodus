@@ -79,7 +79,7 @@ await ensureCollections(edem.data)
 await ensureFlows(edem.flows)
 
 // Set up Electrobun dependencies for the electrobun module
-setElectrobunDeps({ Updater, data: edem.data })
+setElectrobunDeps({ Updater })
 
 await startScheduler(edem.flows, edem.data)
 const flowsDispatcher = await startDispatcher(edem.flows, edem.data)

@@ -219,8 +219,7 @@ SQLite Exodus
 │   ├── projects { name, slug, description, icon, color, type, sort_order }
 │   ├── ideas { project_id, title, description, level, type, status }
 │   ├── logs { level, message, source, args, count }
-│   ├── app_state (singleton) { last_route, locale, theme, window_frame, window_maximized }
-│   └── updater_status (singleton) { status, current_version, latest_version, error }
+│   └── app_state (singleton) { last_route, locale, theme, window_frame, window_maximized }
 │
 └── items
     ├── projects: [...]

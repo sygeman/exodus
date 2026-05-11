@@ -51,18 +51,6 @@
         { "name": "window_frame", "type": "json", "labels": { "en": "Window Frame", "ru": "Размер окна" } },
         { "name": "window_maximized", "type": "boolean", "default": false, "labels": { "en": "Maximized", "ru": "Развёрнуто" } }
       ]
-    },
-    {
-      "id": "updater_status",
-      "name": "Updater Status",
-      "singleton": true,
-      "labels": { "en": "Updater Status", "ru": "Статус обновления" },
-      "fields": [
-        { "name": "status", "type": "string", "required": true, "default": "idle", "labels": { "en": "Status", "ru": "Статус" } },
-        { "name": "current_version", "type": "string", "labels": { "en": "Current Version", "ru": "Текущая версия" } },
-        { "name": "latest_version", "type": "string", "labels": { "en": "Latest Version", "ru": "Последняя версия" } },
-        { "name": "error", "type": "string", "labels": { "en": "Error", "ru": "Ошибка" } }
-      ]
     }
   ]
 }
