@@ -1,7 +1,6 @@
 import { ref } from "vue"
 import type { Router } from "vue-router"
 import { edem } from "@/edem"
-import { edemBridge } from "@/edem-bridge"
 
 const COLLECTION_ID = "app_state"
 
@@ -11,6 +10,7 @@ export function useAppState(router: Router) {
   let savedHash: string | null = null
   let restoreReceived = false
   let isRouterReady = false
+  let itemId: string | null = null
 
   function restore(hash: string | null) {
     if (hash && hash !== "#/" && hash !== "#") {
@@ -28,6 +28,7 @@ export function useAppState(router: Router) {
       const { items } = await edem.data.queryItems({ collection_id: COLLECTION_ID })
       if (items.length > 0) {
         const item = items[0]
+        itemId = item.id
         savedHash = item.data.last_route?.hash ?? null
         systemLocale.value = (item.data.locale as string) ?? null
         systemTheme.value = (item.data.theme as "dark" | "light") ?? null
@@ -54,9 +55,12 @@ export function useAppState(router: Router) {
     })
 
     router.afterEach(() => {
-      edemBridge.emitEvent("app-state:route-changed", {
-        hash: window.location.hash,
-      })
+      if (itemId) {
+        edem.data.updateItem({
+          item_id: itemId,
+          data: { last_route: { hash: window.location.hash } },
+        })
+      }
     })
   }
 

@@ -48,20 +48,6 @@ export async function persistWindowFrame(
   await data.updateItem({ item_id: id, data: patch })
 }
 
-export async function persistRoute(data: EdemData, hash?: string): Promise<void> {
-  if (!hash) return
-  const id = await ensureAppStateItem(data)
-  await data.updateItem({ item_id: id, data: { last_route: { hash } } })
-}
-
-const ALLOWED_SETTING_KEYS = new Set(["theme", "locale"])
-
-export async function persistSetting(data: EdemData, key: string, value: unknown): Promise<void> {
-  if (!key || !ALLOWED_SETTING_KEYS.has(key)) return
-  const id = await ensureAppStateItem(data)
-  await data.updateItem({ item_id: id, data: { [key]: value } })
-}
-
 export async function initStateDefaults(data: EdemData) {
   const { items } = await data.queryItems({ collection_id: COLLECTION_ID })
   if (items.length === 0) return

@@ -103,10 +103,14 @@
       "name": "Toggle Dark Mode",
       "trigger": { "type": "manual" },
       "nodes": [
-        { "id": "n1", "type": "trigger", "position": { "x": 0, "y": 0 } },
-        { "id": "n2", "type": "action", "position": { "x": 100, "y": 0 }, "data": { "module": "electrobun", "proc": "emitEvent", "args": { "event": "app-state:setting-changed", "payload": { "key": "theme", "value": "{{ trigger.event }}" } } } }
+        { "id": "n1", "type": "trigger", "position": { "x": 0, "y": 0 }, "data": { "input": { "theme": "string" } } },
+        { "id": "n2", "type": "action", "position": { "x": 100, "y": 0 }, "data": { "module": "data", "proc": "queryItems", "args": { "collection_id": "app_state", "limit": 1 } } },
+        { "id": "n3", "type": "action", "position": { "x": 200, "y": 0 }, "data": { "module": "data", "proc": "updateItem", "args": { "item_id": "{{ n2.items[0].id }}", "data": { "theme": "{{ trigger.theme }}" } } } }
       ],
-      "edges": [{ "id": "e1", "source": "n1", "target": "n2" }]
+      "edges": [
+        { "id": "e1", "source": "n1", "target": "n2" },
+        { "id": "e2", "source": "n2", "target": "n3" }
+      ]
     },
     {
       "id": "setLocale",
@@ -114,9 +118,13 @@
       "trigger": { "type": "manual" },
       "nodes": [
         { "id": "n1", "type": "trigger", "position": { "x": 0, "y": 0 }, "data": { "input": { "locale": "string" } } },
-        { "id": "n2", "type": "action", "position": { "x": 100, "y": 0 }, "data": { "module": "electrobun", "proc": "emitEvent", "args": { "event": "app-state:setting-changed", "payload": { "key": "locale", "value": "{{ trigger.locale }}" } } } }
+        { "id": "n2", "type": "action", "position": { "x": 100, "y": 0 }, "data": { "module": "data", "proc": "queryItems", "args": { "collection_id": "app_state", "limit": 1 } } },
+        { "id": "n3", "type": "action", "position": { "x": 200, "y": 0 }, "data": { "module": "data", "proc": "updateItem", "args": { "item_id": "{{ n2.items[0].id }}", "data": { "locale": "{{ trigger.locale }}" } } } }
       ],
-      "edges": [{ "id": "e1", "source": "n1", "target": "n2" }]
+      "edges": [
+        { "id": "e1", "source": "n1", "target": "n2" },
+        { "id": "e2", "source": "n2", "target": "n3" }
+      ]
     },
 
     {

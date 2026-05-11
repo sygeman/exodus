@@ -161,7 +161,7 @@ function generateBunIndex(ir: IR): string {
   if (hasWindowState || hasSystemDetection) {
     const appStateImports: string[] = []
     if (hasSystemDetection) appStateImports.push("initStateDefaults")
-    if (hasWindowState) appStateImports.push("persistWindowFrame", "persistRoute", "persistSetting")
+    if (hasWindowState) appStateImports.push("persistWindowFrame")
     if (appStateImports.length > 0) {
       imports.push(`import { ${appStateImports.join(", ")} } from "@/platform/app-state"`)
     }
@@ -232,15 +232,6 @@ await startScheduler(edem.flows, edem.data)
 const flowsDispatcher = await startDispatcher(edem.flows, edem.data)
 
 edemBridge.onWebviewEvent((name, payload) => {
-  if (name === "app-state:route-changed") {
-    persistRoute(edem.data, (payload as { hash?: string }).hash)
-    return
-  }
-  if (name === "app-state:setting-changed") {
-    const { key, value } = payload as { key?: string; value?: unknown }
-    if (key) persistSetting(edem.data, key, value)
-    return
-  }
   flowsDispatcher.emit(name, payload)
 })`)
 

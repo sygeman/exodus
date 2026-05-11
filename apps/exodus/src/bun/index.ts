@@ -8,12 +8,7 @@ import { edem, modules } from "@/bun/edem"
 import { ensureCollections } from "@/manifest"
 import { ensureFlows } from "@/flows-bootstrap"
 import { bunLogger } from "@/platform/logger-bun"
-import {
-  initStateDefaults,
-  persistWindowFrame,
-  persistRoute,
-  persistSetting,
-} from "@/platform/app-state"
+import { initStateDefaults, persistWindowFrame } from "@/platform/app-state"
 import { onWindowFrameChange } from "@exodus/edem-electrobun/window"
 
 // Workaround for WebKitGTK + NVIDIA + Wayland rendering issue.
@@ -85,15 +80,6 @@ await startScheduler(edem.flows, edem.data)
 const flowsDispatcher = await startDispatcher(edem.flows, edem.data)
 
 edemBridge.onWebviewEvent((name, payload) => {
-  if (name === "app-state:route-changed") {
-    persistRoute(edem.data, (payload as { hash?: string }).hash)
-    return
-  }
-  if (name === "app-state:setting-changed") {
-    const { key, value } = payload as { key?: string; value?: unknown }
-    if (key) persistSetting(edem.data, key, value)
-    return
-  }
   flowsDispatcher.emit(name, payload)
 })
 

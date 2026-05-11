@@ -2,11 +2,13 @@
 import { computed, watch } from "vue"
 import { useT } from "@exodus/edem-vue"
 import { useColorMode } from "@vueuse/core"
-import { edemBridge } from "@/edem-bridge"
+import { useSingletonQuery, useUpdateItem } from "@/hooks"
 
 const t = useT()
 
 const colorMode = useColorMode()
+const { data: appState } = useSingletonQuery("app_state")
+const [updateSetting] = useUpdateItem()
 
 const isDark = computed({
   get() {
@@ -18,10 +20,9 @@ const isDark = computed({
 })
 
 watch(isDark, (value) => {
-  edemBridge.emitEvent("app-state:setting-changed", {
-    key: "theme",
-    value: value ? "dark" : "light",
-  })
+  if (appState.value) {
+    updateSetting(appState.value.id, { theme: value ? "dark" : "light" })
+  }
 })
 </script>
 

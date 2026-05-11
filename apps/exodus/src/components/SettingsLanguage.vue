@@ -3,10 +3,13 @@ import { computed, watch } from "vue"
 import { useI18n } from "vue-i18n"
 import { useT } from "@exodus/edem-vue"
 import { locales, type Locale } from "@/locales"
-import { edemBridge } from "@/edem-bridge"
+import { useSingletonQuery, useUpdateItem } from "@/hooks"
 
 const { locale } = useI18n()
 const t = useT()
+
+const { data: appState } = useSingletonQuery("app_state")
+const [updateSetting] = useUpdateItem()
 
 const selectedLocale = computed<Locale>({
   get() {
@@ -18,10 +21,9 @@ const selectedLocale = computed<Locale>({
 })
 
 watch(selectedLocale, (value) => {
-  edemBridge.emitEvent("app-state:setting-changed", {
-    key: "locale",
-    value,
-  })
+  if (appState.value) {
+    updateSetting(appState.value.id, { locale: value })
+  }
 })
 </script>
 
