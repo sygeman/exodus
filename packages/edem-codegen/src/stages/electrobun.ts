@@ -116,8 +116,7 @@ export default {
 `
 }
 
-function generateBunEdem(ir: IR): string {
-  const hasUpdater = !!ir.platform.features.updater
+function generateBunEdem(_ir: IR): string {
   const imports = [
     `import { Utils } from "electrobun/bun"`,
     `import { createEdem } from "@exodus/edem-core"`,
@@ -125,13 +124,8 @@ function generateBunEdem(ir: IR): string {
     `import { flowsModule } from "@exodus/edem-flows"`,
     `import { electrobunModule } from "@exodus/edem-electrobun/module"`,
   ]
-  if (hasUpdater) {
-    imports.push(`import { updaterModule } from "@/platform/updater"`)
-  }
 
-  const moduleList = ["dataModule", "flowsModule"]
-  if (hasUpdater) moduleList.push("updaterModule")
-  moduleList.push("electrobunModule")
+  const moduleList = ["dataModule", "flowsModule", "electrobunModule"]
 
   return `${imports.join("\n")}
 
@@ -161,11 +155,16 @@ function generateBunIndex(ir: IR): string {
   ]
 
   if (hasLogger) imports.push(`import { logger } from "@/platform/logger"`)
+  if (hasWindowState) {
+    imports.push(`import { onWindowFrameChange } from "@exodus/edem-electrobun/window"`)
+  }
   if (hasWindowState || hasSystemDetection) {
-    const appStateImports = ["initAppState"]
+    const appStateImports: string[] = []
     if (hasSystemDetection) appStateImports.push("initStateDefaults")
     if (hasWindowState) appStateImports.push("persistWindowFrame", "persistRoute", "persistSetting")
-    imports.push(`import { ${appStateImports.join(", ")} } from "@/platform/app-state"`)
+    if (appStateImports.length > 0) {
+      imports.push(`import { ${appStateImports.join(", ")} } from "@/platform/app-state"`)
+    }
   }
 
   const body: string[] = []
@@ -293,7 +292,7 @@ edemBridge.attachWebview(webview)`)
   // App state init (window events)
   if (hasWindowState) {
     body.push(`
-initAppState(win, (f) => persistWindowFrame(edem.data, f.frame, f.maximized))`)
+onWindowFrameChange(win, (f) => persistWindowFrame(edem.data, f.frame, f.maximized))`)
   }
 
   // Application menu
@@ -398,25 +397,20 @@ export { rpc, edemBridge }
 `
 }
 
-function generateEdemProxy(ir: IR): string {
-  const hasUpdater = !!ir.platform.features.updater
+function generateEdemProxy(_ir: IR): string {
   const imports = [
     `import { createEdemProxy, type InferModuleAPI } from "@exodus/edem-core"`,
     `import type { dataModule } from "@exodus/edem-data"`,
     `import type { flowsModule } from "@exodus/edem-flows"`,
+    `import type { electrobunModule } from "@exodus/edem-electrobun/module"`,
     `import { edemBridge } from "@/edem-bridge"`,
   ]
-  if (hasUpdater) {
-    imports.push(`import type { updaterModule } from "@/platform/updater"`)
-  }
 
   const typeEntries = [
     `  data: InferModuleAPI<typeof dataModule>`,
     `  flows: InferModuleAPI<typeof flowsModule>`,
+    `  electrobun: InferModuleAPI<typeof electrobunModule>`,
   ]
-  if (hasUpdater) {
-    typeEntries.push(`  updater: InferModuleAPI<typeof updaterModule>`)
-  }
 
   return `${imports.join("\n")}
 

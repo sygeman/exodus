@@ -17,7 +17,7 @@ const latestVersion = computed(() => statusItem.value?.data?.latest_version ?? "
 const isUpdateAvailable = computed(() => updateStatus.value === "available")
 
 function startUpdate() {
-  edem.updater.startUpdate({})
+  edem.electrobun.startUpdate({})
 }
 
 function goBack() {

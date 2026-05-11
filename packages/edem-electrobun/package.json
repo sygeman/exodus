@@ -24,6 +24,14 @@
     "./module": {
       "types": "./src/module.ts",
       "default": "./src/module.ts"
+    },
+    "./window": {
+      "types": "./src/window.ts",
+      "default": "./src/window.ts"
+    },
+    "./system": {
+      "types": "./src/system.ts",
+      "default": "./src/system.ts"
     }
   },
   "dependencies": {

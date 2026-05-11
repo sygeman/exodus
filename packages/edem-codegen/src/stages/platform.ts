@@ -31,14 +31,6 @@ export const platformStage: Stage = {
       })
     }
 
-    // Updater — checkUpdate + startUpdate via Electrobun Updater
-    if (features.updater) {
-      files.push({
-        path: "src/platform/updater.ts",
-        content: generateUpdater(features.updater.checkInterval),
-      })
-    }
-
     // Locales data for language settings
     if (ir.components.some((c) => c.name === "SettingsLanguage")) {
       files.push({
@@ -48,9 +40,6 @@ export const platformStage: Stage = {
     }
 
     const deps: string[] = []
-    if (features.updater) {
-      deps.push("zod")
-    }
 
     return { files, deps }
   },
@@ -156,9 +145,9 @@ function generateAppState(
   const hasSystem = !!systemDetection
   const collectionId = (windowPersistence ?? systemDetection)!.singleton
 
-  return `import type { BrowserWindow } from "electrobun/bun"
-import type { dataModule } from "@exodus/edem-data"
+  return `import type { dataModule } from "@exodus/edem-data"
 import type { InferModuleAPI } from "@exodus/edem-core"
+${hasSystem ? `import { getSystemLocale, getSystemTheme } from "@exodus/edem-electrobun/system"` : ""}
 
 type EdemData = InferModuleAPI<typeof dataModule>
 
@@ -231,53 +220,6 @@ export async function persistSetting(
 ${
   hasSystem
     ? `
-function getSystemLocale(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().locale
-  } catch {
-    return "en-US"
-  }
-}
-
-function getSystemTheme(): "dark" | "light" {
-  if (process.platform === "darwin") {
-    try {
-      const { execSync } = require("child_process")
-      const style = execSync("defaults read -g AppleInterfaceStyle", { encoding: "utf-8" }).trim()
-      return style === "Dark" ? "dark" : "light"
-    } catch {
-      return "light"
-    }
-  }
-
-  if (process.platform === "win32") {
-    try {
-      const { execSync } = require("child_process")
-      const result = execSync(
-        'reg query "HKEY_CURRENT_USER\\\\Software\\\\Microsoft\\\\Windows\\\\CurrentVersion\\\\Themes\\\\Personalize" /v AppsUseLightTheme',
-        { encoding: "utf-8" },
-      )
-      return result.includes("0x0") ? "dark" : "light"
-    } catch {
-      return "light"
-    }
-  }
-
-  if (process.platform === "linux") {
-    try {
-      const { execSync } = require("child_process")
-      const theme = execSync("gsettings get org.gnome.desktop.interface gtk-theme", {
-        encoding: "utf-8",
-      }).trim()
-      return theme.toLowerCase().includes("dark") ? "dark" : "light"
-    } catch {
-      return "light"
-    }
-  }
-
-  return "light"
-}
-
 export async function initStateDefaults(data: EdemData) {
   const { items } = await data.queryItems({ collection_id: COLLECTION_ID })
   if (items.length === 0) return
@@ -298,164 +240,6 @@ export async function initStateDefaults(data: EdemData) {
 `
     : ""
 }
-${
-  hasWindow
-    ? `
-export function initAppState(
-  win: BrowserWindow,
-  saveFrame?: (data: { frame: WindowFrame; maximized?: boolean }) => void,
-) {
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null
-
-  function debouncedSaveFrame(frame: WindowFrame) {
-    if (debounceTimer) {
-      clearTimeout(debounceTimer)
-    }
-    debounceTimer = setTimeout(() => {
-      saveFrame?.({ frame })
-    }, ${windowPersistence!.debounce})
-  }
-
-  win.on("resize", (event: unknown) => {
-    const e = event as { data?: { x: number; y: number; width: number; height: number } }
-    if (e.data) {
-      debouncedSaveFrame(e.data)
-    }
-  })
-
-  win.on("move", () => {
-    const currentFrame = win.getFrame()
-    debouncedSaveFrame(currentFrame)
-  })
-
-  win.on("close", () => {
-    if (debounceTimer) {
-      clearTimeout(debounceTimer)
-    }
-    const currentFrame = win.getFrame()
-    saveFrame?.({ frame: currentFrame, maximized: win.isMaximized() })
-  })
-}
-`
-    : ""
-}
-`
-}
-
-function generateUpdater(_checkInterval: string): string {
-  return `import { Updater } from "electrobun/bun"
-import type { dataModule } from "@exodus/edem-data"
-import { createEdemModule, type InferModuleAPI } from "@exodus/edem-core"
-import { z } from "zod"
-
-type EdemData = InferModuleAPI<typeof dataModule>
-
-const COLLECTION_ID = "updater_status"
-
-let dataRef: EdemData | null = null
-let statusItemId: string | null = null
-
-async function ensureStatusItem(data: EdemData): Promise<string> {
-  if (statusItemId) return statusItemId
-  const { items } = await data.queryItems({ collection_id: COLLECTION_ID })
-  if (items.length > 0) {
-    statusItemId = items[0].id
-    return statusItemId
-  }
-  const { id } = await data.createItem({
-    collection_id: COLLECTION_ID,
-    data: { status: "idle" },
-  })
-  statusItemId = id
-  return id
-}
-
-async function sendStatus(
-  data: EdemData,
-  payload: {
-    status: "idle" | "checking" | "available" | "latest" | "error" | "downloading" | "applying"
-    current_version?: string
-    latest_version?: string
-    error?: string
-  },
-) {
-  const id = await ensureStatusItem(data)
-  await data.updateItem({ item_id: id, data: payload })
-}
-
-async function checkForUpdate() {
-  if (!dataRef) return
-  try {
-    await sendStatus(dataRef, { status: "checking" })
-    const result = await Updater.checkForUpdate()
-    const currentVersion = await Updater.localInfo.version()
-    const currentHash = await Updater.localInfo.hash()
-
-    const isActuallyAvailable =
-      result.updateAvailable && result.version !== currentVersion && result.hash !== currentHash
-
-    if (result.error) {
-      await sendStatus(dataRef, { status: "error", error: result.error })
-    } else if (isActuallyAvailable) {
-      await sendStatus(dataRef, {
-        status: "available",
-        current_version: currentVersion,
-        latest_version: result.version,
-      })
-    } else {
-      await sendStatus(dataRef, { status: "latest", current_version: currentVersion })
-    }
-  } catch (err) {
-    console.error("[updater] checkUpdate error:", err)
-    await sendStatus(dataRef, {
-      status: "error",
-      error: (err as Error).message || String(err),
-    })
-  }
-}
-
-async function startUpdate() {
-  if (!dataRef) return
-  try {
-    await sendStatus(dataRef, { status: "downloading" })
-    await Updater.downloadUpdate()
-    await sendStatus(dataRef, { status: "applying" })
-    await Updater.applyUpdate()
-  } catch (err) {
-    console.error("[updater] update failed:", err)
-    await sendStatus(dataRef, {
-      status: "error",
-      error: (err as Error).message || String(err),
-    })
-  }
-}
-
-export const updaterModule = createEdemModule(
-  "updater",
-  (module) =>
-    module
-      .mutation("checkUpdate", {
-        input: z.object({}),
-        output: z.object({ status: z.string() }),
-        resolve: async () => {
-          await checkForUpdate()
-          return { status: "ok" }
-        },
-      })
-      .mutation("startUpdate", {
-        input: z.object({}),
-        output: z.object({ status: z.string() }),
-        resolve: async () => {
-          await startUpdate()
-          return { status: "ok" }
-        },
-      }),
-  (edem) => {
-    const { data } = edem as { data: EdemData }
-    dataRef = data
-    ensureStatusItem(data).then(() => checkForUpdate())
-  },
-)
 `
 }
 

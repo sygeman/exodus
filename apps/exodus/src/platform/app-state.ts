@@ -1,6 +1,6 @@
-import { type BrowserWindow } from "electrobun/bun"
 import type { dataModule } from "@exodus/edem-data"
 import type { InferModuleAPI } from "@exodus/edem-core"
+import { getSystemLocale, getSystemTheme } from "@exodus/edem-electrobun/system"
 
 type EdemData = InferModuleAPI<typeof dataModule>
 
@@ -62,53 +62,6 @@ export async function persistSetting(data: EdemData, key: string, value: unknown
   await data.updateItem({ item_id: id, data: { [key]: value } })
 }
 
-function getSystemLocale(): string {
-  try {
-    return Intl.DateTimeFormat().resolvedOptions().locale
-  } catch {
-    return "en-US"
-  }
-}
-
-function getSystemTheme(): "dark" | "light" {
-  if (process.platform === "darwin") {
-    try {
-      const { execSync } = require("child_process")
-      const style = execSync("defaults read -g AppleInterfaceStyle", { encoding: "utf-8" }).trim()
-      return style === "Dark" ? "dark" : "light"
-    } catch {
-      return "light"
-    }
-  }
-
-  if (process.platform === "win32") {
-    try {
-      const { execSync } = require("child_process")
-      const result = execSync(
-        'reg query "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize" /v AppsUseLightTheme',
-        { encoding: "utf-8" },
-      )
-      return result.includes("0x0") ? "dark" : "light"
-    } catch {
-      return "light"
-    }
-  }
-
-  if (process.platform === "linux") {
-    try {
-      const { execSync } = require("child_process")
-      const theme = execSync("gsettings get org.gnome.desktop.interface gtk-theme", {
-        encoding: "utf-8",
-      }).trim()
-      return theme.toLowerCase().includes("dark") ? "dark" : "light"
-    } catch {
-      return "light"
-    }
-  }
-
-  return "light"
-}
-
 export async function initStateDefaults(data: EdemData) {
   const { items } = await data.queryItems({ collection_id: COLLECTION_ID })
   if (items.length === 0) return
@@ -125,40 +78,4 @@ export async function initStateDefaults(data: EdemData) {
   if (Object.keys(patch).length > 0) {
     await data.updateItem({ item_id: item.id, data: patch })
   }
-}
-
-export function initAppState(
-  win: BrowserWindow,
-  saveFrame?: (data: { frame: WindowFrame; maximized?: boolean }) => void,
-) {
-  let debounceTimer: ReturnType<typeof setTimeout> | null = null
-
-  function debouncedSaveFrame(frame: WindowFrame) {
-    if (debounceTimer) {
-      clearTimeout(debounceTimer)
-    }
-    debounceTimer = setTimeout(() => {
-      saveFrame?.({ frame })
-    }, 300)
-  }
-
-  win.on("resize", (event: unknown) => {
-    const e = event as { data?: { x: number; y: number; width: number; height: number } }
-    if (e.data) {
-      debouncedSaveFrame(e.data)
-    }
-  })
-
-  win.on("move", () => {
-    const currentFrame = win.getFrame()
-    debouncedSaveFrame(currentFrame)
-  })
-
-  win.on("close", () => {
-    if (debounceTimer) {
-      clearTimeout(debounceTimer)
-    }
-    const currentFrame = win.getFrame()
-    saveFrame?.({ frame: currentFrame, maximized: win.isMaximized() })
-  })
 }

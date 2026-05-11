@@ -9,12 +9,12 @@ import { ensureCollections } from "@/manifest"
 import { ensureFlows } from "@/flows-bootstrap"
 import { bunLogger } from "@/platform/logger-bun"
 import {
-  initAppState,
   initStateDefaults,
   persistWindowFrame,
   persistRoute,
   persistSetting,
 } from "@/platform/app-state"
+import { onWindowFrameChange } from "@exodus/edem-electrobun/window"
 
 // Workaround for WebKitGTK + NVIDIA + Wayland rendering issue.
 // The DMA-BUF renderer fails to create GBM buffers on NVIDIA in Wayland
@@ -79,7 +79,7 @@ await ensureCollections(edem.data)
 await ensureFlows(edem.flows)
 
 // Set up Electrobun dependencies for the electrobun module
-setElectrobunDeps({ Updater })
+setElectrobunDeps({ Updater, data: edem.data })
 
 await startScheduler(edem.flows, edem.data)
 const flowsDispatcher = await startDispatcher(edem.flows, edem.data)
@@ -130,7 +130,7 @@ const { webview } = win
 
 edemBridge.attachWebview(webview)
 
-initAppState(win, (f) => persistWindowFrame(edem.data, f.frame, f.maximized))
+onWindowFrameChange(win, (f) => persistWindowFrame(edem.data, f.frame, f.maximized))
 
 ApplicationMenu.setApplicationMenu([
   {
