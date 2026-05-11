@@ -779,4 +779,91 @@ describe("data module", () => {
       expect(count).toBe(2)
     })
   })
+
+  describe("applyManifest singleton", () => {
+    it("should create singleton item with field defaults", async () => {
+      const result = await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "settings",
+              name: "Settings",
+              singleton: true,
+              fields: [
+                { name: "theme", type: "string", default: "light" },
+                { name: "notifications", type: "boolean", default: true },
+                { name: "count", type: "number", default: 0 },
+              ],
+            },
+          ],
+        },
+      })
+
+      expect(result.created).toEqual(["settings"])
+
+      const { items } = await edem.data.queryItems({ collection_id: "settings" })
+      expect(items).toHaveLength(1)
+      expect(items[0].data.theme).toBe("light")
+      expect(items[0].data.notifications).toBe(true)
+      expect(items[0].data.count).toBe(0)
+    })
+
+    it("should not create duplicate singleton item on re-apply", async () => {
+      const manifest = {
+        collections: [
+          {
+            id: "settings",
+            name: "Settings",
+            singleton: true,
+            fields: [{ name: "theme", type: "string" as const, default: "dark" }],
+          },
+        ],
+      }
+
+      await edem.data.applyManifest({ manifest })
+      await edem.data.applyManifest({ manifest })
+
+      const { items } = await edem.data.queryItems({ collection_id: "settings" })
+      expect(items).toHaveLength(1)
+    })
+
+    it("should not create items for non-singleton collections", async () => {
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "posts",
+              name: "Posts",
+              fields: [{ name: "title", type: "string" }],
+            },
+          ],
+        },
+      })
+
+      const { items } = await edem.data.queryItems({ collection_id: "posts" })
+      expect(items).toHaveLength(0)
+    })
+
+    it("should create singleton with empty data when no field defaults", async () => {
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "app_state",
+              name: "App State",
+              singleton: true,
+              fields: [
+                { name: "window_frame", type: "json" },
+                { name: "locale", type: "string" },
+              ],
+            },
+          ],
+        },
+      })
+
+      const { items } = await edem.data.queryItems({ collection_id: "app_state" })
+      expect(items).toHaveLength(1)
+      expect(items[0].data).toEqual({})
+    })
+  })
 })

@@ -16,36 +16,17 @@ const COLLECTION_ID = "app_state"
 const MIN_WINDOW_WIDTH = 400
 const MIN_WINDOW_HEIGHT = 300
 
-let stateItemId: string | null = null
-
-async function ensureAppStateItem(data: EdemData): Promise<string> {
-  if (stateItemId) return stateItemId
-  const { items } = await data.queryItems({ collection_id: COLLECTION_ID })
-  if (items.length > 0 && items[0].id) {
-    stateItemId = items[0].id
-    return stateItemId
-  }
-  const { id } = await data.createItem({
-    collection_id: COLLECTION_ID,
-    data: {
-      window_frame: null,
-      window_maximized: false,
-    },
-  })
-  stateItemId = id
-  return id
-}
-
 export async function persistWindowFrame(
   data: EdemData,
   frame: WindowFrame,
   maximized?: boolean,
 ): Promise<void> {
   if (frame.width < MIN_WINDOW_WIDTH || frame.height < MIN_WINDOW_HEIGHT) return
-  const id = await ensureAppStateItem(data)
+  const { items } = await data.queryItems({ collection_id: COLLECTION_ID })
+  if (items.length === 0) return
   const patch: Record<string, unknown> = { window_frame: frame }
   if (maximized !== undefined) patch.window_maximized = maximized
-  await data.updateItem({ item_id: id, data: patch })
+  await data.updateItem({ item_id: items[0].id, data: patch })
 }
 
 export async function initStateDefaults(data: EdemData) {

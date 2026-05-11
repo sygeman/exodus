@@ -1422,6 +1422,27 @@ export const dataModule = createEdemModule("data", (module) => {
               if (collection) await emit.collectionCreated(collection)
               created.push(colDef.id)
             }
+
+            if (colDef.singleton) {
+              const existingItems = await ctx.db.query.items.findFirst({
+                where: eq(schema.items.collection_id, colDef.id),
+              })
+              if (!existingItems) {
+                const defaultData: Record<string, unknown> = {}
+                for (const fieldDef of colDef.fields) {
+                  if (fieldDef.default !== null && fieldDef.default !== undefined) {
+                    defaultData[fieldDef.name] = fieldDef.default
+                  }
+                }
+                await ctx.db.insert(schema.items).values({
+                  id: crypto.randomUUID(),
+                  collection_id: colDef.id,
+                  data: JSON.stringify(defaultData),
+                  created_at: now,
+                  updated_at: now,
+                })
+              }
+            }
           }
 
           return { created, updated, skipped }
