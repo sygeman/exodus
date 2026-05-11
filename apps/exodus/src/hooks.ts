@@ -3,14 +3,8 @@ import { client } from "./edem-client"
 import { edem } from "./edem"
 import type { dataManifest } from "./data-manifest"
 
-export const {
-  useCollectionQuery,
-  useSingletonQuery,
-  useCreateItem,
-  useUpdateItem,
-  useDeleteItem,
-  useSingleton,
-} = createEdemHooks<typeof dataManifest>(client)
+export const { useCollectionQuery, useCreateItem, useUpdateItem, useDeleteItem, useSingleton } =
+  createEdemHooks<typeof dataManifest>(client)
 
 export const { useUpdateStatus, useVersion, useCheckUpdate, useStartUpdate } =
   createElectrobunHooks(edem.electrobun)

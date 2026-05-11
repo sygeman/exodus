@@ -77,58 +77,6 @@ export function createEdemHooks<TManifest>(client: EdemClient<TManifest>) {
     }
   }
 
-  function useSingletonQuery<K extends keyof CM<TManifest> & string>(collectionId: K) {
-    const data = shallowRef<TypedItem<CM<TManifest>[K]> | null>(null)
-    const loading = ref(true)
-    const error = ref<string | null>(null)
-    let unsub: (() => void) | null = null
-
-    async function execute() {
-      loading.value = true
-      error.value = null
-      try {
-        const result = await client.query(collectionId, { limit: 1 })
-        data.value = result.items[0] ?? null
-      } catch (e) {
-        error.value = e instanceof Error ? e.message : String(e)
-      } finally {
-        loading.value = false
-      }
-    }
-
-    function subscribe() {
-      unsub = client.subscribe(
-        collectionId,
-        (item) => {
-          if (!data.value) {
-            data.value = item
-          }
-        },
-        (item) => {
-          data.value = item
-        },
-        () => {},
-      )
-    }
-
-    onMounted(async () => {
-      await execute()
-      subscribe()
-    })
-
-    onUnmounted(() => {
-      unsub?.()
-      unsub = null
-    })
-
-    return {
-      data,
-      loading,
-      error,
-      refetch: execute,
-    }
-  }
-
   function useCreateItem() {
     const loading = ref(false)
     const error = ref<string | null>(null)
@@ -241,7 +189,6 @@ export function createEdemHooks<TManifest>(client: EdemClient<TManifest>) {
 
   return {
     useCollectionQuery,
-    useSingletonQuery,
     useCreateItem,
     useUpdateItem,
     useDeleteItem,
