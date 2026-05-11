@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { computed, ref, onMounted } from "vue"
+import { computed, ref } from "vue"
 import { useT } from "@exodus/edem-vue"
 import { useCollectionQuery } from "@/hooks"
-import { queryLogStats, clearLogs } from "@/platform/logger"
+import { edem } from "@/edem"
 
 const t = useT()
 
@@ -11,7 +11,6 @@ const offset = ref(0)
 const levelFilter = ref("all")
 const sourceFilter = ref("all")
 const textFilter = ref("")
-const stats = ref({ debug: 0, info: 0, warn: 0, error: 0 })
 
 const options = computed(() => {
   const filter: Record<string, unknown> = {}
@@ -51,20 +50,11 @@ function lastPage() {
   offset.value = Math.max(0, (totalPages.value - 1) * PAGE_SIZE)
 }
 
-async function refreshStats() {
-  stats.value = await queryLogStats()
-}
-
 async function clear() {
-  await clearLogs()
+  await edem.data.deleteItemsByFilter({ collection_id: "logs", filter: {} })
   offset.value = 0
   await refetch()
-  await refreshStats()
 }
-
-onMounted(() => {
-  refreshStats()
-})
 
 function formatTime(ts: number) {
   const d = new Date(ts)
@@ -133,24 +123,6 @@ const sourceOptions = computed<{ label: string; value: string }[]>(() => [
         <h1 class="text-xl font-bold">{{ t({ en: "Logs", ru: "Логи" }) }}</h1>
       </div>
       <div class="flex items-center gap-2">
-        <div class="text-muted mr-2 hidden items-center gap-3 text-xs sm:flex">
-          <div class="flex items-center gap-1">
-            <span class="text-dimmed">{{ t({ en: "Debug", ru: "Отладка" }) }}</span>
-            <span class="font-medium tabular-nums">{{ stats.debug }}</span>
-          </div>
-          <div class="flex items-center gap-1">
-            <span class="text-dimmed">{{ t({ en: "Info", ru: "Информация" }) }}</span>
-            <span class="font-medium tabular-nums">{{ stats.info }}</span>
-          </div>
-          <div class="flex items-center gap-1">
-            <span class="text-dimmed">{{ t({ en: "Warn", ru: "Предупреждение" }) }}</span>
-            <span class="font-medium tabular-nums">{{ stats.warn }}</span>
-          </div>
-          <div class="flex items-center gap-1">
-            <span class="text-dimmed">{{ t({ en: "Error", ru: "Ошибка" }) }}</span>
-            <span class="font-medium tabular-nums">{{ stats.error }}</span>
-          </div>
-        </div>
         <UButton color="error" variant="subtle" @click="clear">
           {{ t({ en: "Clear", ru: "Очистить" }) }}
         </UButton>

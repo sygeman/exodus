@@ -7,11 +7,11 @@ import App from "./App.vue"
 import router from "./router"
 import { rpc } from "./edem-bridge"
 import { Electroview } from "electrobun/view"
-import { webviewLogger } from "./platform/logger"
+import { initLogs } from "./platform/logger"
 import { defaultLocale, resolveLocale } from "./locales"
 import { useAppState } from "./composables/useAppState"
 
-webviewLogger.init()
+initLogs()
 
 void new Electroview({ rpc })
 
