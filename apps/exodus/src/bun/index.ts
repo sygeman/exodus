@@ -8,8 +8,11 @@ import { edem, modules } from "@/bun/edem"
 import { ensureCollections } from "@/manifest"
 import { ensureFlows } from "@/flows-bootstrap"
 import { bunLogger } from "@exodus/edem-electrobun/logger-bun"
-import { initStateDefaults, persistWindowFrame } from "@/platform/app-state"
+import { getSystemLocale, getSystemTheme } from "@exodus/edem-electrobun/system"
 import { onWindowFrameChange } from "@exodus/edem-electrobun/window"
+
+const MIN_WINDOW_WIDTH = 400
+const MIN_WINDOW_HEIGHT = 300
 
 // Workaround for WebKitGTK + NVIDIA + Wayland rendering issue.
 // The DMA-BUF renderer fails to create GBM buffers on NVIDIA in Wayland
@@ -83,7 +86,15 @@ edemBridge.onWebviewEvent((name, payload) => {
   flowsDispatcher.emit(name, payload)
 })
 
-await initStateDefaults()
+const { item: stateItem } = await edem.data.getSingleton({ collection_id: "app_state" })
+if (stateItem) {
+  const patch: Record<string, unknown> = {}
+  if (!stateItem.data.locale) patch.locale = getSystemLocale()
+  if (!stateItem.data.theme) patch.theme = getSystemTheme()
+  if (Object.keys(patch).length > 0) {
+    await edem.data.updateSingleton({ collection_id: "app_state", data: patch })
+  }
+}
 
 const defaultFrame = { width: 1200, height: 800, x: 0, y: 0 }
 let savedFrame = defaultFrame
@@ -116,7 +127,13 @@ const { webview } = win
 
 edemBridge.attachWebview(webview)
 
-onWindowFrameChange(win, (f) => persistWindowFrame(f.frame, f.maximized ?? false))
+onWindowFrameChange(win, async (f) => {
+  if (f.frame.width < MIN_WINDOW_WIDTH || f.frame.height < MIN_WINDOW_HEIGHT) return
+  await edem.data.updateSingleton({
+    collection_id: "app_state",
+    data: { window_frame: f.frame, window_maximized: f.maximized ?? false },
+  })
+})
 
 ApplicationMenu.setApplicationMenu([
   {
