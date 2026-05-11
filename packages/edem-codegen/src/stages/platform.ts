@@ -154,6 +154,7 @@ function generateAppState(
 ): string {
   const hasWindow = !!windowPersistence
   const hasSystem = !!systemDetection
+  const collectionId = (windowPersistence ?? systemDetection)!.singleton
 
   return `import type { BrowserWindow } from "electrobun/bun"
 import type { dataModule } from "@exodus/edem-data"
@@ -166,6 +167,66 @@ interface WindowFrame {
   y: number
   width: number
   height: number
+}
+
+const COLLECTION_ID = "${collectionId}"
+${
+  hasWindow
+    ? `
+const MIN_WINDOW_WIDTH = ${windowPersistence!.minWidth}
+const MIN_WINDOW_HEIGHT = ${windowPersistence!.minHeight}
+
+let stateItemId: string | null = null
+
+async function ensureAppStateItem(data: EdemData): Promise<string> {
+  if (stateItemId) return stateItemId
+  const { items } = await data.queryItems({ collection_id: COLLECTION_ID })
+  if (items.length > 0 && items[0].id) {
+    stateItemId = items[0].id
+    return stateItemId
+  }
+  const { id } = await data.createItem({
+    collection_id: COLLECTION_ID,
+    data: {
+      window_frame: null,
+      window_maximized: false,
+    },
+  })
+  stateItemId = id
+  return id
+}
+
+export async function persistWindowFrame(
+  data: EdemData,
+  frame: WindowFrame,
+  maximized?: boolean,
+): Promise<void> {
+  if (frame.width < MIN_WINDOW_WIDTH || frame.height < MIN_WINDOW_HEIGHT) return
+  const id = await ensureAppStateItem(data)
+  const patch: Record<string, unknown> = { window_frame: frame }
+  if (maximized !== undefined) patch.window_maximized = maximized
+  await data.updateItem({ item_id: id, data: patch })
+}
+
+export async function persistRoute(data: EdemData, hash?: string): Promise<void> {
+  if (!hash) return
+  const id = await ensureAppStateItem(data)
+  await data.updateItem({ item_id: id, data: { last_route: { hash } } })
+}
+
+const ALLOWED_SETTING_KEYS = new Set(["theme", "locale"])
+
+export async function persistSetting(
+  data: EdemData,
+  key: string,
+  value: unknown,
+): Promise<void> {
+  if (!key || !ALLOWED_SETTING_KEYS.has(key)) return
+  const id = await ensureAppStateItem(data)
+  await data.updateItem({ item_id: id, data: { [key]: value } })
+}
+`
+    : ""
 }
 ${
   hasSystem
@@ -218,7 +279,7 @@ function getSystemTheme(): "dark" | "light" {
 }
 
 export async function initStateDefaults(data: EdemData) {
-  const { items } = await data.queryItems({ collection_id: "${systemDetection!.singleton}" })
+  const { items } = await data.queryItems({ collection_id: COLLECTION_ID })
   if (items.length === 0) return
   const item = items[0]
   const patch: Record<string, unknown> = {}
@@ -242,30 +303,29 @@ ${
     ? `
 export function initAppState(
   win: BrowserWindow,
-  emit?: (name: string, payload: Record<string, unknown>) => void,
+  saveFrame?: (data: { frame: WindowFrame; maximized?: boolean }) => void,
 ) {
   let debounceTimer: ReturnType<typeof setTimeout> | null = null
 
-  function debouncedEmitFrame(frame: WindowFrame) {
+  function debouncedSaveFrame(frame: WindowFrame) {
     if (debounceTimer) {
       clearTimeout(debounceTimer)
     }
     debounceTimer = setTimeout(() => {
-      if (frame.width < ${windowPersistence!.minWidth} || frame.height < ${windowPersistence!.minHeight}) return
-      emit?.("window:frame_changed", { frame })
+      saveFrame?.({ frame })
     }, ${windowPersistence!.debounce})
   }
 
   win.on("resize", (event: unknown) => {
     const e = event as { data?: { x: number; y: number; width: number; height: number } }
     if (e.data) {
-      debouncedEmitFrame(e.data)
+      debouncedSaveFrame(e.data)
     }
   })
 
   win.on("move", () => {
     const currentFrame = win.getFrame()
-    debouncedEmitFrame(currentFrame)
+    debouncedSaveFrame(currentFrame)
   })
 
   win.on("close", () => {
@@ -273,7 +333,7 @@ export function initAppState(
       clearTimeout(debounceTimer)
     }
     const currentFrame = win.getFrame()
-    emit?.("window:frame_changed", { frame: currentFrame, maximized: win.isMaximized() })
+    saveFrame?.({ frame: currentFrame, maximized: win.isMaximized() })
   })
 }
 `

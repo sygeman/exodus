@@ -161,10 +161,12 @@ function generateBunIndex(ir: IR): string {
   ]
 
   if (hasLogger) imports.push(`import { logger } from "@/platform/logger"`)
-  if (hasWindowState || hasSystemDetection)
-    imports.push(
-      `import { initAppState${hasSystemDetection ? ", initStateDefaults" : ""} } from "@/platform/app-state"`,
-    )
+  if (hasWindowState || hasSystemDetection) {
+    const appStateImports = ["initAppState"]
+    if (hasSystemDetection) appStateImports.push("initStateDefaults")
+    if (hasWindowState) appStateImports.push("persistWindowFrame", "persistRoute", "persistSetting")
+    imports.push(`import { ${appStateImports.join(", ")} } from "@/platform/app-state"`)
+  }
 
   const body: string[] = []
 
@@ -231,6 +233,15 @@ await startScheduler(edem.flows, edem.data)
 const flowsDispatcher = await startDispatcher(edem.flows, edem.data)
 
 edemBridge.onWebviewEvent((name, payload) => {
+  if (name === "app-state:route-changed") {
+    persistRoute(edem.data, (payload as { hash?: string }).hash)
+    return
+  }
+  if (name === "app-state:setting-changed") {
+    const { key, value } = payload as { key?: string; value?: unknown }
+    if (key) persistSetting(edem.data, key, value)
+    return
+  }
   flowsDispatcher.emit(name, payload)
 })`)
 
@@ -282,7 +293,7 @@ edemBridge.attachWebview(webview)`)
   // App state init (window events)
   if (hasWindowState) {
     body.push(`
-initAppState(win, flowsDispatcher.emit)`)
+initAppState(win, (f) => persistWindowFrame(edem.data, f.frame, f.maximized))`)
   }
 
   // Application menu
