@@ -32,6 +32,14 @@
     "./system": {
       "types": "./src/system.ts",
       "default": "./src/system.ts"
+    },
+    "./logger-bun": {
+      "types": "./src/logger-bun.ts",
+      "default": "./src/logger-bun.ts"
+    },
+    "./logger-webview": {
+      "types": "./src/logger-webview.ts",
+      "default": "./src/logger-webview.ts"
     }
   },
   "dependencies": {

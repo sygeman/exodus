@@ -7,11 +7,14 @@ import App from "./App.vue"
 import router from "./router"
 import { rpc } from "./edem-bridge"
 import { Electroview } from "electrobun/view"
-import { initLogs } from "./platform/logger"
+import { initLogs } from "@exodus/edem-electrobun/logger-webview"
+import { edem } from "@/edem"
 import { defaultLocale, resolveLocale } from "./locales"
 import { useAppState } from "./composables/useAppState"
 
-initLogs()
+initLogs((entry) => {
+  edem.data.createItem({ collection_id: "logs", data: entry }).catch(() => {})
+})
 
 void new Electroview({ rpc })
 

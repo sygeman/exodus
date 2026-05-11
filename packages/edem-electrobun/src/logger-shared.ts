@@ -1,7 +1,6 @@
 export type LogLevel = "debug" | "info" | "warn" | "error"
 
 export interface LogEntry {
-  id: string
   timestamp: number
   level: LogLevel
   source: "bun" | "webview"
@@ -41,7 +40,6 @@ export function parseLogItem(item: {
   data: Record<string, unknown>
 }): LogEntry {
   return {
-    id: item.id,
     timestamp: item.created_at,
     level: item.data.level as LogLevel,
     source: item.data.source as "bun" | "webview",
@@ -124,7 +122,14 @@ export function createDedup(
 }
 
 export function patchConsole(
-  insertFn: (entry: { level: LogLevel; message: string; source: string; args: unknown[] }) => void,
+  source: "bun" | "webview",
+  insertFn: (entry: {
+    level: LogLevel
+    message: string
+    source: string
+    args: unknown[]
+    count?: number
+  }) => void,
 ) {
   const original = {
     log: console.log,
@@ -135,7 +140,7 @@ export function patchConsole(
   }
 
   const { add } = createDedup((entry) => {
-    insertFn({ ...entry, source: "webview" })
+    insertFn({ ...entry, source })
   })
 
   const createHandler =

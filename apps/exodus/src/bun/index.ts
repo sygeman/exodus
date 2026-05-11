@@ -7,7 +7,7 @@ import { startScheduler, startDispatcher } from "@exodus/edem-flows"
 import { edem, modules } from "@/bun/edem"
 import { ensureCollections } from "@/manifest"
 import { ensureFlows } from "@/flows-bootstrap"
-import { bunLogger } from "@/platform/logger-bun"
+import { bunLogger } from "@exodus/edem-electrobun/logger-bun"
 import { initStateDefaults, persistWindowFrame } from "@/platform/app-state"
 import { onWindowFrameChange } from "@exodus/edem-electrobun/window"
 
@@ -161,7 +161,9 @@ ApplicationMenu.on("application-menu-clicked", (event) => {
   }
 })
 
-bunLogger.attach(edem.data)
+bunLogger.attach((entry) => {
+  edem.data.createItem({ collection_id: "logs", data: entry }).catch(() => {})
+})
 
 console.log("Bun process started")
 
