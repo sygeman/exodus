@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed } from "vue"
-import { useT } from "@/composables/useT"
-import { useUpdaterStatus } from "@/composables/useUpdaterStatus"
+import { useT } from "@exodus/edem-vue"
+import { useSingletonQuery } from "@/hooks"
 
 const t = useT()
-const { updateStatus } = useUpdaterStatus()
+const { data: statusItem } = useSingletonQuery("updater_status")
+
+const updateStatus = computed(() => statusItem.value?.data?.status ?? "idle")
 
 const isUpdating = computed(
   () => updateStatus.value === "downloading" || updateStatus.value === "applying",

@@ -1,15 +1,18 @@
 <script setup lang="ts">
 import { computed } from "vue"
-import { useT } from "@/composables/useT"
+import { useT } from "@exodus/edem-vue"
+import { useSingletonQuery } from "@/hooks"
 import { useRouter } from "vue-router"
 import { edem } from "@/edem"
-import { useUpdaterStatus } from "@/composables/useUpdaterStatus"
 
 const t = useT()
 const router = useRouter()
-const { updateStatus, latestVersion } = useUpdaterStatus()
+const { data: statusItem } = useSingletonQuery("updater_status")
 
 const version = __APP_VERSION__
+
+const updateStatus = computed(() => statusItem.value?.data?.status ?? "idle")
+const latestVersion = computed(() => statusItem.value?.data?.latest_version ?? "")
 
 const isUpdateAvailable = computed(() => updateStatus.value === "available")
 

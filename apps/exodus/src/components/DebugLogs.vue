@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
-import { useT } from "@/composables/useT"
+import { useT } from "@exodus/edem-vue"
 import { useLogger } from "@/composables/useLogs"
 
 const t = useT()

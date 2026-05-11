@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue"
-import { useT } from "@/composables/useT"
+import { useT } from "@exodus/edem-vue"
 import MenuLayout, { type MenuLayoutItem } from "@/components/MenuLayout.vue"
 
 const t = useT()

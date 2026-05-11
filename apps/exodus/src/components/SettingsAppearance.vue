@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed, watch } from "vue"
-import { useT } from "@/composables/useT"
+import { useT } from "@exodus/edem-vue"
 import { useColorMode } from "@vueuse/core"
 import { edemBridge } from "@/edem-bridge"
 

@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { useT } from "@/composables/useT"
+import { useT } from "@exodus/edem-vue"
+import { useCollectionQuery } from "@/hooks"
 import { useRoute } from "vue-router"
-import { useProjects } from "@/composables/useProjects"
 import { computed } from "vue"
 
 const t = useT()
 const route = useRoute()
-const { projects, loading } = useProjects()
+const { data: projects, loading } = useCollectionQuery("projects")
 
 const projectId = computed(() => route.params.id as string)
 const project = computed(() => projects.value.find((p) => p.id === projectId.value))
@@ -37,7 +37,7 @@ const tabs = computed(() => [
         :to="`/project/${projectId}/overview`"
         class="hover:text-primary text-lg font-semibold transition-colors"
       >
-        {{ project.name }}
+        {{ project.data.name }}
       </RouterLink>
 
       <nav class="flex items-center gap-1">

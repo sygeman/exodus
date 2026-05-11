@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { useT } from "@/composables/useT"
+import { useT } from "@exodus/edem-vue"
+import { useCollectionQuery, useCreateItem } from "@/hooks"
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref, watch } from "vue"
-import { useIdeas } from "@/composables/useIdeas"
 import { getLevelColor } from "@/composables/useLevelColor"
 
 const t = useT()
@@ -10,7 +10,11 @@ const route = useRoute()
 const router = useRouter()
 const projectId = computed(() => route.params.id as string)
 
-const { ideas, loading, createAndOpen } = useIdeas(projectId)
+const { data: ideas, loading } = useCollectionQuery("ideas", () => ({
+  filter: { project_id: { _eq: projectId.value } },
+  sort: ["-created_at"],
+}))
+const [createItem] = useCreateItem()
 
 const showSkeleton = ref(false)
 let skeletonTimeout: ReturnType<typeof setTimeout> | null = null
@@ -33,8 +37,13 @@ watch(
   { immediate: true },
 )
 
-function handleCreate() {
-  createAndOpen(router, projectId.value)
+async function handleCreate() {
+  const id = await createItem("ideas", {
+    project_id: projectId.value,
+    title: "Untitled",
+    status: "draft",
+  })
+  router.push(`/project/${projectId.value}/ideas/${id}`)
 }
 
 function ideaLink(id: string) {
@@ -88,18 +97,18 @@ function ideaLink(id: string) {
         <div
           class="flex h-8 w-8 shrink-0 items-center justify-center rounded text-xs font-bold"
           :style="{
-            backgroundColor: getLevelColor(idea.level) + '20',
-            color: getLevelColor(idea.level),
+            backgroundColor: getLevelColor(idea.data.level) + '20',
+            color: getLevelColor(idea.data.level),
           }"
         >
-          {{ idea.level ?? "?" }}
+          {{ idea.data.level ?? "?" }}
         </div>
         <div class="flex flex-col">
-          <span class="font-medium">{{ idea.title }}</span>
-          <span v-if="idea.type" class="text-muted text-xs">{{ idea.type }}</span>
+          <span class="font-medium">{{ idea.data.title }}</span>
+          <span v-if="idea.data.type" class="text-muted text-xs">{{ idea.data.type }}</span>
         </div>
         <span
-          v-if="idea.status === 'stabilized'"
+          v-if="idea.data.status === 'stabilized'"
           class="ml-auto inline-flex h-5 items-center rounded bg-green-500/10 px-1.5 text-xs text-green-500"
         >
           {{ t({ en: "Stabilized", ru: "Стабилизирована" }) }}

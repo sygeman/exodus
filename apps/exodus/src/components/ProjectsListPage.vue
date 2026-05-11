@@ -1,11 +1,12 @@
 <script setup lang="ts">
-import { useT } from "@/composables/useT"
-import { useProjects } from "@/composables/useProjects"
+import { useT } from "@exodus/edem-vue"
+import { useCollectionQuery, useCreateItem } from "@/hooks"
 import { useRouter } from "vue-router"
 import { ref, watch } from "vue"
 
 const t = useT()
-const { projects, loading, createAndOpen } = useProjects()
+const { data, loading } = useCollectionQuery("projects")
+const [createItem] = useCreateItem()
 const router = useRouter()
 
 const showSkeleton = ref(false)
@@ -30,8 +31,32 @@ watch(
   { immediate: true },
 )
 
-function handleCreate() {
-  createAndOpen(router)
+const PROJECT_COLORS = [
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#06b6d4",
+  "#3b82f6",
+  "#a855f7",
+  "#ec4899",
+]
+
+function getRandomColor(): string {
+  return PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)]
+}
+
+async function handleCreate() {
+  const name = "Untitled"
+  const slug = `${name.toLowerCase().replace(/\s+/g, "-")}-${crypto.randomUUID().slice(0, 8)}`
+  const id = await createItem("projects", {
+    name,
+    slug,
+    color: getRandomColor(),
+    type: "desktop",
+    sort_order: 0,
+  })
+  router.push(`/project/${id}/overview`)
 }
 
 function getInitials(name: string): string {
@@ -57,7 +82,7 @@ function getInitials(name: string): string {
     </div>
 
     <div
-      v-else-if="!loading && projects.length === 0"
+      v-else-if="!loading && data.length === 0"
       class="flex flex-1 flex-col items-center justify-center gap-4"
     >
       <UIcon name="i-lucide-folder-open" class="text-muted h-12 w-12" />
@@ -76,18 +101,21 @@ function getInitials(name: string): string {
       </div>
 
       <RouterLink
-        v-for="project in projects"
+        v-for="project in data"
         :key="project.id"
         :to="`/project/${project.id}/overview`"
         class="border-default hover:bg-elevated flex items-center gap-4 rounded-lg border p-4 transition-colors"
       >
         <div
           class="bg-elevated flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-2 border-solid font-semibold"
-          :style="{ color: project.color ?? undefined, borderColor: project.color ?? undefined }"
+          :style="{
+            color: project.data.color ?? undefined,
+            borderColor: project.data.color ?? undefined,
+          }"
         >
-          {{ getInitials(project.name) }}
+          {{ getInitials(project.data.name) }}
         </div>
-        <span class="font-medium">{{ project.name }}</span>
+        <span class="font-medium">{{ project.data.name }}</span>
       </RouterLink>
     </div>
   </div>

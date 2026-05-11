@@ -1,0 +1,10 @@
+{
+  "extends": "@exodus/typescript-config/tsconfig",
+  "compilerOptions": {
+    "types": ["bun-types"],
+    "jsx": "preserve",
+    "jsxImportSource": "vue"
+  },
+  "include": ["src/**/*.ts", "src/**/*.vue"],
+  "exclude": ["node_modules", "dist"]
+}

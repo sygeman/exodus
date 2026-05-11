@@ -1,15 +1,28 @@
 <script setup lang="ts">
-import { useT } from "@/composables/useT"
+import { useT } from "@exodus/edem-vue"
+import { useCollectionQuery, useUpdateItem, useDeleteItem } from "@/hooks"
 import { useRoute, useRouter } from "vue-router"
-import { useProjects, PROJECT_COLORS } from "@/composables/useProjects"
 import { computed, ref } from "vue"
 import SettingsLayout from "@/components/SettingsLayout.vue"
 import type { MenuLayoutItem } from "@/components/MenuLayout.vue"
 
+const PROJECT_COLORS = [
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#06b6d4",
+  "#3b82f6",
+  "#a855f7",
+  "#ec4899",
+]
+
 const t = useT()
 const route = useRoute()
 const router = useRouter()
-const { projects, loading, update, remove } = useProjects()
+const { data: projects, loading } = useCollectionQuery("projects")
+const [updateItem] = useUpdateItem()
+const [deleteItem] = useDeleteItem()
 
 const projectId = computed(() => route.params.id as string)
 const project = computed(() => projects.value.find((p) => p.id === projectId.value))
@@ -25,13 +38,13 @@ const navItems = computed<MenuLayoutItem[]>(() => [
 ])
 
 function updateName(name: string) {
-  if (!project.value || name.trim() === "" || name === project.value.name) return
-  update(project.value.id, { name })
+  if (!project.value || name.trim() === "" || name === project.value.data.name) return
+  updateItem(project.value.id, { name })
 }
 
 function updateColor(color: string) {
-  if (!project.value || color === project.value.color) return
-  update(project.value.id, { color })
+  if (!project.value || color === project.value.data.color) return
+  updateItem(project.value.id, { color })
 }
 
 function openDeleteModal() {
@@ -40,7 +53,7 @@ function openDeleteModal() {
 
 function confirmDelete() {
   if (!project.value) return
-  remove(project.value.id)
+  deleteItem(project.value.id)
   deleteModalOpen.value = false
   router.push("/projects")
 }
@@ -68,7 +81,7 @@ function confirmDelete() {
           </div>
           <UInput
             class="max-w-md"
-            :model-value="project?.name ?? ''"
+            :model-value="project.data.name ?? ''"
             @blur="(e: FocusEvent) => updateName((e.target as HTMLInputElement).value)"
             @keyup.enter="(e: KeyboardEvent) => updateName((e.target as HTMLInputElement).value)"
           />
@@ -93,7 +106,7 @@ function confirmDelete() {
               type="button"
               class="focus:ring-primary h-8 w-8 rounded-full transition-transform hover:scale-110 focus:ring-2 focus:outline-none"
               :style="{ backgroundColor: c }"
-              :class="{ 'ring-primary ring-2': project?.color === c }"
+              :class="{ 'ring-primary ring-2': project.data.color === c }"
               @click="updateColor(c)"
             />
           </div>

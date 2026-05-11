@@ -18,6 +18,7 @@
     "@exodus/edem-data": "workspace:*",
     "@exodus/edem-electrobun": "workspace:*",
     "@exodus/edem-flows": "workspace:*",
+    "@exodus/edem-vue": "workspace:*",
     "@exodus/typescript-config": "workspace:*",
     "@nuxt/ui": "4.7.1",
     "@vueuse/core": "14.3.0",

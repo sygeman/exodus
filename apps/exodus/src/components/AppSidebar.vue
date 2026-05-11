@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useT } from "@/composables/useT"
+import { useT } from "@exodus/edem-vue"
 import LogoSvg from "@/assets/logo.svg"
 import ProjectsSidebar from "@/components/ProjectsSidebar.vue"
 

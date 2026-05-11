@@ -1,36 +1,62 @@
 <script setup lang="ts">
-import { useT } from "@/composables/useT"
-import { useProjects, type Project } from "@/composables/useProjects"
+import { useT } from "@exodus/edem-vue"
+import { useCollectionQuery, useCreateItem, useDeleteItem } from "@/hooks"
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref } from "vue"
 
 const t = useT()
-const { projects, createAndOpen, remove } = useProjects()
+const { data: projects } = useCollectionQuery("projects")
+const [createItem] = useCreateItem()
+const [deleteItem] = useDeleteItem()
 const router = useRouter()
 const route = useRoute()
 
 const currentProjectId = computed(() => route.params.id as string | undefined)
 const deleteModalOpen = ref(false)
-const projectToDelete = ref<Project | null>(null)
+const projectToDelete = ref<(typeof projects)["value"][number] | null>(null)
 
-function handleCreate() {
-  createAndOpen(router)
+const PROJECT_COLORS = [
+  "#ef4444",
+  "#f97316",
+  "#eab308",
+  "#22c55e",
+  "#06b6d4",
+  "#3b82f6",
+  "#a855f7",
+  "#ec4899",
+]
+
+function getRandomColor(): string {
+  return PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)]
 }
 
-function openDeleteModal(project: Project) {
+async function handleCreate() {
+  const name = "Untitled"
+  const slug = `${name.toLowerCase().replace(/\s+/g, "-")}-${crypto.randomUUID().slice(0, 8)}`
+  const id = await createItem("projects", {
+    name,
+    slug,
+    color: getRandomColor(),
+    type: "desktop",
+    sort_order: 0,
+  })
+  router.push(`/project/${id}/overview`)
+}
+
+function openDeleteModal(project: (typeof projects)["value"][number]) {
   projectToDelete.value = project
   deleteModalOpen.value = true
 }
 
 function confirmDelete() {
   if (projectToDelete.value) {
-    remove(projectToDelete.value.id)
+    deleteItem(projectToDelete.value.id)
     deleteModalOpen.value = false
     projectToDelete.value = null
   }
 }
 
-function getContextMenuItems(project: Project) {
+function getContextMenuItems(project: (typeof projects)["value"][number]) {
   return [
     {
       label: t({ en: "Project settings", ru: "Настройки проекта" }),
@@ -67,7 +93,7 @@ function getInitials(name: string): string {
       :key="project.id"
       :items="getContextMenuItems(project)"
     >
-      <UTooltip :text="project.name" :content="tooltipContent" :delay-duration="0">
+      <UTooltip :text="project.data.name" :content="tooltipContent" :delay-duration="0">
         <ULink
           :to="`/project/${project.id}/overview`"
           class="electrobun-webkit-app-region-no-drag bg-default/50 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg font-semibold transition-all"
@@ -79,15 +105,15 @@ function getInitials(name: string): string {
           :style="
             currentProjectId === project.id
               ? {
-                  color: project.color,
-                  borderColor: project.color,
+                  color: project.data.color,
+                  borderColor: project.data.color,
                   borderWidth: '2px',
                   borderStyle: 'solid',
                 }
               : undefined
           "
         >
-          {{ getInitials(project.name) }}
+          {{ getInitials(project.data.name) }}
         </ULink>
       </UTooltip>
     </UContextMenu>

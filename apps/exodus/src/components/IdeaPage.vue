@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { useT } from "@/composables/useT"
+import { useT } from "@exodus/edem-vue"
+import { useCollectionQuery, useUpdateItem, useDeleteItem } from "@/hooks"
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref, watch, nextTick } from "vue"
-import { useIdeas } from "@/composables/useIdeas"
 import { getLevelColor } from "@/composables/useLevelColor"
 
 const t = useT()
@@ -11,7 +11,11 @@ const router = useRouter()
 const projectId = computed(() => route.params.id as string)
 const ideaId = computed(() => route.params.ideaId as string)
 
-const { ideas, loading, update, remove } = useIdeas(projectId)
+const { data: ideas, loading } = useCollectionQuery("ideas", () => ({
+  filter: { project_id: { _eq: projectId.value } },
+}))
+const [updateItem] = useUpdateItem()
+const [deleteItem] = useDeleteItem()
 
 const idea = computed(() => ideas.value.find((i) => i.id === ideaId.value) ?? null)
 
@@ -30,11 +34,11 @@ watch(
   idea,
   (i) => {
     if (!i) return
-    title.value = i.title
-    description.value = i.description ?? ""
-    level.value = i.level ?? null
-    typeValue.value = i.type ?? null
-    status.value = i.status
+    title.value = i.data.title ?? ""
+    description.value = i.data.description ?? ""
+    level.value = i.data.level ?? null
+    typeValue.value = i.data.type ?? null
+    status.value = i.data.status ?? "draft"
     nextTick(() => {
       isInitialized.value = true
     })
@@ -46,31 +50,31 @@ function updateTitle() {
   if (!idea.value) return
   const trimmed = title.value.trim()
   if (trimmed === "") {
-    title.value = idea.value.title
+    title.value = idea.value.data.title ?? ""
     return
   }
-  if (trimmed === idea.value.title) return
-  update(idea.value.id, { title: trimmed })
+  if (trimmed === idea.value.data.title) return
+  updateItem(idea.value.id, { title: trimmed })
 }
 
 function updateDescription() {
-  if (!idea.value || description.value === (idea.value.description ?? "")) return
-  update(idea.value.id, { description: description.value || null })
+  if (!idea.value || description.value === (idea.value.data.description ?? "")) return
+  updateItem(idea.value.id, { description: description.value || null })
 }
 
 watch(level, (v) => {
-  if (!isInitialized.value || !idea.value || v === idea.value.level) return
-  update(idea.value.id, { level: v })
+  if (!isInitialized.value || !idea.value || v === idea.value.data.level) return
+  updateItem(idea.value.id, { level: v })
 })
 
 watch(typeValue, (v) => {
-  if (!isInitialized.value || !idea.value || v === idea.value.type) return
-  update(idea.value.id, { type: v })
+  if (!isInitialized.value || !idea.value || v === idea.value.data.type) return
+  updateItem(idea.value.id, { type: v })
 })
 
 watch(status, (v) => {
-  if (!isInitialized.value || !idea.value || v === idea.value.status) return
-  update(idea.value.id, { status: v })
+  if (!isInitialized.value || !idea.value || v === idea.value.data.status) return
+  updateItem(idea.value.id, { status: v })
 })
 
 function openDeleteModal() {
@@ -79,7 +83,7 @@ function openDeleteModal() {
 
 function confirmDelete() {
   if (!idea.value) return
-  remove(idea.value.id)
+  deleteItem(idea.value.id)
   deleteModalOpen.value = false
   router.push(`/project/${projectId.value}/ideas`)
 }
@@ -132,18 +136,24 @@ const statusItems = [
           </UButton>
           <div class="flex flex-wrap items-center gap-2">
             <UBadge
-              :label="idea.level || t({ en: 'No level', ru: 'Без уровня' })"
+              :label="idea.data.level || t({ en: 'No level', ru: 'Без уровня' })"
               color="neutral"
               variant="subtle"
               :style="{
-                backgroundColor: getLevelColor(idea.level) + '20',
-                color: getLevelColor(idea.level),
+                backgroundColor: getLevelColor(idea.data.level) + '20',
+                color: getLevelColor(idea.data.level),
               }"
               class="text-xs font-semibold"
             />
-            <UBadge v-if="idea.type" :label="idea.type" color="neutral" variant="soft" size="sm" />
             <UBadge
-              v-if="idea.status === 'stabilized'"
+              v-if="idea.data.type"
+              :label="idea.data.type"
+              color="neutral"
+              variant="soft"
+              size="sm"
+            />
+            <UBadge
+              v-if="idea.data.status === 'stabilized'"
               :label="t({ en: 'Stabilized', ru: 'Стабилизирована' })"
               color="success"
               variant="subtle"

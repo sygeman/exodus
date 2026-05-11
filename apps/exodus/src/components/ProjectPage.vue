@@ -1,8 +1,8 @@
 <script setup lang="ts">
-import { useT } from "@/composables/useT"
+import { useT } from "@exodus/edem-vue"
+import { useCollectionQuery } from "@/hooks"
 import { useRoute, useRouter } from "vue-router"
 import { computed } from "vue"
-import { useIdeas } from "@/composables/useIdeas"
 import { getLevelColor } from "@/composables/useLevelColor"
 
 const t = useT()
@@ -10,7 +10,10 @@ const route = useRoute()
 const router = useRouter()
 const projectId = computed(() => route.params.id as string)
 
-const { ideas } = useIdeas(projectId)
+const { data: ideas } = useCollectionQuery("ideas", () => ({
+  filter: { project_id: { _eq: projectId.value } },
+  sort: ["-created_at"],
+}))
 
 function goToIdeas() {
   router.push(`/project/${projectId.value}/ideas`)
@@ -48,20 +51,20 @@ function goToIdeas() {
           <div
             class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded text-xs font-bold"
             :style="{
-              backgroundColor: getLevelColor(idea.level) + '20',
-              color: getLevelColor(idea.level),
+              backgroundColor: getLevelColor(idea.data.level) + '20',
+              color: getLevelColor(idea.data.level),
             }"
           >
-            {{ idea.level ?? "?" }}
+            {{ idea.data.level ?? "?" }}
           </div>
           <div class="flex flex-col">
-            <span class="font-medium">{{ idea.title }}</span>
-            <span v-if="idea.type" class="text-xs text-[var(--ui-text-muted)]">{{
-              idea.type
+            <span class="font-medium">{{ idea.data.title }}</span>
+            <span v-if="idea.data.type" class="text-xs text-[var(--ui-text-muted)]">{{
+              idea.data.type
             }}</span>
           </div>
           <span
-            v-if="idea.status === 'stabilized'"
+            v-if="idea.data.status === 'stabilized'"
             class="ml-auto inline-flex h-5 items-center rounded bg-green-500/10 px-1.5 text-xs text-green-500"
           >
             {{ t({ en: "Stabilized", ru: "Стабилизирована" }) }}

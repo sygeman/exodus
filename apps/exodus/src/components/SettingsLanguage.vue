@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, watch } from "vue"
 import { useI18n } from "vue-i18n"
-import { useT } from "@/composables/useT"
+import { useT } from "@exodus/edem-vue"
 import { locales, type Locale } from "@/locales"
 import { edemBridge } from "@/edem-bridge"
 

@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue"
-import { useT } from "@/composables/useT"
+import { useT } from "@exodus/edem-vue"
 import { edem } from "@/edem"
 
 const t = useT()
