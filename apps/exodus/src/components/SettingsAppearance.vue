@@ -24,7 +24,7 @@ const isDark = computed({
         <h3 class="text-base font-medium">
           {{ t({ en: "Dark mode", ru: "Тёмная тема" }) }}
         </h3>
-        <p class="text-sm text-[var(--ui-text-muted)]">
+        <p class="text-muted text-sm">
           {{ t({ en: "Use a dark color scheme.", ru: "Использовать тёмную цветовую схему." }) }}
         </p>
       </div>

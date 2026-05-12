@@ -5,12 +5,10 @@ const t = useT()
 </script>
 
 <template>
-  <div
-    class="flex h-full flex-col items-center justify-center gap-4 p-6 text-[var(--ui-text-muted)]"
-  >
+  <div class="text-muted flex h-full flex-col items-center justify-center gap-4 p-6">
     <UIcon name="i-lucide-ghost" class="h-16 w-16 opacity-20" />
     <div class="text-center">
-      <h1 class="text-2xl font-bold text-[var(--ui-text)]">
+      <h1 class="text-default text-2xl font-bold">
         {{ t({ en: "Page not found", ru: "Страница не найдена" }) }}
       </h1>
       <p class="mt-2 text-sm opacity-60">

@@ -28,7 +28,7 @@ const selectedLocale = computed({
         <h3 class="text-base font-medium">
           {{ t({ en: "Language", ru: "Язык" }) }}
         </h3>
-        <p class="text-sm text-[var(--ui-text-muted)]">
+        <p class="text-muted text-sm">
           {{
             t({
               en: "Select the language you want to use in the app.",
@@ -45,9 +45,8 @@ const selectedLocale = computed({
           type="button"
           class="flex items-center gap-3 rounded-md border p-3 text-left text-sm transition-all"
           :class="{
-            'border-[var(--ui-primary)] bg-[var(--ui-primary)]/10 text-[var(--ui-text)]':
-              selectedLocale === l.value,
-            'border-[var(--ui-border)] bg-[var(--ui-bg-elevated)]/30 text-[var(--ui-text-muted)] hover:border-[var(--ui-border-accent)] hover:bg-[var(--ui-bg-elevated)]':
+            'border-primary bg-primary/10 text-default': selectedLocale === l.value,
+            'text-muted border-default bg-elevated/30 hover:bg-elevated hover:border-accent':
               selectedLocale !== l.value,
           }"
           @click="selectedLocale = l.value"

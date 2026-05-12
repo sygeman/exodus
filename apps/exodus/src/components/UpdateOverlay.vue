@@ -31,7 +31,6 @@ const statusText = computed(() => {
         aria-live="polite"
         class="bg-default/95 fixed inset-0 z-50 flex flex-col items-center justify-center"
       >
-        <!-- Логотип / иконка -->
         <div class="mb-8 flex items-center justify-center">
           <div class="relative">
             <div
@@ -42,13 +41,9 @@ const statusText = computed(() => {
             <div class="bg-primary/20 absolute inset-0 h-16 w-16 animate-ping rounded-2xl" />
           </div>
         </div>
-
-        <!-- Заголовок -->
         <h2 class="text-default mb-6 text-xl font-semibold">
           {{ t({ en: "Updating application", ru: "Обновление приложения" }) }}
         </h2>
-
-        <!-- Статус с индикатором -->
         <div class="flex items-center gap-3">
           <span
             class="border-default border-t-primary inline-block h-4 w-4 animate-spin rounded-full border-2"

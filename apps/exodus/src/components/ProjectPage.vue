@@ -25,10 +25,10 @@ function goToIdeas() {
     <!-- Stats cards -->
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <button
-        class="flex flex-col gap-2 rounded-lg border border-[var(--ui-border)] bg-[var(--ui-bg-elevated)] p-5 text-left transition-colors hover:border-[var(--ui-primary)] hover:bg-[var(--ui-bg-elevated)]/80"
+        class="border-default bg-elevated hover:bg-elevated/80 hover:border-primary flex flex-col gap-2 rounded-lg border p-5 text-left transition-colors"
         @click="goToIdeas"
       >
-        <div class="flex items-center gap-2 text-[var(--ui-text-muted)]">
+        <div class="text-muted flex items-center gap-2">
           <UIcon name="i-lucide-lightbulb" class="h-4 w-4" />
           <span class="text-sm font-medium">{{ t({ en: "Ideas", ru: "Идеи" }) }}</span>
         </div>
@@ -38,7 +38,7 @@ function goToIdeas() {
 
     <!-- Recent ideas -->
     <div v-if="ideas.length > 0" class="mt-8">
-      <h3 class="mb-3 text-sm font-medium text-[var(--ui-text-muted)]">
+      <h3 class="text-muted mb-3 text-sm font-medium">
         {{ t({ en: "Recent ideas", ru: "Последние идеи" }) }}
       </h3>
       <div class="flex flex-col gap-2">
@@ -46,10 +46,10 @@ function goToIdeas() {
           v-for="idea in ideas.slice(0, 5)"
           :key="idea.id"
           :to="`/project/${projectId}/ideas/${idea.id}`"
-          class="flex items-center gap-3 rounded-lg border border-[var(--ui-border)] p-4 transition-colors hover:bg-[var(--ui-bg-elevated)]"
+          class="border-default hover:bg-elevated flex items-center gap-3 rounded-lg border p-4 transition-colors"
         >
           <div
-            class="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded text-xs font-bold"
+            class="flex h-8 w-8 shrink-0 items-center justify-center rounded text-xs font-bold"
             :style="{
               backgroundColor: getLevelColor(idea.data.level) + '20',
               color: getLevelColor(idea.data.level),
@@ -59,9 +59,7 @@ function goToIdeas() {
           </div>
           <div class="flex flex-col">
             <span class="font-medium">{{ idea.data.title }}</span>
-            <span v-if="idea.data.type" class="text-xs text-[var(--ui-text-muted)]">{{
-              idea.data.type
-            }}</span>
+            <span v-if="idea.data.type" class="text-muted text-xs">{{ idea.data.type }}</span>
           </div>
           <span
             v-if="idea.data.status === 'stabilized'"

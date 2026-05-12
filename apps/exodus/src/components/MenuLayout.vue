@@ -31,7 +31,7 @@ const route = useRoute()
           :to="item.to"
           class="text-muted hover:bg-elevated hover:text-default flex items-center gap-3 rounded-md px-2 py-1.5 text-sm font-medium transition-colors"
           :class="{
-            'bg-[var(--ui-primary)]/10 text-[var(--ui-primary)] hover:bg-[var(--ui-primary)]/10 hover:text-[var(--ui-primary)]':
+            'bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary':
               route.path === item.to,
           }"
         >

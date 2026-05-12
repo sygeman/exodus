@@ -102,3 +102,5 @@ Exodus IDE позволяет редактировать манифесты exod
 3. Переписать codegen stages чтобы генерировали чистый код
 4. Верифицировать что codegen генерирует идентичный gold standard
 5. Удалить hand-written файлы из exodus
+
+> Детальный план перехода на манифесты см. в [manifests.md](./manifests.md)

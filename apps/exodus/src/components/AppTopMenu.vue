@@ -26,7 +26,6 @@ function goForward() {
   <div
     class="electrobun-webkit-app-region-drag flex h-8 items-center justify-between px-3 select-none"
   >
-    <!-- Навигация назад/вперёд -->
     <div class="electrobun-webkit-app-region-no-drag flex items-center select-none">
       <button
         class="text-muted hover:bg-default hover:text-default flex h-6 w-6 items-center justify-center rounded transition-colors"
@@ -41,17 +40,14 @@ function goForward() {
         <UIcon name="i-lucide-arrow-right" class="h-3.5 w-3.5" />
       </button>
     </div>
-
-    <!-- Дебаг / Версия / Обновление -->
     <div class="electrobun-webkit-app-region-no-drag flex items-center gap-2 select-none">
       <RouterLink
         to="/debug"
         class="text-muted hover:bg-default hover:text-default flex h-6 w-6 items-center justify-center rounded transition-colors"
-        active-class="bg-default text-[var(--ui-text)]"
+        active-class="bg-default text-default"
       >
         <UIcon name="i-lucide-bug" class="h-3.5 w-3.5" />
       </RouterLink>
-
       <div class="flex items-center select-text">
         <UButton
           v-if="isUpdateAvailable"

@@ -36,9 +36,9 @@ function formatJson(data: unknown) {
 </script>
 
 <template>
-  <div class="flex h-full flex-col bg-[var(--ui-bg)]">
+  <div class="bg-default flex h-full flex-col">
     <!-- Header -->
-    <div class="flex items-center justify-between border-b border-[var(--ui-border)] px-4 py-3">
+    <div class="border-default flex items-center justify-between border-b px-4 py-3">
       <div class="flex items-center gap-3">
         <h1 class="text-xl font-bold">{{ t({ en: "State", ru: "Состояние" }) }}</h1>
       </div>
@@ -51,10 +51,10 @@ function formatJson(data: unknown) {
 
     <!-- Content -->
     <UScrollArea class="min-h-0 flex-1">
-      <pre v-if="appState" class="p-4 font-mono text-xs leading-relaxed text-[var(--ui-text)]">{{
+      <pre v-if="appState" class="text-default p-4 font-mono text-xs leading-relaxed">{{
         formatJson(appState)
       }}</pre>
-      <div v-else class="p-4 text-sm text-[var(--ui-text-muted)]">
+      <div v-else class="text-muted p-4 text-sm">
         {{ t({ en: "Loading...", ru: "Загрузка..." }) }}
       </div>
     </UScrollArea>

@@ -1,27 +1,15 @@
 <script setup lang="ts">
-import { computed } from "vue"
-import { useI18n } from "vue-i18n"
-import * as nuxtLocales from "@nuxt/ui/locale"
 import AppSidebar from "@/components/AppSidebar.vue"
 import AppTopMenu from "@/components/AppTopMenu.vue"
 import UpdateOverlay from "@/components/UpdateOverlay.vue"
-
-const { locale } = useI18n()
-const appLocale = computed(
-  () => (nuxtLocales as Record<string, (typeof nuxtLocales)["en"]>)[locale.value] ?? nuxtLocales.en,
-)
 </script>
 
 <template>
-  <UApp :locale="appLocale">
+  <UApp>
     <div class="bg-elevated flex h-screen pr-2 pb-2">
       <AppSidebar class="pt-8" />
-
-      <!-- Обёртка для top menu + main -->
       <div class="flex flex-1 flex-col overflow-hidden">
         <AppTopMenu />
-
-        <!-- Основной контент -->
         <main class="border-default bg-default flex-1 overflow-hidden rounded-xl border shadow-sm">
           <RouterView />
         </main>
