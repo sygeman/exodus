@@ -1,7 +1,8 @@
 const TRANSITION_DISABLE_CSS =
   "*,*::before,*::after{-webkit-transition:none!important;-moz-transition:none!important;-o-transition:none!important;-ms-transition:none!important;transition:none!important}"
 
-export function applyTheme(theme: "dark" | "light") {
+export function applyTheme(dark: boolean) {
+  const theme = dark ? "dark" : "light"
   const el = document.documentElement
   // Disable transitions to prevent flash
   const style = document.createElement("style")

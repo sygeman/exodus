@@ -15,7 +15,7 @@
     },
     "system-detection": {
       "singleton": "app_state",
-      "fields": ["locale", "theme"]
+      "fields": ["locale", "dark"]
     },
     "devtools": {
       "accelerator": "Cmd+Option+I"

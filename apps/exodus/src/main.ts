@@ -43,7 +43,7 @@ const i18n = createI18n({
 edem.data.itemUpdated(async ({ event: item }) => {
   if (item.collection_id !== "app_state") return
   i18n.global.locale.value = resolveLocale(item.data.locale)
-  applyTheme(item.data.theme === "dark" ? "dark" : "light")
+  applyTheme(!!item.data.dark)
 })
 
 app.use(router)

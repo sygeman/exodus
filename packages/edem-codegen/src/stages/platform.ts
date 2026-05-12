@@ -186,8 +186,8 @@ export async function initStateDefaults() {
   if (!item.data.locale) {
     patch.locale = getSystemLocale()
   }
-  if (!item.data.theme) {
-    patch.theme = getSystemTheme()
+  if (item.data.dark === undefined) {
+    patch.dark = getSystemTheme()
   }
 
   if (Object.keys(patch).length > 0) {

@@ -6,14 +6,14 @@ export function getSystemLocale(): string {
   }
 }
 
-export function getSystemTheme(): "dark" | "light" {
+export function getSystemTheme(): boolean {
   if (process.platform === "darwin") {
     try {
       const { execSync } = require("child_process")
       const style = execSync("defaults read -g AppleInterfaceStyle", { encoding: "utf-8" }).trim()
-      return style === "Dark" ? "dark" : "light"
+      return style === "Dark"
     } catch {
-      return "light"
+      return false
     }
   }
 
@@ -24,9 +24,9 @@ export function getSystemTheme(): "dark" | "light" {
         'reg query "HKEY_CURRENT_USER\\Software\\Microsoft\\Windows\\CurrentVersion\\Themes\\Personalize" /v AppsUseLightTheme',
         { encoding: "utf-8" },
       )
-      return result.includes("0x0") ? "dark" : "light"
+      return result.includes("0x0")
     } catch {
-      return "light"
+      return false
     }
   }
 
@@ -36,11 +36,11 @@ export function getSystemTheme(): "dark" | "light" {
       const theme = execSync("gsettings get org.gnome.desktop.interface gtk-theme", {
         encoding: "utf-8",
       }).trim()
-      return theme.toLowerCase().includes("dark") ? "dark" : "light"
+      return theme.toLowerCase().includes("dark")
     } catch {
-      return "light"
+      return false
     }
   }
 
-  return "light"
+  return false
 }

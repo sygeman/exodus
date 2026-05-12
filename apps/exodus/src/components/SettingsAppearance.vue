@@ -9,10 +9,10 @@ const { data: appState, update: updateSetting } = useSingleton("app_state")
 
 const isDark = computed({
   get() {
-    return appState.value?.data.theme === "dark"
+    return !!appState.value?.data.dark
   },
   set(_isDark: boolean) {
-    updateSetting({ theme: _isDark ? "dark" : "light" })
+    updateSetting({ dark: _isDark })
   },
 })
 </script>
