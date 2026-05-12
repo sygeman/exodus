@@ -24,6 +24,7 @@ function makeIR(
     assets: [],
     layout: { hasAppLayout: false, hasSidebar: false, hasTopMenu: false, navigation: [] },
     platform: { platform: "electrobun", features: { waylandWorkaround: false } },
+    usedComponents: [],
   }
 }
 

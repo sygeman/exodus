@@ -66,6 +66,7 @@ export interface IR {
   assets: IRAsset[]
   layout: IRLayoutInfo
   platform: IRPlatformConfig
+  usedComponents: string[]
 }
 
 export interface IRProject {

@@ -6,3 +6,6 @@ export { createFlowsHooks } from "./hooks-flows"
 
 export { useI18n } from "./useI18n"
 export { useT } from "./useT"
+
+export { renderNode } from "./renderer"
+export type { RenderContext, ComponentRegistry } from "./renderer"

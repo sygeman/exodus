@@ -74,6 +74,7 @@ export function parseManifests(manifests: Manifests, projectName?: string): IR {
   const assets = parseAssets(manifests.assets)
   const layout = parseLayout(manifests.components)
   const platform = parsePlatform(manifests.platform)
+  const usedComponents = extractUsedComponents(manifests.components)
 
   return {
     project: { name: projectName ?? "app", identifier: `${projectName ?? "app"}.local` },
@@ -84,6 +85,7 @@ export function parseManifests(manifests: Manifests, projectName?: string): IR {
     assets,
     layout,
     platform,
+    usedComponents,
   }
 }
 
@@ -122,6 +124,22 @@ function extractUsedFlows(node: ExtendedComponentNode): string[] {
       .filter((b): b is { flow: string } & Record<string, unknown> => "flow" in b)
       .map((b) => b.flow)
   })
+}
+
+function extractUsedComponents(components: Record<string, ComponentNode>): string[] {
+  const all = new Set<string>()
+
+  for (const tree of Object.values(components)) {
+    collectFromTree(tree as ExtendedComponentNode, (n) => {
+      const name = n.component
+      if (name && name[0] !== name[0].toLowerCase()) {
+        all.add(name)
+      }
+      return []
+    })
+  }
+
+  return [...all].toSorted()
 }
 
 function extractNeedsRouter(node: ExtendedComponentNode): boolean {
