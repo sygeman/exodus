@@ -91,7 +91,7 @@ jobs:
           skip-version-file: false
           skip-commit: false
           skip-tag: false
-          skip-git-pull: true
+          skip-git-pull: false
           create-summary: true
 
       - name: Check if version was bumped
