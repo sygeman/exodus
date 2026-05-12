@@ -3,7 +3,7 @@ import { useT } from "@exodus/edem-vue"
 import { useCollectionQuery, useCreateItem } from "@/hooks"
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref, watch } from "vue"
-import { getLevelColor } from "@/composables/useLevelColor"
+import { getLevelColor } from "@/utils/level-color"
 
 const t = useT()
 const route = useRoute()

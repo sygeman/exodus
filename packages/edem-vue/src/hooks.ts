@@ -140,7 +140,10 @@ export function createEdemHooks<TManifest>(client: EdemClient<TManifest>) {
     return [mutate, { loading, error }] as const
   }
 
-  function useSingleton<K extends keyof CM<TManifest> & string>(collectionId: K) {
+  function useSingleton<K extends keyof CM<TManifest> & string>(
+    collectionId: K,
+    onUpdated?: (item: TypedItem<CM<TManifest>[K]>) => void,
+  ) {
     const data = shallowRef<TypedItem<CM<TManifest>[K]> | null>(null)
     const loading = ref(true)
     const error = ref<string | null>(null)
@@ -176,6 +179,7 @@ export function createEdemHooks<TManifest>(client: EdemClient<TManifest>) {
       await load()
       unsub = client.subscribeSingleton(collectionId, (item) => {
         data.value = item
+        onUpdated?.(item)
       })
     })
 

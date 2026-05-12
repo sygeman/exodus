@@ -1,28 +1,20 @@
 <script setup lang="ts">
-import { computed, watch } from "vue"
-import { useI18n } from "vue-i18n"
+import { computed } from "vue"
 import { useT } from "@exodus/edem-vue"
-import { locales, type Locale } from "@/locales"
+import { locales } from "@/locales"
 import { useSingleton } from "@/hooks"
 
-const { locale } = useI18n()
 const t = useT()
 
 const { data: appState, update: updateSetting } = useSingleton("app_state")
 
-const selectedLocale = computed<Locale>({
+const selectedLocale = computed({
   get() {
-    return locale.value as Locale
+    return appState.value?.data.locale
   },
-  set(value: Locale) {
-    locale.value = value
-  },
-})
-
-watch(selectedLocale, (value) => {
-  if (appState.value) {
+  set(value) {
     updateSetting({ locale: value })
-  }
+  },
 })
 </script>
 

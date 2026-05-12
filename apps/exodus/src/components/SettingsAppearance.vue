@@ -1,27 +1,19 @@
 <script setup lang="ts">
-import { computed, watch } from "vue"
+import { computed } from "vue"
 import { useT } from "@exodus/edem-vue"
-import { useColorMode } from "@vueuse/core"
 import { useSingleton } from "@/hooks"
 
 const t = useT()
 
-const colorMode = useColorMode()
 const { data: appState, update: updateSetting } = useSingleton("app_state")
 
 const isDark = computed({
   get() {
-    return colorMode.value === "dark"
+    return appState.value?.data.theme === "dark"
   },
   set(_isDark: boolean) {
-    colorMode.store.value = _isDark ? "dark" : "light"
+    updateSetting({ theme: _isDark ? "dark" : "light" })
   },
-})
-
-watch(isDark, (value) => {
-  if (appState.value) {
-    updateSetting({ theme: value ? "dark" : "light" })
-  }
 })
 </script>
 

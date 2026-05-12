@@ -36,7 +36,7 @@ export default {
       "dist/index.html": "views/mainview/index.html",
       "dist/assets": "views/mainview/assets",
     },
-    watch: ["src/platform/**", "src/bun/**"],
+    watch: ["src/bun/**"],
     // Ignore Vite output in watch mode — HMR handles view rebuilds separately
     watchIgnore: ["dist/**"],
     mac: {
