@@ -151,6 +151,37 @@ describe("startScheduler", () => {
     expect(console.log).toHaveBeenCalled()
   })
 
+  it("should run flow immediately on setup", async () => {
+    const flows = createMockFlows()
+    const data = createMockData([
+      {
+        id: "flow-1",
+        data: {
+          trigger: { type: "schedule", every: "1h" },
+        },
+      },
+    ])
+
+    await startScheduler(flows as any, data as any)
+    expect(flows.runFlow).toHaveBeenCalledWith({ flow_id: "flow-1" })
+  })
+
+  it("should run flow immediately even with recent lastRunAt", async () => {
+    const flows = createMockFlows()
+    const data = createMockData([
+      {
+        id: "flow-1",
+        data: {
+          trigger: { type: "schedule", every: "1h" },
+          last_run_at: Date.now() - 10 * 60 * 1000,
+        },
+      },
+    ])
+
+    await startScheduler(flows as any, data as any)
+    expect(flows.runFlow).toHaveBeenCalledWith({ flow_id: "flow-1" })
+  })
+
   it("should not set up schedules for non-schedule triggers", async () => {
     const flows = createMockFlows()
     const data = createMockData([
@@ -164,23 +195,6 @@ describe("startScheduler", () => {
         id: "flow-2",
         data: {
           trigger: { type: "event", event: "test" },
-        },
-      },
-    ])
-
-    await startScheduler(flows as any, data as any)
-    expect(console.log).toHaveBeenCalled()
-  })
-
-  it("should pass lastRunAt to setupSchedule", async () => {
-    const flows = createMockFlows()
-    const lastRunAt = Date.now() - 30 * 60 * 1000
-    const data = createMockData([
-      {
-        id: "flow-1",
-        data: {
-          trigger: { type: "schedule", every: "1h" },
-          last_run_at: lastRunAt,
         },
       },
     ])

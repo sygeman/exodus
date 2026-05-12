@@ -79,6 +79,10 @@ await ensureFlows(edem.flows)
 // Set up Electrobun dependencies for the electrobun module
 setElectrobunDeps({ Updater })
 
+bunLogger.attach((entry) => {
+  edem.data.createItem({ collection_id: "logs", data: entry }).catch(() => {})
+})
+
 await startScheduler(edem.flows, edem.data)
 const flowsDispatcher = await startDispatcher(edem.flows, edem.data)
 
@@ -176,10 +180,6 @@ ApplicationMenu.on("application-menu-clicked", (event) => {
   if (menuEvent.data?.action === "toggle-devtools") {
     webview.toggleDevTools()
   }
-})
-
-bunLogger.attach((entry) => {
-  edem.data.createItem({ collection_id: "logs", data: entry }).catch(() => {})
 })
 
 console.log("Bun process started")

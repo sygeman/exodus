@@ -111,19 +111,19 @@ function clearSchedule(flowId: string): void {
 
 function runWithScheduleCheck(flowId: string, trigger: ScheduleTrigger, flows: FlowsAPI): void {
   const now = new Date()
-  if (!matchesSchedule(trigger, now)) return
+  const matches = matchesSchedule(trigger, now)
+  console.log(
+    `[flows:scheduler] Schedule check for ${flowId}: matches=${matches}, now=${now.toISOString()}`,
+  )
+  if (!matches) return
 
+  console.log(`[flows:scheduler] Running flow ${flowId}`)
   withRetry(() => flows.runFlow({ flow_id: flowId }), "scheduler", `run flow ${flowId}`).catch(
     () => {},
   )
 }
 
-function setupSchedule(
-  flowId: string,
-  trigger: ScheduleTrigger,
-  flows: FlowsAPI,
-  lastRunAt?: number,
-): void {
+function setupSchedule(flowId: string, trigger: ScheduleTrigger, flows: FlowsAPI): void {
   clearSchedule(flowId)
 
   const intervalMs = parseEvery(trigger.every)
@@ -131,6 +131,8 @@ function setupSchedule(
     console.warn(`[flows:scheduler] Minimum interval is 1m, got ${trigger.every}`)
     return
   }
+
+  console.log(`[flows:scheduler] Setting up schedule for ${flowId}: every=${trigger.every}`)
 
   const entry: ScheduleEntry = {
     flowId,
@@ -146,23 +148,8 @@ function setupSchedule(
     }, intervalMs)
   }
 
-  if (lastRunAt) {
-    const elapsed = Date.now() - lastRunAt
-    const remaining = intervalMs - elapsed
-
-    if (remaining <= 0) {
-      runWithScheduleCheck(flowId, trigger, flows)
-      startInterval()
-    } else {
-      entry.initialTimer = setTimeout(() => {
-        entry.initialTimer = null
-        runWithScheduleCheck(flowId, trigger, flows)
-        startInterval()
-      }, remaining)
-    }
-  } else {
-    startInterval()
-  }
+  runWithScheduleCheck(flowId, trigger, flows)
+  startInterval()
 
   schedules.set(flowId, entry)
 }
@@ -188,8 +175,7 @@ export async function startScheduler(
   for (const item of items) {
     const trigger = item.data.trigger as Record<string, unknown> | undefined
     if (trigger?.type === "schedule") {
-      const lastRunAt = item.data.last_run_at as number | undefined
-      setupSchedule(item.id, trigger as ScheduleTrigger, flows, lastRunAt)
+      setupSchedule(item.id, trigger as ScheduleTrigger, flows)
     }
   }
 
