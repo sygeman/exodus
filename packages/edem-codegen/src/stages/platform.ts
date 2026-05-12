@@ -31,14 +31,6 @@ export const platformStage: Stage = {
       })
     }
 
-    // Locales data for language settings
-    if (ir.components.some((c) => c.name === "SettingsLanguage")) {
-      files.push({
-        path: "src/platform/locales.ts",
-        content: generateLocales(),
-      })
-    }
-
     const deps: string[] = []
 
     return { files, deps }
@@ -197,16 +189,5 @@ export async function initStateDefaults() {
 `
     : ""
 }
-`
-}
-
-function generateLocales(): string {
-  return `export const locales = [
-  { value: "en", label: "English", flag: "🇺🇸" },
-  { value: "ru", label: "Russian", flag: "🇷🇺" },
-  { value: "de", label: "German", flag: "🇩🇪" },
-  { value: "fr", label: "French", flag: "🇫🇷" },
-  { value: "ja", label: "Japanese", flag: "🇯🇵" },
-]
 `
 }

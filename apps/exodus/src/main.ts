@@ -8,7 +8,6 @@ import { rpc } from "./edem-bridge"
 import { Electroview } from "electrobun/view"
 import { initLogs } from "@exodus/edem-electrobun/logger-webview"
 import { edem } from "@/edem"
-import { defaultLocale, resolveLocale } from "./locales"
 import { persistRoute } from "./utils/persist-route"
 import { applyTheme } from "./utils/apply-theme"
 
@@ -35,14 +34,14 @@ persistRoute({
 
 const i18n = createI18n({
   legacy: false,
-  locale: defaultLocale,
+  locale: "en",
   fallbackLocale: "en",
   messages: { en: {}, ru: {} },
 })
 
 edem.data.itemUpdated(async ({ event: item }) => {
   if (item.collection_id !== "app_state") return
-  i18n.global.locale.value = resolveLocale(item.data.locale)
+  i18n.global.locale.value = item.data.locale ?? "en"
   applyTheme(!!item.data.dark)
 })
 

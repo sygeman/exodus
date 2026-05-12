@@ -47,6 +47,13 @@
       "fields": [
         { "name": "last_route", "type": "json", "labels": { "en": "Last Route", "ru": "Последний маршрут" } },
         { "name": "locale", "type": "string", "labels": { "en": "Locale", "ru": "Локаль" } },
+        { "name": "locales", "type": "json", "default": [
+          { "value": "en", "label": "English", "flag": "🇺🇸" },
+          { "value": "ru", "label": "Russian", "flag": "🇷🇺" },
+          { "value": "de", "label": "German", "flag": "🇩🇪" },
+          { "value": "fr", "label": "French", "flag": "🇫🇷" },
+          { "value": "ja", "label": "Japanese", "flag": "🇯🇵" }
+        ], "labels": { "en": "Locales", "ru": "Локаля" } },
         { "name": "dark", "type": "boolean", "default": false, "labels": { "en": "Dark", "ru": "Тёмная" } },
         { "name": "window_frame", "type": "json", "labels": { "en": "Window Frame", "ru": "Размер окна" } },
         { "name": "window_maximized", "type": "boolean", "default": false, "labels": { "en": "Maximized", "ru": "Развёрнуто" } }

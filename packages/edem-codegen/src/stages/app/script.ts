@@ -54,6 +54,20 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
     imports.push(`import { use${capitalize(colId)} } from "@/composables/use${capitalize(colId)}"`)
   }
 
+  // Derive `locales` from app_state singleton when referenced in template
+  if (
+    comp.usedCollections.includes("app_state") &&
+    someInTree(comp.tree, (n) => {
+      if (typeof n.bind?.items === "string" && n.bind.items.includes("locales")) return true
+      return false
+    })
+  ) {
+    statements.push(
+      `const locales = computed(() => (appState.value?.data?.locales ?? []) as { value: string; label: string; flag: string }[])`,
+    )
+    needsComputed.add("computed")
+  }
+
   // Generate asset imports (e.g. SVG components)
   for (const asset of ir.assets) {
     if (someInTree(comp.tree, (n) => n.component === asset.name)) {

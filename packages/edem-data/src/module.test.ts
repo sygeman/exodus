@@ -889,6 +889,129 @@ describe("data module", () => {
 
       expect(events).toEqual(["created"])
     })
+
+    it("should backfill default into existing singleton when adding new field", async () => {
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "settings",
+              name: "Settings",
+              singleton: true,
+              fields: [{ name: "theme", type: "string", default: "dark" }],
+            },
+          ],
+        },
+      })
+
+      await edem.data.updateSingleton({
+        collection_id: "settings",
+        data: { theme: "light" },
+      })
+
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "settings",
+              name: "Settings",
+              singleton: true,
+              fields: [
+                { name: "theme", type: "string", default: "dark" },
+                { name: "lang", type: "string", default: "en" },
+              ],
+            },
+          ],
+        },
+      })
+
+      const { item } = await edem.data.getSingleton({ collection_id: "settings" })
+      expect(item?.data.theme).toBe("light")
+      expect(item?.data.lang).toBe("en")
+    })
+
+    it("should not overwrite existing value when backfilling new field", async () => {
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "settings",
+              name: "Settings",
+              singleton: true,
+              fields: [{ name: "theme", type: "string" }],
+            },
+          ],
+        },
+      })
+
+      await edem.data.updateSingleton({
+        collection_id: "settings",
+        data: { lang: "ru" },
+      })
+
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "settings",
+              name: "Settings",
+              singleton: true,
+              fields: [
+                { name: "theme", type: "string" },
+                { name: "lang", type: "string", default: "en" },
+              ],
+            },
+          ],
+        },
+      })
+
+      const { item } = await edem.data.getSingleton({ collection_id: "settings" })
+      expect(item?.data.lang).toBe("ru")
+    })
+
+    it("should backfill json field default into existing singleton", async () => {
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "app",
+              name: "App",
+              singleton: true,
+              fields: [{ name: "locale", type: "string" }],
+            },
+          ],
+        },
+      })
+
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "app",
+              name: "App",
+              singleton: true,
+              fields: [
+                { name: "locale", type: "string" },
+                {
+                  name: "locales",
+                  type: "json",
+                  default: [
+                    { value: "en", label: "English" },
+                    { value: "ru", label: "Russian" },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      })
+
+      const { item } = await edem.data.getSingleton({ collection_id: "app" })
+      expect(item?.data.locales).toEqual([
+        { value: "en", label: "English" },
+        { value: "ru", label: "Russian" },
+      ])
+    })
   })
 
   describe("getSingleton", () => {

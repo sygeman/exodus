@@ -1388,6 +1388,29 @@ export const dataModule = createEdemModule("data", (module) => {
                     meta: fieldDef.meta ? JSON.stringify(fieldDef.meta) : null,
                   })
                   fieldsChanged = true
+
+                  if (
+                    colDef.singleton &&
+                    fieldDef.default !== null &&
+                    fieldDef.default !== undefined
+                  ) {
+                    const singletonItem = await ctx.db.query.items.findFirst({
+                      where: eq(schema.items.collection_id, existing.id),
+                    })
+                    if (singletonItem) {
+                      const data = safeJsonParse<Record<string, unknown>>(
+                        singletonItem.data,
+                        `singleton ${existing.id}`,
+                      )
+                      if (data[fieldDef.name] === undefined) {
+                        data[fieldDef.name] = fieldDef.default
+                        await ctx.db
+                          .update(schema.items)
+                          .set({ data: JSON.stringify(data), updated_at: now })
+                          .where(eq(schema.items.id, singletonItem.id))
+                      }
+                    }
+                  }
                 }
               }
 

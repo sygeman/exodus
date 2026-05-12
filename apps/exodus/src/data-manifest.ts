@@ -39,6 +39,7 @@ export const dataManifest = {
       fields: [
         { name: "last_route", type: "json" },
         { name: "locale", type: "string" },
+        { name: "locales", type: "json" },
         { name: "dark", type: "boolean", default: false },
         { name: "window_frame", type: "json" },
         { name: "window_maximized", type: "boolean", default: false },

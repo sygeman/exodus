@@ -1,12 +1,15 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import { useT } from "@exodus/edem-vue"
-import { locales } from "@/locales"
 import { useSingleton } from "@/hooks"
 
 const t = useT()
 
 const { data: appState, update: updateSetting } = useSingleton("app_state")
+
+const locales = computed(
+  () => (appState.value?.data.locales as { value: string; label: string; flag: string }[]) ?? [],
+)
 
 const selectedLocale = computed({
   get() {

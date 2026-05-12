@@ -89,7 +89,7 @@ edemBridge.onWebviewEvent((name, payload) => {
 const { item: stateItem } = await edem.data.getSingleton({ collection_id: "app_state" })
 if (stateItem) {
   const patch: Record<string, unknown> = {}
-  if (!stateItem.data.locale) patch.locale = getSystemLocale()
+  if (!stateItem.data.locale) patch.locale = getSystemLocale().split("-")[0]
   if (stateItem.data.dark === undefined) patch.dark = getSystemTheme()
   if (Object.keys(patch).length > 0) {
     await edem.data.updateSingleton({ collection_id: "app_state", data: patch })
