@@ -45,7 +45,8 @@
     "tailwindcss/max-class-count": "off",
     "tailwindcss/enforce-consistent-line-wrapping": "off",
     "tailwindcss/no-restricted-classes": "off",
-    "tailwindcss/no-arbitrary-value": "off"
+    "tailwindcss/no-arbitrary-value": "off",
+    "tailwindcss/prefer-theme-tokens": "warn"
   },
   "ignorePatterns": ["node_modules", "dist", "build", "artifacts", ".agents", "*.config.ts", "*.test.ts", "*.d.ts"],
   "overrides": [
