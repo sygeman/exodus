@@ -42,6 +42,7 @@ export function useNodeTestMode(data?: () => VueFlowNodeData, selected?: () => b
   })
 
   const handleBorderClass = computed(() => {
+    if (isSelected.value) return "!border-primary"
     if (!testMode.value) return ""
     if (isRunning.value) return "!border-primary"
     if (isCompleted.value) return "!border-success"
