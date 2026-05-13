@@ -46,7 +46,7 @@ function handleRetry(e: Event) {
 <template>
   <div class="relative w-40">
     <div
-      class="flow-node bg-default overflow-hidden rounded-lg border border-neutral-700 shadow-md transition-all hover:border-neutral-400 hover:shadow-lg"
+      class="flow-node bg-default rounded-lg border shadow-md transition-all hover:border-neutral-400 hover:shadow-lg"
       :class="[borderClass]"
     >
       <div
