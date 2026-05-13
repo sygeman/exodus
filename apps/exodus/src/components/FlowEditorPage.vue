@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { ref, computed, watch, provide } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { VueFlow, type Connection, type NodeChange, type EdgeChange } from "@vue-flow/core"
+import {
+  VueFlow,
+  useVueFlow,
+  type Connection,
+  type NodeChange,
+  type EdgeChange,
+} from "@vue-flow/core"
 import { Background } from "@vue-flow/background"
 import { useCollectionQuery, useUpdateItem } from "@/hooks"
 import { useFlowHighlighting } from "@/composables/useFlowHighlighting"
@@ -32,6 +38,8 @@ const { data: flows } = useCollectionQuery("flows", () => ({
 
 const flow = computed(() => flows.value.find((f) => f.id === flowId.value))
 
+const { viewport, setViewport, onMoveEnd } = useVueFlow()
+
 interface FlowNode {
   id: string
   type: string
@@ -46,6 +54,11 @@ interface FlowEdge {
   sourceHandle?: string
   targetHandle?: string
   label?: string
+}
+
+interface FlowMeta {
+  viewport?: { x: number; y: number; zoom: number }
+  selectedNodeId?: string
 }
 
 const NODE_TYPE_MAP: Record<string, string> = {
@@ -105,6 +118,7 @@ watch(
   flow,
   (f) => {
     if (!f) return
+    cancelPendingSave()
     const nodes = (f.data.nodes ?? []) as FlowNode[]
     const edges = (f.data.edges ?? []) as FlowEdge[]
     vfNodes.value = nodes.map((n) => ({
@@ -122,6 +136,14 @@ watch(
       label: e.label,
       type: "deleteable",
     }))
+
+    const meta = (f.data.meta ?? {}) as FlowMeta
+    if (meta.selectedNodeId) {
+      selectedNodeId.value = meta.selectedNodeId
+    }
+    if (meta.viewport) {
+      setViewport(meta.viewport)
+    }
   },
   { immediate: true },
 )
@@ -147,20 +169,12 @@ const edgeTypes = {
 
 const selectedNodeId = ref<string | null>(null)
 
-const selectedNode = computed(() => {
-  if (!selectedNodeId.value) return null
-  const node = vfNodes.value.find((n) => n.id === selectedNodeId.value)
-  if (!node) return null
-  return {
-    id: node.id,
-    type: node.type,
-    data: node.data as Record<string, unknown>,
-  }
-})
-
 const { applyEdgeHighlighting } = useFlowHighlighting(vfNodes, vfEdges, selectedNodeId)
 
-watch(selectedNodeId, () => applyEdgeHighlighting())
+watch(selectedNodeId, () => {
+  applyEdgeHighlighting()
+  saveToDb()
+})
 
 // --- Node selection ---
 function onNodeClick({ node }: { node: { id: string } }) {
@@ -170,6 +184,10 @@ function onNodeClick({ node }: { node: { id: string } }) {
 function onPaneClick() {
   selectedNodeId.value = null
 }
+
+onMoveEnd(() => {
+  saveToDb()
+})
 
 // --- Connect start/end: drag handle to empty space -> create node ---
 const connectingFrom = ref<{ nodeId: string; handleId: string | null } | null>(null)
@@ -271,67 +289,47 @@ function handleAddNodeFromEdge(sourceNodeId: string, _sourceHandle: string | nul
   saveToDb()
 }
 
-// --- Delete node ---
-function handleDeleteNode() {
-  if (!selectedNodeId.value) return
-  const nodeId = selectedNodeId.value
-  vfNodes.value = vfNodes.value.filter((n) => n.id !== nodeId)
-  vfEdges.value = vfEdges.value.filter((e) => e.source !== nodeId && e.target !== nodeId)
-  selectedNodeId.value = null
-  saveToDb()
-}
-
 // --- Delete edge ---
 function handleDeleteEdge(edgeId: string) {
   vfEdges.value = vfEdges.value.filter((e) => e.id !== edgeId)
   saveToDb()
 }
 
-// --- Update node from config panel ---
-function handleUpdateNode(updates: Record<string, unknown>) {
-  if (!selectedNodeId.value) return
-  const nodeIdx = vfNodes.value.findIndex((n) => n.id === selectedNodeId.value)
-  if (nodeIdx === -1) return
-  const node = vfNodes.value[nodeIdx]
-  const newData = { ...node.data, ...(updates.data as Record<string, unknown>) }
-  const newType = updates.type as string | undefined
-  if (newType) newData.nodeType = newType
-  vfNodes.value = vfNodes.value.map((n, i) => {
-    if (i !== nodeIdx) return n
-    return {
-      ...n,
-      type: newType || n.type,
-      data: newData,
-    }
-  })
-  saveToDb()
+// --- Save to db ---
+let saveTimeout: ReturnType<typeof setTimeout> | null = null
+
+function cancelPendingSave() {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout)
+    saveTimeout = null
+  }
 }
 
-// --- Save to db (debounced) ---
-let saveTimeout: ReturnType<typeof setTimeout> | null = null
 function saveToDb() {
-  if (saveTimeout) clearTimeout(saveTimeout)
-  saveTimeout = setTimeout(async () => {
-    if (!flow.value) return
-    const nodesForStorage = vfNodes.value.map((n) => ({
-      id: n.id,
-      type:
-        ((n.data as Record<string, unknown>)?.nodeType as string) ||
-        REVERSE_TYPE_MAP[n.type] ||
-        "action",
-      position: n.position,
-      data: n.data,
-    }))
-    const edgesForStorage = vfEdges.value.map((e) => ({
-      id: e.id,
-      source: e.source,
-      target: e.target,
-      sourceHandle: e.sourceHandle,
-      targetHandle: e.targetHandle,
-      label: e.label,
-    }))
-    await updateItem(flow.value.id, { nodes: nodesForStorage, edges: edgesForStorage })
-  }, 500)
+  cancelPendingSave()
+  if (!flow.value) return
+  const nodesForStorage = vfNodes.value.map((n) => ({
+    id: n.id,
+    type:
+      ((n.data as Record<string, unknown>)?.nodeType as string) ||
+      REVERSE_TYPE_MAP[n.type] ||
+      "action",
+    position: n.position,
+    data: n.data,
+  }))
+  const edgesForStorage = vfEdges.value.map((e) => ({
+    id: e.id,
+    source: e.source,
+    target: e.target,
+    sourceHandle: e.sourceHandle,
+    targetHandle: e.targetHandle,
+    label: e.label,
+  }))
+  const meta: FlowMeta = {
+    viewport: { x: viewport.value.x, y: viewport.value.y, zoom: viewport.value.zoom },
+    selectedNodeId: selectedNodeId.value ?? undefined,
+  }
+  updateItem(flow.value.id, { nodes: nodesForStorage, edges: edgesForStorage, meta })
 }
 
 function getNodeCount(): number {
@@ -398,15 +396,7 @@ provide("deleteEdge", handleDeleteEdge)
         </VueFlow>
       </div>
 
-      <NodeConfigPanel
-        :node="selectedNode"
-        :all-nodes="vfNodes"
-        :all-edges="vfEdges"
-        @update="handleUpdateNode"
-        @delete="handleDeleteNode"
-        @delete-edge="handleDeleteEdge"
-        @close="selectedNodeId = null"
-      />
+      <NodeConfigPanel />
     </div>
   </div>
 </template>

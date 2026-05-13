@@ -1,7 +1,8 @@
 <script setup lang="ts">
-import { ref, computed, watch } from "vue"
-import { useDebounceFn } from "@vueuse/core"
+import { computed } from "vue"
+import { useRoute } from "vue-router"
 import { useT } from "@exodus/edem-vue"
+import { useCollectionQuery, useUpdateItem } from "@/hooks"
 
 type NodeData = {
   type?: string
@@ -20,46 +21,91 @@ type NodeData = {
   [key: string]: unknown
 }
 
-type FlowEdge = {
+type StoredNode = {
+  id: string
+  type: string
+  position: { x: number; y: number }
+  data: NodeData
+}
+
+type StoredEdge = {
   id: string
   source: string
   target: string
   sourceHandle?: string
   targetHandle?: string
+  label?: string
 }
 
-const props = defineProps<{
-  node: { id: string; type: string; data: NodeData } | null
-  allNodes: Array<{ id: string; type: string; data: NodeData }>
-  allEdges: FlowEdge[]
-}>()
+interface FlowMeta {
+  selectedNodeId?: string
+}
 
-const emit = defineEmits<{
-  update: [updates: Record<string, unknown>]
-  delete: []
-  deleteEdge: [edgeId: string]
-  close: []
-}>()
-
+const route = useRoute()
+const [updateItem] = useUpdateItem()
 const t = useT()
 
-const localData = ref<NodeData>({})
+const flowId = computed(() => route.params.flowId as string)
 
-watch(
-  () => props.node,
-  (n) => {
-    if (n) localData.value = { ...n.data }
-  },
-  { immediate: true },
-)
+const { data: flows } = useCollectionQuery("flows", () => ({
+  filter: { project_id: { _eq: route.params.id as string } },
+}))
 
-const debouncedUpdate = useDebounceFn(() => {
-  emit("update", { data: { ...localData.value } })
-}, 500)
+const flow = computed(() => flows.value.find((f) => f.id === flowId.value))
+
+const nodes = computed<StoredNode[]>(() => (flow.value?.data.nodes ?? []) as StoredNode[])
+const edges = computed<StoredEdge[]>(() => (flow.value?.data.edges ?? []) as StoredEdge[])
+
+const selectedNodeId = computed(() => {
+  const meta = (flow.value?.data.meta ?? {}) as FlowMeta
+  return meta.selectedNodeId ?? null
+})
+
+const node = computed(() => {
+  if (!selectedNodeId.value) return null
+  const found = nodes.value.find((n) => n.id === selectedNodeId.value)
+  if (!found) return null
+  return { id: found.id, type: found.type, data: found.data }
+})
+
+function saveNode(updatedNodes: StoredNode[]) {
+  if (!flow.value) return
+  const meta: FlowMeta = {
+    selectedNodeId: selectedNodeId.value ?? undefined,
+  }
+  updateItem(flow.value.id, { nodes: updatedNodes, meta })
+}
 
 function updateField(key: string, value: unknown) {
-  localData.value[key] = value
-  debouncedUpdate()
+  if (!node.value) return
+  const updatedNodes = nodes.value.map((n) => {
+    if (n.id !== selectedNodeId.value) return n
+    return { ...n, data: { ...n.data, [key]: value } }
+  })
+  saveNode(updatedNodes)
+}
+
+function closePanel() {
+  if (!flow.value) return
+  updateItem(flow.value.id, { meta: { selectedNodeId: undefined } })
+}
+
+function deleteNode() {
+  if (!selectedNodeId.value || !flow.value) return
+  const nodeId = selectedNodeId.value
+  const updatedNodes = nodes.value.filter((n) => n.id !== nodeId)
+  const updatedEdges = edges.value.filter((e) => e.source !== nodeId && e.target !== nodeId)
+  updateItem(flow.value.id, {
+    nodes: updatedNodes,
+    edges: updatedEdges,
+    meta: { selectedNodeId: undefined },
+  })
+}
+
+function deleteEdge(edgeId: string) {
+  if (!flow.value) return
+  const updatedEdges = edges.value.filter((e) => e.id !== edgeId)
+  updateItem(flow.value.id, { edges: updatedEdges })
 }
 
 const NODE_TYPE_OPTIONS = [
@@ -93,340 +139,324 @@ const OPERATOR_OPTIONS = [
   { label: "contains", value: "contains" },
 ]
 
-const VUE_FLOW_TYPE_MAP: Record<string, string> = {
-  action: "action",
-  condition: "condition",
-  delay: "action",
-  fork: "flow-control",
-  join: "flow-control",
-  loop: "flow-control",
-  switch: "condition",
-  transform: "action",
-  subflow: "io",
-  input: "io",
-  output: "io",
-}
-
 function changeNodeType(newType: string) {
-  const vueFlowType = VUE_FLOW_TYPE_MAP[newType] || "action"
-  localData.value.type = newType
-  emit("update", {
-    type: vueFlowType,
-    data: { ...localData.value, type: newType },
+  if (!node.value) return
+  const updatedNodes = nodes.value.map((n) => {
+    if (n.id !== selectedNodeId.value) return n
+    return { ...n, type: newType, data: { ...n.data, type: newType } }
   })
+  saveNode(updatedNodes)
 }
 
 const incomingEdges = computed(() => {
-  if (!props.node) return []
-  return props.allEdges.filter((e) => e.target === props.node!.id)
+  if (!node.value) return []
+  return edges.value.filter((e) => e.target === node.value!.id)
 })
 
 const outgoingEdges = computed(() => {
-  if (!props.node) return []
-  return props.allEdges.filter((e) => e.source === props.node!.id)
+  if (!node.value) return []
+  return edges.value.filter((e) => e.source === node.value!.id)
 })
 
 function getNodeLabel(nodeId: string): string {
-  const node = props.allNodes.find((n) => n.id === nodeId)
-  return node?.data?.label || node?.data?.type || nodeId.slice(0, 8)
+  const n = nodes.value.find((nd) => nd.id === nodeId)
+  return n?.data?.label || n?.data?.type || nodeId.slice(0, 8)
 }
-
-const isSystemNode = computed(() => {
-  const nodeType = props.node?.data?.type || props.node?.type
-  return nodeType === "trigger" || nodeType === "input" || nodeType === "output"
-})
 </script>
 
 <template>
   <div class="border-default bg-default flex w-80 flex-col border-l">
-    <div v-if="node" class="flex flex-1 flex-col overflow-hidden">
-      <!-- Header -->
-      <div class="border-default flex items-center justify-between border-b px-4 py-3">
-        <span class="text-sm font-semibold">{{
-          localData.label || localData.type || node.type
-        }}</span>
-        <UButton variant="ghost" size="xs" icon="i-lucide-x" @click="emit('close')" />
-      </div>
-
-      <!-- Scrollable content -->
-      <div class="flex-1 overflow-y-auto p-4">
-        <div class="flex flex-col gap-4">
-          <!-- Node type selector -->
-          <div v-if="!isSystemNode" class="flex flex-col gap-1.5">
-            <label class="text-muted text-xs font-medium">{{ t({ en: "Type", ru: "Тип" }) }}</label>
-            <USelect
-              :model-value="localData.type || node.type"
-              :items="NODE_TYPE_OPTIONS"
-              value-key="value"
-              label-key="label"
-              size="sm"
-              @update:model-value="changeNodeType"
-            />
-          </div>
-
-          <!-- Label -->
-          <div class="flex flex-col gap-1.5">
-            <label class="text-muted text-xs font-medium">{{
-              t({ en: "Label", ru: "Метка" })
-            }}</label>
-            <UInput
-              :model-value="localData.label || ''"
-              size="sm"
-              :placeholder="localData.type || node.type"
-              @update:model-value="updateField('label', $event)"
-            />
-          </div>
-
-          <!-- Trigger config -->
-          <template v-if="localData.type === 'trigger' || node.type === 'trigger'">
+    <div class="flex flex-1 flex-col overflow-hidden">
+      <template v-if="node">
+        <!-- Header -->
+        <div class="border-default flex items-center justify-between border-b px-4 py-3">
+          <span class="text-sm font-semibold">{{
+            node.data.label || node.data.type || node.type
+          }}</span>
+          <UButton variant="ghost" size="xs" icon="i-lucide-x" @click="closePanel()" />
+        </div>
+        <div class="flex-1 overflow-y-auto p-4">
+          <div class="flex flex-col gap-4">
+            <!-- Node type selector -->
             <div class="flex flex-col gap-1.5">
               <label class="text-muted text-xs font-medium">{{
-                t({ en: "Trigger type", ru: "Тип триггера" })
+                t({ en: "Type", ru: "Тип" })
               }}</label>
               <USelect
-                :model-value="localData.triggerType || 'manual'"
-                :items="TRIGGER_TYPE_OPTIONS"
+                :model-value="node.data.type || node.type"
+                :items="NODE_TYPE_OPTIONS"
                 value-key="value"
                 label-key="label"
                 size="sm"
-                @update:model-value="updateField('triggerType', $event)"
+                @update:model-value="changeNodeType"
               />
             </div>
-            <div v-if="localData.triggerType === 'schedule'" class="flex flex-col gap-1.5">
-              <label class="text-muted text-xs font-medium">{{
-                t({ en: "Interval", ru: "Интервал" })
-              }}</label>
-              <UInput
-                :model-value="
-                  ((localData.config as Record<string, unknown>)?.every as string) || ''
-                "
-                size="sm"
-                placeholder="15m"
-                @update:model-value="
-                  updateField('config', { ...(localData.config as object), every: $event })
-                "
-              />
-            </div>
-            <div v-if="localData.triggerType === 'event'" class="flex flex-col gap-1.5">
-              <label class="text-muted text-xs font-medium">{{
-                t({ en: "Event name", ru: "Имя события" })
-              }}</label>
-              <UInput
-                :model-value="
-                  ((localData.config as Record<string, unknown>)?.event as string) || ''
-                "
-                size="sm"
-                placeholder="item.created"
-                @update:model-value="
-                  updateField('config', { ...(localData.config as object), event: $event })
-                "
-              />
-            </div>
-          </template>
 
-          <!-- Action config -->
-          <template v-if="localData.type === 'action' || node.type === 'action'">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-muted text-xs font-medium">Module</label>
-              <UInput
-                :model-value="localData.module || ''"
-                size="sm"
-                placeholder="data"
-                @update:model-value="updateField('module', $event)"
-              />
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-muted text-xs font-medium">Proc</label>
-              <UInput
-                :model-value="localData.proc || localData.action || ''"
-                size="sm"
-                placeholder="createItem"
-                @update:model-value="updateField('proc', $event)"
-              />
-            </div>
-          </template>
-
-          <!-- Condition config -->
-          <template v-if="localData.type === 'condition' || node.type === 'condition'">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-muted text-xs font-medium">Field</label>
-              <UInput
-                :model-value="localData.field || ''"
-                size="sm"
-                placeholder="status"
-                @update:model-value="updateField('field', $event)"
-              />
-            </div>
+            <!-- Label -->
             <div class="flex flex-col gap-1.5">
               <label class="text-muted text-xs font-medium">{{
-                t({ en: "Operator", ru: "Оператор" })
-              }}</label>
-              <USelect
-                :model-value="localData.operator || 'eq'"
-                :items="OPERATOR_OPTIONS"
-                value-key="value"
-                label-key="label"
-                size="sm"
-                @update:model-value="updateField('operator', $event)"
-              />
-            </div>
-            <div class="flex flex-col gap-1.5">
-              <label class="text-muted text-xs font-medium">{{
-                t({ en: "Value", ru: "Значение" })
+                t({ en: "Label", ru: "Метка" })
               }}</label>
               <UInput
-                :model-value="String(localData.value ?? '')"
+                :model-value="node.data.label || ''"
                 size="sm"
-                @update:model-value="updateField('value', $event)"
+                :placeholder="node.data.type || node.type"
+                @update:model-value="updateField('label', $event)"
               />
             </div>
-          </template>
 
-          <!-- Delay config -->
-          <template v-if="localData.type === 'delay' || node.type === 'delay'">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-muted text-xs font-medium">{{
-                t({ en: "Seconds", ru: "Секунды" })
-              }}</label>
-              <UInput
-                :model-value="String(localData.seconds ?? 5)"
-                type="number"
-                size="sm"
-                @update:model-value="updateField('seconds', Number($event))"
-              />
-            </div>
-          </template>
+            <!-- Trigger config -->
+            <template v-if="node.data.type === 'trigger' || node.type === 'trigger'">
+              <div class="flex flex-col gap-1.5">
+                <label class="text-muted text-xs font-medium">{{
+                  t({ en: "Trigger type", ru: "Тип триггера" })
+                }}</label>
+                <USelect
+                  :model-value="node.data.triggerType || 'manual'"
+                  :items="TRIGGER_TYPE_OPTIONS"
+                  value-key="value"
+                  label-key="label"
+                  size="sm"
+                  @update:model-value="updateField('triggerType', $event)"
+                />
+              </div>
+              <div v-if="node.data.triggerType === 'schedule'" class="flex flex-col gap-1.5">
+                <label class="text-muted text-xs font-medium">{{
+                  t({ en: "Interval", ru: "Интервал" })
+                }}</label>
+                <UInput
+                  :model-value="
+                    ((node.data.config as Record<string, unknown>)?.every as string) || ''
+                  "
+                  size="sm"
+                  placeholder="15m"
+                  @update:model-value="
+                    updateField('config', { ...(node.data.config as object), every: $event })
+                  "
+                />
+              </div>
+              <div v-if="node.data.triggerType === 'event'" class="flex flex-col gap-1.5">
+                <label class="text-muted text-xs font-medium">{{
+                  t({ en: "Event name", ru: "Имя события" })
+                }}</label>
+                <UInput
+                  :model-value="
+                    ((node.data.config as Record<string, unknown>)?.event as string) || ''
+                  "
+                  size="sm"
+                  placeholder="item.created"
+                  @update:model-value="
+                    updateField('config', { ...(node.data.config as object), event: $event })
+                  "
+                />
+              </div>
+            </template>
 
-          <!-- Condition -->
-          <template v-if="localData.type === 'condition' || node.type === 'condition'">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-muted text-xs font-medium">{{
-                t({ en: "Expression", ru: "Выражение" })
-              }}</label>
-              <UInput
-                :model-value="localData.expression || ''"
-                size="sm"
-                placeholder="item.status === 'active'"
-                @update:model-value="updateField('expression', $event)"
-              />
-            </div>
-          </template>
+            <!-- Action config -->
+            <template v-if="node.data.type === 'action' || node.type === 'action'">
+              <div class="flex flex-col gap-1.5">
+                <label class="text-muted text-xs font-medium">Module</label>
+                <UInput
+                  :model-value="node.data.module || ''"
+                  size="sm"
+                  placeholder="data"
+                  @update:model-value="updateField('module', $event)"
+                />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label class="text-muted text-xs font-medium">Proc</label>
+                <UInput
+                  :model-value="node.data.proc || node.data.action || ''"
+                  size="sm"
+                  placeholder="createItem"
+                  @update:model-value="updateField('proc', $event)"
+                />
+              </div>
+            </template>
 
-          <!-- Switch config -->
-          <template v-if="localData.type === 'switch' || node.type === 'switch'">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-muted text-xs font-medium">{{
-                t({ en: "Value expression", ru: "Выражение значения" })
-              }}</label>
-              <UInput
-                :model-value="(localData.value as string) || ''"
-                size="sm"
-                placeholder="item.type"
-                @update:model-value="updateField('value', $event)"
-              />
-            </div>
-          </template>
+            <!-- Condition config -->
+            <template v-if="node.data.type === 'condition' || node.type === 'condition'">
+              <div class="flex flex-col gap-1.5">
+                <label class="text-muted text-xs font-medium">Field</label>
+                <UInput
+                  :model-value="node.data.field || ''"
+                  size="sm"
+                  placeholder="status"
+                  @update:model-value="updateField('field', $event)"
+                />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label class="text-muted text-xs font-medium">{{
+                  t({ en: "Operator", ru: "Оператор" })
+                }}</label>
+                <USelect
+                  :model-value="node.data.operator || 'eq'"
+                  :items="OPERATOR_OPTIONS"
+                  value-key="value"
+                  label-key="label"
+                  size="sm"
+                  @update:model-value="updateField('operator', $event)"
+                />
+              </div>
+              <div class="flex flex-col gap-1.5">
+                <label class="text-muted text-xs font-medium">{{
+                  t({ en: "Value", ru: "Значение" })
+                }}</label>
+                <UInput
+                  :model-value="String(node.data.value ?? '')"
+                  size="sm"
+                  @update:model-value="updateField('value', $event)"
+                />
+              </div>
+            </template>
 
-          <!-- Loop config -->
-          <template v-if="localData.type === 'loop' || node.type === 'loop'">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-muted text-xs font-medium">{{
-                t({ en: "Source", ru: "Источник" })
-              }}</label>
-              <UInput
-                :model-value="(localData.source as string) || ''"
-                size="sm"
-                placeholder="items"
-                @update:model-value="updateField('source', $event)"
-              />
-            </div>
-          </template>
+            <!-- Delay config -->
+            <template v-if="node.data.type === 'delay' || node.type === 'delay'">
+              <div class="flex flex-col gap-1.5">
+                <label class="text-muted text-xs font-medium">{{
+                  t({ en: "Seconds", ru: "Секунды" })
+                }}</label>
+                <UInput
+                  :model-value="String(node.data.seconds ?? 5)"
+                  type="number"
+                  size="sm"
+                  @update:model-value="updateField('seconds', Number($event))"
+                />
+              </div>
+            </template>
 
-          <!-- Transform config -->
-          <template v-if="localData.type === 'transform' || node.type === 'transform'">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-muted text-xs font-medium">{{
-                t({ en: "Code", ru: "Код" })
-              }}</label>
-              <UInput
-                :model-value="localData.code || ''"
-                size="sm"
-                placeholder="return input"
-                @update:model-value="updateField('code', $event)"
-              />
-            </div>
-          </template>
+            <!-- Expression -->
+            <template v-if="node.data.type === 'condition' || node.type === 'condition'">
+              <div class="flex flex-col gap-1.5">
+                <label class="text-muted text-xs font-medium">{{
+                  t({ en: "Expression", ru: "Выражение" })
+                }}</label>
+                <UInput
+                  :model-value="node.data.expression || ''"
+                  size="sm"
+                  placeholder="item.status === 'active'"
+                  @update:model-value="updateField('expression', $event)"
+                />
+              </div>
+            </template>
 
-          <!-- Subflow config -->
-          <template v-if="localData.type === 'subflow' || node.type === 'subflow'">
-            <div class="flex flex-col gap-1.5">
-              <label class="text-muted text-xs font-medium">{{
-                t({ en: "Flow ID", ru: "ID потока" })
-              }}</label>
-              <UInput
-                :model-value="localData.flow_id || ''"
-                size="sm"
-                @update:model-value="updateField('flow_id', $event)"
-              />
-            </div>
-          </template>
+            <!-- Switch config -->
+            <template v-if="node.data.type === 'switch' || node.type === 'switch'">
+              <div class="flex flex-col gap-1.5">
+                <label class="text-muted text-xs font-medium">{{
+                  t({ en: "Value expression", ru: "Выражение значения" })
+                }}</label>
+                <UInput
+                  :model-value="(node.data.value as string) || ''"
+                  size="sm"
+                  placeholder="item.type"
+                  @update:model-value="updateField('value', $event)"
+                />
+              </div>
+            </template>
 
-          <!-- Connections -->
-          <div
-            v-if="incomingEdges.length > 0 || outgoingEdges.length > 0"
-            class="flex flex-col gap-2"
-          >
-            <label class="text-muted text-xs font-medium">{{
-              t({ en: "Connections", ru: "Связи" })
-            }}</label>
+            <!-- Loop config -->
+            <template v-if="node.data.type === 'loop' || node.type === 'loop'">
+              <div class="flex flex-col gap-1.5">
+                <label class="text-muted text-xs font-medium">{{
+                  t({ en: "Source", ru: "Источник" })
+                }}</label>
+                <UInput
+                  :model-value="(node.data.source as string) || ''"
+                  size="sm"
+                  placeholder="items"
+                  @update:model-value="updateField('source', $event)"
+                />
+              </div>
+            </template>
+
+            <!-- Transform config -->
+            <template v-if="node.data.type === 'transform' || node.type === 'transform'">
+              <div class="flex flex-col gap-1.5">
+                <label class="text-muted text-xs font-medium">{{
+                  t({ en: "Code", ru: "Код" })
+                }}</label>
+                <UInput
+                  :model-value="node.data.code || ''"
+                  size="sm"
+                  placeholder="return input"
+                  @update:model-value="updateField('code', $event)"
+                />
+              </div>
+            </template>
+
+            <!-- Subflow config -->
+            <template v-if="node.data.type === 'subflow' || node.type === 'subflow'">
+              <div class="flex flex-col gap-1.5">
+                <label class="text-muted text-xs font-medium">{{
+                  t({ en: "Flow ID", ru: "ID потока" })
+                }}</label>
+                <UInput
+                  :model-value="node.data.flow_id || ''"
+                  size="sm"
+                  @update:model-value="updateField('flow_id', $event)"
+                />
+              </div>
+            </template>
+
+            <!-- Connections -->
             <div
-              v-for="edge in incomingEdges"
-              :key="edge.id"
-              class="flex items-center gap-2 text-xs"
+              v-if="incomingEdges.length > 0 || outgoingEdges.length > 0"
+              class="flex flex-col gap-2"
             >
-              <span class="text-muted">←</span>
-              <span class="flex-1 truncate">{{ getNodeLabel(edge.source) }}</span>
-              <UButton
-                variant="ghost"
-                color="error"
-                size="xs"
-                icon="i-lucide-x"
-                class="opacity-0 group-hover:opacity-100"
-                @click="emit('deleteEdge', edge.id)"
-              />
-            </div>
-            <div
-              v-for="edge in outgoingEdges"
-              :key="edge.id"
-              class="flex items-center gap-2 text-xs"
-            >
-              <span class="text-muted">→</span>
-              <span class="flex-1 truncate">{{ getNodeLabel(edge.target) }}</span>
-              <UButton
-                variant="ghost"
-                color="error"
-                size="xs"
-                icon="i-lucide-x"
-                class="opacity-0 group-hover:opacity-100"
-                @click="emit('deleteEdge', edge.id)"
-              />
+              <label class="text-muted text-xs font-medium">{{
+                t({ en: "Connections", ru: "Связи" })
+              }}</label>
+              <div
+                v-for="edge in incomingEdges"
+                :key="edge.id"
+                class="flex items-center gap-2 text-xs"
+              >
+                <span class="text-muted">←</span>
+                <span class="flex-1 truncate">{{ getNodeLabel(edge.source) }}</span>
+                <UButton
+                  variant="ghost"
+                  color="error"
+                  size="xs"
+                  icon="i-lucide-x"
+                  class="opacity-0 group-hover:opacity-100"
+                  @click="deleteEdge(edge.id)"
+                />
+              </div>
+              <div
+                v-for="edge in outgoingEdges"
+                :key="edge.id"
+                class="flex items-center gap-2 text-xs"
+              >
+                <span class="text-muted">→</span>
+                <span class="flex-1 truncate">{{ getNodeLabel(edge.target) }}</span>
+                <UButton
+                  variant="ghost"
+                  color="error"
+                  size="xs"
+                  icon="i-lucide-x"
+                  class="opacity-0 group-hover:opacity-100"
+                  @click="deleteEdge(edge.id)"
+                />
+              </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- Footer -->
-      <div v-if="!isSystemNode" class="border-default border-t p-4">
-        <UButton color="error" variant="outline" size="sm" class="w-full" @click="emit('delete')">
-          {{ t({ en: "Delete node", ru: "Удалить ноду" }) }}
-        </UButton>
-      </div>
-    </div>
+        <!-- Footer -->
+        <div class="border-default border-t p-4">
+          <UButton color="error" variant="outline" size="sm" class="w-full" @click="deleteNode()">
+            {{ t({ en: "Delete node", ru: "Удалить ноду" }) }}
+          </UButton>
+        </div>
+      </template>
 
-    <div v-else class="flex flex-1 items-center justify-center p-6">
-      <p class="text-muted text-center text-sm">
-        {{ t({ en: "Select a node to edit", ru: "Выберите ноду для редактирования" }) }}
-      </p>
+      <!-- Empty state -->
+      <div v-else class="flex flex-1 items-center justify-center p-6">
+        <p class="text-muted text-center text-sm">
+          {{ t({ en: "Select a node to edit", ru: "Выберите ноду для редактирования" }) }}
+        </p>
+      </div>
     </div>
   </div>
 </template>
