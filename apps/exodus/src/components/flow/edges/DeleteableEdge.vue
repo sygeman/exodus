@@ -64,7 +64,7 @@ function onDelete() {
         class="bg-error hover:bg-error/80 flex size-5 items-center justify-center rounded-full text-white shadow-md transition-all"
         @click="onDelete"
       >
-        <span class="text-xs">×</span>
+        <UIcon name="i-lucide-x" class="size-3" />
       </button>
     </div>
   </EdgeLabelRenderer>

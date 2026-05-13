@@ -2,7 +2,7 @@
 import { computed } from "vue"
 import type { NodeProps } from "@vue-flow/core"
 import type { VueFlowNodeData } from "@/types/flow"
-import BaseNode from "./BaseNode.vue"
+import NodeWrapper from "./NodeWrapper.vue"
 
 const props = defineProps<NodeProps<VueFlowNodeData>>()
 
@@ -19,11 +19,5 @@ const triggerIcon = computed(() => {
 </script>
 
 <template>
-  <BaseNode
-    :data="data"
-    :icon="triggerIcon"
-    node-color="primary"
-    hide-target-handle
-    :selected="selected"
-  />
+  <NodeWrapper :id="id" :data="data" :selected="selected" :icon="triggerIcon" hide-target-handle />
 </template>

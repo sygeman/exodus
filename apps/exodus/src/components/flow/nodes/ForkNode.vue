@@ -3,6 +3,7 @@ import { computed } from "vue"
 import { Handle, Position, type NodeProps } from "@vue-flow/core"
 import type { VueFlowNodeData } from "@/types/flow"
 import NodeWrapper from "./NodeWrapper.vue"
+import { useNodeTestMode } from "@/composables/useNodeTestMode"
 
 type ForkBranch = {
   id: string
@@ -10,6 +11,11 @@ type ForkBranch = {
 }
 
 const props = defineProps<NodeProps<VueFlowNodeData>>()
+
+const { getHandleClass, getHandleIconClass } = useNodeTestMode(
+  () => props.data,
+  () => props.selected,
+)
 
 const branches = computed<ForkBranch[]>(() => {
   const configBranches = props.data.config?.branches as ForkBranch[] | undefined
@@ -33,15 +39,20 @@ const handlePositions = computed(() => {
   <NodeWrapper :id="id" :data="data" :selected="selected" icon="i-lucide-git-fork">
     <template #handles>
       <template v-for="(branch, i) in branches" :key="branch.id">
-        <Handle
-          :id="branch.id"
-          type="source"
-          :position="Position.Right"
-          :style="handlePositions[i]"
-          class="!bg-default !size-3 !border"
-        >
-          <span class="text-[8px] font-bold">{{ i + 1 }}</span>
-        </Handle>
+        <UTooltip :text="branch.label || branch.id" :popper="{ placement: 'right' }">
+          <Handle
+            :id="branch.id"
+            type="source"
+            :position="Position.Right"
+            :style="handlePositions[i]"
+            class="!bg-default !flex !size-3 !items-center !justify-center !border"
+            :class="getHandleClass(branch.id, 'primary')"
+          >
+            <span class="text-[8px] font-bold" :class="getHandleIconClass(branch.id, 'primary')">{{
+              i + 1
+            }}</span>
+          </Handle>
+        </UTooltip>
       </template>
     </template>
   </NodeWrapper>

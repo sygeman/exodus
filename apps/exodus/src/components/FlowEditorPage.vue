@@ -1,9 +1,10 @@
 <script setup lang="ts">
 import { ref, computed, watch, provide } from "vue"
 import { useRoute, useRouter } from "vue-router"
-import { VueFlow, useVueFlow, type Connection } from "@vue-flow/core"
+import { VueFlow, type Connection, type NodeChange, type EdgeChange } from "@vue-flow/core"
 import { Background } from "@vue-flow/background"
 import { useCollectionQuery, useUpdateItem } from "@/hooks"
+import { useFlowHighlighting } from "@/composables/useFlowHighlighting"
 import TriggerNode from "@/components/flow/nodes/TriggerNode.vue"
 import ActionNode from "@/components/flow/nodes/ActionNode.vue"
 import ConditionNode from "@/components/flow/nodes/ConditionNode.vue"
@@ -95,6 +96,8 @@ const vfEdges = ref<
     targetHandle?: string
     label?: string
     type?: string
+    style?: { stroke: string }
+    animated?: boolean
   }>
 >([])
 
@@ -142,16 +145,6 @@ const edgeTypes = {
   deleteable: DeleteableEdge,
 }
 
-const {
-  onConnectStart,
-  onConnectEnd,
-  onConnect: vueFlowOnConnect,
-  onNodeClick,
-  onPaneClick,
-  onNodesChange,
-  onEdgesChange,
-} = useVueFlow()
-
 const selectedNodeId = ref<string | null>(null)
 
 const selectedNode = computed(() => {
@@ -165,19 +158,32 @@ const selectedNode = computed(() => {
   }
 })
 
+const { applyEdgeHighlighting } = useFlowHighlighting(vfNodes, vfEdges, selectedNodeId)
+
+watch(selectedNodeId, () => applyEdgeHighlighting())
+
+// --- Node selection ---
+function onNodeClick({ node }: { node: { id: string } }) {
+  selectedNodeId.value = node.id
+}
+
+function onPaneClick() {
+  selectedNodeId.value = null
+}
+
 // --- Connect start/end: drag handle to empty space -> create node ---
 const connectingFrom = ref<{ nodeId: string; handleId: string | null } | null>(null)
 
-onConnectStart((params) => {
+function onConnectStart(params: { nodeId?: string; handleId?: string | null }) {
   if (params.nodeId) {
     connectingFrom.value = {
       nodeId: params.nodeId,
       handleId: params.handleId ?? null,
     }
   }
-})
+}
 
-onConnectEnd((event?: MouseEvent | TouchEvent) => {
+function onConnectEnd(event?: MouseEvent | TouchEvent) {
   if (!connectingFrom.value || !event) return
   const target = event.target as HTMLElement
   const isOnNode = target.closest(".vue-flow__node")
@@ -186,10 +192,10 @@ onConnectEnd((event?: MouseEvent | TouchEvent) => {
     handleAddNodeFromEdge(connectingFrom.value.nodeId, connectingFrom.value.handleId)
   }
   connectingFrom.value = null
-})
+}
 
 // --- Connect two existing nodes ---
-vueFlowOnConnect((connection: Connection) => {
+function onConnect(connection: Connection) {
   if (!connection.source || !connection.target) return
   if (connection.source === connection.target) return
 
@@ -211,19 +217,10 @@ vueFlowOnConnect((connection: Connection) => {
   }
   vfEdges.value = [...vfEdges.value, newEdge]
   saveToDb()
-})
-
-// --- Node selection ---
-onNodeClick(({ node }) => {
-  selectedNodeId.value = node.id
-})
-
-onPaneClick(() => {
-  selectedNodeId.value = null
-})
+}
 
 // --- Node drag -> save positions ---
-onNodesChange((changes) => {
+function onNodesChange(changes: NodeChange[]) {
   let positionChanged = false
   for (const change of changes) {
     if (change.type === "position" && change.position) {
@@ -235,17 +232,17 @@ onNodesChange((changes) => {
     }
   }
   if (positionChanged) saveToDb()
-})
+}
 
 // --- Edge removal (delete key / programmatic) ---
-onEdgesChange((changes) => {
+function onEdgesChange(changes: EdgeChange[]) {
   for (const change of changes) {
     if (change.type === "remove") {
       vfEdges.value = vfEdges.value.filter((e) => e.id !== change.id)
       saveToDb()
     }
   }
-})
+}
 
 // --- Add node from edge drag ---
 function handleAddNodeFromEdge(sourceNodeId: string, _sourceHandle: string | null) {
@@ -350,7 +347,6 @@ provide("deleteEdge", handleDeleteEdge)
 
 <template>
   <div class="flex h-full flex-col">
-    <!-- Header -->
     <header class="border-default flex h-12 shrink-0 items-center justify-between border-b px-4">
       <div class="flex items-center gap-3">
         <UButton
@@ -378,7 +374,6 @@ provide("deleteEdge", handleDeleteEdge)
       </div>
     </header>
 
-    <!-- Canvas + sidebar -->
     <div class="flex flex-1 overflow-hidden">
       <div class="flex-1">
         <VueFlow
@@ -391,12 +386,18 @@ provide("deleteEdge", handleDeleteEdge)
           :snap-grid="[16, 16]"
           fit-view-on-init
           class="flow-editor bg-default"
+          @node-click="onNodeClick"
+          @pane-click="onPaneClick"
+          @connect="onConnect"
+          @connect-start="onConnectStart"
+          @connect-end="onConnectEnd"
+          @nodes-change="onNodesChange"
+          @edges-change="onEdgesChange"
         >
           <Background :gap="16" :size="1" />
         </VueFlow>
       </div>
 
-      <!-- Side panel -->
       <NodeConfigPanel
         :node="selectedNode"
         :all-nodes="vfNodes"
@@ -447,12 +448,21 @@ provide("deleteEdge", handleDeleteEdge)
   background: var(--color-neutral-800);
 }
 
-.vue-flow__node.selected,
-.vue-flow__node-input,
-.vue-flow__node-output {
+.vue-flow__node.selected {
   box-shadow: none !important;
-  border: none !important;
-  background: transparent !important;
-  outline: none !important;
+}
+
+@keyframes pulse-progress {
+  0%,
+  100% {
+    opacity: 0.3;
+  }
+  50% {
+    opacity: 0.6;
+  }
+}
+
+.pulse-progress {
+  animation: pulse-progress 1.5s ease-in-out infinite;
 }
 </style>

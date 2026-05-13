@@ -3,6 +3,7 @@ import { computed } from "vue"
 import { Handle, Position, type NodeProps } from "@vue-flow/core"
 import type { VueFlowNodeData } from "@/types/flow"
 import NodeWrapper from "./NodeWrapper.vue"
+import { useNodeTestMode } from "@/composables/useNodeTestMode"
 
 type JoinBranch = {
   id: string
@@ -10,6 +11,11 @@ type JoinBranch = {
 }
 
 const props = defineProps<NodeProps<VueFlowNodeData>>()
+
+const { getHandleClass, getHandleIconClass } = useNodeTestMode(
+  () => props.data,
+  () => props.selected,
+)
 
 const branches = computed<JoinBranch[]>(() => {
   const configBranches = props.data.config?.branches as JoinBranch[] | undefined
@@ -30,24 +36,23 @@ const handlePositions = computed(() => {
 </script>
 
 <template>
-  <NodeWrapper
-    :id="id"
-    :data="data"
-    :selected="selected"
-    icon="i-lucide-merge"
-    :hide-source-handle="true"
-  >
+  <NodeWrapper :id="id" :data="data" :selected="selected" icon="i-lucide-merge" hide-source-handle>
     <template #handles>
       <template v-for="(branch, i) in branches" :key="branch.id">
-        <Handle
-          :id="branch.id"
-          type="target"
-          :position="Position.Left"
-          :style="handlePositions[i]"
-          class="!bg-default !size-3 !border"
-        >
-          <span class="text-[8px] font-bold">{{ i + 1 }}</span>
-        </Handle>
+        <UTooltip :text="branch.label || branch.id" :popper="{ placement: 'left' }">
+          <Handle
+            :id="branch.id"
+            type="target"
+            :position="Position.Left"
+            :style="handlePositions[i]"
+            class="!bg-default !flex !size-3 !items-center !justify-center !border"
+            :class="getHandleClass(branch.id, 'info')"
+          >
+            <span class="text-[8px] font-bold" :class="getHandleIconClass(branch.id, 'info')">{{
+              i + 1
+            }}</span>
+          </Handle>
+        </UTooltip>
       </template>
     </template>
   </NodeWrapper>
