@@ -7,7 +7,6 @@ export const dataManifest = {
         { name: "slug", type: "string", required: true },
         { name: "description", type: "text" },
         { name: "icon", type: "string" },
-        { name: "color", type: "string" },
         { name: "type", type: "string", default: "desktop" },
         { name: "sort_order", type: "number", default: 0 },
       ],

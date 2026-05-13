@@ -6,17 +6,6 @@ import { computed, ref } from "vue"
 import SettingsLayout from "@/components/SettingsLayout.vue"
 import type { MenuLayoutItem } from "@/components/MenuLayout.vue"
 
-const PROJECT_COLORS = [
-  "#ef4444",
-  "#f97316",
-  "#eab308",
-  "#22c55e",
-  "#06b6d4",
-  "#3b82f6",
-  "#a855f7",
-  "#ec4899",
-]
-
 const t = useT()
 const route = useRoute()
 const router = useRouter()
@@ -40,11 +29,6 @@ const navItems = computed<MenuLayoutItem[]>(() => [
 function updateName(name: string) {
   if (!project.value || name.trim() === "" || name === project.value.data.name) return
   updateItem(project.value.id, { name })
-}
-
-function updateColor(color: string) {
-  if (!project.value || color === project.value.data.color) return
-  updateItem(project.value.id, { color })
 }
 
 function openDeleteModal() {
@@ -85,31 +69,6 @@ function confirmDelete() {
             @blur="(e: FocusEvent) => updateName((e.target as HTMLInputElement).value)"
             @keyup.enter="(e: KeyboardEvent) => updateName((e.target as HTMLInputElement).value)"
           />
-        </div>
-
-        <div class="border-default flex flex-col gap-4 border-b pb-8">
-          <div class="flex flex-col gap-1">
-            <h3 class="text-base font-medium">{{ t({ en: "Color", ru: "Цвет" }) }}</h3>
-            <p class="text-muted text-sm">
-              {{
-                t({
-                  en: "Project color is used for visual distinction in the list.",
-                  ru: "Цвет проекта используется для визуального выделения в списке.",
-                })
-              }}
-            </p>
-          </div>
-          <div class="flex flex-wrap gap-2">
-            <button
-              v-for="c in PROJECT_COLORS"
-              :key="c"
-              type="button"
-              class="focus:ring-primary h-8 w-8 rounded-full transition-transform hover:scale-110 focus:ring-2 focus:outline-none"
-              :style="{ backgroundColor: c }"
-              :class="{ 'ring-primary ring-2': project.data.color === c }"
-              @click="updateColor(c)"
-            />
-          </div>
         </div>
 
         <div>

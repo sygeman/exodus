@@ -235,11 +235,6 @@ function buildFilterParam(colId: string, comp: IRComponent, ir: IR): string {
 
 function generateHelperFunction(name: string): string {
   switch (name) {
-    case "getLevelColor":
-      return `function getLevelColor(level: string): string {
-  const colors: Record<string, string> = { L0: "#22c55e", L1: "#06b6d4", L2: "#eab308", L3: "#f97316", L4: "#ef4444" }
-  return colors[level] ?? "#6b7280"
-}`
     case "getIdeaTypeColor":
       return `function getIdeaTypeColor(type: string): string {
   const colors: Record<string, string> = { goal: "#22c55e", non_goal: "#ef4444", constraint: "#f97316", invariant: "#06b6d4", component: "#8b5cf6", decision: "#eab308", principle: "#3b82f6" }

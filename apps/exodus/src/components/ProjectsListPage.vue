@@ -31,28 +31,12 @@ watch(
   { immediate: true },
 )
 
-const PROJECT_COLORS = [
-  "#ef4444",
-  "#f97316",
-  "#eab308",
-  "#22c55e",
-  "#06b6d4",
-  "#3b82f6",
-  "#a855f7",
-  "#ec4899",
-]
-
-function getRandomColor(): string {
-  return PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)]
-}
-
 async function handleCreate() {
   const name = "Untitled"
   const slug = `${name.toLowerCase().replace(/\s+/g, "-")}-${crypto.randomUUID().slice(0, 8)}`
   const id = await createItem("projects", {
     name,
     slug,
-    color: getRandomColor(),
     type: "desktop",
     sort_order: 0,
   })
@@ -104,14 +88,10 @@ function getInitials(name: string): string {
         v-for="project in data"
         :key="project.id"
         :to="`/project/${project.id}/overview`"
-        class="border-default hover:bg-elevated flex items-center gap-4 rounded-lg border p-4 transition-colors"
+        class="hover:border-primary border-default flex items-center gap-4 rounded-lg border p-4 transition-colors"
       >
         <div
-          class="bg-elevated flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-2 border-solid font-semibold"
-          :style="{
-            color: project.data.color ?? undefined,
-            borderColor: project.data.color ?? undefined,
-          }"
+          class="bg-elevated flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-2 border-transparent font-semibold transition-colors"
         >
           {{ getInitials(project.data.name) }}
         </div>

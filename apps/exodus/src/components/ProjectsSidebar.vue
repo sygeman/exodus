@@ -15,28 +15,12 @@ const currentProjectId = computed(() => route.params.id as string | undefined)
 const deleteModalOpen = ref(false)
 const projectToDelete = ref<(typeof projects)["value"][number] | null>(null)
 
-const PROJECT_COLORS = [
-  "#ef4444",
-  "#f97316",
-  "#eab308",
-  "#22c55e",
-  "#06b6d4",
-  "#3b82f6",
-  "#a855f7",
-  "#ec4899",
-]
-
-function getRandomColor(): string {
-  return PROJECT_COLORS[Math.floor(Math.random() * PROJECT_COLORS.length)]
-}
-
 async function handleCreate() {
   const name = "Untitled"
   const slug = `${name.toLowerCase().replace(/\s+/g, "-")}-${crypto.randomUUID().slice(0, 8)}`
   const id = await createItem("projects", {
     name,
     slug,
-    color: getRandomColor(),
     type: "desktop",
     sort_order: 0,
   })
@@ -99,18 +83,8 @@ function getInitials(name: string): string {
           class="electrobun-webkit-app-region-no-drag bg-default/50 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg font-semibold transition-all"
           :class="
             currentProjectId === project.id
-              ? 'bg-default'
-              : 'text-muted hover:bg-default hover:text-default'
-          "
-          :style="
-            currentProjectId === project.id
-              ? {
-                  color: project.data.color,
-                  borderColor: project.data.color,
-                  borderWidth: '2px',
-                  borderStyle: 'solid',
-                }
-              : undefined
+              ? 'bg-default text-primary border-primary border-2'
+              : 'text-muted hover:bg-default'
           "
         >
           {{ getInitials(project.data.name) }}

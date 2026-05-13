@@ -3,7 +3,6 @@ import { useT } from "@exodus/edem-vue"
 import { useCollectionQuery, useUpdateItem, useDeleteItem } from "@/hooks"
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref, watch, nextTick } from "vue"
-import { getLevelColor } from "@/utils/level-color"
 
 const t = useT()
 const route = useRoute()
@@ -139,11 +138,7 @@ const statusItems = [
               :label="idea.data.level || t({ en: 'No level', ru: 'Без уровня' })"
               color="neutral"
               variant="subtle"
-              :style="{
-                backgroundColor: getLevelColor(idea.data.level) + '20',
-                color: getLevelColor(idea.data.level),
-              }"
-              class="text-xs font-semibold"
+              class="bg-primary/10 text-primary text-xs font-semibold"
             />
             <UBadge
               v-if="idea.data.type"

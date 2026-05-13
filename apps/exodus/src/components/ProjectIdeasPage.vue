@@ -3,7 +3,6 @@ import { useT } from "@exodus/edem-vue"
 import { useCollectionQuery, useCreateItem } from "@/hooks"
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref, watch } from "vue"
-import { getLevelColor } from "@/utils/level-color"
 
 const t = useT()
 const route = useRoute()
@@ -95,11 +94,7 @@ function ideaLink(id: string) {
         class="border-default hover:bg-elevated flex items-center gap-3 rounded-lg border p-4 transition-colors"
       >
         <div
-          class="flex h-8 w-8 shrink-0 items-center justify-center rounded text-xs font-bold"
-          :style="{
-            backgroundColor: getLevelColor(idea.data.level) + '20',
-            color: getLevelColor(idea.data.level),
-          }"
+          class="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded text-xs font-bold"
         >
           {{ idea.data.level ?? "?" }}
         </div>

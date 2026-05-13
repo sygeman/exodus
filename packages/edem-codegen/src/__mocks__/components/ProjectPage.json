@@ -94,8 +94,7 @@
             {
               "component": "div",
               "props": {
-                "class": "flex h-8 w-8 flex-shrink-0 items-center justify-center rounded text-xs font-bold",
-                "style": "background-color: {{ getLevelColor(item.level) + '20' }}; color: {{ getLevelColor(item.level) }}"
+                "class": "bg-primary/10 text-primary flex h-8 w-8 flex-shrink-0 items-center justify-center rounded text-xs font-bold"
               },
               "children": "{{ item.level ?? '?' }}"
             },
