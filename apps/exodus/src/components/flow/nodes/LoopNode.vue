@@ -25,7 +25,7 @@ const loopIcon = computed(() => (isParallel.value ? "i-lucide-git-fork" : "i-luc
           type="source"
           :position="Position.Right"
           :style="{ top: '30%' }"
-          class="!bg-default border-default !flex !size-3 !items-center !justify-center !border"
+          class="!bg-default !flex !size-3 !items-center !justify-center !border"
           :class="getHandleClass('body', 'info')"
         >
           <UIcon
@@ -41,7 +41,7 @@ const loopIcon = computed(() => (isParallel.value ? "i-lucide-git-fork" : "i-luc
           type="source"
           :position="Position.Right"
           :style="{ top: '70%' }"
-          class="!bg-default border-default !flex !size-3 !items-center !justify-center !border"
+          class="!bg-default !flex !size-3 !items-center !justify-center !border"
           :class="getHandleClass('exit', 'success')"
         >
           <UIcon
