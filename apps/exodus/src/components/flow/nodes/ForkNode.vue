@@ -45,7 +45,7 @@ const handlePositions = computed(() => {
             type="source"
             :position="Position.Right"
             :style="handlePositions[i]"
-            class="!bg-default !flex !size-3 !items-center !justify-center !border"
+            class="!bg-default !border-default !flex !size-3 !items-center !justify-center !border"
             :class="getHandleClass(branch.id, 'primary')"
           >
             <span class="text-[8px] font-bold" :class="getHandleIconClass(branch.id, 'primary')">{{

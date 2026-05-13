@@ -50,7 +50,7 @@ const defaultPosition = computed(() => ({
             type="source"
             :position="Position.Right"
             :style="handlePositions[i]"
-            class="!bg-default !flex !size-3 !items-center !justify-center !border"
+            class="!bg-default !border-default !flex !size-3 !items-center !justify-center !border"
             :class="getHandleClass(c.handle, 'info')"
           >
             <span class="text-[8px] font-bold" :class="getHandleIconClass(c.handle, 'info')">{{
@@ -65,7 +65,7 @@ const defaultPosition = computed(() => ({
           type="source"
           :position="Position.Right"
           :style="defaultPosition"
-          class="!bg-default !flex !size-3 !items-center !justify-center !border"
+          class="!bg-default !border-default !flex !size-3 !items-center !justify-center !border"
           :class="getHandleClass('default', 'neutral')"
         >
           <UIcon
