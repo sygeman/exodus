@@ -7,7 +7,6 @@ const t = useT()
 
 const navItems = computed<MenuLayoutItem[]>(() => [
   { to: "/debug/logs", label: t({ en: "Logs", ru: "Логи" }), icon: "i-lucide-scroll-text" },
-  { to: "/debug/state", label: t({ en: "State", ru: "Состояние" }), icon: "i-lucide-database" },
 ])
 </script>
 

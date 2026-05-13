@@ -8,7 +8,6 @@ import IdeaPage from "@/components/IdeaPage.vue"
 import ProjectSettingsPage from "@/components/ProjectSettingsPage.vue"
 import DebugLayout from "@/components/DebugLayout.vue"
 import DebugLogs from "@/components/DebugLogs.vue"
-import DebugState from "@/components/DebugState.vue"
 import SettingsLayoutPage from "@/components/SettingsLayoutPage.vue"
 import SettingsAppearance from "@/components/SettingsAppearance.vue"
 import SettingsLanguage from "@/components/SettingsLanguage.vue"
@@ -32,10 +31,7 @@ const routes: RouteRecordRaw[] = [
     path: "/debug",
     redirect: "/debug/logs",
     component: DebugLayout,
-    children: [
-      { path: "logs", name: "debug-logs", component: DebugLogs },
-      { path: "state", name: "debug-state", component: DebugState },
-    ],
+    children: [{ path: "logs", name: "debug-logs", component: DebugLogs }],
   },
   {
     path: "/settings",
