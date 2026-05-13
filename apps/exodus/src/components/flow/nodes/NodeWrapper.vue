@@ -60,7 +60,7 @@ function handleRetry(e: Event) {
         v-if="!hideTargetHandle"
         type="target"
         :position="Position.Left"
-        class="!bg-default !border-default !size-3 !border"
+        class="!bg-default border-default !size-3 !border"
         :class="handleBorderClass"
       />
 
@@ -90,7 +90,7 @@ function handleRetry(e: Event) {
           v-if="!hideSourceHandle"
           type="source"
           :position="Position.Right"
-          class="!bg-default !border-default !size-3 !border"
+          class="!bg-default border-default !size-3 !border"
           :class="handleBorderClass"
         />
       </slot>

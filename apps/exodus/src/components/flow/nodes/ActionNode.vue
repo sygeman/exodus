@@ -38,7 +38,7 @@ const { getHandleClass, getHandleIconClass } = useNodeTestMode(
           type="source"
           :position="Position.Right"
           :style="{ top: '30%' }"
-          class="!bg-default !border-default !flex !size-3 !items-center !justify-center !border"
+          class="!bg-default border-default !flex !size-3 !items-center !justify-center !border"
           :class="getHandleClass('success', 'success')"
         >
           <UIcon
@@ -54,7 +54,7 @@ const { getHandleClass, getHandleIconClass } = useNodeTestMode(
           type="source"
           :position="Position.Right"
           :style="{ top: '70%' }"
-          class="!bg-default !border-default !flex !size-3 !items-center !justify-center !border"
+          class="!bg-default border-default !flex !size-3 !items-center !justify-center !border"
           :class="getHandleClass('error', 'error')"
         >
           <UIcon name="i-lucide-x" class="size-2" :class="getHandleIconClass('error', 'error')" />
