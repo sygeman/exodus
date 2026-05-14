@@ -7,6 +7,8 @@ import ProjectIdeasPage from "@/components/ProjectIdeasPage.vue"
 import IdeaPage from "@/components/IdeaPage.vue"
 import ProjectFlowsPage from "@/components/ProjectFlowsPage.vue"
 import FlowEditorPage from "@/components/FlowEditorPage.vue"
+import FlowEditorLayout from "@/components/FlowEditorLayout.vue"
+import FlowCodePage from "@/components/FlowCodePage.vue"
 import ProjectSettingsPage from "@/components/ProjectSettingsPage.vue"
 import DebugLayout from "@/components/DebugLayout.vue"
 import DebugLogs from "@/components/DebugLogs.vue"
@@ -29,9 +31,25 @@ const routes: RouteRecordRaw[] = [
       { path: "flows", name: "project-flows", component: ProjectFlowsPage },
       {
         path: "flows/:flowId",
-        name: "project-flow-editor",
-        props: true,
-        component: FlowEditorPage,
+        component: FlowEditorLayout,
+        children: [
+          {
+            path: "",
+            redirect: (to) => `/project/${to.params.id}/flows/${to.params.flowId}/graph`,
+          },
+          {
+            path: "graph",
+            name: "project-flow-graph",
+            props: true,
+            component: FlowEditorPage,
+          },
+          {
+            path: "code",
+            name: "project-flow-code",
+            props: true,
+            component: FlowCodePage,
+          },
+        ],
       },
       { path: "settings", name: "project-settings", component: ProjectSettingsPage },
     ],

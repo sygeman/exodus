@@ -89,7 +89,7 @@ function getTriggerType(flow: { data: { trigger?: unknown } }): string {
 }
 
 function goToFlow(flowId: string) {
-  router.push(`/project/${projectId.value}/flows/${flowId}`)
+  router.push(`/project/${projectId.value}/flows/${flowId}/graph`)
 }
 
 async function handleDelete(e: Event, flowId: string) {

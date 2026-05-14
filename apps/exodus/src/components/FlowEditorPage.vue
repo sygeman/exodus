@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, provide, markRaw } from "vue"
-import { useRoute, useRouter } from "vue-router"
+import { useRoute } from "vue-router"
 import {
   VueFlow,
   useVueFlow,
@@ -16,7 +16,6 @@ import DeleteableEdge from "@/components/flow/edges/DeleteableEdge.vue"
 import NodeConfigPanel from "@/components/flow/NodeConfigPanel.vue"
 
 const route = useRoute()
-const router = useRouter()
 const projectId = computed(() => route.params.id as string)
 const flowId = computed(() => route.params.flowId as string)
 const [updateItem] = useUpdateItem()
@@ -190,6 +189,10 @@ function onNodeClick({ node }: { node: { id: string } }) {
   selectedNodeId.value = node.id
 }
 
+function onNodeDragStart({ node }: { node: { id: string } }) {
+  selectedNodeId.value = node.id
+}
+
 function onPaneClick() {
   selectedNodeId.value = null
 }
@@ -359,56 +362,32 @@ provide("deleteEdge", handleDeleteEdge)
 </script>
 
 <template>
-  <div class="flex h-full flex-col">
-    <header class="border-default flex h-12 shrink-0 items-center justify-between border-b px-4">
-      <div class="flex items-center gap-3">
-        <UButton
-          variant="ghost"
-          size="xs"
-          icon="i-lucide-arrow-left"
-          @click="router.push(`/project/${projectId}/flows`)"
-        />
-        <span v-if="flow" class="font-semibold">{{ flow.data.name }}</span>
-        <span
-          v-if="flow"
-          class="inline-flex h-5 items-center rounded px-1.5 text-xs"
-          :class="{
-            'bg-gray-500/10 text-gray-500': flow.data.status === 'draft',
-            'bg-green-500/10 text-green-500': flow.data.status === 'active',
-            'bg-yellow-500/10 text-yellow-500': flow.data.status === 'paused',
-          }"
-        >
-          {{ flow.data.status }}
-        </span>
-      </div>
-    </header>
-
-    <div class="flex flex-1 overflow-hidden">
-      <div class="flex-1">
-        <VueFlow
-          v-model:nodes="vfNodes"
-          v-model:edges="vfEdges"
-          :node-types="nodeTypes"
-          :edge-types="edgeTypes"
-          :default-viewport="{ zoom: 1, x: 0, y: 0 }"
-          :snap-to-grid="true"
-          :snap-grid="[16, 16]"
-          fit-view-on-init
-          class="flow-editor bg-default"
-          @node-click="onNodeClick"
-          @pane-click="onPaneClick"
-          @connect="onConnect"
-          @connect-start="onConnectStart"
-          @connect-end="onConnectEnd"
-          @nodes-change="onNodesChange"
-          @edges-change="onEdgesChange"
-        >
-          <Background :gap="16" :size="1" :color="'var(--vf-bg-dot)'" />
-        </VueFlow>
-      </div>
-
-      <NodeConfigPanel />
+  <div class="flex flex-1 overflow-hidden">
+    <div class="flex-1">
+      <VueFlow
+        v-model:nodes="vfNodes"
+        v-model:edges="vfEdges"
+        :node-types="nodeTypes"
+        :edge-types="edgeTypes"
+        :default-viewport="{ zoom: 1, x: 0, y: 0 }"
+        :snap-to-grid="true"
+        :snap-grid="[16, 16]"
+        fit-view-on-init
+        class="flow-editor bg-default"
+        @node-click="onNodeClick"
+        @node-drag-start="onNodeDragStart"
+        @pane-click="onPaneClick"
+        @connect="onConnect"
+        @connect-start="onConnectStart"
+        @connect-end="onConnectEnd"
+        @nodes-change="onNodesChange"
+        @edges-change="onEdgesChange"
+      >
+        <Background :gap="16" :size="1" :color="'var(--vf-bg-dot)'" />
+      </VueFlow>
     </div>
+
+    <NodeConfigPanel />
   </div>
 </template>
 
