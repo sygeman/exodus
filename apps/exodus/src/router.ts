@@ -13,6 +13,8 @@ import FlowSettingsPage from "@/components/FlowSettingsPage.vue"
 import ProjectSettingsPage from "@/components/ProjectSettingsPage.vue"
 import DebugLayout from "@/components/DebugLayout.vue"
 import DebugLogs from "@/components/DebugLogs.vue"
+import DebugFlows from "@/components/DebugFlows.vue"
+import DebugFlowRuns from "@/components/DebugFlowRuns.vue"
 import SettingsLayoutPage from "@/components/SettingsLayoutPage.vue"
 import SettingsAppearance from "@/components/SettingsAppearance.vue"
 import SettingsLanguage from "@/components/SettingsLanguage.vue"
@@ -65,7 +67,11 @@ const routes: RouteRecordRaw[] = [
     path: "/debug",
     redirect: "/debug/logs",
     component: DebugLayout,
-    children: [{ path: "logs", name: "debug-logs", component: DebugLogs }],
+    children: [
+      { path: "logs", name: "debug-logs", component: DebugLogs },
+      { path: "flows", name: "debug-flows", component: DebugFlows },
+      { path: "flows/:flowId", name: "debug-flow-runs", props: true, component: DebugFlowRuns },
+    ],
   },
   {
     path: "/settings",

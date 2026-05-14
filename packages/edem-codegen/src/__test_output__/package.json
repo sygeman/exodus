@@ -1,0 +1,16 @@
+{
+  "name": "test",
+  "version": "0.0.0",
+  "description": "app",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "vite build && electrobun dev --watch",
+    "dev:webview": "vite --port 5173",
+    "build": "vite build",
+    "build:stable": "vite build && electrobun build --env=stable",
+    "icons": "./scripts/generate-icons.sh"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}

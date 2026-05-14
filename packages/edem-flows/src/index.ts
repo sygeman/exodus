@@ -350,15 +350,15 @@ export const flowsModule = createEdemModule(
 
           const now = Date.now()
 
+          await data.updateItem({
+            item_id: input.flow_id,
+            data: { last_run_at: now },
+          })
+
           const releaseLock = await bpMutex.acquire(input.flow_id)
 
           try {
             await checkBackpressure(data, flow, input.flow_id)
-
-            await data.updateItem({
-              item_id: input.flow_id,
-              data: { last_run_at: now },
-            })
 
             const { id: runId } = await data.createItem({
               collection_id: RUNS_COLLECTION,
@@ -495,6 +495,33 @@ export const flowsModule = createEdemModule(
           })
 
           return { success: true }
+        },
+      })
+      .mutation("deleteRuns", {
+        input: z.object({ flow_id: z.string() }),
+        output: z.object({ deleted: z.number() }),
+        resolve: async ({ input }) => {
+          const data = getData()
+
+          const { items: runs } = await data.queryItems({
+            collection_id: RUNS_COLLECTION,
+          })
+          const flowRuns = runs.filter((r) => r.data.flow_id === input.flow_id)
+
+          let deleted = 0
+          for (const run of flowRuns) {
+            const { items: runNodes } = await data.queryItems({
+              collection_id: RUN_NODES_COLLECTION,
+            })
+            const nodesForRun = runNodes.filter((n) => n.data.run_id === run.id)
+            for (const node of nodesForRun) {
+              await data.deleteItem({ item_id: node.id })
+            }
+            await data.deleteItem({ item_id: run.id })
+            deleted++
+          }
+
+          return { deleted }
         },
       })
       .mutation("resumeRun", {
@@ -755,6 +782,7 @@ export const flowsModule = createEdemModule(
           created: z.array(z.string()),
           updated: z.array(z.string()),
           skipped: z.array(z.string()),
+          deleted: z.array(z.string()),
         }),
         resolve: async ({ input, emit }) => {
           const data = getData()
@@ -763,6 +791,7 @@ export const flowsModule = createEdemModule(
           const created: string[] = []
           const updated: string[] = []
           const skipped: string[] = []
+          const deleted: string[] = []
 
           const { items: existingFlows } = await data.queryItems({
             collection_id: FLOWS_COLLECTION,
@@ -770,6 +799,8 @@ export const flowsModule = createEdemModule(
           const existingByManifestId = new Map(
             existingFlows.map((f) => [f.data.manifest_id as string, f]),
           )
+
+          const manifestIds = new Set(manifest.flows.map((f) => f.id))
 
           for (const flowDef of manifest.flows) {
             const existing = existingByManifestId.get(flowDef.id)
@@ -781,6 +812,7 @@ export const flowsModule = createEdemModule(
                 !deepEqual(existingData.trigger, flowDef.trigger) ||
                 !deepEqual(existingData.nodes, flowDef.nodes) ||
                 !deepEqual(existingData.edges, flowDef.edges) ||
+                !deepEqual(existingData.meta, flowDef.meta ?? {}) ||
                 !deepEqual(existingData.backpressure, flowDef.backpressure)
 
               if (hasChanges) {
@@ -838,7 +870,16 @@ export const flowsModule = createEdemModule(
             }
           }
 
-          return { created, updated, skipped }
+          for (const existing of existingFlows) {
+            const mid = existing.data.manifest_id as string
+            if (mid && !manifestIds.has(mid)) {
+              await data.deleteItem({ item_id: existing.id })
+              await emit.flowDeleted({ flow_id: existing.id })
+              deleted.push(mid)
+            }
+          }
+
+          return { created, updated, skipped, deleted }
         },
       })
       .query("getManifest", {

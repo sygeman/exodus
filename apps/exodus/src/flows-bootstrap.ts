@@ -13,4 +13,7 @@ export async function ensureFlows(flows: EdemFlows): Promise<void> {
   if (result.updated.length > 0) {
     console.log(`[flows] Updated ${result.updated.length} system flows:`, result.updated)
   }
+  if (result.deleted.length > 0) {
+    console.log(`[flows] Deleted ${result.deleted.length} stale flows:`, result.deleted)
+  }
 }

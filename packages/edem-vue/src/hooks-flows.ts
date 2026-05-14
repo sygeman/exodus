@@ -409,6 +409,28 @@ export function createFlowsHooks(flows: FlowsAPI) {
     return [mutate, { loading, error }] as const
   }
 
+  function useDeleteRuns() {
+    const loading = ref(false)
+    const error = ref<string | null>(null)
+
+    async function mutate(
+      input: Parameters<FlowsAPI["deleteRuns"]>[0],
+    ): Promise<{ deleted: number } | never> {
+      loading.value = true
+      error.value = null
+      try {
+        return await flows.deleteRuns(input)
+      } catch (e) {
+        error.value = e instanceof Error ? e.message : String(e)
+        throw e
+      } finally {
+        loading.value = false
+      }
+    }
+
+    return [mutate, { loading, error }] as const
+  }
+
   return {
     useFlows,
     useFlow,
@@ -421,5 +443,6 @@ export function createFlowsHooks(flows: FlowsAPI) {
     useRunFlow,
     useCancelRun,
     useResumeRun,
+    useDeleteRuns,
   }
 }

@@ -21,4 +21,5 @@ export const {
   useRunFlow,
   useCancelRun,
   useResumeRun,
+  useDeleteRuns,
 } = createFlowsHooks(edem.flows)

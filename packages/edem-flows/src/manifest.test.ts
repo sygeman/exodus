@@ -95,6 +95,113 @@ describe("flows manifest", () => {
       expect(result.updated).toEqual(["test-flow"])
       expect(result.skipped).toEqual([])
     })
+
+    it("should delete stale flows not in manifest", async () => {
+      const manifest1: FlowsManifest = {
+        flows: [
+          {
+            id: "flow-a",
+            name: "Flow A",
+            trigger: { type: "manual" },
+            nodes: [],
+            edges: [],
+          },
+          {
+            id: "flow-b",
+            name: "Flow B",
+            trigger: { type: "manual" },
+            nodes: [],
+            edges: [],
+          },
+        ],
+      }
+
+      await edem.flows.applyManifest({ manifest: manifest1 })
+
+      const manifest2: FlowsManifest = {
+        flows: [
+          {
+            id: "flow-a",
+            name: "Flow A",
+            trigger: { type: "manual" },
+            nodes: [],
+            edges: [],
+          },
+        ],
+      }
+
+      const result = await edem.flows.applyManifest({ manifest: manifest2 })
+      expect(result.created).toEqual([])
+      expect(result.updated).toEqual([])
+      expect(result.skipped).toEqual(["flow-a"])
+      expect(result.deleted).toEqual(["flow-b"])
+
+      const exported = await edem.flows.getManifest()
+      expect(exported.flows).toHaveLength(1)
+      expect(exported.flows[0].id).toBe("flow-a")
+    })
+
+    it("should not delete user-created flows without manifest_id", async () => {
+      const manifest: FlowsManifest = {
+        flows: [
+          {
+            id: "manifest-flow",
+            name: "Manifest Flow",
+            trigger: { type: "manual" },
+            nodes: [],
+            edges: [],
+          },
+        ],
+      }
+
+      await edem.flows.applyManifest({ manifest })
+
+      await edem.flows.createFlow({
+        name: "User Flow",
+        trigger: { type: "manual" },
+        nodes: [],
+        edges: [],
+      })
+
+      const result = await edem.flows.applyManifest({ manifest })
+      expect(result.deleted).toEqual([])
+
+      const exported = await edem.flows.getManifest()
+      expect(exported.flows).toHaveLength(2)
+    })
+
+    it("should update flow when only meta changes", async () => {
+      const manifest1: FlowsManifest = {
+        flows: [
+          {
+            id: "meta-flow",
+            name: "Meta Flow",
+            trigger: { type: "manual" },
+            nodes: [],
+            edges: [],
+            meta: { key: "value" },
+          },
+        ],
+      }
+
+      await edem.flows.applyManifest({ manifest: manifest1 })
+
+      const manifest2: FlowsManifest = {
+        flows: [
+          {
+            id: "meta-flow",
+            name: "Meta Flow",
+            trigger: { type: "manual" },
+            nodes: [],
+            edges: [],
+            meta: { key: "updated" },
+          },
+        ],
+      }
+
+      const result = await edem.flows.applyManifest({ manifest: manifest2 })
+      expect(result.updated).toEqual(["meta-flow"])
+    })
   })
 
   describe("getManifest", () => {

@@ -109,4 +109,48 @@ describe("CRUD", () => {
     expect(exported.flows).toHaveLength(2)
     expect(exported.flows.find((f) => f.id === "m1")?.name).toBe("Updated M1")
   })
+
+  it("applyManifest deletes stale manifest flows", async () => {
+    const edem = getEdem()
+    const manifest1: FlowsManifest = {
+      flows: [
+        { id: "s1", name: "System 1", trigger: { type: "manual" }, nodes: [], edges: [] },
+        { id: "s2", name: "System 2", trigger: { type: "manual" }, nodes: [], edges: [] },
+      ],
+    }
+
+    await edem.flows.applyManifest({ manifest: manifest1 })
+
+    const manifest2: FlowsManifest = {
+      flows: [{ id: "s1", name: "System 1", trigger: { type: "manual" }, nodes: [], edges: [] }],
+    }
+
+    const result = await edem.flows.applyManifest({ manifest: manifest2 })
+    expect(result.deleted).toEqual(["s2"])
+
+    const exported = await edem.flows.getManifest()
+    expect(exported.flows).toHaveLength(1)
+    expect(exported.flows[0].id).toBe("s1")
+  })
+
+  it("applyManifest does not delete user-created flows", async () => {
+    const edem = getEdem()
+
+    await edem.flows.createFlow({
+      name: "User Flow",
+      trigger: { type: "manual" },
+      nodes: [],
+      edges: [],
+    })
+
+    const manifest: FlowsManifest = {
+      flows: [{ id: "sys1", name: "System", trigger: { type: "manual" }, nodes: [], edges: [] }],
+    }
+
+    const result = await edem.flows.applyManifest({ manifest })
+    expect(result.deleted).toEqual([])
+
+    const { flows } = await edem.flows.listFlows({})
+    expect(flows).toHaveLength(2)
+  })
 })
