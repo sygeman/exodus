@@ -136,10 +136,8 @@ async function handleDelete(e: Event, flowId: string) {
         class="border-default hover:bg-elevated flex items-center gap-4 rounded-lg border p-4 text-left transition-colors"
         @click="goToFlow(flow.id)"
       >
-        <div
-          class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/10 text-sm"
-        >
-          ⚡
+        <div class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/10">
+          <UIcon name="i-lucide-zap" class="h-5 w-5 text-green-500" />
         </div>
         <div class="flex flex-1 flex-col">
           <span class="font-medium">{{ flow.data.name }}</span>

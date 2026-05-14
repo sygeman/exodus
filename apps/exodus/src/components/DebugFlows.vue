@@ -83,9 +83,9 @@ function getScheduleLabel(flow: {
           @click="goToRuns(flow.id)"
         >
           <div
-            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/10 text-sm"
+            class="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/10"
           >
-            ⚡
+            <UIcon name="i-lucide-zap" class="h-5 w-5 text-green-500" />
           </div>
           <div class="flex flex-1 flex-col">
             <span class="font-medium">{{ flow.name }}</span>
