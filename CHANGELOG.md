@@ -1,3 +1,12 @@
+## [1.3.2](https://github.com/sygeman/exodus/compare/v1.3.1...v1.3.2) (2026-05-14)
+
+
+### Bug Fixes
+
+* **flows:** preserve sourceHandle when creating node from connector drag ([da24eb9](https://github.com/sygeman/exodus/commit/da24eb9a96aedef85fdf16d07e21c1517d78ec34))
+
+
+
 ## [1.3.1](https://github.com/sygeman/exodus/compare/v1.3.0...v1.3.1) (2026-05-14)
 
 
@@ -43,16 +52,6 @@
 ### Bug Fixes
 
 * **ci:** enable git pull before push in release workflow ([fffb943](https://github.com/sygeman/exodus/commit/fffb943f55d7dad7d60167e7d87a25c032d055dc))
-
-
-
-# [1.1.0](https://github.com/sygeman/exodus/compare/v1.0.0...v1.1.0) (2026-05-12)
-
-
-### Features
-
-* **data:** move locales from hardcoded to app_state singleton ([e9e9e1d](https://github.com/sygeman/exodus/commit/e9e9e1d900530951db6b14d7b8d99f86000894d5))
-* **edem-vue:** add Vue renderer for JSON component trees ([dba48c7](https://github.com/sygeman/exodus/commit/dba48c7bf87888d9950a70a4b4fedc582963000e))
 
 
 
