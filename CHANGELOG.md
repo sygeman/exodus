@@ -1,3 +1,13 @@
+# [1.5.0](https://github.com/sygeman/exodus/compare/v1.4.0...v1.5.0) (2026-05-14)
+
+
+### Features
+
+* **flows:** add Code tab to view flow manifest as JSON ([aaed012](https://github.com/sygeman/exodus/commit/aaed01296b26eadfb804f293b5464d701cfad954))
+* **flows:** add flow settings page with name, status editing and deletion ([7e85ac8](https://github.com/sygeman/exodus/commit/7e85ac827448c93b117e42820c61d9bcdb4dbb6f))
+
+
+
 # [1.4.0](https://github.com/sygeman/exodus/compare/v1.3.2...v1.4.0) (2026-05-14)
 
 
@@ -51,15 +61,6 @@
 
 * **flows:** add flow editor with vue-flow ([5113ba8](https://github.com/sygeman/exodus/commit/5113ba8b7ef7745411f2b1ef8ccf0ecf29b66ba1))
 * **flows:** persist viewport and selected node in flow meta, refactor panel to use DB directly ([4a14758](https://github.com/sygeman/exodus/commit/4a1475866081770e4efaf5689a892a8271f88506))
-
-
-
-# [1.2.0](https://github.com/sygeman/exodus/compare/v1.1.1...v1.2.0) (2026-05-12)
-
-
-### Features
-
-* **scheduler:** run scheduled flows immediately on startup ([d8f2299](https://github.com/sygeman/exodus/commit/d8f2299d15dfde4b5b6965abc29c89a81c83e39c))
 
 
 
