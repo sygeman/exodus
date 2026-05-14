@@ -1,3 +1,18 @@
+# [1.7.0](https://github.com/sygeman/exodus/compare/v1.6.0...v1.7.0) (2026-05-14)
+
+
+### Bug Fixes
+
+* **debug:** highlight active menu item on nested routes ([323c24e](https://github.com/sygeman/exodus/commit/323c24eff32041100d432c7b530b3865de430591))
+* **debug:** show schedule details (every, at, days) in flows list and header ([8ae3d62](https://github.com/sygeman/exodus/commit/8ae3d62fdaeacee2df47494b379b3971d73086d4))
+
+
+### Features
+
+* **debug:** add Flows section with run history, countdown timer, and delete runs ([b4248c8](https://github.com/sygeman/exodus/commit/b4248c885cd749b8a23f0d927ae776ea3434368d))
+
+
+
 # [1.6.0](https://github.com/sygeman/exodus/compare/v1.5.0...v1.6.0) (2026-05-14)
 
 
@@ -40,15 +55,6 @@
 ### Bug Fixes
 
 * **flows:** preserve sourceHandle when creating node from connector drag ([da24eb9](https://github.com/sygeman/exodus/commit/da24eb9a96aedef85fdf16d07e21c1517d78ec34))
-
-
-
-## [1.3.1](https://github.com/sygeman/exodus/compare/v1.3.0...v1.3.1) (2026-05-14)
-
-
-### Bug Fixes
-
-* **flows:** place new node at cursor position and make project_id optional for scheduler ([7d81953](https://github.com/sygeman/exodus/commit/7d81953684ecbca5e4a48c9d0da24b3048ab02f6))
 
 
 
