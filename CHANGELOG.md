@@ -1,3 +1,12 @@
+## [1.8.2](https://github.com/sygeman/exodus/compare/v1.8.1...v1.8.2) (2026-05-14)
+
+
+### Bug Fixes
+
+* **debug:** replace ⚡ emoji with lucide-zap icon in flow lists ([ec7c761](https://github.com/sygeman/exodus/commit/ec7c76143cbd30b8345d590de9ba8c23485f6b94))
+
+
+
 ## [1.8.1](https://github.com/sygeman/exodus/compare/v1.8.0...v1.8.1) (2026-05-14)
 
 
@@ -37,15 +46,6 @@
 ### Features
 
 * **debug:** add Flows section with run history, countdown timer, and delete runs ([b4248c8](https://github.com/sygeman/exodus/commit/b4248c885cd749b8a23f0d927ae776ea3434368d))
-
-
-
-# [1.6.0](https://github.com/sygeman/exodus/compare/v1.5.0...v1.6.0) (2026-05-14)
-
-
-### Features
-
-* **app:** add 'Check for Updates' menu item for forced update check ([bef43d0](https://github.com/sygeman/exodus/commit/bef43d0c734e1d9be865bc2aa93b5cfe059ef8d2))
 
 
 
