@@ -1178,4 +1178,391 @@ describe("data module", () => {
       expect(id).toBeDefined()
     })
   })
+
+  describe("applyManifest field sync", () => {
+    it("should add new fields from manifest", async () => {
+      await edem.data.createCollection({
+        id: "test",
+        name: "Test",
+        fields: [{ name: "title", type: "string" }],
+      })
+
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "test",
+              name: "Test",
+              fields: [
+                { name: "title", type: "string" },
+                { name: "description", type: "text" },
+              ],
+            },
+          ],
+        },
+      })
+
+      const { collection } = await edem.data.getCollection({ collection_id: "test" })
+      expect(collection?.fields).toHaveLength(2)
+      expect(collection?.fields[1].name).toBe("description")
+    })
+
+    it("should sync required from true to false", async () => {
+      await edem.data.createCollection({
+        id: "test",
+        name: "Test",
+        fields: [{ name: "email", type: "string", required: true }],
+      })
+
+      await expect(edem.data.createItem({ collection_id: "test", data: {} })).rejects.toThrow(
+        'Field "email" is required',
+      )
+
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "test",
+              name: "Test",
+              fields: [{ name: "email", type: "string", required: false }],
+            },
+          ],
+        },
+      })
+
+      const { id } = await edem.data.createItem({ collection_id: "test", data: {} })
+      expect(id).toBeDefined()
+    })
+
+    it("should sync required from false to true", async () => {
+      await edem.data.createCollection({
+        id: "test",
+        name: "Test",
+        fields: [{ name: "email", type: "string" }],
+      })
+
+      const { id: itemId } = await edem.data.createItem({ collection_id: "test", data: {} })
+      expect(itemId).toBeDefined()
+
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "test",
+              name: "Test",
+              fields: [{ name: "email", type: "string", required: true }],
+            },
+          ],
+        },
+      })
+
+      await expect(edem.data.createItem({ collection_id: "test", data: {} })).rejects.toThrow(
+        'Field "email" is required',
+      )
+    })
+
+    it("should sync type change", async () => {
+      await edem.data.createCollection({
+        id: "test",
+        name: "Test",
+        fields: [{ name: "value", type: "string" }],
+      })
+
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "test",
+              name: "Test",
+              fields: [{ name: "value", type: "number" }],
+            },
+          ],
+        },
+      })
+
+      const { id } = await edem.data.createItem({ collection_id: "test", data: { value: 42 } })
+      expect(id).toBeDefined()
+
+      await expect(
+        edem.data.createItem({ collection_id: "test", data: { value: "not a number" } }),
+      ).rejects.toThrow('Invalid value for field "value" of type "number"')
+    })
+
+    it("should sync labels on existing field", async () => {
+      await edem.data.createCollection({
+        id: "test",
+        name: "Test",
+        fields: [{ name: "title", type: "string" }],
+      })
+
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "test",
+              name: "Test",
+              fields: [{ name: "title", type: "string", labels: { en: "Title", ru: "Заголовок" } }],
+            },
+          ],
+        },
+      })
+
+      const { collection } = await edem.data.getCollection({ collection_id: "test" })
+      expect(collection?.fields[0].labels).toEqual({ en: "Title", ru: "Заголовок" })
+    })
+
+    it("should sync default value", async () => {
+      await edem.data.createCollection({
+        id: "test",
+        name: "Test",
+        fields: [{ name: "status", type: "string" }],
+      })
+
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "test",
+              name: "Test",
+              fields: [{ name: "status", type: "string", default: "draft" }],
+            },
+          ],
+        },
+      })
+
+      const { collection } = await edem.data.getCollection({ collection_id: "test" })
+      expect(collection?.fields[0].default).toBe("draft")
+    })
+
+    it("should sync options and meta", async () => {
+      await edem.data.createCollection({
+        id: "test",
+        name: "Test",
+        fields: [{ name: "role", type: "string" }],
+      })
+
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "test",
+              name: "Test",
+              fields: [
+                {
+                  name: "role",
+                  type: "string",
+                  options: { items: ["admin", "user"] },
+                  meta: { sortable: true },
+                },
+              ],
+            },
+          ],
+        },
+      })
+
+      const { collection } = await edem.data.getCollection({ collection_id: "test" })
+      expect(collection?.fields[0].options).toEqual({ items: ["admin", "user"] })
+      expect(collection?.fields[0].meta).toEqual({ sortable: true })
+    })
+
+    it("should remove fields not in manifest", async () => {
+      await edem.data.createCollection({
+        id: "test",
+        name: "Test",
+        fields: [
+          { name: "title", type: "string" },
+          { name: "legacy", type: "string" },
+        ],
+      })
+
+      await edem.data.createItem({
+        collection_id: "test",
+        data: { title: "Hello", legacy: "data" },
+      })
+
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "test",
+              name: "Test",
+              fields: [{ name: "title", type: "string" }],
+            },
+          ],
+        },
+      })
+
+      const { collection } = await edem.data.getCollection({ collection_id: "test" })
+      expect(collection?.fields).toHaveLength(1)
+      expect(collection?.fields[0].name).toBe("title")
+
+      const { items } = await edem.data.queryItems({ collection_id: "test" })
+      expect(items).toHaveLength(1)
+      expect(items[0].data.title).toBe("Hello")
+    })
+
+    it("should be idempotent", async () => {
+      const manifest = {
+        collections: [
+          {
+            id: "test",
+            name: "Test",
+            fields: [
+              { name: "title", type: "string" as const, required: true },
+              { name: "count", type: "number" as const },
+            ],
+          },
+        ],
+      }
+
+      const r1 = await edem.data.applyManifest({ manifest })
+      const r2 = await edem.data.applyManifest({ manifest })
+
+      expect(r1.created).toEqual(["test"])
+      expect(r2.skipped).toEqual(["test"])
+      expect(r2.updated).toHaveLength(0)
+    })
+
+    it("should add + update + remove in single apply", async () => {
+      await edem.data.createCollection({
+        id: "test",
+        name: "Test",
+        fields: [
+          { name: "keep", type: "string", required: true },
+          { name: "remove", type: "string" },
+        ],
+      })
+
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "test",
+              name: "Test",
+              fields: [
+                { name: "keep", type: "string", required: false },
+                { name: "added", type: "json" },
+              ],
+            },
+          ],
+        },
+      })
+
+      const { collection } = await edem.data.getCollection({ collection_id: "test" })
+      expect(collection?.fields).toHaveLength(2)
+
+      const names = collection?.fields.map((f) => f.name).sort()
+      expect(names).toEqual(["added", "keep"])
+
+      const keepField = collection?.fields.find((f) => f.name === "keep")
+      expect(keepField?.required).toBe(false)
+    })
+
+    it("should backfill singleton defaults on new fields", async () => {
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "settings",
+              name: "Settings",
+              singleton: true,
+              fields: [{ name: "theme", type: "string", default: "dark" }],
+            },
+          ],
+        },
+      })
+
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "settings",
+              name: "Settings",
+              singleton: true,
+              fields: [
+                { name: "theme", type: "string", default: "dark" },
+                { name: "lang", type: "string", default: "en" },
+              ],
+            },
+          ],
+        },
+      })
+
+      const { item } = await edem.data.getSingleton({ collection_id: "settings" })
+      expect(item?.data.theme).toBe("dark")
+      expect(item?.data.lang).toBe("en")
+    })
+
+    it("should not overwrite existing singleton value when backfilling", async () => {
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "settings",
+              name: "Settings",
+              singleton: true,
+              fields: [{ name: "theme", type: "string", default: "dark" }],
+            },
+          ],
+        },
+      })
+
+      await edem.data.updateSingleton({
+        collection_id: "settings",
+        data: { theme: "light" },
+      })
+
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "settings",
+              name: "Settings",
+              singleton: true,
+              fields: [
+                { name: "theme", type: "string", default: "dark" },
+                { name: "lang", type: "string", default: "en" },
+              ],
+            },
+          ],
+        },
+      })
+
+      const { item } = await edem.data.getSingleton({ collection_id: "settings" })
+      expect(item?.data.theme).toBe("light")
+      expect(item?.data.lang).toBe("en")
+    })
+
+    it("should preserve existing item data when removing field", async () => {
+      await edem.data.createCollection({
+        id: "test",
+        name: "Test",
+        fields: [
+          { name: "title", type: "string" },
+          { name: "extra", type: "string" },
+        ],
+      })
+
+      await edem.data.createItem({
+        collection_id: "test",
+        data: { title: "Hello", extra: "preserved" },
+      })
+
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "test",
+              name: "Test",
+              fields: [{ name: "title", type: "string" }],
+            },
+          ],
+        },
+      })
+
+      const { items } = await edem.data.queryItems({ collection_id: "test" })
+      expect(items[0].data.title).toBe("Hello")
+      expect(items[0].data.extra).toBe("preserved")
+    })
+  })
 })

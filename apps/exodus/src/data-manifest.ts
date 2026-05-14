@@ -32,6 +32,8 @@ export const dataManifest = {
         { name: "nodes", type: "json" },
         { name: "edges", type: "json" },
         { name: "meta", type: "json" },
+        { name: "manifest_id", type: "string" },
+        { name: "backpressure", type: "json" },
       ],
     },
     {

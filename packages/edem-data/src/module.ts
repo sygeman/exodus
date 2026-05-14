@@ -1371,6 +1371,9 @@ export const dataModule = createEdemModule("data", (module) => {
                 fieldsChanged = true
               }
 
+              const manifestFieldNames = new Set(colDef.fields.map((f) => f.name))
+
+              // Add missing fields
               for (const fieldDef of colDef.fields) {
                 if (!existingFieldNames.has(fieldDef.name)) {
                   await ctx.db.insert(schema.fields).values({
@@ -1411,6 +1414,51 @@ export const dataModule = createEdemModule("data", (module) => {
                       }
                     }
                   }
+                }
+              }
+
+              // Update existing fields that differ from manifest
+              for (const fieldDef of colDef.fields) {
+                const existingField = existingFields.find((f) => f.name === fieldDef.name)
+                if (!existingField) continue
+
+                const newLabels = fieldDef.labels ? JSON.stringify(fieldDef.labels) : null
+                const newRequired = fieldDef.required ?? false
+                const newDefault =
+                  fieldDef.default !== null && fieldDef.default !== undefined
+                    ? JSON.stringify(fieldDef.default)
+                    : null
+                const newOptions = fieldDef.options ? JSON.stringify(fieldDef.options) : null
+                const newMeta = fieldDef.meta ? JSON.stringify(fieldDef.meta) : null
+
+                if (
+                  existingField.type !== fieldDef.type ||
+                  existingField.required !== newRequired ||
+                  existingField.labels !== newLabels ||
+                  existingField.default_value !== newDefault ||
+                  existingField.interface_options !== newOptions ||
+                  existingField.meta !== newMeta
+                ) {
+                  await ctx.db
+                    .update(schema.fields)
+                    .set({
+                      type: fieldDef.type,
+                      labels: newLabels,
+                      required: newRequired,
+                      default_value: newDefault,
+                      interface_options: newOptions,
+                      meta: newMeta,
+                    })
+                    .where(eq(schema.fields.id, existingField.id))
+                  fieldsChanged = true
+                }
+              }
+
+              // Remove fields not in manifest
+              for (const existingField of existingFields) {
+                if (!manifestFieldNames.has(existingField.name)) {
+                  await ctx.db.delete(schema.fields).where(eq(schema.fields.id, existingField.id))
+                  fieldsChanged = true
                 }
               }
 
