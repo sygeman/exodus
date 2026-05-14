@@ -142,7 +142,11 @@ onWindowFrameChange(win, async (f) => {
 ApplicationMenu.setApplicationMenu([
   {
     label: "Exodus",
-    submenu: [{ label: "Quit Exodus", accelerator: "Cmd+Q", action: "quit" }],
+    submenu: [
+      { label: "Check for Updates...", action: "check-for-updates" },
+      { type: "separator" },
+      { label: "Quit Exodus", accelerator: "Cmd+Q", action: "quit" },
+    ],
   },
   {
     label: "Edit",
@@ -176,6 +180,11 @@ ApplicationMenu.on("application-menu-clicked", (event) => {
   const menuEvent = event as { data?: { action?: string } }
   if (menuEvent.data?.action === "quit") {
     process.exit(0)
+  }
+  if (menuEvent.data?.action === "check-for-updates") {
+    edem.electrobun.checkUpdate({}).catch((err) => {
+      console.error("Update check failed:", err)
+    })
   }
   if (menuEvent.data?.action === "toggle-devtools") {
     webview.toggleDevTools()
