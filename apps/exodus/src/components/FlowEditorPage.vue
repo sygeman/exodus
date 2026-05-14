@@ -385,7 +385,7 @@ provide("deleteEdge", handleDeleteEdge)
           @nodes-change="onNodesChange"
           @edges-change="onEdgesChange"
         >
-          <Background :gap="16" :size="1" />
+          <Background :gap="16" :size="1" color="rgba(255,255,255,0.12)" />
         </VueFlow>
       </div>
 
@@ -430,10 +430,6 @@ provide("deleteEdge", handleDeleteEdge)
 
 .vue-flow__edge-path {
   stroke: var(--color-neutral-500);
-}
-
-.vue-flow__background pattern line {
-  stroke: var(--color-neutral-800);
 }
 
 .vue-flow__controls {
