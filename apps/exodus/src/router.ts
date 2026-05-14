@@ -9,6 +9,7 @@ import ProjectFlowsPage from "@/components/ProjectFlowsPage.vue"
 import FlowEditorPage from "@/components/FlowEditorPage.vue"
 import FlowEditorLayout from "@/components/FlowEditorLayout.vue"
 import FlowCodePage from "@/components/FlowCodePage.vue"
+import FlowSettingsPage from "@/components/FlowSettingsPage.vue"
 import ProjectSettingsPage from "@/components/ProjectSettingsPage.vue"
 import DebugLayout from "@/components/DebugLayout.vue"
 import DebugLogs from "@/components/DebugLogs.vue"
@@ -48,6 +49,12 @@ const routes: RouteRecordRaw[] = [
             name: "project-flow-code",
             props: true,
             component: FlowCodePage,
+          },
+          {
+            path: "settings",
+            name: "project-flow-settings",
+            props: true,
+            component: FlowSettingsPage,
           },
         ],
       },

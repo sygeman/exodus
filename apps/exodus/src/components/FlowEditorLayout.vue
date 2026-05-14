@@ -64,6 +64,17 @@ const flow = computed(() => flows.value.find((f) => f.id === flowId.value))
           <UIcon name="i-lucide-code-2" class="h-4 w-4" />
           {{ t({ en: "Code", ru: "Код" }) }}
         </RouterLink>
+        <RouterLink
+          :to="`/project/${projectId}/flows/${flowId}/settings`"
+          class="flex items-center gap-2 rounded-md px-3 py-1.5 text-sm font-medium transition-colors"
+          :class="{
+            'text-primary': route.name === 'project-flow-settings',
+            'text-muted hover:text-default': route.name !== 'project-flow-settings',
+          }"
+        >
+          <UIcon name="i-lucide-settings" class="h-4 w-4" />
+          {{ t({ en: "Settings", ru: "Настройки" }) }}
+        </RouterLink>
       </nav>
     </div>
 
