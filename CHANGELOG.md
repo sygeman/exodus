@@ -1,3 +1,12 @@
+## [1.7.1](https://github.com/sygeman/exodus/compare/v1.7.0...v1.7.1) (2026-05-14)
+
+
+### Bug Fixes
+
+* **data:** applyManifest now fully syncs field schema with manifest ([b91505f](https://github.com/sygeman/exodus/commit/b91505f40886af00570d70bf5d6edffa15c2b3e0))
+
+
+
 # [1.7.0](https://github.com/sygeman/exodus/compare/v1.6.0...v1.7.0) (2026-05-14)
 
 
@@ -46,15 +55,6 @@
 ### Features
 
 * **flows:** glassmorphism styling for flow nodes ([71773c8](https://github.com/sygeman/exodus/commit/71773c81746db893763e63efd5f41d3ad74e8038))
-
-
-
-## [1.3.2](https://github.com/sygeman/exodus/compare/v1.3.1...v1.3.2) (2026-05-14)
-
-
-### Bug Fixes
-
-* **flows:** preserve sourceHandle when creating node from connector drag ([da24eb9](https://github.com/sygeman/exodus/commit/da24eb9a96aedef85fdf16d07e21c1517d78ec34))
 
 
 
