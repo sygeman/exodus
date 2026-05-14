@@ -86,6 +86,7 @@ const vfNodes = ref<
     type: string
     position: { x: number; y: number }
     data: Record<string, unknown>
+    class?: string
   }>
 >([])
 
@@ -160,10 +161,27 @@ const edgeTypes = {
 
 const selectedNodeId = ref<string | null>(null)
 
-const { applyEdgeHighlighting } = useFlowHighlighting(vfNodes, vfEdges, selectedNodeId)
+const { highlightedNodeIds, applyEdgeHighlighting } = useFlowHighlighting(
+  vfNodes,
+  vfEdges,
+  selectedNodeId,
+)
+
+function applyHighlighting() {
+  const highlighted = highlightedNodeIds.value
+  const hasSelection = !!selectedNodeId.value
+  for (const node of vfNodes.value) {
+    const classes: string[] = []
+    if (hasSelection && !highlighted.has(node.id)) {
+      classes.push("node-dimmed")
+    }
+    node.class = classes.join(" ") || undefined
+  }
+  applyEdgeHighlighting()
+}
 
 watch(selectedNodeId, () => {
-  applyEdgeHighlighting()
+  applyHighlighting()
   saveToDb()
 })
 
@@ -478,6 +496,11 @@ provide("deleteEdge", handleDeleteEdge)
   box-shadow:
     0 0 0 2px var(--color-primary-500),
     0 8px 32px rgba(0, 0, 0, 0.3) !important;
+}
+
+.vue-flow__node.node-dimmed {
+  opacity: 0.3;
+  filter: grayscale(0.8);
 }
 
 @keyframes pulse-progress {
