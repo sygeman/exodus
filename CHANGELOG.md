@@ -1,3 +1,12 @@
+# [1.8.0](https://github.com/sygeman/exodus/compare/v1.7.1...v1.8.0) (2026-05-14)
+
+
+### Features
+
+* **debug:** improve flow runs UI with timeline, force run, and full i18n ([c3070ff](https://github.com/sygeman/exodus/commit/c3070ff7b8a2de9ff0eb7c5491f2abfce6ab9f83))
+
+
+
 ## [1.7.1](https://github.com/sygeman/exodus/compare/v1.7.0...v1.7.1) (2026-05-14)
 
 
@@ -38,23 +47,6 @@
 
 * **flows:** add Code tab to view flow manifest as JSON ([aaed012](https://github.com/sygeman/exodus/commit/aaed01296b26eadfb804f293b5464d701cfad954))
 * **flows:** add flow settings page with name, status editing and deletion ([7e85ac8](https://github.com/sygeman/exodus/commit/7e85ac827448c93b117e42820c61d9bcdb4dbb6f))
-
-
-
-# [1.4.0](https://github.com/sygeman/exodus/compare/v1.3.2...v1.4.0) (2026-05-14)
-
-
-### Bug Fixes
-
-* **flows:** add light theme support for glassmorphism node styles ([8f0020b](https://github.com/sygeman/exodus/commit/8f0020b90e30290324970870d8274f994de67982))
-* **flows:** fix node/edge highlighting along path ([260575d](https://github.com/sygeman/exodus/commit/260575dbba4c11a49fbbcdba3d42195c7f9b46f5))
-* **flows:** markRaw node/edge types, fix scheduler project_id validation, improve error logging ([b249860](https://github.com/sygeman/exodus/commit/b249860a73b223fdfc2d79185ffdd8d162b72cb7))
-* **flows:** prevent deletion of trigger node in config panel ([0859178](https://github.com/sygeman/exodus/commit/08591784d4fb5cef71c9240e736e3f6ca70411c7))
-
-
-### Features
-
-* **flows:** glassmorphism styling for flow nodes ([71773c8](https://github.com/sygeman/exodus/commit/71773c81746db893763e63efd5f41d3ad74e8038))
 
 
 
