@@ -32,7 +32,7 @@ const route = useRoute()
           class="text-muted hover:bg-elevated hover:text-default flex items-center gap-3 rounded-md px-2 py-1.5 text-sm font-medium transition-colors"
           :class="{
             'bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary':
-              route.path === item.to,
+              route.path === item.to || (item.to !== '/' && route.path.startsWith(item.to + '/')),
           }"
         >
           <UIcon :name="item.icon" class="h-4 w-4" />

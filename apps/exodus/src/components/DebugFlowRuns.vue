@@ -94,8 +94,11 @@ const scheduleEvery = computed(() => {
 })
 
 const lastRunAt = computed(() => {
-  if (runs.value.length === 0) return null
-  return Math.max(...runs.value.map((r) => r.started_at))
+  if (runs.value.length > 0) return Math.max(...runs.value.map((r) => r.started_at))
+  const flowLastRun = (flow.value as Record<string, unknown> | null)?.last_run_at as
+    | number
+    | undefined
+  return flowLastRun ?? null
 })
 
 const now = ref(Date.now())
