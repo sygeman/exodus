@@ -68,6 +68,8 @@ const node = computed(() => {
   return { id: found.id, type: found.type, data: found.data }
 })
 
+const isTriggerNode = computed(() => node.value?.type === "trigger")
+
 function saveNode(updatedNodes: StoredNode[]) {
   if (!flow.value) return
   const meta: FlowMeta = {
@@ -91,7 +93,7 @@ function closePanel() {
 }
 
 function deleteNode() {
-  if (!selectedNodeId.value || !flow.value) return
+  if (!selectedNodeId.value || !flow.value || isTriggerNode.value) return
   const nodeId = selectedNodeId.value
   const updatedNodes = nodes.value.filter((n) => n.id !== nodeId)
   const updatedEdges = edges.value.filter((e) => e.source !== nodeId && e.target !== nodeId)
@@ -445,9 +447,23 @@ function getNodeLabel(nodeId: string): string {
 
         <!-- Footer -->
         <div class="border-default border-t p-4">
-          <UButton color="error" variant="outline" size="sm" class="w-full" @click="deleteNode()">
+          <UButton
+            v-if="!isTriggerNode"
+            color="error"
+            variant="outline"
+            size="sm"
+            class="w-full justify-center"
+            icon="i-lucide-trash-2"
+            @click="deleteNode()"
+          >
             {{ t({ en: "Delete node", ru: "Удалить ноду" }) }}
           </UButton>
+          <div v-else class="flex items-center justify-center gap-1.5">
+            <UIcon name="i-lucide-lock" class="text-muted h-3.5 w-3.5" />
+            <p class="text-muted text-center text-xs">
+              {{ t({ en: "Cannot delete the initial node", ru: "Нельзя удалить начальную ноду" }) }}
+            </p>
+          </div>
         </div>
       </template>
 
