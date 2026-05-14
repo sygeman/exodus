@@ -270,7 +270,7 @@ function onEdgesChange(changes: EdgeChange[]) {
 // --- Add node from edge drag ---
 function handleAddNodeFromEdge(
   sourceNodeId: string,
-  _sourceHandle: string | null,
+  sourceHandle: string | null,
   mousePosition?: { x: number; y: number },
 ) {
   const sourceNode = vfNodes.value.find((n) => n.id === sourceNodeId)
@@ -293,6 +293,7 @@ function handleAddNodeFromEdge(
     id: `e-${sourceNodeId}-${newNodeId}-${Date.now()}`,
     source: sourceNodeId,
     target: newNodeId,
+    sourceHandle: sourceHandle ?? undefined,
     type: "deleteable",
   }
 
