@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, ref, watch, shallowRef, onMounted, onUnmounted } from "vue"
 import { useT } from "@exodus/edem-vue"
-import { useFlow, useFlowRuns, useDeleteRuns } from "@/hooks"
+import { useFlow, useFlowRuns, useDeleteRuns, useRunFlow } from "@/hooks"
 import { edem } from "@/edem"
 import { parseEvery } from "@exodus/edem-flows"
 
@@ -12,15 +12,21 @@ const t = useT()
 const { data: flow } = useFlow(props.flowId)
 const { data: runs, loading, refetch } = useFlowRuns(props.flowId)
 const [deleteRuns, { loading: deleting }] = useDeleteRuns()
+const [runFlow, { loading: running }] = useRunFlow()
 
 const statusFilter = ref("all")
 const expandedRunId = ref<string | null>(null)
 const deleteModalOpen = ref(false)
 
 const filteredRuns = computed(() => {
-  if (statusFilter.value === "all") return runs.value
-  return runs.value.filter((r) => r.status === statusFilter.value)
+  const list =
+    statusFilter.value === "all"
+      ? runs.value
+      : runs.value.filter((r) => r.status === statusFilter.value)
+  return list.toSorted((a, b) => b.started_at - a.started_at)
 })
+
+// ── Run status ───────────────────────────────────────────────────────────────
 
 const RUN_STATUS_CLASS: Record<string, string> = {
   running: "bg-blue-500/10 text-blue-500",
@@ -31,11 +37,13 @@ const RUN_STATUS_CLASS: Record<string, string> = {
   pending: "bg-gray-500/10 text-gray-500",
 }
 
-const NODE_STATUS_CLASS: Record<string, string> = {
-  running: "bg-blue-500/10 text-blue-500",
-  completed: "bg-green-500/10 text-green-500",
-  failed: "bg-red-500/10 text-red-500",
-  pending: "bg-gray-500/10 text-gray-500",
+const runStatusLabel: Record<string, string> = {
+  running: t({ en: "running", ru: "выполняется" }),
+  completed: t({ en: "completed", ru: "завершён" }),
+  error: t({ en: "error", ru: "ошибка" }),
+  waiting: t({ en: "waiting", ru: "ожидание" }),
+  cancelled: t({ en: "cancelled", ru: "отменён" }),
+  pending: t({ en: "pending", ru: "в очереди" }),
 }
 
 const statusOptions = computed<{ label: string; value: string }[]>(() => [
@@ -47,21 +55,85 @@ const statusOptions = computed<{ label: string; value: string }[]>(() => [
   { label: t({ en: "Cancelled", ru: "Отменён" }), value: "cancelled" },
 ])
 
-const expandedNodes = shallowRef<
-  Array<{
-    id: string
-    run_id: string
-    node_id: string
-    status: string
-    input?: Record<string, unknown>
-    output?: Record<string, unknown>
-    error?: string
-    attempts: number
-    started_at: number
-    completed_at?: number
-  }>
->([])
+// ── Node status ──────────────────────────────────────────────────────────────
+
+interface RunNode {
+  id: string
+  run_id: string
+  node_id: string
+  status: string
+  input?: Record<string, unknown>
+  output?: Record<string, unknown>
+  error?: string
+  attempts: number
+  started_at: number
+  completed_at?: number
+}
+
+const NODE_ICON: Record<string, string> = {
+  running: "i-lucide-loader",
+  completed: "i-lucide-check-circle",
+  failed: "i-lucide-x-circle",
+  pending: "i-lucide-clock",
+}
+
+const NODE_COLOR: Record<string, "primary" | "success" | "error" | "neutral"> = {
+  running: "primary",
+  completed: "success",
+  failed: "error",
+  pending: "neutral",
+}
+
+const NODE_TYPE_LABEL: Record<string, string> = {
+  trigger: t({ en: "Trigger", ru: "Триггер" }),
+  condition: t({ en: "Condition", ru: "Условие" }),
+  transform: t({ en: "Transform", ru: "Трансформация" }),
+  switch: t({ en: "Switch", ru: "Переключатель" }),
+  delay: t({ en: "Delay", ru: "Задержка" }),
+  input: t({ en: "Input", ru: "Вход" }),
+  output: t({ en: "Output", ru: "Выход" }),
+  action: t({ en: "Action", ru: "Действие" }),
+  loop: t({ en: "Loop", ru: "Цикл" }),
+  fork: t({ en: "Fork", ru: "Ветвление" }),
+  join: t({ en: "Join", ru: "Соединение" }),
+  subflow: t({ en: "Subflow", ru: "Подфлоу" }),
+}
+
+// ── Expanded run nodes ───────────────────────────────────────────────────────
+
+const expandedNodes = shallowRef<RunNode[]>([])
 const nodesLoading = ref(false)
+
+const nodeById = computed(() => {
+  const map = new Map<string, RunNode>()
+  for (const node of expandedNodes.value) {
+    map.set(node.id, node)
+  }
+  return map
+})
+
+const flowNodeMap = computed(() => {
+  const map = new Map<string, { type: string; data?: Record<string, unknown> }>()
+  for (const n of flow.value?.nodes ?? []) {
+    map.set(n.id, n)
+  }
+  return map
+})
+
+const timelineItems = computed(() =>
+  expandedNodes.value.map((node) => {
+    const flowNode = flowNodeMap.value.get(node.node_id)
+    const type = flowNode?.type ?? ""
+    const name = (flowNode?.data?.name as string) || NODE_TYPE_LABEL[type] || type
+    return {
+      title: name,
+      date: formatDuration(node.started_at, node.completed_at),
+      icon: NODE_ICON[node.status] ?? "i-lucide-circle",
+      color: NODE_COLOR[node.status] ?? "neutral",
+      value: node.id,
+    }
+  }),
+)
 
 watch(expandedRunId, async (runId) => {
   if (!runId) {
@@ -78,6 +150,12 @@ watch(expandedRunId, async (runId) => {
     nodesLoading.value = false
   }
 })
+
+// ── Force run ────────────────────────────────────────────────────────────────
+
+async function forceRun() {
+  await runFlow({ flow_id: props.flowId })
+}
 
 // ── Countdown for schedule triggers ──────────────────────────────────────────
 
@@ -129,7 +207,12 @@ const countdownText = computed(() => {
   const hours = Math.floor(totalSec / 3600)
   const min = Math.floor((totalSec % 3600) / 60)
   const sec = totalSec % 60
-  const text = hours > 0 ? `${hours}h ${min}m` : min > 0 ? `${min}m ${sec}s` : `${sec}s`
+  const text =
+    hours > 0
+      ? `${t({ en: "{n}h", ru: "{n}ч" }, { n: hours })} ${t({ en: "{n}m", ru: "{n}м" }, { n: min })}`
+      : min > 0
+        ? `${t({ en: "{n}m", ru: "{n}м" }, { n: min })} ${t({ en: "{n}s", ru: "{n}с" }, { n: sec })}`
+        : t({ en: "{n}s", ru: "{n}с" }, { n: sec })
   return isOverdue.value ? `+${text}` : text
 })
 
@@ -160,9 +243,9 @@ function formatTime(ts: number) {
 
 function formatDuration(start: number, end?: number | null) {
   const ms = (end ?? Date.now()) - start
-  if (ms < 1000) return `${ms}ms`
-  if (ms < 60000) return `${(ms / 1000).toFixed(1)}s`
-  return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`
+  if (ms < 1000) return t({ en: "{n}ms", ru: "{n}мс" }, { n: ms })
+  if (ms < 60000) return t({ en: "{n}s", ru: "{n}с" }, { n: (ms / 1000).toFixed(1) })
+  return `${t({ en: "{n}m", ru: "{n}м" }, { n: Math.floor(ms / 60000) })} ${t({ en: "{n}s", ru: "{n}с" }, { n: Math.floor((ms % 60000) / 1000) })}`
 }
 
 function formatJson(obj: unknown) {
@@ -171,6 +254,16 @@ function formatJson(obj: unknown) {
   } catch {
     return String(obj)
   }
+}
+
+function triggerTypeLabel(type: string) {
+  const map: Record<string, string> = {
+    schedule: t({ en: "Schedule", ru: "По расписанию" }),
+    webhook: t({ en: "Webhook", ru: "Вебхук" }),
+    event: t({ en: "Event", ru: "Событие" }),
+    manual: t({ en: "Manual", ru: "Ручной" }),
+  }
+  return map[type] ?? type
 }
 </script>
 
@@ -187,11 +280,11 @@ function formatJson(obj: unknown) {
       <div class="flex flex-1 flex-col">
         <h1 class="text-xl font-bold">{{ flow?.name ?? flowId }}</h1>
         <span v-if="flow" class="text-muted text-xs">
-          {{ flow.trigger?.type }}
+          {{ triggerTypeLabel(flow.trigger?.type ?? "") }}
           <template v-if="flow.trigger?.type === 'schedule'">
             · {{ (flow.trigger as { every?: string })?.every }}
             <template v-if="(flow.trigger as { at?: string })?.at">
-              at {{ (flow.trigger as { at?: string }).at }}</template
+              {{ t({ en: "at", ru: "в" }) }} {{ (flow.trigger as { at?: string }).at }}</template
             >
           </template>
         </span>
@@ -227,6 +320,16 @@ function formatJson(obj: unknown) {
       <span class="text-muted min-w-16 text-right font-mono text-xs">
         {{ countdownText }}
       </span>
+      <UButton
+        color="primary"
+        variant="subtle"
+        size="xs"
+        icon="i-lucide-play"
+        :loading="running"
+        @click="forceRun"
+      >
+        {{ t({ en: "Run now", ru: "Запустить сейчас" }) }}
+      </UButton>
     </div>
 
     <!-- Filters -->
@@ -269,7 +372,7 @@ function formatJson(obj: unknown) {
               class="inline-flex h-5 min-w-12 items-center justify-center rounded px-1.5 text-[10px] font-medium uppercase"
               :class="RUN_STATUS_CLASS[run.status]"
             >
-              {{ run.status }}
+              {{ runStatusLabel[run.status] ?? run.status }}
             </span>
             <span class="text-muted min-w-0 flex-1 truncate font-mono text-xs">{{
               run.id.slice(0, 8)
@@ -285,42 +388,37 @@ function formatJson(obj: unknown) {
           </button>
 
           <!-- Expanded: run nodes -->
-          <div v-if="expandedRunId === run.id" class="mt-1 ml-4 border-l-2 pl-3">
+          <div v-if="expandedRunId === run.id" class="mt-1 ml-4 pl-3">
             <div v-if="nodesLoading" class="py-2">
               <USkeleton class="h-4 w-32" />
             </div>
             <div v-else-if="expandedNodes.length === 0" class="text-muted py-2 text-xs">
               {{ t({ en: "No nodes.", ru: "Нет нод." }) }}
             </div>
-            <div v-else class="flex flex-col gap-1 py-1">
-              <div
-                v-for="node in expandedNodes"
-                :key="node.id"
-                class="rounded-md bg-black/5 px-3 py-2 text-xs"
-              >
-                <div class="flex items-center gap-2">
-                  <span
-                    class="inline-flex h-4 min-w-14 items-center justify-center rounded px-1 text-[9px] font-medium uppercase"
-                    :class="NODE_STATUS_CLASS[node.status]"
-                  >
-                    {{ node.status }}
-                  </span>
-                  <span class="font-mono font-medium">{{ node.node_id }}</span>
-                  <span v-if="node.attempts > 1" class="text-muted text-[10px]">
-                    attempt {{ node.attempts }}
-                  </span>
-                </div>
-                <div v-if="node.error" class="text-error mt-1 text-[11px]">
-                  {{ node.error }}
-                </div>
+            <UTimeline v-else :items="timelineItems" size="sm" class="py-2">
+              <template #description="{ item }">
                 <div
-                  v-if="node.output"
-                  class="text-muted mt-1 max-h-32 overflow-auto font-mono text-[10px]"
+                  v-for="node in [nodeById.get(item.value as string)]"
+                  :key="item.value"
+                  class="mt-1"
                 >
-                  <pre>{{ formatJson(node.output) }}</pre>
+                  <template v-if="node">
+                    <span v-if="node.attempts > 1" class="text-muted text-[10px]">
+                      {{ t({ en: "attempt", ru: "попытка" }) }} {{ node.attempts }}
+                    </span>
+                    <div v-if="node.error" class="text-error text-[11px]">
+                      {{ node.error }}
+                    </div>
+                    <div
+                      v-if="node.output"
+                      class="text-muted mt-1 max-h-32 overflow-auto font-mono text-[10px]"
+                    >
+                      <pre>{{ formatJson(node.output) }}</pre>
+                    </div>
+                  </template>
                 </div>
-              </div>
-            </div>
+              </template>
+            </UTimeline>
           </div>
         </div>
       </div>
