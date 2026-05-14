@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, watch, provide } from "vue"
+import { ref, computed, watch, provide, markRaw } from "vue"
 import { useRoute, useRouter } from "vue-router"
 import {
   VueFlow,
@@ -149,22 +149,22 @@ watch(
 )
 
 const nodeTypes = {
-  trigger: TriggerNode,
-  action: ActionNode,
-  condition: ConditionNode,
-  switch: SwitchNode,
-  loop: LoopNode,
-  delay: DelayNode,
-  transform: TransformNode,
-  fork: ForkNode,
-  join: JoinNode,
-  subflow: SubFlowNode,
-  input: InputNode,
-  output: OutputNode,
+  trigger: markRaw(TriggerNode),
+  action: markRaw(ActionNode),
+  condition: markRaw(ConditionNode),
+  switch: markRaw(SwitchNode),
+  loop: markRaw(LoopNode),
+  delay: markRaw(DelayNode),
+  transform: markRaw(TransformNode),
+  fork: markRaw(ForkNode),
+  join: markRaw(JoinNode),
+  subflow: markRaw(SubFlowNode),
+  input: markRaw(InputNode),
+  output: markRaw(OutputNode),
 }
 
 const edgeTypes = {
-  deleteable: DeleteableEdge,
+  deleteable: markRaw(DeleteableEdge),
 }
 
 const selectedNodeId = ref<string | null>(null)

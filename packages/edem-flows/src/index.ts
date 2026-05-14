@@ -357,7 +357,7 @@ export const flowsModule = createEdemModule(
 
             await data.updateItem({
               item_id: input.flow_id,
-              data: { ...item.data, last_run_at: now },
+              data: { last_run_at: now },
             })
 
             const { id: runId } = await data.createItem({

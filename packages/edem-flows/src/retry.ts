@@ -20,7 +20,7 @@ export async function withRetry<T>(
   }
   console.error(
     `[flows:${context}] Failed to ${label} after ${MAX_RETRIES + 1} attempts:`,
-    lastError,
+    lastError instanceof Error ? lastError.message : JSON.stringify(lastError),
   )
   throw lastError instanceof Error ? lastError : new Error(String(lastError))
 }
