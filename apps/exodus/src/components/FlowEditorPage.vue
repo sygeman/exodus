@@ -337,14 +337,6 @@ function saveToDb() {
   updateItem(flow.value.id, { nodes: nodesForStorage, edges: edgesForStorage, meta })
 }
 
-function getNodeCount(): number {
-  return vfNodes.value.length
-}
-
-function getEdgeCount(): number {
-  return vfEdges.value.length
-}
-
 provide("deleteEdge", handleDeleteEdge)
 </script>
 
@@ -370,10 +362,6 @@ provide("deleteEdge", handleDeleteEdge)
         >
           {{ flow.data.status }}
         </span>
-      </div>
-      <div class="text-muted flex items-center gap-4 text-xs">
-        <span>{{ getNodeCount() }} nodes</span>
-        <span>{{ getEdgeCount() }} edges</span>
       </div>
     </header>
 
