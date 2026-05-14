@@ -377,10 +377,10 @@ function triggerTypeLabel(type: string) {
             <span class="text-muted min-w-0 flex-1 truncate font-mono text-xs">{{
               run.id.slice(0, 8)
             }}</span>
-            <span class="text-muted text-xs">{{ formatTime(run.started_at) }}</span>
             <span class="text-muted text-xs">
               {{ formatDuration(run.started_at, run.completed_at) }}
             </span>
+            <span class="text-muted text-xs">{{ formatTime(run.started_at) }}</span>
             <UIcon
               :name="expandedRunId === run.id ? 'i-lucide-chevron-up' : 'i-lucide-chevron-down'"
               class="text-muted h-4 w-4"
