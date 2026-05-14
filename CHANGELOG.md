@@ -1,3 +1,20 @@
+# [1.4.0](https://github.com/sygeman/exodus/compare/v1.3.2...v1.4.0) (2026-05-14)
+
+
+### Bug Fixes
+
+* **flows:** add light theme support for glassmorphism node styles ([8f0020b](https://github.com/sygeman/exodus/commit/8f0020b90e30290324970870d8274f994de67982))
+* **flows:** fix node/edge highlighting along path ([260575d](https://github.com/sygeman/exodus/commit/260575dbba4c11a49fbbcdba3d42195c7f9b46f5))
+* **flows:** markRaw node/edge types, fix scheduler project_id validation, improve error logging ([b249860](https://github.com/sygeman/exodus/commit/b249860a73b223fdfc2d79185ffdd8d162b72cb7))
+* **flows:** prevent deletion of trigger node in config panel ([0859178](https://github.com/sygeman/exodus/commit/08591784d4fb5cef71c9240e736e3f6ca70411c7))
+
+
+### Features
+
+* **flows:** glassmorphism styling for flow nodes ([71773c8](https://github.com/sygeman/exodus/commit/71773c81746db893763e63efd5f41d3ad74e8038))
+
+
+
 ## [1.3.2](https://github.com/sygeman/exodus/compare/v1.3.1...v1.3.2) (2026-05-14)
 
 
@@ -43,15 +60,6 @@
 ### Features
 
 * **scheduler:** run scheduled flows immediately on startup ([d8f2299](https://github.com/sygeman/exodus/commit/d8f2299d15dfde4b5b6965abc29c89a81c83e39c))
-
-
-
-## [1.1.1](https://github.com/sygeman/exodus/compare/v1.1.0...v1.1.1) (2026-05-12)
-
-
-### Bug Fixes
-
-* **ci:** enable git pull before push in release workflow ([fffb943](https://github.com/sygeman/exodus/commit/fffb943f55d7dad7d60167e7d87a25c032d055dc))
 
 
 
