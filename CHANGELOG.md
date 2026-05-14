@@ -1,3 +1,12 @@
+## [1.8.1](https://github.com/sygeman/exodus/compare/v1.8.0...v1.8.1) (2026-05-14)
+
+
+### Bug Fixes
+
+* **debug:** show duration before timestamp in run list ([2bf6477](https://github.com/sygeman/exodus/commit/2bf64773ca0c3a41bccf3ff586c25dab4611523e))
+
+
+
 # [1.8.0](https://github.com/sygeman/exodus/compare/v1.7.1...v1.8.0) (2026-05-14)
 
 
@@ -37,16 +46,6 @@
 ### Features
 
 * **app:** add 'Check for Updates' menu item for forced update check ([bef43d0](https://github.com/sygeman/exodus/commit/bef43d0c734e1d9be865bc2aa93b5cfe059ef8d2))
-
-
-
-# [1.5.0](https://github.com/sygeman/exodus/compare/v1.4.0...v1.5.0) (2026-05-14)
-
-
-### Features
-
-* **flows:** add Code tab to view flow manifest as JSON ([aaed012](https://github.com/sygeman/exodus/commit/aaed01296b26eadfb804f293b5464d701cfad954))
-* **flows:** add flow settings page with name, status editing and deletion ([7e85ac8](https://github.com/sygeman/exodus/commit/7e85ac827448c93b117e42820c61d9bcdb4dbb6f))
 
 
 
