@@ -11,18 +11,7 @@ import {
 import { Background } from "@vue-flow/background"
 import { useCollectionQuery, useUpdateItem } from "@/hooks"
 import { useFlowHighlighting } from "@/composables/useFlowHighlighting"
-import TriggerNode from "@/components/flow/nodes/TriggerNode.vue"
-import ActionNode from "@/components/flow/nodes/ActionNode.vue"
-import ConditionNode from "@/components/flow/nodes/ConditionNode.vue"
-import SwitchNode from "@/components/flow/nodes/SwitchNode.vue"
-import LoopNode from "@/components/flow/nodes/LoopNode.vue"
-import DelayNode from "@/components/flow/nodes/DelayNode.vue"
-import TransformNode from "@/components/flow/nodes/TransformNode.vue"
-import ForkNode from "@/components/flow/nodes/ForkNode.vue"
-import JoinNode from "@/components/flow/nodes/JoinNode.vue"
-import SubFlowNode from "@/components/flow/nodes/SubFlowNode.vue"
-import InputNode from "@/components/flow/nodes/InputNode.vue"
-import OutputNode from "@/components/flow/nodes/OutputNode.vue"
+import FlowNode from "@/components/flow/nodes/FlowNode.vue"
 import DeleteableEdge from "@/components/flow/edges/DeleteableEdge.vue"
 import NodeConfigPanel from "@/components/flow/NodeConfigPanel.vue"
 
@@ -148,19 +137,21 @@ watch(
   { immediate: true },
 )
 
+const FlowNodeRaw = markRaw(FlowNode)
+
 const nodeTypes = {
-  trigger: markRaw(TriggerNode),
-  action: markRaw(ActionNode),
-  condition: markRaw(ConditionNode),
-  switch: markRaw(SwitchNode),
-  loop: markRaw(LoopNode),
-  delay: markRaw(DelayNode),
-  transform: markRaw(TransformNode),
-  fork: markRaw(ForkNode),
-  join: markRaw(JoinNode),
-  subflow: markRaw(SubFlowNode),
-  input: markRaw(InputNode),
-  output: markRaw(OutputNode),
+  trigger: FlowNodeRaw,
+  action: FlowNodeRaw,
+  condition: FlowNodeRaw,
+  switch: FlowNodeRaw,
+  loop: FlowNodeRaw,
+  delay: FlowNodeRaw,
+  transform: FlowNodeRaw,
+  fork: FlowNodeRaw,
+  join: FlowNodeRaw,
+  subflow: FlowNodeRaw,
+  input: FlowNodeRaw,
+  output: FlowNodeRaw,
 }
 
 const edgeTypes = {
