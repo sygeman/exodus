@@ -25,7 +25,7 @@ export const dataManifest = {
     {
       id: "flows",
       fields: [
-        { name: "project_id", type: "uuid", required: true },
+        { name: "project_id", type: "uuid" },
         { name: "name", type: "string", required: true },
         { name: "status", type: "string", default: "draft" },
         { name: "trigger", type: "json", required: true },

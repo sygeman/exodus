@@ -38,7 +38,7 @@ const { data: flows } = useCollectionQuery("flows", () => ({
 
 const flow = computed(() => flows.value.find((f) => f.id === flowId.value))
 
-const { viewport, setViewport, onMoveEnd } = useVueFlow()
+const { viewport, setViewport, onMoveEnd, screenToFlowCoordinate } = useVueFlow()
 
 interface FlowNode {
   id: string
@@ -207,7 +207,12 @@ function onConnectEnd(event?: MouseEvent | TouchEvent) {
   const isOnNode = target.closest(".vue-flow__node")
   const isOnHandle = target.closest(".vue-flow__handle")
   if (!isOnNode && !isOnHandle) {
-    handleAddNodeFromEdge(connectingFrom.value.nodeId, connectingFrom.value.handleId)
+    const clientX = "clientX" in event ? event.clientX : event.changedTouches[0].clientX
+    const clientY = "clientY" in event ? event.clientY : event.changedTouches[0].clientY
+    handleAddNodeFromEdge(connectingFrom.value.nodeId, connectingFrom.value.handleId, {
+      x: clientX,
+      y: clientY,
+    })
   }
   connectingFrom.value = null
 }
@@ -263,16 +268,24 @@ function onEdgesChange(changes: EdgeChange[]) {
 }
 
 // --- Add node from edge drag ---
-function handleAddNodeFromEdge(sourceNodeId: string, _sourceHandle: string | null) {
+function handleAddNodeFromEdge(
+  sourceNodeId: string,
+  _sourceHandle: string | null,
+  mousePosition?: { x: number; y: number },
+) {
   const sourceNode = vfNodes.value.find((n) => n.id === sourceNodeId)
-  const newX = sourceNode?.position.x ?? 250
-  const newY = (sourceNode?.position.y ?? 0) + 120
+  const pos = mousePosition
+    ? screenToFlowCoordinate(mousePosition)
+    : {
+        x: sourceNode?.position.x ?? 250,
+        y: (sourceNode?.position.y ?? 0) + 120,
+      }
   const newNodeId = crypto.randomUUID()
 
   const newNode = {
     id: newNodeId,
     type: "action",
-    position: { x: newX, y: newY },
+    position: { x: pos.x, y: pos.y },
     data: { nodeType: "action" },
   }
 
