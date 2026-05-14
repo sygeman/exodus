@@ -33,6 +33,17 @@ function getNodeCount(flow: { nodes?: unknown[] }): number {
 function getTriggerType(flow: { trigger?: { type?: string } }): string {
   return flow.trigger?.type || ""
 }
+
+function getScheduleLabel(flow: {
+  trigger?: { type?: string; every?: string; at?: string; days?: string[] }
+}): string {
+  if (flow.trigger?.type !== "schedule") return ""
+  const parts: string[] = []
+  if (flow.trigger.every) parts.push(flow.trigger.every)
+  if (flow.trigger.at) parts.push(`at ${flow.trigger.at}`)
+  if (flow.trigger.days?.length) parts.push(flow.trigger.days.join(", "))
+  return parts.join(" ") || "schedule"
+}
 </script>
 
 <template>
@@ -80,6 +91,9 @@ function getTriggerType(flow: { trigger?: { type?: string } }): string {
             <span class="font-medium">{{ flow.name }}</span>
             <div class="text-muted flex items-center gap-2 text-xs">
               <span>{{ TRIGGER_LABELS[getTriggerType(flow)] || "—" }}</span>
+              <span v-if="getScheduleLabel(flow)" class="text-primary font-mono">{{
+                getScheduleLabel(flow)
+              }}</span>
               <span>·</span>
               <span
                 >{{ getNodeCount(flow) }} {{ getNodeCount(flow) === 1 ? "node" : "nodes" }}</span

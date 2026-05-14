@@ -183,7 +183,15 @@ function formatJson(obj: unknown) {
       />
       <div class="flex flex-1 flex-col">
         <h1 class="text-xl font-bold">{{ flow?.name ?? flowId }}</h1>
-        <span v-if="flow" class="text-muted text-xs">{{ flow.trigger?.type }}</span>
+        <span v-if="flow" class="text-muted text-xs">
+          {{ flow.trigger?.type }}
+          <template v-if="flow.trigger?.type === 'schedule'">
+            · {{ (flow.trigger as { every?: string })?.every }}
+            <template v-if="(flow.trigger as { at?: string })?.at">
+              at {{ (flow.trigger as { at?: string }).at }}</template
+            >
+          </template>
+        </span>
       </div>
       <UButton
         v-if="runs.length > 0"
