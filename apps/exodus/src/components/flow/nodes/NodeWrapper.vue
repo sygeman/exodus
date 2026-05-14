@@ -46,7 +46,7 @@ function handleRetry(e: Event) {
 <template>
   <div class="relative w-40">
     <div
-      class="flow-node rounded-xl border border-neutral-500/50 bg-neutral-900/80 shadow-lg shadow-black/40 backdrop-blur-xl transition-all hover:border-neutral-400/60 hover:shadow-xl hover:shadow-black/50"
+      class="flow-node rounded-xl border border-neutral-300 bg-white/80 shadow-lg shadow-black/10 backdrop-blur-xl transition-all hover:border-neutral-400 hover:shadow-xl dark:border-neutral-500/50 dark:bg-neutral-900/80 dark:shadow-black/40 dark:hover:border-neutral-400/60 dark:hover:shadow-black/50"
       :class="[borderClass]"
     >
       <div
@@ -60,7 +60,7 @@ function handleRetry(e: Event) {
         v-if="!hideTargetHandle"
         type="target"
         :position="Position.Left"
-        class="!size-3 !border !border-white/20 !bg-neutral-800"
+        class="!size-3 !border !border-black/10 !bg-neutral-200 dark:!border-white/20 dark:!bg-neutral-800"
         :class="handleBorderClass"
       />
 
@@ -90,7 +90,7 @@ function handleRetry(e: Event) {
           v-if="!hideSourceHandle"
           type="source"
           :position="Position.Right"
-          class="!size-3 !border !border-white/20 !bg-neutral-800"
+          class="!size-3 !border !border-black/10 !bg-neutral-200 dark:!border-white/20 dark:!bg-neutral-800"
           :class="handleBorderClass"
         />
       </slot>

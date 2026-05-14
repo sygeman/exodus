@@ -385,7 +385,7 @@ provide("deleteEdge", handleDeleteEdge)
           @nodes-change="onNodesChange"
           @edges-change="onEdgesChange"
         >
-          <Background :gap="16" :size="1" color="rgba(255,255,255,0.12)" />
+          <Background :gap="16" :size="1" :color="'var(--vf-bg-dot)'" />
         </VueFlow>
       </div>
 
@@ -405,6 +405,11 @@ provide("deleteEdge", handleDeleteEdge)
   --vf-node-color: transparent;
   --vf-handle: var(--color-neutral-600);
   --vf-box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  --vf-bg-dot: rgba(0, 0, 0, 0.08);
+}
+
+.dark .flow-editor {
+  --vf-bg-dot: rgba(255, 255, 255, 0.12);
 }
 
 .vue-flow__node-default,
@@ -434,20 +439,34 @@ provide("deleteEdge", handleDeleteEdge)
 
 .vue-flow__controls {
   border-radius: 0.75rem;
-  border: 1px solid rgba(255, 255, 255, 0.15);
-  background: rgba(23, 23, 23, 0.8);
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: rgba(255, 255, 255, 0.8);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+}
+
+.dark .vue-flow__controls {
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  background: rgba(23, 23, 23, 0.8);
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
 }
 
 .vue-flow__controls-button {
   background: transparent;
   border-color: transparent;
+  color: var(--color-neutral-700);
+}
+
+.dark .vue-flow__controls-button {
   color: var(--color-neutral-100);
 }
 
 .vue-flow__controls-button:hover {
+  background: rgba(0, 0, 0, 0.05);
+}
+
+.dark .vue-flow__controls-button:hover {
   background: rgba(255, 255, 255, 0.1);
 }
 
