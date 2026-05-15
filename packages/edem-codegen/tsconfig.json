@@ -4,5 +4,5 @@
     "types": ["bun-types"]
   },
   "include": ["src/**/*.ts"],
-  "exclude": ["node_modules", "dist", "src/__test_output__", "src/__mocks__"]
+  "exclude": ["node_modules", "dist", "src/__test_output__"]
 }

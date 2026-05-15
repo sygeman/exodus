@@ -3,7 +3,7 @@ import { createEdem } from "@exodus/edem-core"
 import { codegenModule } from "./src/module"
 import { loadManifests } from "./src/load"
 
-const MOCKS_DIR = join(import.meta.dir, "src/__mocks__")
+const MOCKS_DIR = join(import.meta.dir, "../../apps/exodus/edem-manifests")
 const OUTPUT = join(import.meta.dir, "../../apps/exodus-generated")
 
 const manifests = loadManifests(MOCKS_DIR)

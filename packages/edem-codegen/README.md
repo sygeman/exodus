@@ -164,4 +164,4 @@ type OutputFile = {
 exodus-gen
 ```
 
-Загружает mock-манифесты из `src/__mocks__/` и генерирует проект в `apps/exodus-generated`.
+Загружает манифесты из `apps/exodus/edem-manifests` и генерирует проект в `apps/exodus-generated`.
