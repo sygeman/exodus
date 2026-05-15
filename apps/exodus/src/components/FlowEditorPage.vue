@@ -11,9 +11,9 @@ import {
 import { Background } from "@vue-flow/background"
 import { useCollectionQuery, useUpdateItem } from "@/hooks"
 import { useFlowHighlighting } from "@/composables/useFlowHighlighting"
-import FlowNode from "@/components/flow/nodes/FlowNode.vue"
-import DeleteableEdge from "@/components/flow/edges/DeleteableEdge.vue"
-import NodeConfigPanel from "@/components/flow/NodeConfigPanel.vue"
+import FlowNode from "@/components/FlowNode.vue"
+import DeleteableEdge from "@/components/DeleteableEdge.vue"
+import NodeConfigPanel from "@/components/NodeConfigPanel.vue"
 
 const route = useRoute()
 const projectId = computed(() => route.params.id as string)
