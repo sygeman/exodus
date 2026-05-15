@@ -1,0 +1,5 @@
+{
+  "component": "div",
+  "props": { "class": "flex h-full items-center justify-center" },
+  "children": "404 — Not Found"
+}
