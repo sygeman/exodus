@@ -1,3 +1,13 @@
+# [1.10.0](https://github.com/sygeman/exodus/compare/v1.9.0...v1.10.0) (2026-05-15)
+
+
+### Features
+
+* **exodus:** add edem-manifests and compare script ([2b2739c](https://github.com/sygeman/exodus/commit/2b2739cfb9a9f82579700c414948063a3f58de10))
+* **exodus:** add rawScript to all component manifests ([3ded4f7](https://github.com/sygeman/exodus/commit/3ded4f78d66ec6cf3a27254776e4732cf5dbb95d))
+
+
+
 # [1.9.0](https://github.com/sygeman/exodus/compare/v1.8.2...v1.9.0) (2026-05-15)
 
 
@@ -31,15 +41,6 @@
 ### Features
 
 * **debug:** improve flow runs UI with timeline, force run, and full i18n ([c3070ff](https://github.com/sygeman/exodus/commit/c3070ff7b8a2de9ff0eb7c5491f2abfce6ab9f83))
-
-
-
-## [1.7.1](https://github.com/sygeman/exodus/compare/v1.7.0...v1.7.1) (2026-05-14)
-
-
-### Bug Fixes
-
-* **data:** applyManifest now fully syncs field schema with manifest ([b91505f](https://github.com/sygeman/exodus/commit/b91505f40886af00570d70bf5d6edffa15c2b3e0))
 
 
 
