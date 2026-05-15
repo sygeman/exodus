@@ -38,4 +38,4 @@ curl -fsSL https://raw.githubusercontent.com/sygeman/exodus/main/apps/exodus/scr
 ## Documentation
 
 - **[Edem](./docs/edem.md)** — framework for declarative applications
-- **[Exodus](./docs/exodus.md)** — IDE for building Edem applications
+- **[Exodus](./apps/exodus/README.md)** — IDE for building Edem applications

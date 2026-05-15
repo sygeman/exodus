@@ -2,8 +2,22 @@
 
 ## Документация
 
-- **[docs/edem.md](./docs/edem.md)** — фреймворк Edem: принципы, архитектура, модули, паттерны
-- **[docs/exodus.md](./docs/exodus.md)** — приложение Exodus: установка, development, сборка, структура
+### Edem (архитектура)
+- **[docs/edem.md](./docs/edem.md)** — обзор, принципы, архитектура, зависимости слоёв
+- **[docs/data.md](./docs/data.md)** — слой данных: коллекции, поля, items, паттерны
+- **[docs/flows.md](./docs/flows.md)** — слой логики: потоки, ноды, триггеры
+- **[docs/ui.md](./docs/ui.md)** — UI-слой: компоненты, привязки, рендеринг
+- **[docs/platform.md](./docs/platform.md)** — платформенный слой: bridge, persistence
+- **[docs/codegen.md](./docs/codegen.md)** — слой генерации: pipeline, трансформации
+
+### Edem (пакеты API)
+- **[packages/edem-core](../packages/edem-core/README.md)** — модульная система, createEdem, procedures
+- **[packages/edem-data](../packages/edem-data/README.md)** — data модуль API
+- **[packages/edem-flows](../packages/edem-flows/README.md)** — flows модуль API
+- **[packages/edem-ui](../packages/edem-ui/README.md)** — UI engine API
+
+### Exodus (приложение)
+- **[apps/exodus/README.md](../apps/exodus/README.md)** — IDE для построения Edem-приложений
 
 ## Стиль коммитов
 
