@@ -2,7 +2,7 @@
 
 Динамическое хранилище с мета-схемой.
 
-← [Edem](./edem.md)
+← [Edem](./edem.md) · Реализация: [edem-data](../packages/edem-data/README.md)
 
 ## Коллекции
 

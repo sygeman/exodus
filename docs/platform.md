@@ -31,7 +31,12 @@ Lifecycle: idle → checking → available/downloading → applying.
 
 ## Конкретные платформы
 
-Платформенный слой реализуется через конкретные адаптеры. Каждый адаптер предоставляет: транспорт сообщений (межпроцессное взаимодействие), маршрутизацию событий (подписки на модули), system detection (locale, тема), persistence (сохранение состояния). Bridge скрывает контекст выполнения за прозрачным RPC-прокси: вызовы выглядят как локальные, но выполняются в другом процессе. Конкретная платформа определяется набором feature flags: логгер, persistence, system detection, updater, devtools, splash screen.
+| Пакет | Среда | Описание |
+|-------|-------|----------|
+| [edem-electrobun](../packages/edem-electrobun/README.md) | Desktop (Bun + webview) | Bridge между Bun backend и Electrobun webview, auto-updater, system detection, logger |
+| [edem-vue](../packages/edem-vue/README.md) | Web (Vue 3) | Composable-хи (Apollo-style queries/mutations), JSON→VNode renderer, i18n |
+
+Каждый адаптер предоставляет: транспорт сообщений, маршрутизацию событий, system detection, persistence. Bridge скрывает контекст выполнения за прозрачным RPC-прокси: вызовы выглядят как локальные, но выполняются в другом процессе.
 
 ## Transparent RPC Proxy
 

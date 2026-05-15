@@ -2,7 +2,7 @@
 
 Build-time трансформация манифестов в готовый код.
 
-← [Edem](./edem.md)
+← [Edem](./edem.md) · Реализация: [edem-codegen](../packages/edem-codegen/README.md)
 
 ## Pipeline
 

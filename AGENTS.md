@@ -15,6 +15,9 @@
 - **[packages/edem-data](../packages/edem-data/README.md)** — data модуль API
 - **[packages/edem-flows](../packages/edem-flows/README.md)** — flows модуль API
 - **[packages/edem-ui](../packages/edem-ui/README.md)** — UI engine API
+- **[packages/edem-codegen](../packages/edem-codegen/README.md)** — build-time codegen, pipeline, stages
+- **[packages/edem-electrobun](../packages/edem-electrobun/README.md)** — desktop bridge (Bun + webview)
+- **[packages/edem-vue](../packages/edem-vue/README.md)** — Vue 3 composables, renderer, i18n
 
 ### Exodus (приложение)
 - **[apps/exodus/README.md](../apps/exodus/README.md)** — IDE для построения Edem-приложений
