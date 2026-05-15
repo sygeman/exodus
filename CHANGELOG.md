@@ -1,3 +1,12 @@
+# [1.9.0](https://github.com/sygeman/exodus/compare/v1.8.2...v1.9.0) (2026-05-15)
+
+
+### Features
+
+* **edem-ui:** add rawScript field to ComponentNode for migration freedom ([d2d8f2d](https://github.com/sygeman/exodus/commit/d2d8f2dc32a0afacc8dc34ea393de2814915b03f))
+
+
+
 ## [1.8.2](https://github.com/sygeman/exodus/compare/v1.8.1...v1.8.2) (2026-05-14)
 
 
@@ -31,21 +40,6 @@
 ### Bug Fixes
 
 * **data:** applyManifest now fully syncs field schema with manifest ([b91505f](https://github.com/sygeman/exodus/commit/b91505f40886af00570d70bf5d6edffa15c2b3e0))
-
-
-
-# [1.7.0](https://github.com/sygeman/exodus/compare/v1.6.0...v1.7.0) (2026-05-14)
-
-
-### Bug Fixes
-
-* **debug:** highlight active menu item on nested routes ([323c24e](https://github.com/sygeman/exodus/commit/323c24eff32041100d432c7b530b3865de430591))
-* **debug:** show schedule details (every, at, days) in flows list and header ([8ae3d62](https://github.com/sygeman/exodus/commit/8ae3d62fdaeacee2df47494b379b3971d73086d4))
-
-
-### Features
-
-* **debug:** add Flows section with run history, countdown timer, and delete runs ([b4248c8](https://github.com/sygeman/exodus/commit/b4248c885cd749b8a23f0d927ae776ea3434368d))
 
 
 
