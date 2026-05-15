@@ -158,6 +158,11 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
     }
   }
 
+  if (comp.tree.rawScript) {
+    statements.push("")
+    statements.push(comp.tree.rawScript)
+  }
+
   if (imports.length === 0 && statements.length === 0) return ""
 
   const importBlock = imports.length > 0 ? imports.join("\n") + "\n\n" : ""

@@ -51,6 +51,8 @@ export interface ComponentNode {
     text?: string | Translation
     action?: ComponentNode
   }
+  /** Raw script injected as-is into <script setup> */
+  rawScript?: string
 }
 
 export interface DataBinding {
@@ -150,6 +152,7 @@ export const componentNodeSchema: z.ZodType<ComponentNode> = z.lazy(
           action: componentNodeSchema.optional(),
         })
         .optional(),
+      rawScript: z.string().optional(),
     }) as z.ZodType<ComponentNode>,
 )
 

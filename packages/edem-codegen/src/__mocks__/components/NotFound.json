@@ -53,5 +53,6 @@
         "ru": "Перейти к проектам"
       }
     }
-  ]
+  ],
+  "rawScript": "console.log('raw script works')"
 }

@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach } from "bun:test"
-import { existsSync, rmSync, readdirSync } from "fs"
+import { existsSync, rmSync, readdirSync, readFileSync } from "fs"
 import { join } from "path"
 import { createEdem } from "@exodus/edem-core"
 import { codegenModule } from "./module"
@@ -43,5 +43,10 @@ describe("codegenModule", () => {
     // Generated files should exist
     const files = readdirSync(TEST_OUTPUT, { recursive: true })
     expect(files.length).toBeGreaterThan(3)
+
+    // rawScript should be injected into <script setup>
+    const notFoundPath = join(TEST_OUTPUT, "src/components/NotFound.vue")
+    const notFoundContent = readFileSync(notFoundPath, "utf-8")
+    expect(notFoundContent).toContain("console.log('raw script works')")
   }, 30_000)
 })
