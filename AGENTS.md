@@ -2,8 +2,8 @@
 
 ## Документация
 
-- **[docs/stages.md](./docs/stages.md)** — стадии развития Edem, процесс, codegen gaps
-- **[docs/architecture.md](./docs/architecture.md)** — техническая архитектура Edem, модули, lifecycle
+- **[docs/edem.md](./docs/edem.md)** — фреймворк Edem: принципы, архитектура, модули, паттерны
+- **[docs/exodus.md](./docs/exodus.md)** — приложение Exodus: установка, development, сборка, структура
 
 ## Стиль коммитов
 

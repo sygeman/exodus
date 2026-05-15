@@ -34,3 +34,8 @@ After installation the app is available in the applications menu and via the `ex
 ```bash
 curl -fsSL https://raw.githubusercontent.com/sygeman/exodus/main/apps/exodus/scripts/uninstall-linux.sh | bash
 ```
+
+## Documentation
+
+- **[Edem](./docs/edem.md)** — framework for declarative applications
+- **[Exodus](./docs/exodus.md)** — IDE for building Edem applications
