@@ -1,5 +1,36 @@
 {
   "component": "div",
-  "props": { "class": "p-4" },
-  "children": "FlowCodePage — TODO"
+  "props": { "class": "flex min-h-0 flex-1 flex-col" },
+  "children": [
+    {
+      "component": "div",
+      "props": { "class": "relative flex flex-1 overflow-hidden" },
+      "children": [
+        {
+          "component": "pre",
+          "props": { "class": "flex-1 overflow-auto p-4 font-mono text-xs leading-relaxed" },
+          "children": "{{ manifest }}"
+        },
+        {
+          "component": "UTooltip",
+          "props": {
+            "text": "{{ copied ? t({ en: 'Copied!', ru: 'Скопировано!' }) : t({ en: 'Copy', ru: 'Копировать' }) }}"
+          },
+          "children": [
+            {
+              "component": "UButton",
+              "props": {
+                "variant": "outline",
+                "size": "xs",
+                "icon": "{{ copied ? 'i-lucide-check' : 'i-lucide-copy' }}",
+                "class": "absolute top-3 right-3"
+              },
+              "events": { "click": { "action": "copyToClipboard" } }
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "rawScript": "import { useRoute } from 'vue-router'\nimport { computed, ref, watch } from 'vue'\nimport { useFlows } from '@/hooks'\n\nconst route = useRoute()\nconst flowId = computed(() => route.params.flowId as string)\nconst projectId = computed(() => route.params.id as string)\n\nconst { items: flows, loading } = useFlows({ filter: { project_id: { _eq: projectId.value } } })\nconst flow = computed(() => flows.value.find((f) => f.id === flowId.value))\n\nconst manifest = computed(() => {\n  if (!flow.value) return ''\n  return JSON.stringify(flow.value.data, null, 2)\n})\n\nconst copied = ref(false)\nlet copyTimeout: ReturnType<typeof setTimeout> | null = null\n\nasync function copyToClipboard() {\n  try {\n    await navigator.clipboard.writeText(manifest.value)\n    copied.value = true\n    if (copyTimeout) clearTimeout(copyTimeout)\n    copyTimeout = setTimeout(() => { copied.value = false }, 2000)\n  } catch {}\n}\n\nconst showSkeleton = ref(false)\nlet skeletonTimeout: ReturnType<typeof setTimeout> | null = null\n\nwatch(loading, (isLoading) => {\n  if (isLoading) {\n    skeletonTimeout = setTimeout(() => { showSkeleton.value = true }, 150)\n  } else {\n    if (skeletonTimeout) { clearTimeout(skeletonTimeout); skeletonTimeout = null }\n    showSkeleton.value = false\n  }\n}, { immediate: true })"
 }

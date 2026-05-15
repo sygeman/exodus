@@ -1,5 +1,53 @@
 {
   "component": "div",
-  "props": { "class": "p-4" },
-  "children": "DebugFlows — TODO"
+  "props": { "class": "bg-default flex h-full flex-col" },
+  "children": [
+    {
+      "component": "div",
+      "props": { "class": "border-default flex items-center border-b px-4 py-3" },
+      "children": [
+        {
+          "component": "h1",
+          "props": { "class": "text-xl font-bold" },
+          "children": { "$type": "translation", "en": "Flows", "ru": "Флоу" }
+        }
+      ]
+    },
+    {
+      "component": "UScrollArea",
+      "props": { "class": "min-h-0 flex-1" },
+      "children": [
+        {
+          "component": "div",
+          "props": { "class": "flex flex-col gap-2 p-4" },
+          "bind": {
+            "collection": "flows",
+            "item": {
+              "component": "button",
+              "props": {
+                "class": "border-default hover:bg-elevated flex items-center gap-4 rounded-lg border p-4 text-left transition-colors"
+              },
+              "children": [
+                {
+                  "component": "div",
+                  "props": { "class": "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/10" },
+                  "children": [
+                    { "component": "UIcon", "props": { "name": "i-lucide-zap", "class": "h-5 w-5 text-green-500" } }
+                  ]
+                },
+                {
+                  "component": "div",
+                  "props": { "class": "flex flex-1 flex-col" },
+                  "children": [
+                    { "component": "span", "props": { "class": "font-medium" }, "children": "{{ item.name }}" }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "rawScript": "import { useRouter } from 'vue-router'\nimport { useFlows } from '@/hooks'\n\nconst router = useRouter()\nconst { items: flows, loading } = useFlows()\n\nconst TRIGGER_LABELS: Record<string, string> = { event: 'Event', schedule: 'Schedule', manual: 'Manual', webhook: 'Webhook' }\nconst STATUS_CLASS: Record<string, string> = { draft: 'bg-gray-500/10 text-gray-500', active: 'bg-green-500/10 text-green-500', paused: 'bg-yellow-500/10 text-yellow-500', archived: 'bg-red-500/10 text-red-500' }\n\nfunction goToRuns(flowId: string) { router.push(`/debug/flows/${flowId}`) }\nfunction getNodeCount(flow: { nodes?: unknown[] }): number { return Array.isArray(flow.nodes) ? flow.nodes.length : 0 }\nfunction getTriggerType(flow: { trigger?: { type?: string } }): string { return flow.trigger?.type || '' }\nfunction getScheduleLabel(flow: { trigger?: { type?: string; every?: string; at?: string; days?: string[] } }): string {\n  if (flow.trigger?.type !== 'schedule') return ''\n  const parts: string[] = []\n  if (flow.trigger.every) parts.push(flow.trigger.every)\n  if (flow.trigger.at) parts.push(`at ${flow.trigger.at}`)\n  if (flow.trigger.days?.length) parts.push(flow.trigger.days.join(', '))\n  return parts.join(' ') || 'schedule'\n}"
 }

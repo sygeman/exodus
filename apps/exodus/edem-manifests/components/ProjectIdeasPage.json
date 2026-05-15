@@ -1,5 +1,57 @@
 {
   "component": "div",
-  "props": { "class": "p-4" },
-  "children": "ProjectIdeasPage — TODO"
+  "props": { "class": "flex h-full flex-col p-6" },
+  "children": [
+    {
+      "component": "div",
+      "props": { "class": "mb-4 flex items-center justify-between" },
+      "children": [
+        {
+          "component": "h2",
+          "props": { "class": "text-lg font-semibold" },
+          "children": { "$type": "translation", "en": "Ideas", "ru": "Идеи" }
+        },
+        {
+          "component": "UButton",
+          "props": { "size": "sm" },
+          "events": { "click": { "action": "handleCreate" } },
+          "children": [
+            { "component": "UIcon", "props": { "name": "i-lucide-plus", "class": "h-4 w-4" } },
+            { "$type": "translation", "en": "New Idea", "ru": "Новая идея" }
+          ]
+        }
+      ]
+    },
+    {
+      "component": "div",
+      "props": { "class": "flex flex-col gap-2" },
+      "bind": {
+        "collection": "ideas",
+        "sort": ["-created_at"],
+        "item": {
+          "component": "RouterLink",
+          "props": {
+            "class": "border-default hover:bg-elevated flex items-center gap-3 rounded-lg border p-4 transition-colors"
+          },
+          "children": [
+            {
+              "component": "div",
+              "props": {
+                "class": "bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded text-xs font-bold"
+              },
+              "children": "{{ item.data.level ?? '?' }}"
+            },
+            {
+              "component": "div",
+              "props": { "class": "flex flex-col" },
+              "children": [
+                { "component": "span", "props": { "class": "font-medium" }, "children": "{{ item.data.title }}" }
+              ]
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "rawScript": "import { useRoute, useRouter } from 'vue-router'\nimport { computed, ref, watch } from 'vue'\nimport { useIdeas, useCreateItem } from '@/hooks'\n\nconst route = useRoute()\nconst router = useRouter()\nconst projectId = computed(() => route.params.id as string)\nconst { items: ideas, loading } = useIdeas({ filter: { project_id: { _eq: projectId.value } }, sort: ['-created_at'] })\nconst [createItem] = useCreateItem()\n\nconst showSkeleton = ref(false)\nlet skeletonTimeout: ReturnType<typeof setTimeout> | null = null\n\nwatch(\n  loading,\n  (isLoading) => {\n    if (isLoading) {\n      skeletonTimeout = setTimeout(() => {\n        showSkeleton.value = true\n      }, 150)\n    } else {\n      if (skeletonTimeout) {\n        clearTimeout(skeletonTimeout)\n        skeletonTimeout = null\n      }\n      showSkeleton.value = false\n    }\n  },\n  { immediate: true },\n)\n\nasync function handleCreate() {\n  const id = await createItem('ideas', {\n    project_id: projectId.value,\n    title: 'Untitled',\n    status: 'draft',\n  })\n  router.push(`/project/${projectId.value}/ideas/${id}`)\n}\n\nfunction ideaLink(id: string) {\n  return `/project/${projectId.value}/ideas/${id}`\n}"
 }

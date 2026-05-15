@@ -1,5 +1,54 @@
 {
   "component": "div",
-  "props": { "class": "p-4" },
-  "children": "IdeaPage — TODO"
+  "props": { "class": "flex h-full flex-col" },
+  "children": [
+    {
+      "component": "div",
+      "props": { "class": "border-default flex items-center justify-between border-b px-6 py-3" },
+      "children": [
+        {
+          "component": "div",
+          "props": { "class": "flex items-center gap-3" },
+          "children": [
+            {
+              "component": "UButton",
+              "props": { "to": "{{ backLink }}", "variant": "ghost", "size": "sm", "icon": "i-lucide-arrow-left" },
+              "children": { "$type": "translation", "en": "Back to ideas", "ru": "Назад к идеям" }
+            }
+          ]
+        },
+        {
+          "component": "UButton",
+          "props": { "color": "error", "variant": "ghost", "size": "sm", "icon": "i-lucide-trash-2" },
+          "events": { "click": { "action": "openDeleteModal" } },
+          "children": { "$type": "translation", "en": "Delete", "ru": "Удалить" }
+        }
+      ]
+    },
+    {
+      "component": "div",
+      "props": { "class": "flex flex-col gap-6 px-6 pb-6" },
+      "children": [
+        {
+          "component": "UInput",
+          "props": { "modelValue": "{{ title }}", "size": "lg", "class": "w-full" },
+          "events": {
+            "blur": { "action": "updateTitle" },
+            "keyup.enter": { "action": "updateTitle" }
+          }
+        },
+        {
+          "component": "UTextarea",
+          "props": {
+            "modelValue": "{{ description }}",
+            "placeholder": { "$type": "translation", "en": "Idea description (optional)", "ru": "Описание идеи (опционально)" },
+            "rows": 6,
+            "class": "w-full"
+          },
+          "events": { "blur": { "action": "updateDescription" } }
+        }
+      ]
+    }
+  ],
+  "rawScript": "import { useRoute, useRouter } from 'vue-router'\nimport { computed, ref, watch, nextTick } from 'vue'\nimport { useIdeas, useUpdateItem, useDeleteItem } from '@/hooks'\n\nconst route = useRoute()\nconst router = useRouter()\nconst projectId = computed(() => route.params.id as string)\nconst ideaId = computed(() => route.params.ideaId as string)\n\nconst { items: ideas, loading } = useIdeas({ filter: { project_id: { _eq: projectId.value } } })\nconst [updateItem] = useUpdateItem()\nconst [deleteItem] = useDeleteItem()\n\nconst idea = computed(() => ideas.value.find((i) => i.id === ideaId.value) ?? null)\nconst backLink = computed(() => `/project/${projectId.value}/ideas`)\n\nconst deleteModalOpen = ref(false)\nconst title = ref('')\nconst description = ref('')\nconst level = ref<string | null>(null)\nconst typeValue = ref<string | null>(null)\nconst status = ref<string>('draft')\nconst isInitialized = ref(false)\n\nwatch(\n  idea,\n  (i) => {\n    if (!i) return\n    title.value = i.data.title ?? ''\n    description.value = i.data.description ?? ''\n    level.value = i.data.level ?? null\n    typeValue.value = i.data.type ?? null\n    status.value = i.data.status ?? 'draft'\n    nextTick(() => { isInitialized.value = true })\n  },\n  { immediate: true },\n)\n\nfunction updateTitle() {\n  if (!idea.value) return\n  const trimmed = title.value.trim()\n  if (trimmed === '') {\n    title.value = idea.value.data.title ?? ''\n    return\n  }\n  if (trimmed === idea.value.data.title) return\n  updateItem(idea.value.id, { title: trimmed })\n}\n\nfunction updateDescription() {\n  if (!idea.value || description.value === (idea.value.data.description ?? '')) return\n  updateItem(idea.value.id, { description: description.value || null })\n}\n\nwatch(level, (v) => {\n  if (!isInitialized.value || !idea.value || v === idea.value.data.level) return\n  updateItem(idea.value.id, { level: v })\n})\n\nwatch(typeValue, (v) => {\n  if (!isInitialized.value || !idea.value || v === idea.value.data.type) return\n  updateItem(idea.value.id, { type: v })\n})\n\nwatch(status, (v) => {\n  if (!isInitialized.value || !idea.value || v === idea.value.data.status) return\n  updateItem(idea.value.id, { status: v })\n})\n\nfunction openDeleteModal() {\n  deleteModalOpen.value = true\n}\n\nfunction confirmDelete() {\n  if (!idea.value) return\n  deleteItem(idea.value.id)\n  deleteModalOpen.value = false\n  router.push(`/project/${projectId.value}/ideas`)\n}"
 }
