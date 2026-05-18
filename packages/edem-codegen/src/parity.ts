@@ -4,6 +4,7 @@ import { readdir, readFile } from "fs/promises"
 import { join, relative } from "path"
 import {
   countBy,
+  contentsMatchForParity,
   createEntry,
   shouldSkipDir,
   type Area,
@@ -57,7 +58,7 @@ export async function buildParityReport(input: BuildParityReportInput): Promise<
         readFile(generatedPath),
       ])
 
-      if (!referenceContent.equals(generatedContent)) {
+      if (!contentsMatchForParity(file, referenceContent, generatedContent)) {
         entries.push(createEntry(file, "different", context))
       }
 

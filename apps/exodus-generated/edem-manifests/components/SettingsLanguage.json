@@ -47,11 +47,18 @@
           },
           "bind": {
             "items": "locales",
+            "key": "{{ item.value }}",
+            "target": "item",
             "item": {
               "component": "button",
               "props": {
                 "type": "button",
-                "class": "flex items-center gap-3 rounded-md border p-3 text-left text-sm transition-all"
+                "class": "{{ { 'flex items-center gap-3 rounded-md border p-3 text-left text-sm transition-all': true, 'border-primary bg-primary/10 text-default': selectedLocale === item.value, 'text-muted border-default bg-elevated/30 hover:bg-elevated hover:border-accent': selectedLocale !== item.value } }}"
+              },
+              "events": {
+                "click": {
+                  "expression": "selectedLocale = item.value"
+                }
               },
               "children": [
                 {

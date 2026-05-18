@@ -49,7 +49,7 @@
             {
               "component": "USwitch",
               "props": {
-                "modelValue": "{{ isDark }}"
+                "vModel": "{{ isDark }}"
               }
             }
           ]

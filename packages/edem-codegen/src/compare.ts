@@ -12,6 +12,18 @@ const SHELL_FILES = new Set([
 ])
 
 const LAYOUT_COMPONENTS = new Set(["AppSidebar", "AppTopMenu", "ProjectsSidebar"])
+const TEXT_PARITY_EXTENSIONS = new Set([
+  ".css",
+  ".html",
+  ".js",
+  ".json",
+  ".md",
+  ".sh",
+  ".toml",
+  ".ts",
+  ".tsx",
+  ".vue",
+])
 
 export type Area = "shell" | "layouts" | "pages" | "assets" | "other"
 export type Reason = "schema gap" | "generator gap" | "migration gap"
@@ -115,6 +127,22 @@ export function shouldSkipDir(name: string): boolean {
   return name === "node_modules" || name === "dist" || name === ".git"
 }
 
+export function contentsMatchForParity(
+  file: string,
+  reference: Uint8Array,
+  generated: Uint8Array,
+): boolean {
+  if (Buffer.from(reference).equals(Buffer.from(generated))) {
+    return true
+  }
+
+  if (!isTextParityFile(file)) {
+    return false
+  }
+
+  return normalizeTextForParity(reference) === normalizeTextForParity(generated)
+}
+
 export function countBy<T extends string>(
   entries: DiffEntry[],
   pick: (entry: DiffEntry) => T,
@@ -127,4 +155,38 @@ export function countBy<T extends string>(
   }
 
   return counts
+}
+
+function isTextParityFile(file: string): boolean {
+  return TEXT_PARITY_EXTENSIONS.has(extname(file))
+}
+
+function normalizeTextForParity(content: Uint8Array): string {
+  return normalizeImportOrder(
+    Buffer.from(content)
+      .toString("utf8")
+      .replaceAll("\r\n", "\n")
+      .split("\n")
+      .map((line) => line.trimEnd())
+      .filter((line) => line.length > 0)
+      .join("\n"),
+  )
+}
+
+function normalizeImportOrder(content: string): string {
+  const lines = content.split("\n")
+  const imports = lines.filter((line) => line.startsWith("import ") && line.includes(" from "))
+
+  if (imports.length < 2) {
+    return normalizeVueInterpolations(content)
+  }
+
+  const sortedImports = imports.toSorted()
+  const bodyLines = lines.filter((line) => !(line.startsWith("import ") && line.includes(" from ")))
+
+  return normalizeVueInterpolations([...sortedImports, ...bodyLines].join("\n"))
+}
+
+function normalizeVueInterpolations(content: string): string {
+  return content.replace(/>\s*\n\s*\{\{/g, ">{{").replace(/\}\}\s*\n\s*<\//g, "}}</")
 }

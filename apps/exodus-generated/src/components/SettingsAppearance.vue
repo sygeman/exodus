@@ -28,7 +28,7 @@ const isDark = computed({
         </p>
       </div>
       <div class="flex items-center">
-        <USwitch :model-value="isDark" />
+        <USwitch v-model="isDark" />
       </div>
     </div>
   </section>

@@ -60,13 +60,16 @@ export interface DataBinding {
   items?: unknown[] | string
   filter?: Record<string, unknown>
   sort?: string[]
+  key?: string
+  target?: "container" | "item"
   item?: ComponentNode
 }
 
 export type FlowEvent = { flow: string; input?: Record<string, unknown> }
 export type ActionEvent = { action: string; collection?: string; data?: Record<string, unknown> }
 export type NavigateEvent = { navigate: string }
-export type EventBinding = FlowEvent | ActionEvent | NavigateEvent
+export type ExpressionEvent = { expression: string }
+export type EventBinding = FlowEvent | ActionEvent | NavigateEvent | ExpressionEvent
 
 export interface Route {
   path: string
@@ -97,7 +100,16 @@ export const navigateEventSchema = z.object({
   navigate: z.string(),
 })
 
-export const eventBindingSchema = z.union([flowEventSchema, actionEventSchema, navigateEventSchema])
+export const expressionEventSchema = z.object({
+  expression: z.string(),
+})
+
+export const eventBindingSchema = z.union([
+  flowEventSchema,
+  actionEventSchema,
+  navigateEventSchema,
+  expressionEventSchema,
+])
 
 export const dataBindingSchema: z.ZodType<DataBinding> = z.lazy(
   () =>
@@ -106,6 +118,8 @@ export const dataBindingSchema: z.ZodType<DataBinding> = z.lazy(
       items: z.union([z.array(z.any()), z.string()]).optional(),
       filter: z.record(z.string(), z.any()).optional(),
       sort: z.array(z.string()).optional(),
+      key: z.string().optional(),
+      target: z.enum(["container", "item"]).optional(),
       item: componentNodeSchema.optional(),
     }) as z.ZodType<DataBinding>,
 )

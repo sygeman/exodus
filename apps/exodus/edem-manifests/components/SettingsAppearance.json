@@ -28,7 +28,7 @@
           "children": [
             {
               "component": "USwitch",
-              "props": { "modelValue": "{{ isDark }}" }
+              "props": { "vModel": "{{ isDark }}" }
             }
           ]
         }

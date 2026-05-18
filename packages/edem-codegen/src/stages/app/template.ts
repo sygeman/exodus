@@ -23,6 +23,7 @@ export function renderNode(
   indent: string,
   ir: IR,
   compName?: string,
+  inItemScope = false,
 ): RenderResult {
   const handlers = new Map<string, string>()
 
@@ -56,7 +57,7 @@ export function renderNode(
       ? `{{ ${renderT(emptyTextRaw)} }}`
       : String(emptyTextRaw)
     const emptyAction = node.empty.action
-      ? `\n${indent}  ${renderNode(node.empty.action, indent + "  ", ir, compName).template}`
+      ? `\n${indent}  ${renderNode(node.empty.action, indent + "  ", ir, compName, inItemScope).template}`
       : ""
     return {
       template: `${indent}<div${ifAttr} class="flex flex-1 flex-col items-center justify-center gap-4">\n${indent}  <UIcon name="${emptyIcon}" class="h-12 w-12 text-[var(--ui-text-muted)]" />\n${indent}  <p class="text-lg text-[var(--ui-text-muted)]">${emptyText}</p>${emptyAction}\n${indent}</div>`,
@@ -67,7 +68,7 @@ export function renderNode(
   const tag = node.component
   const exprCtx = buildExprCtx(ir, compName)
   const props = node.props ? renderProps(node.props, exprCtx) : ""
-  const events = renderEvents(node.events)
+  const events = renderEvents(node.events, inItemScope)
 
   // ── Link (RouterLink) ────────────────────────────────────────────────────
   if (typeof node.link === "string") {
@@ -89,7 +90,7 @@ export function renderNode(
       }
       if (Array.isArray(node.children) && node.children.length > 0) {
         const childResults = node.children.map((child) =>
-          renderNode(child, indent + "  ", ir, compName),
+          renderNode(child, indent + "  ", ir, compName, inItemScope),
         )
         for (const r of childResults) {
           for (const [k, v] of r.handlers) handlers.set(k, v)
@@ -111,7 +112,7 @@ export function renderNode(
   if (node.modal) {
     const vModel = node.modal.vModel
     const footerResult = node.modal.footer
-      ? node.modal.footer.map((f) => renderNode(f, indent + "    ", ir, compName))
+      ? node.modal.footer.map((f) => renderNode(f, indent + "    ", ir, compName, inItemScope))
       : []
     for (const r of footerResult) {
       for (const [k, v] of r.handlers) handlers.set(k, v)
@@ -140,6 +141,7 @@ export function renderNode(
       indent + "  ",
       ir,
       compName,
+      inItemScope,
     )
     for (const [k, v] of inner.handlers) handlers.set(k, v)
     return {
@@ -159,7 +161,13 @@ export function renderNode(
       t.leaveFromClass ? ` leave-from-class="${escapeAttr(t.leaveFromClass)}"` : "",
       t.leaveToClass ? ` leave-to-class="${escapeAttr(t.leaveToClass)}"` : "",
     ].join("")
-    const inner = renderNode({ ...node, transition: undefined }, indent + "  ", ir, compName)
+    const inner = renderNode(
+      { ...node, transition: undefined },
+      indent + "  ",
+      ir,
+      compName,
+      inItemScope,
+    )
     for (const [k, v] of inner.handlers) handlers.set(k, v)
     return {
       template: `${indent}<Transition${attrs}>\n${inner.template}\n${indent}</Transition>`,
@@ -173,7 +181,9 @@ export function renderNode(
     if (isNativeElement) {
       // Native HTML elements can't have named slots — render slot content as children
       const allSlotNodes = Object.values(node.namedSlots).flat()
-      const childResults = allSlotNodes.map((n) => renderNode(n, indent + "  ", ir, compName))
+      const childResults = allSlotNodes.map((n) =>
+        renderNode(n, indent + "  ", ir, compName, inItemScope),
+      )
       for (const r of childResults) {
         for (const [k, v] of r.handlers) handlers.set(k, v)
       }
@@ -185,7 +195,9 @@ export function renderNode(
     }
     const slotEntries = Object.entries(node.namedSlots)
     const slotParts = slotEntries.map(([name, slotNodes]) => {
-      const slotContent = slotNodes.map((n) => renderNode(n, indent + "    ", ir, compName))
+      const slotContent = slotNodes.map((n) =>
+        renderNode(n, indent + "    ", ir, compName, inItemScope),
+      )
       for (const r of slotContent) {
         for (const [k, v] of r.handlers) handlers.set(k, v)
       }
@@ -199,29 +211,42 @@ export function renderNode(
 
   // ── bind.item = list iteration ───────────────────────────────────────────
   if (node.bind?.item) {
-    const itemResult = renderNode(node.bind.item, indent + "  ", ir, compName)
+    const itemResult = renderNode(node.bind.item, indent + "  ", ir, compName, true)
     for (const [k, v] of itemResult.handlers) handlers.set(k, v)
 
     let vfor = ""
     if (node.bind.collection) {
-      vfor = ` v-for="item in ${node.bind.collection}" :key="item.id"`
+      const keyExpr = node.bind.key ? extractExpr(node.bind.key) : "item.id"
+      vfor = ` v-for="item in ${node.bind.collection}" :key="${keyExpr}"`
     } else if (node.bind.items) {
       const items = node.bind.items
       if (typeof items === "string") {
         const expr = items.includes("{{") ? items.replace(/\{\{\s*(.+?)\s*\}\}/g, "$1") : items
-        vfor = ` v-for="(item, idx) in ${expr}" :key="idx"`
+        const keyExpr = node.bind.key ? extractExpr(node.bind.key) : "idx"
+        vfor = ` v-for="(item, idx) in ${expr}" :key="${keyExpr}"`
       } else if (Array.isArray(items)) {
         const hasObjects = items.some((v) => typeof v === "object" && v !== null)
         if (hasObjects) {
           const varName = `items_${compName ?? "static"}_${Math.random().toString(36).slice(2, 8)}`
           handlers.set(`const_${varName}`, `const ${varName} = ${JSON.stringify(items)} as const`)
-          vfor = ` v-for="(item, idx) in ${varName}" :key="idx"`
+          const keyExpr = node.bind.key ? extractExpr(node.bind.key) : "idx"
+          vfor = ` v-for="(item, idx) in ${varName}" :key="${keyExpr}"`
         } else {
           const quoted = items.map((v) => (typeof v === "string" ? `'${v}'` : JSON.stringify(v)))
-          vfor = ` v-for="(item, idx) in [${quoted.join(", ")}]" :key="idx"`
+          const keyExpr = node.bind.key ? extractExpr(node.bind.key) : "idx"
+          vfor = ` v-for="(item, idx) in [${quoted.join(", ")}]" :key="${keyExpr}"`
         }
       } else {
-        vfor = ` v-for="(item, idx) in ${JSON.stringify(items)}" :key="idx"`
+        const keyExpr = node.bind.key ? extractExpr(node.bind.key) : "idx"
+        vfor = ` v-for="(item, idx) in ${JSON.stringify(items)}" :key="${keyExpr}"`
+      }
+    }
+
+    if (node.bind.target === "item") {
+      const repeatedItem = injectOpeningTagAttrs(itemResult.template, vfor)
+      return {
+        template: `${indent}<${tag}${props}${ifAttr}${events}>\n${repeatedItem}\n${indent}</${tag}>`,
+        handlers,
       }
     }
 
@@ -266,7 +291,7 @@ export function renderNode(
           handlers: new Map<string, string>(),
         }
       }
-      return renderNode(child, indent + "  ", ir, compName)
+      return renderNode(child, indent + "  ", ir, compName, inItemScope)
     })
     for (const r of childResults) {
       for (const [k, v] of r.handlers) handlers.set(k, v)
@@ -292,6 +317,13 @@ export function renderProps(props: Record<string, unknown>, ctx?: ExpressionCont
   return entries
     .map(([key, value]) => {
       const attr = kebabCase(key)
+
+      if (key === "vModel" || key === "v-model") {
+        if (typeof value === "string" && value.startsWith("{{ ")) {
+          return ` v-model="${extractExpr(value)}"`
+        }
+        return ` v-model="${JSON.stringify(value)}"`
+      }
 
       if (key === "modelValue" || key === "model-value") {
         if (typeof value === "string" && value.startsWith("{{ ")) {
@@ -379,7 +411,10 @@ export function renderProps(props: Record<string, unknown>, ctx?: ExpressionCont
     .join("")
 }
 
-export function renderEvents(events: Record<string, EventBinding> | undefined): string {
+export function renderEvents(
+  events: Record<string, EventBinding> | undefined,
+  inItemScope = false,
+): string {
   if (!events) return ""
 
   const parts: string[] = []
@@ -397,6 +432,9 @@ export function renderEvents(events: Record<string, EventBinding> | undefined): 
     if ("navigate" in binding) {
       parts.push(` @${vueEventName}="handleNavigate${slugify(binding.navigate)}()"`)
     }
+    if ("expression" in binding) {
+      parts.push(` @${vueEventName}="${binding.expression}"`)
+    }
     if ("action" in binding) {
       if (eventName === "update:modelValue") {
         const col = binding.collection ?? "item"
@@ -404,7 +442,8 @@ export function renderEvents(events: Record<string, EventBinding> | undefined): 
       } else if (binding.action === "deleteItem" && binding.collection) {
         parts.push(` @${vueEventName}="handleDelete${capitalize(binding.collection)}()"`)
       } else {
-        parts.push(` @${vueEventName}="${binding.action}($event)"`)
+        const itemArg = inItemScope ? ", item" : ""
+        parts.push(` @${vueEventName}="${binding.action}($event${itemArg})"`)
       }
     }
   }
@@ -426,4 +465,14 @@ export function extractExpr(template: string): string {
   if (!template.includes("{{")) return template
   const match = template.match(/\{\{\s*(.+?)\s*\}\}/)
   return match ? match[1] : template
+}
+
+function injectOpeningTagAttrs(template: string, attrs: string): string {
+  const closeIndex = template.indexOf(">")
+  if (closeIndex === -1) {
+    return template
+  }
+
+  const insertIndex = template[closeIndex - 1] === "/" ? closeIndex - 1 : closeIndex
+  return `${template.slice(0, insertIndex)}${attrs}${template.slice(insertIndex)}`
 }

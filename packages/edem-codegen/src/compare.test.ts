@@ -3,6 +3,7 @@ import {
   classifyArea,
   classifyReason,
   componentNameFromFile,
+  contentsMatchForParity,
   countBy,
   createEntry,
   isLayoutComponent,
@@ -111,6 +112,56 @@ describe("helpers", () => {
     expect(shouldSkipDir("dist")).toBe(true)
     expect(shouldSkipDir(".git")).toBe(true)
     expect(shouldSkipDir("src")).toBe(false)
+  })
+
+  it("treats blank-line-only text diffs as parity matches", () => {
+    const reference = Buffer.from("const a = 1\n\nconst b = 2\n")
+    const generated = Buffer.from("const a = 1\nconst b = 2\n")
+
+    expect(contentsMatchForParity("src/example.ts", reference, generated)).toBe(true)
+  })
+
+  it("treats trailing whitespace diffs as parity matches", () => {
+    const reference = Buffer.from("<div>\n  <span>Hi</span>  \n</div>\n")
+    const generated = Buffer.from("<div>\n  <span>Hi</span>\n</div>\n")
+
+    expect(contentsMatchForParity("src/example.vue", reference, generated)).toBe(true)
+  })
+
+  it("treats reordered import lines as parity matches", () => {
+    const reference = Buffer.from(
+      'import { computed } from "vue"\nimport { useT } from "@exodus/edem-vue"\n\nconst t = useT()\n',
+    )
+    const generated = Buffer.from(
+      'import { useT } from "@exodus/edem-vue"\nimport { computed } from "vue"\n\nconst t = useT()\n',
+    )
+
+    expect(contentsMatchForParity("src/example.ts", reference, generated)).toBe(true)
+  })
+
+  it("treats multiline vue interpolations as parity matches", () => {
+    const reference = Buffer.from(
+      '<h3 class="text-base font-medium">\n  {{ t({ en: "Dark mode" }) }}\n</h3>\n',
+    )
+    const generated = Buffer.from(
+      '<h3 class="text-base font-medium">{{ t({ en: "Dark mode" }) }}</h3>\n',
+    )
+
+    expect(contentsMatchForParity("src/example.vue", reference, generated)).toBe(true)
+  })
+
+  it("keeps meaningful text diffs as mismatches", () => {
+    const reference = Buffer.from("const a = 1\n")
+    const generated = Buffer.from("const a = 2\n")
+
+    expect(contentsMatchForParity("src/example.ts", reference, generated)).toBe(false)
+  })
+
+  it("does not normalize binary files", () => {
+    const reference = Buffer.from([0, 1, 2, 3])
+    const generated = Buffer.from([0, 1, 2, 4])
+
+    expect(contentsMatchForParity("assets/icon.png", reference, generated)).toBe(false)
   })
 
   it("creates a classified entry", () => {

@@ -1,16 +1,16 @@
 generated app reused
-total differences: 89
+total differences: 87
 
 by area:
 - shell: 8
 - layouts: 6
-- pages: 14
+- pages: 12
 - assets: 8
 - other: 53
 
 by reason:
 - schema gap: 45
-- generator gap: 32
+- generator gap: 30
 - migration gap: 12
 
 shell:
@@ -37,14 +37,12 @@ pages:
 - [different] src/components/DebugLogs.vue -> generator gap
 - [different] src/components/FlowCodePage.vue -> generator gap
 - [different] src/components/FlowEditorPage.vue -> generator gap
-- [different] src/components/FlowSettingsPage.vue -> generator gap
 - [different] src/components/IdeaPage.vue -> generator gap
 - [different] src/components/NotFound.vue -> generator gap
 - [different] src/components/ProjectFlowsPage.vue -> generator gap
 - [different] src/components/ProjectIdeasPage.vue -> generator gap
 - [different] src/components/ProjectPage.vue -> generator gap
 - [different] src/components/ProjectsListPage.vue -> generator gap
-- [different] src/components/SettingsAppearance.vue -> generator gap
 - [different] src/components/SettingsLanguage.vue -> generator gap
 
 assets:

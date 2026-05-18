@@ -36,10 +36,18 @@ const selectedLocale = computed({
           }}
         </p>
       </div>
-      <div class="flex flex-col gap-3" v-for="(item, idx) in locales" :key="idx">
+      <div class="flex flex-col gap-3">
         <button
           type="button"
-          class="flex items-center gap-3 rounded-md border p-3 text-left text-sm transition-all"
+          :class="{
+            'flex items-center gap-3 rounded-md border p-3 text-left text-sm transition-all': true,
+            'border-primary bg-primary/10 text-default': selectedLocale === item.value,
+            'text-muted border-default bg-elevated/30 hover:bg-elevated hover:border-accent':
+              selectedLocale !== item.value,
+          }"
+          @click="selectedLocale = item.value"
+          v-for="(item, idx) in locales"
+          :key="item.value"
         >
           <span class="text-2xl">{{ item.flag }}</span>
           <span class="font-medium">{{ item.label }}</span>

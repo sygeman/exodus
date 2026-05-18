@@ -17,84 +17,90 @@
           "children": [
             {
               "component": "div",
-              "props": { "class": "flex flex-col gap-1" },
+              "props": { "class": "border-default flex flex-col gap-4 border-b pb-8" },
               "children": [
                 {
-                  "component": "h3",
-                  "props": { "class": "text-base font-medium" },
-                  "children": { "$type": "translation", "en": "Name", "ru": "Название" }
+                  "component": "div",
+                  "props": { "class": "flex flex-col gap-1" },
+                  "children": [
+                    {
+                      "component": "h3",
+                      "props": { "class": "text-base font-medium" },
+                      "children": { "$type": "translation", "en": "Name", "ru": "Название" }
+                    },
+                    {
+                      "component": "p",
+                      "props": { "class": "text-muted text-sm" },
+                      "children": { "$type": "translation", "en": "Flow name is displayed in the list and sidebar.", "ru": "Название флоу отображается в списке и боковом меню." }
+                    }
+                  ]
                 },
                 {
-                  "component": "p",
-                  "props": { "class": "text-muted text-sm" },
-                  "children": { "$type": "translation", "en": "Flow name is displayed in the list and sidebar.", "ru": "Название флоу отображается в списке и боковом меню." }
+                  "component": "UInput",
+                  "props": { "class": "max-w-md", "modelValue": "{{ flow.data.name ?? '' }}" },
+                  "events": {
+                    "blur": { "action": "updateName" },
+                    "keyup.enter": { "action": "updateName" }
+                  }
                 }
               ]
             },
-            {
-              "component": "UInput",
-              "props": { "class": "max-w-md", "modelValue": "{{ flow.data.name ?? '' }}" },
-              "events": {
-                "blur": { "action": "updateName" },
-                "keyup.enter": { "action": "updateName" }
-              }
-            }
-          ]
-        },
-        {
-          "component": "div",
-          "props": { "class": "border-default flex flex-col gap-4 border-b pb-8" },
-          "children": [
             {
               "component": "div",
-              "props": { "class": "flex flex-col gap-1" },
+              "props": { "class": "border-default flex flex-col gap-4 border-b pb-8" },
               "children": [
                 {
-                  "component": "h3",
-                  "props": { "class": "text-base font-medium" },
-                  "children": { "$type": "translation", "en": "Status", "ru": "Статус" }
+                  "component": "div",
+                  "props": { "class": "flex flex-col gap-1" },
+                  "children": [
+                    {
+                      "component": "h3",
+                      "props": { "class": "text-base font-medium" },
+                      "children": { "$type": "translation", "en": "Status", "ru": "Статус" }
+                    },
+                    {
+                      "component": "p",
+                      "props": { "class": "text-muted text-sm" },
+                      "children": { "$type": "translation", "en": "Flow status determines whether it is running or paused.", "ru": "Статус флоу определяет, запущен он или приостановлен." }
+                    }
+                  ]
                 },
                 {
-                  "component": "p",
-                  "props": { "class": "text-muted text-sm" },
-                  "children": { "$type": "translation", "en": "Flow status determines whether it is running or paused.", "ru": "Статус флоу определяет, запущен он или приостановлен." }
+                  "component": "USelect",
+                  "props": {
+                    "modelValue": "{{ flow.data.status ?? 'draft' }}",
+                    "items": "{{ statusItems }}",
+                    "valueKey": "value",
+                    "labelKey": "label",
+                    "size": "sm",
+                    "class": "max-w-md"
+                  },
+                  "events": { "update:model-value": { "action": "updateStatus" } }
                 }
               ]
             },
             {
-              "component": "USelect",
-              "props": {
-                "modelValue": "{{ flow.data.status ?? 'draft' }}",
-                "items": "{{ statusItems }}",
-                "valueKey": "value",
-                "labelKey": "label",
-                "size": "sm",
-                "class": "max-w-md"
-              },
-              "events": { "update:model-value": { "action": "updateStatus" } }
-            }
-          ]
-        },
-        {
-          "component": "div",
-          "children": [
-            {
-              "component": "h3",
-              "props": { "class": "text-error mb-2 text-base font-medium" },
-              "children": { "$type": "translation", "en": "Delete flow", "ru": "Удаление флоу" }
-            },
-            {
-              "component": "p",
-              "props": { "class": "text-muted mb-4 text-sm" },
-              "children": { "$type": "translation", "en": "This action cannot be undone. All flow data will be permanently deleted.", "ru": "Это действие нельзя отменить. Все данные флоу будут безвозвратно удалены." }
-            },
-            {
-              "component": "UButton",
-              "props": { "color": "error", "variant": "outline" },
-              "events": { "click": { "action": "openDeleteModal" } },
+              "component": "div",
               "children": [
-                { "component": "UIcon", "props": { "name": "i-lucide-trash-2", "class": "h-4 w-4" } },
-                { "component": "span", "props": { "class": "ml-2" }, "children": { "$type": "translation", "en": "Delete", "ru": "Удалить" } }
+                {
+                  "component": "h3",
+                  "props": { "class": "text-error mb-2 text-base font-medium" },
+                  "children": { "$type": "translation", "en": "Delete flow", "ru": "Удаление флоу" }
+                },
+                {
+                  "component": "p",
+                  "props": { "class": "text-muted mb-4 text-sm" },
+                  "children": { "$type": "translation", "en": "This action cannot be undone. All flow data will be permanently deleted.", "ru": "Это действие нельзя отменить. Все данные флоу будут безвозвратно удалены." }
+                },
+                {
+                  "component": "UButton",
+                  "props": { "color": "error", "variant": "outline" },
+                  "events": { "click": { "action": "openDeleteModal" } },
+                  "children": [
+                    { "component": "UIcon", "props": { "name": "i-lucide-trash-2", "class": "h-4 w-4" } },
+                    { "component": "span", "props": { "class": "ml-2" }, "children": { "$type": "translation", "en": "Delete", "ru": "Удалить" } }
+                  ]
+                }
               ]
             }
           ]
@@ -128,5 +134,5 @@
       ]
     }
   ],
-  "rawScript": "import { useRoute, useRouter } from 'vue-router'\nimport { computed, ref } from 'vue'\nimport { useFlows, useUpdateItem, useDeleteItem } from '@/hooks'\n\nconst route = useRoute()\nconst router = useRouter()\nconst projectId = computed(() => route.params.id as string)\nconst flowId = computed(() => route.params.flowId as string)\n\nconst { items: flows } = useFlows({ filter: { project_id: { _eq: projectId.value } } })\nconst [updateItem] = useUpdateItem()\nconst [deleteItem] = useDeleteItem()\n\nconst flow = computed(() => flows.value.find((f) => f.id === flowId.value))\nconst deleteModalOpen = ref(false)\n\nconst navItems = computed(() => [\n  {\n    to: `/project/${projectId.value}/flows/${flowId.value}/settings`,\n    label: t({ en: 'General', ru: 'Общие' }),\n    icon: 'i-lucide-settings',\n  },\n])\n\nfunction updateName(e: FocusEvent | KeyboardEvent) {\n  const value = (e.target as HTMLInputElement).value\n  if (!flow.value) return\n  const trimmed = value.trim()\n  if (trimmed === '') return\n  if (trimmed === flow.value.data.name) return\n  updateItem(flow.value.id, { name: trimmed })\n}\n\nfunction updateStatus(value: string) {\n  if (!flow.value || value === flow.value.data.status) return\n  updateItem(flow.value.id, { status: value })\n}\n\nfunction openDeleteModal(_event?: Event) {\n  deleteModalOpen.value = true\n}\n\nfunction closeDeleteModal(_event?: Event) {\n  deleteModalOpen.value = false\n}\n\nfunction confirmDelete(_event?: Event) {\n  if (!flow.value) return\n  deleteItem(flow.value.id)\n  deleteModalOpen.value = false\n  router.push(`/project/${projectId.value}/flows`)\n}\n\nconst statusItems = [\n  { label: 'draft', value: 'draft' },\n  { label: 'active', value: 'active' },\n  { label: 'paused', value: 'paused' },\n  { label: 'archived', value: 'archived' },\n]"
+  "rawScript": "import { useRoute, useRouter } from 'vue-router'\nimport { computed, ref } from 'vue'\nimport { useCollectionQuery, useUpdateItem, useDeleteItem } from '@/hooks'\n\nconst route = useRoute()\nconst router = useRouter()\nconst projectId = computed(() => route.params.id as string)\nconst flowId = computed(() => route.params.flowId as string)\n\nconst { data: flows } = useCollectionQuery('flows', () => ({\n  filter: { project_id: { _eq: projectId.value } },\n}))\nconst [updateItem] = useUpdateItem()\nconst [deleteItem] = useDeleteItem()\n\nconst flow = computed(() => flows.value.find((f) => f.id === flowId.value))\nconst deleteModalOpen = ref(false)\n\nconst navItems = computed(() => [\n  {\n    to: `/project/${projectId.value}/flows/${flowId.value}/settings`,\n    label: t({ en: 'General', ru: 'Общие' }),\n    icon: 'i-lucide-settings',\n  },\n])\n\nfunction updateName(e: FocusEvent | KeyboardEvent) {\n  const value = (e.target as HTMLInputElement).value\n  if (!flow.value) return\n  const trimmed = value.trim()\n  if (trimmed === '') return\n  if (trimmed === flow.value.data.name) return\n  updateItem(flow.value.id, { name: trimmed })\n}\n\nfunction updateStatus(value: string) {\n  if (!flow.value || value === flow.value.data.status) return\n  updateItem(flow.value.id, { status: value })\n}\n\nfunction openDeleteModal(_event?: Event) {\n  deleteModalOpen.value = true\n}\n\nfunction closeDeleteModal(_event?: Event) {\n  deleteModalOpen.value = false\n}\n\nfunction confirmDelete(_event?: Event) {\n  if (!flow.value) return\n  deleteItem(flow.value.id)\n  deleteModalOpen.value = false\n  router.push(`/project/${projectId.value}/flows`)\n}\n\nconst statusItems = [\n  { label: 'draft', value: 'draft' },\n  { label: 'active', value: 'active' },\n  { label: 'paused', value: 'paused' },\n  { label: 'archived', value: 'archived' },\n]"
 }
