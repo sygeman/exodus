@@ -34,12 +34,16 @@
     "compare": {
       "cache": false
     },
+    "//#generated:install": {
+      "dependsOn": ["@exodus/edem-codegen#codegen"],
+      "cache": false
+    },
     "@exodus/edem-codegen#compare": {
       "dependsOn": ["//#generated:lint"]
     },
     "//#generated:lint": {
-      "dependsOn": ["@exodus/edem-codegen#codegen"],
-      "cache": false
+      "dependsOn": ["//#generated:install"],
+      "cache": true
     },
     "//#quality": {
       "dependsOn": ["//#lint", "//#format"]

@@ -51,6 +51,26 @@
   "ignorePatterns": ["node_modules", "dist", "build", "artifacts", ".agents", "*.config.ts", "*.test.ts", "*.d.ts"],
   "overrides": [
     {
+      "files": ["apps/exodus-generated/**/*.{ts,tsx,js,jsx,vue}"],
+      "rules": {
+        "tailwindcss/no-unknown-classes": "off",
+        "tailwindcss/no-duplicate-classes": "off",
+        "tailwindcss/no-conflicting-classes": "off",
+        "tailwindcss/no-deprecated-classes": "off",
+        "tailwindcss/no-unnecessary-whitespace": "off",
+        "tailwindcss/no-dark-without-light": "off",
+        "tailwindcss/no-contradicting-variants": "off",
+        "tailwindcss/enforce-canonical": "off",
+        "tailwindcss/enforce-shorthand": "off",
+        "tailwindcss/enforce-consistent-important-position": "off",
+        "tailwindcss/enforce-consistent-variable-syntax": "off",
+        "tailwindcss/consistent-variant-order": "off",
+        "tailwindcss/no-hardcoded-colors": "off",
+        "tailwindcss/no-unnecessary-arbitrary-value": "off",
+        "tailwindcss/prefer-theme-tokens": "off"
+      }
+    },
+    {
       "files": ["*.test.ts", "*.spec.ts"],
       "rules": {
         "no-console": "off"
