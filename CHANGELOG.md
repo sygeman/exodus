@@ -1,3 +1,18 @@
+# [1.11.0](https://github.com/sygeman/exodus/compare/v1.10.1...v1.11.0) (2026-05-18)
+
+
+### Bug Fixes
+
+* **edem-codegen:** resolve icon script paths from project root ([8951bf6](https://github.com/sygeman/exodus/commit/8951bf65a5a3008898236a024ec862bf51183a75))
+
+
+### Features
+
+* **edem-codegen:** add self-hosting parity reporting ([50e205a](https://github.com/sygeman/exodus/commit/50e205a426496fb4f5a6badad2e064a8ce125a47))
+* **edem-codegen:** emit parity report on generate ([7031176](https://github.com/sygeman/exodus/commit/70311768929ca16143118bb69c61063fe579bb52))
+
+
+
 ## [1.10.1](https://github.com/sygeman/exodus/compare/v1.10.0...v1.10.1) (2026-05-18)
 
 
@@ -32,15 +47,6 @@
 ### Bug Fixes
 
 * **debug:** replace ⚡ emoji with lucide-zap icon in flow lists ([ec7c761](https://github.com/sygeman/exodus/commit/ec7c76143cbd30b8345d590de9ba8c23485f6b94))
-
-
-
-## [1.8.1](https://github.com/sygeman/exodus/compare/v1.8.0...v1.8.1) (2026-05-14)
-
-
-### Bug Fixes
-
-* **debug:** show duration before timestamp in run list ([2bf6477](https://github.com/sygeman/exodus/commit/2bf64773ca0c3a41bccf3ff586c25dab4611523e))
 
 
 
