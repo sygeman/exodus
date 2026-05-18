@@ -43,7 +43,8 @@
       "cache": false
     },
     "@exodus/edem-codegen#compare": {
-      "dependsOn": ["//#generated:lint"]
+      "dependsOn": ["//#generated:lint"],
+      "cache": false
     },
     "//#generated:lint": {
       "dependsOn": ["//#generated:format"],
