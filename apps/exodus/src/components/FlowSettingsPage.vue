@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { useT } from "@exodus/edem-vue"
-import { useCollectionQuery, useUpdateItem, useDeleteItem } from "@/hooks"
-import { useRoute, useRouter } from "vue-router"
-import { computed, ref } from "vue"
 import SettingsLayout from "@/components/SettingsLayout.vue"
-import type { MenuLayoutItem } from "@/components/MenuLayout.vue"
+import { useT } from "@exodus/edem-vue"
 
 const t = useT()
+
+import { useRoute, useRouter } from "vue-router"
+import { computed, ref } from "vue"
+import { useCollectionQuery, useUpdateItem, useDeleteItem } from "@/hooks"
+
 const route = useRoute()
 const router = useRouter()
 const projectId = computed(() => route.params.id as string)
@@ -20,7 +21,9 @@ const [deleteItem] = useDeleteItem()
 
 const flow = computed(() => flows.value.find((f) => f.id === flowId.value))
 
-const navItems = computed<MenuLayoutItem[]>(() => [
+const deleteModalOpen = ref(false)
+
+const navItems = computed(() => [
   {
     to: `/project/${projectId.value}/flows/${flowId.value}/settings`,
     label: t({ en: "General", ru: "Общие" }),
@@ -28,7 +31,8 @@ const navItems = computed<MenuLayoutItem[]>(() => [
   },
 ])
 
-function updateName(value: string) {
+function updateName(e: FocusEvent | KeyboardEvent) {
+  const value = (e.target as HTMLInputElement).value
   if (!flow.value) return
   const trimmed = value.trim()
   if (trimmed === "") return
@@ -41,13 +45,15 @@ function updateStatus(value: string) {
   updateItem(flow.value.id, { status: value })
 }
 
-const deleteModalOpen = ref(false)
-
-function openDeleteModal() {
+function openDeleteModal(_event?: Event) {
   deleteModalOpen.value = true
 }
 
-function confirmDelete() {
+function closeDeleteModal(_event?: Event) {
+  deleteModalOpen.value = false
+}
+
+function confirmDelete(_event?: Event) {
   if (!flow.value) return
   deleteItem(flow.value.id)
   deleteModalOpen.value = false
@@ -63,11 +69,12 @@ const statusItems = [
 </script>
 
 <template>
-  <div v-if="flow" class="flex h-full">
+  <div class="flex h-full">
     <SettingsLayout
       :title="t({ en: 'Settings', ru: 'Настройки' })"
       :items="navItems"
       :page-title="t({ en: 'Flow Settings', ru: 'Настройки флоу' })"
+      v-if="flow"
     >
       <section class="flex flex-col gap-8">
         <div class="border-default flex flex-col gap-4 border-b pb-8">
@@ -85,8 +92,8 @@ const statusItems = [
           <UInput
             class="max-w-md"
             :model-value="flow.data.name ?? ''"
-            @blur="(e: FocusEvent) => updateName((e.target as HTMLInputElement).value)"
-            @keyup.enter="(e: KeyboardEvent) => updateName((e.target as HTMLInputElement).value)"
+            @blur="updateName($event)"
+            @keyup.enter="updateName($event)"
           />
         </div>
 
@@ -109,7 +116,7 @@ const statusItems = [
             label-key="label"
             size="sm"
             class="max-w-md"
-            @update:model-value="(v: string) => updateStatus(v)"
+            @update:model-value="updateStatus($event)"
           />
         </div>
 
@@ -125,7 +132,7 @@ const statusItems = [
               })
             }}
           </p>
-          <UButton color="error" variant="outline" @click="openDeleteModal">
+          <UButton color="error" variant="outline" @click="openDeleteModal($event)">
             <UIcon name="i-lucide-trash-2" class="h-4 w-4" />
             <span class="ml-2">{{ t({ en: "Delete", ru: "Удалить" }) }}</span>
           </UButton>
@@ -144,12 +151,12 @@ const statusItems = [
       >
         <template #footer>
           <div class="flex w-full justify-end gap-3">
-            <UButton variant="ghost" @click="deleteModalOpen = false">
-              {{ t({ en: "Cancel", ru: "Отмена" }) }}
-            </UButton>
-            <UButton color="error" @click="confirmDelete">
-              {{ t({ en: "Delete", ru: "Удалить" }) }}
-            </UButton>
+            <UButton variant="ghost" @click="closeDeleteModal($event)">{{
+              t({ en: "Cancel", ru: "Отмена" })
+            }}</UButton>
+            <UButton color="error" @click="confirmDelete($event)">{{
+              t({ en: "Delete", ru: "Удалить" })
+            }}</UButton>
           </div>
         </template>
       </UModal>

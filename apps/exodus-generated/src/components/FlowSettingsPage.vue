@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import SettingsLayout from "@/components/SettingsLayout.vue"
 import { useT } from "@exodus/edem-vue"
 
 const t = useT()
@@ -17,8 +18,15 @@ const [updateItem] = useUpdateItem()
 const [deleteItem] = useDeleteItem()
 
 const flow = computed(() => flows.value.find((f) => f.id === flowId.value))
-
 const deleteModalOpen = ref(false)
+
+const navItems = computed(() => [
+  {
+    to: `/project/${projectId.value}/flows/${flowId.value}/settings`,
+    label: t({ en: "General", ru: "Общие" }),
+    icon: "i-lucide-settings",
+  },
+])
 
 function updateName(e: FocusEvent | KeyboardEvent) {
   const value = (e.target as HTMLInputElement).value
@@ -34,22 +42,38 @@ function updateStatus(value: string) {
   updateItem(flow.value.id, { status: value })
 }
 
-function openDeleteModal() {
+function openDeleteModal(_event?: Event) {
   deleteModalOpen.value = true
 }
 
-function confirmDelete() {
+function closeDeleteModal(_event?: Event) {
+  deleteModalOpen.value = false
+}
+
+function confirmDelete(_event?: Event) {
   if (!flow.value) return
   deleteItem(flow.value.id)
   deleteModalOpen.value = false
   router.push(`/project/${projectId.value}/flows`)
 }
+
+const statusItems = [
+  { label: "draft", value: "draft" },
+  { label: "active", value: "active" },
+  { label: "paused", value: "paused" },
+  { label: "archived", value: "archived" },
+]
 </script>
 
 <template>
   <div class="flex h-full">
-    <section class="flex flex-col gap-8">
-      <div class="border-default flex flex-col gap-4 border-b pb-8">
+    <SettingsLayout
+      :title="t({ en: 'Settings', ru: 'Настройки' })"
+      :items="navItems"
+      :page-title="t({ en: 'Flow Settings', ru: 'Настройки флоу' })"
+      v-if="flow"
+    >
+      <section class="flex flex-col gap-8">
         <div class="flex flex-col gap-1">
           <h3 class="text-base font-medium">{{ t({ en: "Name", ru: "Название" }) }}</h3>
           <p class="text-muted text-sm">
@@ -67,7 +91,7 @@ function confirmDelete() {
           @blur="updateName($event)"
           @keyup.enter="updateName($event)"
         />
-      </div>
+      </section>
       <div class="border-default flex flex-col gap-4 border-b pb-8">
         <div class="flex flex-col gap-1">
           <h3 class="text-base font-medium">{{ t({ en: "Status", ru: "Статус" }) }}</h3>
@@ -82,6 +106,10 @@ function confirmDelete() {
         </div>
         <USelect
           :model-value="flow.data.status ?? 'draft'"
+          :items="statusItems"
+          value-key="value"
+          label-key="label"
+          size="sm"
           class="max-w-md"
           @update:model-value="updateStatus($event)"
         />
@@ -103,6 +131,27 @@ function confirmDelete() {
           <span class="ml-2">{{ t({ en: "Delete", ru: "Удалить" }) }}</span>
         </UButton>
       </div>
-    </section>
+      <UModal
+        v-model:open="deleteModalOpen"
+        :title="t({ en: 'Delete flow?', ru: 'Удалить флоу?' })"
+        :description="
+          t({
+            en: 'Are you sure you want to delete this flow? This action cannot be undone.',
+            ru: 'Вы уверены, что хотите удалить этот флоу? Это действие необратимо.',
+          })
+        "
+      >
+        <template #footer>
+          <div class="flex w-full justify-end gap-3">
+            <UButton variant="ghost" @click="closeDeleteModal($event)">{{
+              t({ en: "Cancel", ru: "Отмена" })
+            }}</UButton>
+            <UButton color="error" @click="confirmDelete($event)">{{
+              t({ en: "Delete", ru: "Удалить" })
+            }}</UButton>
+          </div>
+        </template>
+      </UModal>
+    </SettingsLayout>
   </div>
 </template>
