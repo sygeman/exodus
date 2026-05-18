@@ -3,6 +3,6 @@
   "compilerOptions": {
     "types": ["bun-types"]
   },
-  "include": ["src/**/*.ts"],
+  "include": ["src/**/*.ts", "generate.ts", "compare.ts"],
   "exclude": ["node_modules", "dist", "src/__test_output__"]
 }

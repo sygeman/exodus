@@ -1,5 +1,7 @@
 import { z } from "zod"
 import { createEdemModule } from "@exodus/edem-core"
+import { existsSync, readFileSync, readdirSync } from "fs"
+import { dirname, join } from "path"
 import { parseManifests, type Manifests } from "./parse"
 import { validateIR } from "./validate"
 import {
@@ -44,16 +46,7 @@ export const codegenModule = createEdemModule("codegen", (module) => {
       }),
       resolve: async ({ input }) => {
         const manifests = input.manifests as Manifests
-        const {
-          mkdirSync,
-          writeFileSync,
-          readFileSync,
-          readdirSync,
-          existsSync,
-          rmSync,
-          chmodSync,
-        } = await import("fs")
-        const { join } = await import("path")
+        const { mkdirSync, writeFileSync, rmSync, chmodSync } = await import("fs")
 
         // 1. Parse manifests → IR
         const ir = parseManifests(manifests, input.project_name)
@@ -103,8 +96,9 @@ export const codegenModule = createEdemModule("codegen", (module) => {
         const uniqueDevDeps = [...new Set(allDevDeps)]
         const workspaceDevDeps = uniqueDevDeps.filter((d) => d.startsWith("@exodus/"))
         const externalDevDeps = uniqueDevDeps.filter((d) => !d.startsWith("@exodus/"))
+        const versionCatalog = collectDependencyVersions(input.manifests_dir ?? input.output)
 
-        // 6. Write package.json (without workspace deps first)
+        // 6. Write package.json directly without invoking package manager.
         const pkg = {
           name: input.project_id,
           version: "0.0.0",
@@ -112,64 +106,14 @@ export const codegenModule = createEdemModule("codegen", (module) => {
           type: "module" as const,
           private: true,
           scripts: allScripts,
-          dependencies: {} as Record<string, string>,
-          devDependencies: {} as Record<string, string>,
+          dependencies: buildDependencyMap(externalDeps, workspaceDeps, versionCatalog),
+          devDependencies: buildDependencyMap(externalDevDeps, workspaceDevDeps, versionCatalog),
         }
 
-        const { dirname } = await import("path")
         const pkgPath = join(input.output, "package.json")
         writeFileSync(pkgPath, JSON.stringify(pkg, null, 2), "utf-8")
 
-        // 7. Install external dependencies via bun add
-        if (externalDeps.length > 0) {
-          const proc = Bun.spawn(["bun", "add", ...externalDeps], {
-            cwd: input.output,
-            stdout: "pipe",
-            stderr: "pipe",
-          })
-          const exitCode = await proc.exited
-          if (exitCode !== 0) {
-            const stderr = await new Response(proc.stderr).text()
-            throw new Error(`bun add failed (exit ${exitCode}): ${stderr}`)
-          }
-        }
-
-        if (externalDevDeps.length > 0) {
-          const proc = Bun.spawn(["bun", "add", "--dev", ...externalDevDeps], {
-            cwd: input.output,
-            stdout: "pipe",
-            stderr: "pipe",
-          })
-          const exitCode = await proc.exited
-          if (exitCode !== 0) {
-            const stderr = await new Response(proc.stderr).text()
-            throw new Error(`bun add --dev failed (exit ${exitCode}): ${stderr}`)
-          }
-        }
-
-        // 8. Add workspace deps to package.json (after bun add)
-        if (workspaceDeps.length > 0 || workspaceDevDeps.length > 0) {
-          const updatedPkg = JSON.parse(readFileSync(pkgPath, "utf-8"))
-          updatedPkg.dependencies = updatedPkg.dependencies ?? {}
-          for (const dep of workspaceDeps) {
-            updatedPkg.dependencies[dep] = "workspace:*"
-          }
-          updatedPkg.devDependencies = updatedPkg.devDependencies ?? {}
-          for (const dep of workspaceDevDeps) {
-            updatedPkg.devDependencies[dep] = "workspace:*"
-          }
-          writeFileSync(pkgPath, JSON.stringify(updatedPkg, null, 2), "utf-8")
-
-          // Re-install to link workspace deps
-          const installProc = Bun.spawn(["bun", "install"], {
-            cwd: input.output,
-            stdout: "pipe",
-            stderr: "pipe",
-          })
-          await installProc.exited
-        }
-
-        // 9. Write manifests
+        // 7. Write manifests
         const manifestsDir = join(input.output, "edem-manifests")
         mkdirSync(manifestsDir, { recursive: true })
         writeFileSync(
@@ -242,7 +186,7 @@ export const codegenModule = createEdemModule("codegen", (module) => {
           }
         }
 
-        // 10. Write generated files
+        // 8. Write generated files
         for (const file of allFiles) {
           const outPath = join(input.output, file.path)
           const dir = dirname(outPath)
@@ -278,3 +222,117 @@ export const codegenModule = createEdemModule("codegen", (module) => {
       },
     })
 })
+
+interface PackageManifest {
+  workspaces?: string[]
+  dependencies?: Record<string, string>
+  devDependencies?: Record<string, string>
+}
+
+function buildDependencyMap(
+  externalDeps: string[],
+  workspaceDeps: string[],
+  versionCatalog: Map<string, string>,
+): Record<string, string> {
+  const deps: Record<string, string> = {}
+
+  for (const dep of externalDeps) {
+    deps[dep] = resolveDependencyVersion(dep, versionCatalog)
+  }
+
+  for (const dep of workspaceDeps) {
+    deps[dep] = "workspace:*"
+  }
+
+  return deps
+}
+
+function resolveDependencyVersion(dep: string, versionCatalog: Map<string, string>): string {
+  const version = versionCatalog.get(dep)
+  if (!version) {
+    throw new Error(`Cannot resolve version for dependency "${dep}" from workspace manifests`)
+  }
+
+  return version
+}
+
+function collectDependencyVersions(startDir: string): Map<string, string> {
+  const workspaceRoot = findWorkspaceRoot(startDir)
+  if (!workspaceRoot) {
+    return new Map()
+  }
+
+  const rootManifest = readPackageManifest(join(workspaceRoot, "package.json"))
+  const catalog = new Map<string, string>()
+
+  addManifestDeps(catalog, rootManifest)
+
+  for (const pkgPath of expandWorkspacePackagePaths(workspaceRoot, rootManifest.workspaces ?? [])) {
+    addManifestDeps(catalog, readPackageManifest(pkgPath))
+  }
+
+  return catalog
+}
+
+function addManifestDeps(catalog: Map<string, string>, manifest: PackageManifest): void {
+  for (const [name, version] of Object.entries(manifest.dependencies ?? {})) {
+    catalog.set(name, version)
+  }
+
+  for (const [name, version] of Object.entries(manifest.devDependencies ?? {})) {
+    catalog.set(name, version)
+  }
+}
+
+function readPackageManifest(filePath: string): PackageManifest {
+  return JSON.parse(readFileSync(filePath, "utf-8")) as PackageManifest
+}
+
+function findWorkspaceRoot(startDir: string): string | null {
+  let current = startDir
+
+  while (true) {
+    const pkgPath = join(current, "package.json")
+    if (existsSync(pkgPath)) {
+      const manifest = readPackageManifest(pkgPath)
+      if (Array.isArray(manifest.workspaces)) {
+        return current
+      }
+    }
+
+    const parent = dirname(current)
+    if (parent === current) {
+      return null
+    }
+
+    current = parent
+  }
+}
+
+function expandWorkspacePackagePaths(workspaceRoot: string, patterns: string[]): string[] {
+  const packagePaths = new Set<string>()
+
+  for (const pattern of patterns) {
+    if (!pattern.endsWith("/*")) {
+      continue
+    }
+
+    const baseDir = join(workspaceRoot, pattern.slice(0, -2))
+    if (!existsSync(baseDir)) {
+      continue
+    }
+
+    for (const entry of readdirSync(baseDir, { withFileTypes: true })) {
+      if (!entry.isDirectory()) {
+        continue
+      }
+
+      const pkgPath = join(baseDir, entry.name, "package.json")
+      if (existsSync(pkgPath)) {
+        packagePaths.add(pkgPath)
+      }
+    }
+  }
+
+  return [...packagePaths]
+}
