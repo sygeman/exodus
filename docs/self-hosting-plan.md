@@ -70,6 +70,7 @@ Edem UI ближе по философии к связке `Astro` + `Storybook`
 - расхождения группируются по `shell`, `layouts`, `pages`, `assets`, `other`
 - расхождения классифицируются как `schema gap`, `generator gap`, `migration gap`
 - генератор больше не зависит от `bun add` / `bun install` внутри output-проекта
+- pipeline генерации иконок больше не падает из-за относительных `asset`-путей в generated app
 
 Проверено фактическим прогоном:
 
@@ -79,7 +80,6 @@ Edem UI ближе по философии к связке `Astro` + `Storybook`
 
 Текущие известные блокеры:
 
-- icon generation warning: скрипт ожидает `src/assets/logo.svg`, но в текущем pipeline этот файл недоступен в нужный момент или по ожидаемому пути
 - shell/layout/page parity по-прежнему в основном находится в зоне `generator gap`
 - часть расхождений относится к `schema gap`, то есть не лечится только правками codegen
 
@@ -359,10 +359,10 @@ Definition of done:
 
 ## Ближайшие шаги
 
-1. Починить pipeline генерации иконок и asset-path contract
-2. Выбрать один простой экран для первого product vertical slice
-3. Снять capability-gap именно для этого экрана
-4. Закрыть минимальный `generator gap` для shell/layout/page вокруг этого экрана
+1. Выбрать один простой экран для первого product vertical slice
+2. Снять capability-gap именно для этого экрана
+3. Закрыть минимальный `generator gap` для shell/layout/page вокруг этого экрана
+4. Протянуть этот экран через route, layout, data binding и action без ручных правок generated app
 5. Обновлять parity baseline после каждого замкнутого шага, а не после больших пачек изменений
 
 ## Порядок реальной реализации
