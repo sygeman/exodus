@@ -61,7 +61,12 @@ function confirmDelete() {
             }}
           </p>
         </div>
-        <UInput class="max-w-md" :model-value="flow.data.name ?? ''" />
+        <UInput
+          class="max-w-md"
+          :model-value="flow.data.name ?? ''"
+          @blur="updateName($event)"
+          @keyup.enter="updateName($event)"
+        />
       </div>
       <div class="border-default flex flex-col gap-4 border-b pb-8">
         <div class="flex flex-col gap-1">
@@ -75,7 +80,11 @@ function confirmDelete() {
             }}
           </p>
         </div>
-        <USelect :model-value="flow.data.status ?? 'draft'" class="max-w-md" />
+        <USelect
+          :model-value="flow.data.status ?? 'draft'"
+          class="max-w-md"
+          @update:model-value="updateStatus($event)"
+        />
       </div>
       <div>
         <h3 class="text-error mb-2 text-base font-medium">
@@ -89,7 +98,7 @@ function confirmDelete() {
             })
           }}
         </p>
-        <UButton color="error" variant="outline">
+        <UButton color="error" variant="outline" @click="openDeleteModal($event)">
           <UIcon name="i-lucide-trash-2" class="h-4 w-4" />
           <span class="ml-2">{{ t({ en: "Delete", ru: "Удалить" }) }}</span>
         </UButton>

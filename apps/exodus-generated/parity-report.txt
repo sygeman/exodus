@@ -1,17 +1,17 @@
 generated app refreshed
-total differences: 90
+total differences: 92
 
 by area:
 - shell: 8
 - layouts: 8
 - pages: 15
 - assets: 8
-- other: 51
+- other: 53
 
 by reason:
 - schema gap: 43
-- generator gap: 33
-- migration gap: 14
+- generator gap: 37
+- migration gap: 12
 
 shell:
 - [different] index.html -> generator gap
@@ -28,10 +28,10 @@ layouts:
 - [only_in_reference] src/components/AppTopMenu.vue -> migration gap
 - [only_in_reference] src/components/DebugLayout.vue -> migration gap
 - [only_in_reference] src/components/FlowEditorLayout.vue -> migration gap
-- [only_in_reference] src/components/MenuLayout.vue -> migration gap
+- [different] src/components/MenuLayout.vue -> generator gap
 - [only_in_reference] src/components/ProjectLayout.vue -> migration gap
 - [only_in_reference] src/components/ProjectsSidebar.vue -> migration gap
-- [only_in_reference] src/components/SettingsLayout.vue -> migration gap
+- [different] src/components/SettingsLayout.vue -> generator gap
 
 pages:
 - [different] src/components/DebugFlowRuns.vue -> generator gap
@@ -73,6 +73,7 @@ other:
 - [different] edem-manifests/components/FlowEditorPage.json -> schema gap
 - [different] edem-manifests/components/FlowSettingsPage.json -> schema gap
 - [different] edem-manifests/components/IdeaPage.json -> schema gap
+- [only_in_generated] edem-manifests/components/MenuLayout.json -> generator gap
 - [different] edem-manifests/components/NotFound.json -> schema gap
 - [different] edem-manifests/components/ProjectFlowsPage.json -> schema gap
 - [different] edem-manifests/components/ProjectIdeasPage.json -> schema gap
@@ -81,6 +82,7 @@ other:
 - [different] edem-manifests/components/ProjectsListPage.json -> schema gap
 - [different] edem-manifests/components/SettingsAppearance.json -> schema gap
 - [different] edem-manifests/components/SettingsLanguage.json -> schema gap
+- [only_in_generated] edem-manifests/components/SettingsLayout.json -> generator gap
 - [different] edem-manifests/data.json -> schema gap
 - [different] edem-manifests/flows.json -> schema gap
 - [different] edem-manifests/routes.json -> schema gap

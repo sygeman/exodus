@@ -94,17 +94,29 @@ function confirmDelete() {
           t({ en: "Back to ideas", ru: "Назад к идеям" })
         }}</UButton>
       </div>
-      <UButton color="error" variant="ghost" size="sm" icon="i-lucide-trash-2">{{
-        t({ en: "Delete", ru: "Удалить" })
-      }}</UButton>
+      <UButton
+        color="error"
+        variant="ghost"
+        size="sm"
+        icon="i-lucide-trash-2"
+        @click="openDeleteModal($event)"
+        >{{ t({ en: "Delete", ru: "Удалить" }) }}</UButton
+      >
     </div>
     <div class="flex flex-col gap-6 px-6 pb-6">
-      <UInput :model-value="title" size="lg" class="w-full" />
+      <UInput
+        :model-value="title"
+        size="lg"
+        class="w-full"
+        @blur="updateTitle($event)"
+        @keyup.enter="updateTitle($event)"
+      />
       <UTextarea
         :model-value="description"
         :placeholder="t({ en: 'Idea description (optional)', ru: 'Описание идеи (опционально)' })"
         :rows="6"
         class="w-full"
+        @blur="updateDescription($event)"
       />
     </div>
   </div>

@@ -81,7 +81,9 @@ async function handleDelete(e: Event, flowId: string) {
   <div class="flex h-full flex-col p-6">
     <div class="mb-4 flex items-center justify-between">
       <h1 class="text-2xl font-bold">{{ t({ en: "Flows", ru: "Потоки" }) }}</h1>
-      <UButton>{{ t({ en: "Create flow", ru: "Создать поток" }) }}</UButton>
+      <UButton @click="handleCreate($event)">{{
+        t({ en: "Create flow", ru: "Создать поток" })
+      }}</UButton>
     </div>
     <div class="flex flex-col gap-2" v-for="item in flows" :key="item.id">
       <button

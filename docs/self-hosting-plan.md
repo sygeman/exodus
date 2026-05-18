@@ -71,17 +71,22 @@ Edem UI ближе по философии к связке `Astro` + `Storybook`
 - расхождения классифицируются как `schema gap`, `generator gap`, `migration gap`
 - генератор больше не зависит от `bun add` / `bun install` внутри output-проекта
 - pipeline генерации иконок больше не падает из-за относительных `asset`-путей в generated app
+- app-stage умеет прокидывать обычные manifest action handlers в template events, включая события с modifier'ами вроде `keyup.enter`
+- app-stage умеет импортировать локальные manifest-компоненты, используемые внутри других generated components
+- для первого product slice добавлены manifest-компоненты `MenuLayout` и `SettingsLayout`, а `ProjectSettingsPage` переведён на их использование
 
 Проверено фактическим прогоном:
 
 - `packages/edem-codegen/generate.ts` запускается и пишет output
 - `packages/edem-codegen/compare.ts --generate` запускается и строит parity report
-- текущий parity baseline: `90` расхождений
+- текущий parity baseline после первого product-slice scaffolding: `92` расхождения
 
 Текущие известные блокеры:
 
 - shell/layout/page parity по-прежнему в основном находится в зоне `generator gap`
 - часть расхождений относится к `schema gap`, то есть не лечится только правками codegen
+- первый slice всё ещё упирается в shared app contract уровня `src/hooks.ts` / `edem-client.ts` / `data-manifest.ts`, который есть в reference app, но пока не выражен как manifest-driven generated layer
+- settings slice частично собран в generated app, но parity пока не достигнут: layout/page структура уже генерируется, а shared runtime contract вокруг hooks и reference-only wrappers ещё нет
 
 ## Потоки работ
 
@@ -373,17 +378,23 @@ Definition of done:
 - view DSL должен уметь описывать conditional rendering для `project` / `!loading`
 - wrapper contract должен покрывать используемые `UInput`, `UButton`, `UModal`, `UIcon`
 
+Статус после текущей фазы:
+
+- layout-компоненты `MenuLayout` и `SettingsLayout` уже описаны манифестами
+- `ProjectSettingsPage` уже использует `if` / `elseIf`, modal DSL и обычные manifest actions вместо ручной template-вёрстки только в reference app
+- codegen уже умеет выводить такие handler'ы в template, включая `blur`, `click` и `keyup.enter`
+- end-to-end parity для slice ещё не достигнут, потому что generated app пока не воспроизводит общий runtime layer reference-приложения
+
 До тех пор, пока первый vertical slice не проходит end-to-end, расширять DSL дальше не стоит.
 
 Практический вывод после первых прогонов: отдельный technical slice на генератор и parity tooling уже был нужен и уже реализован. Следующий slice должен быть не инфраструктурным, а продуктовым: один реальный экран `Exodus`, который проходит через route, layout, data binding и action без ручных правок generated app.
 
 ## Ближайшие шаги
 
-1. Выбрать один простой экран для первого product vertical slice
-2. Снять capability-gap именно для этого экрана
-3. Закрыть минимальный `generator gap` для shell/layout/page вокруг этого экрана
-4. Протянуть этот экран через route, layout, data binding и action без ручных правок generated app
-5. Обновлять parity baseline после каждого замкнутого шага, а не после больших пачек изменений
+1. Закрыть shared runtime gap для первого slice: `hooks`, `edem-client`, `data-manifest` и связанные imports generated app
+2. Добиться parity для `MenuLayout`, `SettingsLayout` и `ProjectSettingsPage` как первой законченной route/layout/page цепочки
+3. После этого расширить тот же подход на `FlowSettingsPage`, где capability-профиль почти совпадает
+4. Обновлять parity baseline после каждого замкнутого шага, а не после больших пачек изменений
 
 ## Порядок реальной реализации
 

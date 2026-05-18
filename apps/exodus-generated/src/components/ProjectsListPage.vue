@@ -57,7 +57,9 @@ function getInitials(name: string): string {
   <div class="flex h-full flex-col p-8">
     <div class="mb-4 flex items-center justify-between">
       <h1 class="text-2xl font-bold">{{ t({ en: "Projects", ru: "Проекты" }) }}</h1>
-      <UButton>{{ t({ en: "Create project", ru: "Создать проект" }) }}</UButton>
+      <UButton @click="handleCreate($event)">{{
+        t({ en: "Create project", ru: "Создать проект" })
+      }}</UButton>
     </div>
     <div class="flex flex-col gap-2" v-for="item in projects" :key="item.id">
       <RouterLink

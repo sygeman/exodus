@@ -4,18 +4,18 @@
     "generatedNow": true
   },
   "summary": {
-    "total": 90,
+    "total": 92,
     "byArea": {
-      "other": 51,
+      "other": 53,
       "assets": 8,
       "shell": 8,
       "layouts": 8,
       "pages": 15
     },
     "byReason": {
-      "generator gap": 33,
+      "generator gap": 37,
       "schema gap": 43,
-      "migration gap": 14
+      "migration gap": 12
     }
   },
   "entries": [
@@ -140,6 +140,12 @@
       "status": "different"
     },
     {
+      "file": "edem-manifests/components/MenuLayout.json",
+      "area": "other",
+      "reason": "generator gap",
+      "status": "only_in_generated"
+    },
+    {
       "file": "edem-manifests/components/NotFound.json",
       "area": "other",
       "reason": "schema gap",
@@ -186,6 +192,12 @@
       "area": "other",
       "reason": "schema gap",
       "status": "different"
+    },
+    {
+      "file": "edem-manifests/components/SettingsLayout.json",
+      "area": "other",
+      "reason": "generator gap",
+      "status": "only_in_generated"
     },
     {
       "file": "edem-manifests/data.json",
@@ -334,8 +346,8 @@
     {
       "file": "src/components/MenuLayout.vue",
       "area": "layouts",
-      "reason": "migration gap",
-      "status": "only_in_reference"
+      "reason": "generator gap",
+      "status": "different"
     },
     {
       "file": "src/components/NodeConfigPanel.vue",
@@ -412,8 +424,8 @@
     {
       "file": "src/components/SettingsLayout.vue",
       "area": "layouts",
-      "reason": "migration gap",
-      "status": "only_in_reference"
+      "reason": "generator gap",
+      "status": "different"
     },
     {
       "file": "src/components/SettingsLayoutPage.vue",

@@ -5,125 +5,230 @@
   },
   "children": [
     {
-      "component": "section",
+      "component": "SettingsLayout",
+      "if": "{{ project }}",
       "props": {
-        "class": "flex flex-col gap-8"
+        "title": {
+          "$type": "translation",
+          "en": "Settings",
+          "ru": "Настройки"
+        },
+        "items": "{{ navItems }}",
+        "pageTitle": {
+          "$type": "translation",
+          "en": "Project Settings",
+          "ru": "Настройки проекта"
+        }
       },
       "children": [
         {
-          "component": "div",
+          "component": "section",
           "props": {
-            "class": "border-default flex flex-col gap-4 border-b pb-8"
+            "class": "flex flex-col gap-8"
           },
           "children": [
             {
               "component": "div",
               "props": {
-                "class": "flex flex-col gap-1"
+                "class": "border-default flex flex-col gap-4 border-b pb-8"
               },
+              "children": [
+                {
+                  "component": "div",
+                  "props": {
+                    "class": "flex flex-col gap-1"
+                  },
+                  "children": [
+                    {
+                      "component": "h3",
+                      "props": {
+                        "class": "text-base font-medium"
+                      },
+                      "children": {
+                        "$type": "translation",
+                        "en": "Name",
+                        "ru": "Название"
+                      }
+                    },
+                    {
+                      "component": "p",
+                      "props": {
+                        "class": "text-muted text-sm"
+                      },
+                      "children": {
+                        "$type": "translation",
+                        "en": "Project name is displayed in the list and sidebar.",
+                        "ru": "Название проекта отображается в списке и боковом меню."
+                      }
+                    }
+                  ]
+                },
+                {
+                  "component": "UInput",
+                  "props": {
+                    "class": "max-w-md",
+                    "modelValue": "{{ project.data.name ?? '' }}"
+                  },
+                  "events": {
+                    "blur": {
+                      "action": "updateName"
+                    },
+                    "keyup.enter": {
+                      "action": "updateName"
+                    }
+                  }
+                }
+              ]
+            },
+            {
+              "component": "div",
               "children": [
                 {
                   "component": "h3",
                   "props": {
-                    "class": "text-base font-medium"
+                    "class": "text-error mb-2 text-base font-medium"
                   },
                   "children": {
                     "$type": "translation",
-                    "en": "Name",
-                    "ru": "Название"
+                    "en": "Delete project",
+                    "ru": "Удаление проекта"
                   }
                 },
                 {
                   "component": "p",
                   "props": {
-                    "class": "text-muted text-sm"
+                    "class": "text-muted mb-4 text-sm"
                   },
                   "children": {
                     "$type": "translation",
-                    "en": "Project name is displayed in the list and sidebar.",
-                    "ru": "Название проекта отображается в списке и боковом меню."
+                    "en": "This action cannot be undone. All project data will be permanently deleted.",
+                    "ru": "Это действие нельзя отменить. Все данные проекта будут безвозвратно удалены."
                   }
+                },
+                {
+                  "component": "UButton",
+                  "props": {
+                    "color": "error",
+                    "variant": "outline"
+                  },
+                  "events": {
+                    "click": {
+                      "action": "openDeleteModal"
+                    }
+                  },
+                  "children": [
+                    {
+                      "component": "UIcon",
+                      "props": {
+                        "name": "i-lucide-trash-2",
+                        "class": "h-4 w-4"
+                      }
+                    },
+                    {
+                      "component": "span",
+                      "props": {
+                        "class": "ml-2"
+                      },
+                      "children": {
+                        "$type": "translation",
+                        "en": "Delete",
+                        "ru": "Удалить"
+                      }
+                    }
+                  ]
                 }
               ]
-            },
-            {
-              "component": "UInput",
-              "props": {
-                "class": "max-w-md",
-                "modelValue": "{{ project.data.name ?? '' }}"
-              },
-              "events": {
-                "blur": {
-                  "action": "updateName"
-                },
-                "keyup.enter": {
-                  "action": "updateName"
-                }
-              }
             }
           ]
         },
         {
           "component": "div",
-          "children": [
-            {
-              "component": "h3",
-              "props": {
-                "class": "text-error mb-2 text-base font-medium"
-              },
-              "children": {
-                "$type": "translation",
-                "en": "Delete project",
-                "ru": "Удаление проекта"
-              }
+          "modal": {
+            "vModel": "deleteModalOpen",
+            "title": {
+              "$type": "translation",
+              "en": "Delete project?",
+              "ru": "Удалить проект?"
             },
-            {
-              "component": "p",
-              "props": {
-                "class": "text-muted mb-4 text-sm"
-              },
-              "children": {
-                "$type": "translation",
-                "en": "This action cannot be undone. All project data will be permanently deleted.",
-                "ru": "Это действие нельзя отменить. Все данные проекта будут безвозвратно удалены."
-              }
+            "description": {
+              "$type": "translation",
+              "en": "Are you sure you want to delete this project? This action cannot be undone.",
+              "ru": "Вы уверены, что хотите удалить этот проект? Это действие необратимо."
             },
-            {
-              "component": "UButton",
-              "props": {
-                "color": "error",
-                "variant": "outline"
-              },
-              "events": {
-                "click": {
-                  "action": "openDeleteModal"
-                }
-              },
-              "children": [
-                {
-                  "component": "UIcon",
-                  "props": {
-                    "name": "i-lucide-trash-2",
-                    "class": "h-4 w-4"
+            "footer": [
+              {
+                "component": "UButton",
+                "props": {
+                  "variant": "ghost"
+                },
+                "events": {
+                  "click": {
+                    "action": "closeDeleteModal"
                   }
                 },
-                {
-                  "component": "span",
-                  "props": {
-                    "class": "ml-2"
-                  },
-                  "children": {
-                    "$type": "translation",
-                    "en": "Delete",
-                    "ru": "Удалить"
-                  }
+                "children": {
+                  "$type": "translation",
+                  "en": "Cancel",
+                  "ru": "Отмена"
                 }
-              ]
-            }
-          ]
+              },
+              {
+                "component": "UButton",
+                "props": {
+                  "color": "error"
+                },
+                "events": {
+                  "click": {
+                    "action": "confirmDelete"
+                  }
+                },
+                "children": {
+                  "$type": "translation",
+                  "en": "Delete",
+                  "ru": "Удалить"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "component": "div",
+      "elseIf": "{{ !loading }}",
+      "props": {
+        "class": "text-muted flex h-full flex-col items-center justify-center gap-2"
+      },
+      "children": [
+        {
+          "component": "UIcon",
+          "props": {
+            "name": "i-lucide-folder-x",
+            "class": "h-10 w-10"
+          }
+        },
+        {
+          "component": "p",
+          "children": {
+            "$type": "translation",
+            "en": "Project not found",
+            "ru": "Проект не найден"
+          }
+        },
+        {
+          "component": "UButton",
+          "props": {
+            "to": "/projects",
+            "variant": "link"
+          },
+          "children": {
+            "$type": "translation",
+            "en": "Back to projects",
+            "ru": "Назад к проектам"
+          }
         }
       ]
     }
   ],
-  "rawScript": "import { useRoute, useRouter } from 'vue-router'\nimport { computed, ref } from 'vue'\nimport { useProjects, useUpdateItem, useDeleteItem } from '@/hooks'\n\nconst route = useRoute()\nconst router = useRouter()\nconst { items: projects, loading } = useProjects()\nconst [updateItem] = useUpdateItem()\nconst [deleteItem] = useDeleteItem()\n\nconst projectId = computed(() => route.params.id as string)\nconst project = computed(() => projects.value.find((p) => p.id === projectId.value))\n\nconst deleteModalOpen = ref(false)\n\nfunction updateName(e: FocusEvent | KeyboardEvent) {\n  const name = (e.target as HTMLInputElement).value\n  if (!project.value || name.trim() === '' || name === project.value.data.name) return\n  updateItem(project.value.id, { name })\n}\n\nfunction openDeleteModal() {\n  deleteModalOpen.value = true\n}\n\nfunction confirmDelete() {\n  if (!project.value) return\n  deleteItem(project.value.id)\n  deleteModalOpen.value = false\n  router.push('/projects')\n}"
+  "rawScript": "import { useRoute, useRouter } from 'vue-router'\nimport { computed, ref } from 'vue'\nimport { useCollectionQuery, useUpdateItem, useDeleteItem } from '@/hooks'\n\nconst route = useRoute()\nconst router = useRouter()\nconst { data: projects, loading } = useCollectionQuery('projects')\nconst [updateItem] = useUpdateItem()\nconst [deleteItem] = useDeleteItem()\n\nconst projectId = computed(() => route.params.id as string)\nconst project = computed(() => projects.value.find((p) => p.id === projectId.value))\nconst deleteModalOpen = ref(false)\n\nconst navItems = computed(() => [\n  {\n    to: `/project/${projectId.value}/settings`,\n    label: t({ en: 'General', ru: 'Общие' }),\n    icon: 'i-lucide-settings',\n  },\n])\n\nfunction updateName(e: FocusEvent | KeyboardEvent) {\n  const name = (e.target as HTMLInputElement).value\n  if (!project.value || name.trim() === '' || name === project.value.data.name) return\n  updateItem(project.value.id, { name })\n}\n\nfunction openDeleteModal() {\n  deleteModalOpen.value = true\n}\n\nfunction closeDeleteModal() {\n  deleteModalOpen.value = false\n}\n\nfunction confirmDelete() {\n  if (!project.value) return\n  deleteItem(project.value.id)\n  deleteModalOpen.value = false\n  router.push('/projects')\n}"
 }

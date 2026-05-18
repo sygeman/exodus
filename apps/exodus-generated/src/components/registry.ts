@@ -13,8 +13,10 @@ import {
 } from "@nuxt/ui"
 import { RouterLink } from "vue-router"
 import LogoSvg from "@/components/LogoSvg.vue"
+import MenuLayout from "@/components/MenuLayout.vue"
 import NodeConfigPanel from "@/components/NodeConfigPanel.vue"
 import ProjectsSidebar from "@/components/ProjectsSidebar.vue"
+import SettingsLayout from "@/components/SettingsLayout.vue"
 import VueFlow from "@/components/VueFlow.vue"
 
 export const registry = {
@@ -30,7 +32,9 @@ export const registry = {
   UTextarea,
   UTooltip,
   LogoSvg,
+  MenuLayout,
   NodeConfigPanel,
   ProjectsSidebar,
+  SettingsLayout,
   VueFlow,
 }

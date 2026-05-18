@@ -208,9 +208,14 @@ function triggerTypeLabel(type: string) {
       <div class="flex flex-1 flex-col">
         <h1 class="text-xl font-bold">{{ flow?.name ?? flowId }}</h1>
       </div>
-      <UButton color="error" variant="subtle" size="xs" icon="i-lucide-trash-2">{{
-        t({ en: "Clear history", ru: "Очистить историю" })
-      }}</UButton>
+      <UButton
+        color="error"
+        variant="subtle"
+        size="xs"
+        icon="i-lucide-trash-2"
+        @click="confirmDeleteRuns($event)"
+        >{{ t({ en: "Clear history", ru: "Очистить историю" }) }}</UButton
+      >
     </div>
     <div class="border-default flex items-center gap-2 border-b px-4 py-2">
       <USelectMenu

@@ -14,6 +14,33 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
   const rawScript = typeof comp.tree.rawScript === "string" ? comp.tree.rawScript.trim() : ""
   const hasRawScript = rawScript.length > 0
 
+  const assetNames = new Set(ir.assets.map((asset) => asset.name))
+  const componentNames = new Set(ir.components.map((component) => component.name))
+  const localComponentImports = new Set(
+    collectFromTree(comp.tree, (node) => {
+      const name = node.component
+      if (
+        !componentNames.has(name) ||
+        name === comp.name ||
+        assetNames.has(name) ||
+        name === "RouterLink" ||
+        name === "RouterView" ||
+        name === "Teleport" ||
+        name === "Transition" ||
+        name.startsWith("U") ||
+        name[0] === name[0].toLowerCase()
+      ) {
+        return []
+      }
+
+      return [name]
+    }),
+  )
+
+  for (const componentName of [...localComponentImports].toSorted()) {
+    imports.unshift(`import ${componentName} from "@/components/${componentName}.vue"`)
+  }
+
   const route = findRouteForComponent(ir, comp.name)
   if (!hasRawScript && route && route.params.length > 0) {
     routerImports.add("useRoute")

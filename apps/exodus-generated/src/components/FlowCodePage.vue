@@ -65,6 +65,7 @@ watch(
           size="xs"
           :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'"
           class="absolute top-3 right-3"
+          @click="copyToClipboard($event)"
         />
       </UTooltip>
     </div>

@@ -125,7 +125,9 @@ const sourceOptions = computed(() => [
         <h1 class="text-xl font-bold">{{ t({ en: "Logs", ru: "Логи" }) }}</h1>
       </div>
       <div class="flex items-center gap-2">
-        <UButton color="error" variant="subtle">{{ t({ en: "Clear", ru: "Очистить" }) }}</UButton>
+        <UButton color="error" variant="subtle" @click="clear($event)">{{
+          t({ en: "Clear", ru: "Очистить" })
+        }}</UButton>
       </div>
     </div>
     <div class="border-default flex flex-wrap gap-2 border-b px-4 py-2">
@@ -168,10 +170,25 @@ const sourceOptions = computed(() => [
         t({ en: "{total} logs", ru: "{total} логов" }, { total })
       }}</span>
       <div class="flex items-center gap-1">
-        <UButton icon="i-lucide-chevrons-left" variant="ghost" size="xs" />
-        <UButton icon="i-lucide-chevron-left" variant="ghost" size="xs" />
-        <UButton icon="i-lucide-chevron-right" variant="ghost" size="xs" />
-        <UButton icon="i-lucide-chevrons-right" variant="ghost" size="xs" />
+        <UButton
+          icon="i-lucide-chevrons-left"
+          variant="ghost"
+          size="xs"
+          @click="firstPage($event)"
+        />
+        <UButton icon="i-lucide-chevron-left" variant="ghost" size="xs" @click="prevPage($event)" />
+        <UButton
+          icon="i-lucide-chevron-right"
+          variant="ghost"
+          size="xs"
+          @click="nextPage($event)"
+        />
+        <UButton
+          icon="i-lucide-chevrons-right"
+          variant="ghost"
+          size="xs"
+          @click="lastPage($event)"
+        />
       </div>
     </div>
   </div>

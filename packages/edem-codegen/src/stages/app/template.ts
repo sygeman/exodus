@@ -384,6 +384,7 @@ export function renderEvents(events: Record<string, EventBinding> | undefined): 
 
   const parts: string[] = []
   for (const [eventName, binding] of Object.entries(events)) {
+    const vueEventName = toVueEventName(eventName)
     if ("flow" in binding) {
       const hasEvent = binding.input && JSON.stringify(binding.input).includes("{{ event }}")
       const hasItem = binding.input && JSON.stringify(binding.input).includes("{{ item")
@@ -391,22 +392,34 @@ export function renderEvents(events: Record<string, EventBinding> | undefined): 
       if (hasEvent) args.push("$event")
       if (hasItem) args.push("item")
       const argStr = args.length > 0 ? `(${args.join(", ")})` : "()"
-      parts.push(` @${kebabCase(eventName)}="handle${capitalize(binding.flow)}${argStr}"`)
+      parts.push(` @${vueEventName}="handle${capitalize(binding.flow)}${argStr}"`)
     }
     if ("navigate" in binding) {
-      parts.push(` @${kebabCase(eventName)}="handleNavigate${slugify(binding.navigate)}()"`)
+      parts.push(` @${vueEventName}="handleNavigate${slugify(binding.navigate)}()"`)
     }
     if ("action" in binding) {
       if (eventName === "update:modelValue") {
         const col = binding.collection ?? "item"
         parts.push(` @update:model-value="handleUpdate${capitalize(col)}($event)"`)
       } else if (binding.action === "deleteItem" && binding.collection) {
-        parts.push(` @${kebabCase(eventName)}="handleDelete${capitalize(binding.collection)}()"`)
+        parts.push(` @${vueEventName}="handleDelete${capitalize(binding.collection)}()"`)
+      } else {
+        parts.push(` @${vueEventName}="${binding.action}($event)"`)
       }
     }
   }
 
   return parts.join("")
+}
+
+function toVueEventName(eventName: string): string {
+  const [base, ...modifiers] = eventName.split(".")
+  const normalizedBase = base
+    .split(":")
+    .map((part) => kebabCase(part))
+    .join(":")
+
+  return modifiers.length > 0 ? `${normalizedBase}.${modifiers.join(".")}` : normalizedBase
 }
 
 export function extractExpr(template: string): string {

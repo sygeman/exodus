@@ -55,7 +55,7 @@ function ideaLink(id: string) {
   <div class="flex h-full flex-col p-6">
     <div class="mb-4 flex items-center justify-between">
       <h2 class="text-lg font-semibold">{{ t({ en: "Ideas", ru: "Идеи" }) }}</h2>
-      <UButton size="sm">
+      <UButton size="sm" @click="handleCreate($event)">
         <UIcon name="i-lucide-plus" class="h-4 w-4" />
         {{ t({ en: "New Idea", ru: "Новая идея" }) }}
       </UButton>

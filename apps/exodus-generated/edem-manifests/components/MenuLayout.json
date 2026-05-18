@@ -1,0 +1,69 @@
+{
+  "component": "div",
+  "props": {
+    "class": "flex h-full w-full"
+  },
+  "children": [
+    {
+      "component": "aside",
+      "props": {
+        "class": "border-default flex w-56 flex-col gap-6 border-r p-4"
+      },
+      "children": [
+        {
+          "component": "div",
+          "children": [
+            {
+              "component": "h2",
+              "props": {
+                "class": "px-2 text-xl font-bold"
+              },
+              "children": "{{ props.title }}"
+            }
+          ]
+        },
+        {
+          "component": "nav",
+          "props": {
+            "class": "flex flex-col gap-0.5"
+          },
+          "bind": {
+            "items": "props.items",
+            "item": {
+              "component": "RouterLink",
+              "props": {
+                "to": "{{ item.to }}",
+                "class": "{{ route.path === item.to || (item.to !== '/' && route.path.startsWith(item.to + '/')) ? 'bg-primary/10 text-primary hover:bg-primary/10 hover:text-primary flex items-center gap-3 rounded-md px-2 py-1.5 text-sm font-medium transition-colors' : 'text-muted hover:bg-elevated hover:text-default flex items-center gap-3 rounded-md px-2 py-1.5 text-sm font-medium transition-colors' }}"
+              },
+              "children": [
+                {
+                  "component": "UIcon",
+                  "props": {
+                    "name": "{{ item.icon }}",
+                    "class": "h-4 w-4"
+                  }
+                },
+                {
+                  "component": "span",
+                  "children": "{{ item.label }}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "component": "main",
+      "props": {
+        "class": "{{ `w-full flex-1 ${props.mainClass ?? ''}` }}"
+      },
+      "children": [
+        {
+          "component": "slot"
+        }
+      ]
+    }
+  ],
+  "rawScript": "import { useRoute } from 'vue-router'\n\ninterface MenuLayoutItem {\n  to: string\n  label: string\n  icon: string\n}\n\nconst props = defineProps<{\n  title: string\n  items: MenuLayoutItem[]\n  mainClass?: string\n}>()\n\nconst route = useRoute()"
+}
