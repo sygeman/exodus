@@ -353,6 +353,26 @@ Definition of done:
 - проверить, что codegen собирает экран без ручной дописки
 - получить baseline для parity-отчёта
 
+Выбранный кандидат для первого product slice: `ProjectSettingsPage`.
+
+Почему именно он:
+
+- экран находится на реальном nested route: `/project/:id/settings`
+- использует layout shell через `SettingsLayout`
+- читает данные проекта по route param
+- имеет локальное состояние `deleteModalOpen`
+- выполняет реальные actions: update, delete, navigate
+- остаётся достаточно узким и не зависит от graph/canvas widget'ов
+
+Минимальный capability-gap для `ProjectSettingsPage`:
+
+- layout DSL должен уметь описывать nested settings-layout с nav items и page title
+- data DSL должен уметь связывать route params с collection query и derived `project`
+- state DSL должен покрывать локальный modal state
+- actions DSL должен покрывать update field, delete entity, close modal и navigation после delete
+- view DSL должен уметь описывать conditional rendering для `project` / `!loading`
+- wrapper contract должен покрывать используемые `UInput`, `UButton`, `UModal`, `UIcon`
+
 До тех пор, пока первый vertical slice не проходит end-to-end, расширять DSL дальше не стоит.
 
 Практический вывод после первых прогонов: отдельный technical slice на генератор и parity tooling уже был нужен и уже реализован. Следующий slice должен быть не инфраструктурным, а продуктовым: один реальный экран `Exodus`, который проходит через route, layout, data binding и action без ручных правок generated app.
