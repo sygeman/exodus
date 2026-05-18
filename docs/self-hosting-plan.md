@@ -74,19 +74,19 @@ Edem UI ближе по философии к связке `Astro` + `Storybook`
 - app-stage умеет прокидывать обычные manifest action handlers в template events, включая события с modifier'ами вроде `keyup.enter`
 - app-stage умеет импортировать локальные manifest-компоненты, используемые внутри других generated components
 - для первого product slice добавлены manifest-компоненты `MenuLayout` и `SettingsLayout`, а `ProjectSettingsPage` переведён на их использование
+- data-stage теперь генерирует shared runtime layer: `src/data-manifest.ts`, `src/edem-client.ts`, `src/hooks.ts`
 
 Проверено фактическим прогоном:
 
 - `packages/edem-codegen/generate.ts` запускается и пишет output
 - `packages/edem-codegen/compare.ts --generate` запускается и строит parity report
-- текущий parity baseline после первого product-slice scaffolding: `92` расхождения
+- текущий parity baseline после добавления shared runtime layer: `91` расхождение
 
 Текущие известные блокеры:
 
 - shell/layout/page parity по-прежнему в основном находится в зоне `generator gap`
 - часть расхождений относится к `schema gap`, то есть не лечится только правками codegen
-- первый slice всё ещё упирается в shared app contract уровня `src/hooks.ts` / `edem-client.ts` / `data-manifest.ts`, который есть в reference app, но пока не выражен как manifest-driven generated layer
-- settings slice частично собран в generated app, но parity пока не достигнут: layout/page структура уже генерируется, а shared runtime contract вокруг hooks и reference-only wrappers ещё нет
+- settings slice уже имеет generated runtime contract (`hooks`, `edem-client`, `data-manifest`), но parity пока не достигнут: теперь основная недостача сместилась с отсутствующих shared файлов на различия в самом shell/layout/page коде и reference-only wrappers
 
 ## Потоки работ
 
@@ -383,7 +383,8 @@ Definition of done:
 - layout-компоненты `MenuLayout` и `SettingsLayout` уже описаны манифестами
 - `ProjectSettingsPage` уже использует `if` / `elseIf`, modal DSL и обычные manifest actions вместо ручной template-вёрстки только в reference app
 - codegen уже умеет выводить такие handler'ы в template, включая `blur`, `click` и `keyup.enter`
-- end-to-end parity для slice ещё не достигнут, потому что generated app пока не воспроизводит общий runtime layer reference-приложения
+- generated app теперь воспроизводит и shared runtime layer первого slice через `data-manifest.ts`, `edem-client.ts` и `hooks.ts`
+- end-to-end parity для slice ещё не достигнут, потому что остаются отличия в самом generated shell/layout/page коде и часть reference-only UI/runtime слоёв ещё не мигрирована
 
 До тех пор, пока первый vertical slice не проходит end-to-end, расширять DSL дальше не стоит.
 
@@ -391,9 +392,9 @@ Definition of done:
 
 ## Ближайшие шаги
 
-1. Закрыть shared runtime gap для первого slice: `hooks`, `edem-client`, `data-manifest` и связанные imports generated app
-2. Добиться parity для `MenuLayout`, `SettingsLayout` и `ProjectSettingsPage` как первой законченной route/layout/page цепочки
-3. После этого расширить тот же подход на `FlowSettingsPage`, где capability-профиль почти совпадает
+1. Добиться parity для `MenuLayout`, `SettingsLayout` и `ProjectSettingsPage` как первой законченной route/layout/page цепочки
+2. После этого расширить тот же подход на `FlowSettingsPage`, где capability-профиль почти совпадает
+3. Вынести следующий слой reference-only runtime/UI контрактов, которые ещё мешают parity (`types/flow`, `persist-route`, `apply-theme`, wrapper-компоненты)
 4. Обновлять parity baseline после каждого замкнутого шага, а не после больших пачек изменений
 
 ## Порядок реальной реализации

@@ -19,6 +19,21 @@ export const dataStage: Stage = {
       content: generateManifest(),
     })
 
+    files.push({
+      path: "src/data-manifest.ts",
+      content: generateDataManifest(ir.collections),
+    })
+
+    files.push({
+      path: "src/edem-client.ts",
+      content: generateEdemClient(),
+    })
+
+    files.push({
+      path: "src/hooks.ts",
+      content: generateHooks(),
+    })
+
     for (const col of ir.collections) {
       files.push({
         path: `src/composables/use${capitalize(col.id)}.ts`,
@@ -26,7 +41,7 @@ export const dataStage: Stage = {
       })
     }
 
-    return { files, deps: ["@exodus/edem-data"] }
+    return { files, deps: ["@exodus/edem-data", "@exodus/edem-vue"] }
   },
 }
 
@@ -44,6 +59,92 @@ export const SYSTEM_MANIFEST: Manifest = manifest as Manifest
 export async function ensureCollections(data: EdemData): Promise<void> {
   await data.applyManifest({ manifest: SYSTEM_MANIFEST })
 }
+`
+}
+
+function generateDataManifest(collections: IRCollection[]): string {
+  const body = collections
+    .map((collection) => {
+      const fields = collection.fields
+        .map((field) => {
+          const entries = [
+            `name: ${JSON.stringify(field.name)}`,
+            `type: ${JSON.stringify(field.type)}`,
+          ]
+
+          if (field.required) {
+            entries.push("required: true")
+          }
+
+          if (field.default !== undefined) {
+            entries.push(`default: ${JSON.stringify(field.default)}`)
+          }
+
+          if (field.labels) {
+            entries.push(`labels: ${JSON.stringify(field.labels)}`)
+          }
+
+          return `        { ${entries.join(", ")} },`
+        })
+        .join("\n")
+
+      const prefix = [`id: ${JSON.stringify(collection.id)}`]
+      if (collection.singleton) {
+        prefix.push("singleton: true")
+      }
+
+      return `    {
+      ${prefix.join(",\n      ")},
+      fields: [
+${fields}
+      ],
+    },`
+    })
+    .join("\n")
+
+  return `export const dataManifest = {
+  collections: [
+${body}
+  ],
+} as const
+`
+}
+
+function generateEdemClient(): string {
+  return `import { EdemClient } from "@exodus/edem-vue"
+import { edem } from "./edem"
+import { dataManifest } from "./data-manifest"
+
+export const client = new EdemClient<typeof dataManifest>(edem.data)
+`
+}
+
+function generateHooks(): string {
+  return `import { createEdemHooks, createElectrobunHooks, createFlowsHooks } from "@exodus/edem-vue"
+import { client } from "./edem-client"
+import { edem } from "./edem"
+import type { dataManifest } from "./data-manifest"
+
+export const { useCollectionQuery, useCreateItem, useUpdateItem, useDeleteItem, useSingleton } =
+  createEdemHooks<typeof dataManifest>(client)
+
+export const { useUpdateStatus, useVersion, useCheckUpdate, useStartUpdate } =
+  createElectrobunHooks(edem.electrobun)
+
+export const {
+  useFlows,
+  useFlow,
+  useFlowRuns,
+  useRun,
+  useRunNodes,
+  useCreateFlow,
+  useUpdateFlow,
+  useDeleteFlow,
+  useRunFlow,
+  useCancelRun,
+  useResumeRun,
+  useDeleteRuns,
+} = createFlowsHooks(edem.flows)
 `
 }
 

@@ -1,16 +1,16 @@
 generated app refreshed
-total differences: 92
+total differences: 91
 
 by area:
 - shell: 8
 - layouts: 8
 - pages: 15
 - assets: 8
-- other: 53
+- other: 52
 
 by reason:
-- schema gap: 43
-- generator gap: 37
+- schema gap: 44
+- generator gap: 35
 - migration gap: 12
 
 shell:
@@ -73,7 +73,7 @@ other:
 - [different] edem-manifests/components/FlowEditorPage.json -> schema gap
 - [different] edem-manifests/components/FlowSettingsPage.json -> schema gap
 - [different] edem-manifests/components/IdeaPage.json -> schema gap
-- [only_in_generated] edem-manifests/components/MenuLayout.json -> generator gap
+- [different] edem-manifests/components/MenuLayout.json -> schema gap
 - [different] edem-manifests/components/NotFound.json -> schema gap
 - [different] edem-manifests/components/ProjectFlowsPage.json -> schema gap
 - [different] edem-manifests/components/ProjectIdeasPage.json -> schema gap
@@ -82,7 +82,7 @@ other:
 - [different] edem-manifests/components/ProjectsListPage.json -> schema gap
 - [different] edem-manifests/components/SettingsAppearance.json -> schema gap
 - [different] edem-manifests/components/SettingsLanguage.json -> schema gap
-- [only_in_generated] edem-manifests/components/SettingsLayout.json -> generator gap
+- [different] edem-manifests/components/SettingsLayout.json -> schema gap
 - [different] edem-manifests/data.json -> schema gap
 - [different] edem-manifests/flows.json -> schema gap
 - [different] edem-manifests/routes.json -> schema gap
@@ -106,11 +106,10 @@ other:
 - [only_in_reference] src/composables/useNodeLabel.ts -> schema gap
 - [only_in_reference] src/composables/useNodeTestMode.ts -> schema gap
 - [only_in_generated] src/composables/useProjects.ts -> generator gap
-- [only_in_reference] src/data-manifest.ts -> schema gap
-- [only_in_reference] src/edem-client.ts -> schema gap
+- [different] src/data-manifest.ts -> schema gap
+- [different] src/edem-client.ts -> schema gap
 - [different] src/edem.ts -> schema gap
 - [different] src/flows-bootstrap.ts -> schema gap
-- [only_in_reference] src/hooks.ts -> schema gap
 - [only_in_reference] src/types/flow.ts -> schema gap
 - [only_in_reference] src/utils/apply-theme.ts -> schema gap
 - [only_in_reference] src/utils/persist-route.ts -> schema gap

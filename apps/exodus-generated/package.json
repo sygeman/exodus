@@ -20,7 +20,8 @@
     "@exodus/edem-core": "workspace:*",
     "@exodus/edem-flows": "workspace:*",
     "@exodus/edem-electrobun": "workspace:*",
-    "@exodus/edem-data": "workspace:*"
+    "@exodus/edem-data": "workspace:*",
+    "@exodus/edem-vue": "workspace:*"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "6.0.6",
