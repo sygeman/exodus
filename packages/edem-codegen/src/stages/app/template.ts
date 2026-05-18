@@ -207,8 +207,8 @@ export function renderNode(
       vfor = ` v-for="item in ${node.bind.collection}" :key="item.id"`
     } else if (node.bind.items) {
       const items = node.bind.items
-      if (typeof items === "string" && items.includes("{{")) {
-        const expr = items.replace(/\{\{\s*(.+?)\s*\}\}/g, "$1")
+      if (typeof items === "string") {
+        const expr = items.includes("{{") ? items.replace(/\{\{\s*(.+?)\s*\}\}/g, "$1") : items
         vfor = ` v-for="(item, idx) in ${expr}" :key="idx"`
       } else if (Array.isArray(items)) {
         const hasObjects = items.some((v) => typeof v === "object" && v !== null)
@@ -374,7 +374,7 @@ export function renderProps(props: Record<string, unknown>, ctx?: ExpressionCont
         const items = value.map((v) => (typeof v === "string" ? `'${v}'` : JSON.stringify(v)))
         return ` :${attr}="[${items.join(", ")}]"`
       }
-      return ` :${attr}="${escapeAttr(JSON.stringify(value))}"`
+      return ` :${attr}='${JSON.stringify(value)}'`
     })
     .join("")
 }

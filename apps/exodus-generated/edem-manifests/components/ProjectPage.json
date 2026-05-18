@@ -1,0 +1,116 @@
+{
+  "component": "div",
+  "props": {
+    "class": "flex h-full flex-col p-6"
+  },
+  "children": [
+    {
+      "component": "div",
+      "props": {
+        "class": "grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+      },
+      "children": [
+        {
+          "component": "button",
+          "props": {
+            "class": "border-default bg-elevated hover:bg-elevated/80 hover:border-primary flex flex-col gap-2 rounded-lg border p-5 text-left transition-colors"
+          },
+          "children": [
+            {
+              "component": "div",
+              "props": {
+                "class": "text-muted flex items-center gap-2"
+              },
+              "children": [
+                {
+                  "component": "UIcon",
+                  "props": {
+                    "name": "i-lucide-lightbulb",
+                    "class": "h-4 w-4"
+                  }
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "text-sm font-medium"
+                  },
+                  "children": {
+                    "$type": "translation",
+                    "en": "Ideas",
+                    "ru": "Идеи"
+                  }
+                }
+              ]
+            },
+            {
+              "component": "span",
+              "props": {
+                "class": "text-3xl font-bold"
+              },
+              "children": "{{ ideas.length }}"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "component": "div",
+      "props": {
+        "class": "mt-8"
+      },
+      "children": [
+        {
+          "component": "h3",
+          "props": {
+            "class": "text-muted mb-3 text-sm font-medium"
+          },
+          "children": {
+            "$type": "translation",
+            "en": "Recent ideas",
+            "ru": "Последние идеи"
+          }
+        },
+        {
+          "component": "div",
+          "props": {
+            "class": "flex flex-col gap-2"
+          },
+          "bind": {
+            "items": "ideas.slice(0, 5)",
+            "item": {
+              "component": "RouterLink",
+              "props": {
+                "class": "border-default hover:bg-elevated flex items-center gap-3 rounded-lg border p-4 transition-colors"
+              },
+              "children": [
+                {
+                  "component": "div",
+                  "props": {
+                    "class": "bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded text-xs font-bold"
+                  },
+                  "children": "{{ item.data.level ?? '?' }}"
+                },
+                {
+                  "component": "div",
+                  "props": {
+                    "class": "flex flex-col"
+                  },
+                  "children": [
+                    {
+                      "component": "span",
+                      "props": {
+                        "class": "font-medium"
+                      },
+                      "children": "{{ item.data.title }}"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "rawScript": "import { useRoute, useRouter } from 'vue-router'\nimport { computed } from 'vue'\nimport { useIdeas } from '@/hooks'\n\nconst route = useRoute()\nconst router = useRouter()\nconst projectId = computed(() => route.params.id as string)\n\nconst { items: ideas } = useIdeas({ filter: { project_id: { _eq: projectId.value } }, sort: ['-created_at'] })\n\nfunction goToIdeas() {\n  router.push(`/project/${projectId.value}/ideas`)\n}"
+}

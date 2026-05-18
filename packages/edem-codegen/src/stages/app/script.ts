@@ -11,51 +11,59 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
   const statements: string[] = []
   const routerImports = new Set<string>()
   let needsRef_flag = false
+  const rawScript = typeof comp.tree.rawScript === "string" ? comp.tree.rawScript.trim() : ""
+  const hasRawScript = rawScript.length > 0
 
   const route = findRouteForComponent(ir, comp.name)
-  if (route && route.params.length > 0) {
+  if (!hasRawScript && route && route.params.length > 0) {
     routerImports.add("useRoute")
     statements.push(`const route = useRoute()`)
   }
 
   const needsComputed = new Set<string>()
 
-  for (const colId of comp.usedCollections) {
-    const fnName = `use${capitalize(colId)}`
-    const col = ir.collections.find((c) => c.id === colId)
-    if (!col) continue
+  if (!hasRawScript) {
+    for (const colId of comp.usedCollections) {
+      const fnName = `use${capitalize(colId)}`
+      const col = ir.collections.find((c) => c.id === colId)
+      if (!col) continue
 
-    const varName = camelCase(colId)
-    if (col.singleton) {
-      statements.push(
-        `const { item: ${varName}, update: update${capitalize(colId)} } = ${fnName}()`,
-      )
-    } else {
-      const filterParam = buildFilterParam(colId, comp, ir)
-      const hasFilter = filterParam.length > 0
-      statements.push(
-        `const { items: ${varName}, loading, update: update${capitalize(colId)}, remove: remove${capitalize(colId)} } = ${fnName}(${filterParam})`,
-      )
+      const varName = camelCase(colId)
+      if (col.singleton) {
+        statements.push(
+          `const { item: ${varName}, update: update${capitalize(colId)} } = ${fnName}()`,
+        )
+      } else {
+        const filterParam = buildFilterParam(colId, comp, ir)
+        const hasFilter = filterParam.length > 0
+        statements.push(
+          `const { items: ${varName}, loading, update: update${capitalize(colId)}, remove: remove${capitalize(colId)} } = ${fnName}(${filterParam})`,
+        )
 
-      if (hasFilter && route && route.params.length > 0) {
-        const paramName = route.params.find((p) => {
-          const isPrimaryKey = p === "id" || p.toLowerCase() === `${colId}id` || p === `${colId}Id`
-          return isPrimaryKey
-        })
-        if (paramName) {
-          statements.push(`const item = computed(() => ${varName}.value[0] ?? null)`)
-          needsComputed.add("computed")
+        if (hasFilter && route && route.params.length > 0) {
+          const paramName = route.params.find((p) => {
+            const isPrimaryKey =
+              p === "id" || p.toLowerCase() === `${colId}id` || p === `${colId}Id`
+            return isPrimaryKey
+          })
+          if (paramName) {
+            statements.push(`const item = computed(() => ${varName}.value[0] ?? null)`)
+            needsComputed.add("computed")
+          }
         }
       }
     }
-  }
 
-  for (const colId of comp.usedCollections) {
-    imports.push(`import { use${capitalize(colId)} } from "@/composables/use${capitalize(colId)}"`)
+    for (const colId of comp.usedCollections) {
+      imports.push(
+        `import { use${capitalize(colId)} } from "@/composables/use${capitalize(colId)}"`,
+      )
+    }
   }
 
   // Derive `locales` from app_state singleton when referenced in template
   if (
+    !hasRawScript &&
     comp.usedCollections.includes("app_state") &&
     someInTree(comp.tree, (n) => {
       if (typeof n.bind?.items === "string" && n.bind.items.includes("locales")) return true
@@ -76,13 +84,13 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
   }
 
   // Generate showSkeleton ref if component has skeleton states
-  if (hasSkeleton(comp.tree)) {
+  if (!hasRawScript && hasSkeleton(comp.tree)) {
     statements.push(`const showSkeleton = ref(false)`)
     needsRef_flag = true
   }
 
   // Generate route param computed variables
-  if (route && route.params.length > 0) {
+  if (!hasRawScript && route && route.params.length > 0) {
     for (const param of route.params) {
       if (param.includes("(") || param.includes("*") || param.includes(".")) continue
       statements.push(`const ${param} = computed(() => route.params.${param})`)
@@ -97,7 +105,7 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
 
   const needsRouter =
     comp.needsRouter || [...handlers.values()].some((h) => h.includes("router.push"))
-  if (needsRouter) {
+  if (!hasRawScript && needsRouter) {
     routerImports.add("useRouter")
     statements.push(`const router = useRouter()`)
   }
@@ -124,7 +132,7 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
     statements.push(`const t = useT()`)
   }
 
-  if (needsComputed.size > 0 || needsRef_flag || needsRef(comp)) {
+  if (!hasRawScript && (needsComputed.size > 0 || needsRef_flag || needsRef(comp))) {
     const vueItems: string[] = []
     if (needsComputed.size > 0) vueItems.push("computed")
     if (needsRef_flag || needsRef(comp)) vueItems.push("ref")
@@ -158,9 +166,9 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
     }
   }
 
-  if (comp.tree.rawScript) {
+  if (hasRawScript) {
     statements.push("")
-    statements.push(comp.tree.rawScript)
+    statements.push(rawScript)
   }
 
   if (imports.length === 0 && statements.length === 0) return ""

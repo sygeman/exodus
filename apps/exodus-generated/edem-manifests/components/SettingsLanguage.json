@@ -1,0 +1,79 @@
+{
+  "component": "section",
+  "props": {
+    "class": "flex flex-col gap-8"
+  },
+  "children": [
+    {
+      "component": "div",
+      "props": {
+        "class": "flex flex-col gap-4"
+      },
+      "children": [
+        {
+          "component": "div",
+          "props": {
+            "class": "flex flex-col gap-1"
+          },
+          "children": [
+            {
+              "component": "h3",
+              "props": {
+                "class": "text-base font-medium"
+              },
+              "children": {
+                "$type": "translation",
+                "en": "Language",
+                "ru": "Язык"
+              }
+            },
+            {
+              "component": "p",
+              "props": {
+                "class": "text-muted text-sm"
+              },
+              "children": {
+                "$type": "translation",
+                "en": "Select the language you want to use in the app.",
+                "ru": "Выберите язык, который хотите использовать в приложении."
+              }
+            }
+          ]
+        },
+        {
+          "component": "div",
+          "props": {
+            "class": "flex flex-col gap-3"
+          },
+          "bind": {
+            "items": "locales",
+            "item": {
+              "component": "button",
+              "props": {
+                "type": "button",
+                "class": "flex items-center gap-3 rounded-md border p-3 text-left text-sm transition-all"
+              },
+              "children": [
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "text-2xl"
+                  },
+                  "children": "{{ item.flag }}"
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "font-medium"
+                  },
+                  "children": "{{ item.label }}"
+                }
+              ]
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "rawScript": "import { computed } from 'vue'\nimport { useSingleton } from '@/hooks'\n\nconst { data: appState, update: updateSetting } = useSingleton('app_state')\n\nconst locales = computed(\n  () => (appState.value?.data.locales as { value: string; label: string; flag: string }[]) ?? [],\n)\n\nconst selectedLocale = computed({\n  get() {\n    return appState.value?.data.locale\n  },\n  set(value) {\n    updateSetting({ locale: value })\n  },\n})"
+}

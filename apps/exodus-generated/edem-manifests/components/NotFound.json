@@ -1,0 +1,57 @@
+{
+  "component": "div",
+  "props": {
+    "class": "text-muted flex h-full flex-col items-center justify-center gap-4 p-6"
+  },
+  "children": [
+    {
+      "component": "UIcon",
+      "props": {
+        "name": "i-lucide-ghost",
+        "class": "h-16 w-16 opacity-20"
+      }
+    },
+    {
+      "component": "div",
+      "props": {
+        "class": "text-center"
+      },
+      "children": [
+        {
+          "component": "h1",
+          "props": {
+            "class": "text-default text-2xl font-bold"
+          },
+          "children": {
+            "$type": "translation",
+            "en": "Page not found",
+            "ru": "Страница не найдена"
+          }
+        },
+        {
+          "component": "p",
+          "props": {
+            "class": "mt-2 text-sm opacity-60"
+          },
+          "children": {
+            "$type": "translation",
+            "en": "The page you're looking for doesn't exist.",
+            "ru": "Страница, которую вы ищете, не существует."
+          }
+        }
+      ]
+    },
+    {
+      "component": "UButton",
+      "props": {
+        "to": "/projects",
+        "color": "primary"
+      },
+      "children": {
+        "$type": "translation",
+        "en": "Back to projects",
+        "ru": "Назад к проектам"
+      }
+    }
+  ]
+}

@@ -22,6 +22,3 @@ data/*
 auto-imports.d.ts
 components.d.ts
 artifacts
-
-# Generated app output
-apps/exodus-generated/

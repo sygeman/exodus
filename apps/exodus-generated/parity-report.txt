@@ -1,0 +1,114 @@
+generated app refreshed
+total differences: 90
+
+by area:
+- shell: 8
+- layouts: 8
+- pages: 15
+- assets: 8
+- other: 51
+
+by reason:
+- schema gap: 43
+- generator gap: 33
+- migration gap: 14
+
+shell:
+- [different] index.html -> generator gap
+- [different] src/App.vue -> generator gap
+- [different] src/app.css -> generator gap
+- [only_in_generated] src/env.d.ts -> generator gap
+- [different] src/main.ts -> generator gap
+- [different] src/router.ts -> generator gap
+- [different] tsconfig.json -> generator gap
+- [different] vite.config.ts -> generator gap
+
+layouts:
+- [different] src/components/AppSidebar.vue -> generator gap
+- [only_in_reference] src/components/AppTopMenu.vue -> migration gap
+- [only_in_reference] src/components/DebugLayout.vue -> migration gap
+- [only_in_reference] src/components/FlowEditorLayout.vue -> migration gap
+- [only_in_reference] src/components/MenuLayout.vue -> migration gap
+- [only_in_reference] src/components/ProjectLayout.vue -> migration gap
+- [only_in_reference] src/components/ProjectsSidebar.vue -> migration gap
+- [only_in_reference] src/components/SettingsLayout.vue -> migration gap
+
+pages:
+- [different] src/components/DebugFlowRuns.vue -> generator gap
+- [different] src/components/DebugFlows.vue -> generator gap
+- [different] src/components/DebugLogs.vue -> generator gap
+- [different] src/components/FlowCodePage.vue -> generator gap
+- [different] src/components/FlowEditorPage.vue -> generator gap
+- [different] src/components/FlowSettingsPage.vue -> generator gap
+- [different] src/components/IdeaPage.vue -> generator gap
+- [different] src/components/NotFound.vue -> generator gap
+- [different] src/components/ProjectFlowsPage.vue -> generator gap
+- [different] src/components/ProjectIdeasPage.vue -> generator gap
+- [different] src/components/ProjectPage.vue -> generator gap
+- [different] src/components/ProjectSettingsPage.vue -> generator gap
+- [different] src/components/ProjectsListPage.vue -> generator gap
+- [different] src/components/SettingsAppearance.vue -> generator gap
+- [different] src/components/SettingsLanguage.vue -> generator gap
+
+assets:
+- [only_in_generated] assets/icon.ico -> generator gap
+- [different] assets/linux/icon_128x128.png -> migration gap
+- [different] assets/linux/icon_16x16.png -> migration gap
+- [different] assets/linux/icon_256x256.png -> migration gap
+- [different] assets/linux/icon_32x32.png -> migration gap
+- [different] assets/linux/icon_48x48.png -> migration gap
+- [different] assets/linux/icon_512x512.png -> migration gap
+- [different] assets/linux/icon_64x64.png -> migration gap
+
+other:
+- [only_in_generated] .gitignore -> generator gap
+- [only_in_reference] README.md -> schema gap
+- [only_in_generated] bunfig.toml -> generator gap
+- [different] edem-manifests/assets.json -> schema gap
+- [different] edem-manifests/components/AppSidebar.json -> schema gap
+- [different] edem-manifests/components/DebugFlowRuns.json -> schema gap
+- [different] edem-manifests/components/DebugFlows.json -> schema gap
+- [different] edem-manifests/components/DebugLogs.json -> schema gap
+- [different] edem-manifests/components/FlowCodePage.json -> schema gap
+- [different] edem-manifests/components/FlowEditorPage.json -> schema gap
+- [different] edem-manifests/components/FlowSettingsPage.json -> schema gap
+- [different] edem-manifests/components/IdeaPage.json -> schema gap
+- [different] edem-manifests/components/NotFound.json -> schema gap
+- [different] edem-manifests/components/ProjectFlowsPage.json -> schema gap
+- [different] edem-manifests/components/ProjectIdeasPage.json -> schema gap
+- [different] edem-manifests/components/ProjectPage.json -> schema gap
+- [different] edem-manifests/components/ProjectSettingsPage.json -> schema gap
+- [different] edem-manifests/components/ProjectsListPage.json -> schema gap
+- [different] edem-manifests/components/SettingsAppearance.json -> schema gap
+- [different] edem-manifests/components/SettingsLanguage.json -> schema gap
+- [different] edem-manifests/data.json -> schema gap
+- [different] edem-manifests/flows.json -> schema gap
+- [different] edem-manifests/routes.json -> schema gap
+- [different] electrobun.config.ts -> schema gap
+- [only_in_reference] env.d.ts -> schema gap
+- [different] package.json -> schema gap
+- [different] scripts/install-linux.sh -> schema gap
+- [different] src/bun/index.ts -> schema gap
+- [only_in_reference] src/components/DeleteableEdge.vue -> schema gap
+- [only_in_reference] src/components/FlowNode.vue -> schema gap
+- [only_in_reference] src/components/NodeConfigPanel.vue -> schema gap
+- [only_in_reference] src/components/NodeWrapper.vue -> schema gap
+- [only_in_reference] src/components/SettingsLayoutPage.vue -> schema gap
+- [only_in_reference] src/components/UpdateOverlay.vue -> schema gap
+- [only_in_generated] src/components/registry.ts -> generator gap
+- [only_in_generated] src/composables/useApp_state.ts -> generator gap
+- [only_in_reference] src/composables/useFlowHighlighting.ts -> schema gap
+- [only_in_generated] src/composables/useFlows.ts -> generator gap
+- [only_in_generated] src/composables/useIdeas.ts -> generator gap
+- [only_in_generated] src/composables/useLogs.ts -> generator gap
+- [only_in_reference] src/composables/useNodeLabel.ts -> schema gap
+- [only_in_reference] src/composables/useNodeTestMode.ts -> schema gap
+- [only_in_generated] src/composables/useProjects.ts -> generator gap
+- [only_in_reference] src/data-manifest.ts -> schema gap
+- [only_in_reference] src/edem-client.ts -> schema gap
+- [different] src/edem.ts -> schema gap
+- [different] src/flows-bootstrap.ts -> schema gap
+- [only_in_reference] src/hooks.ts -> schema gap
+- [only_in_reference] src/types/flow.ts -> schema gap
+- [only_in_reference] src/utils/apply-theme.ts -> schema gap
+- [only_in_reference] src/utils/persist-route.ts -> schema gap

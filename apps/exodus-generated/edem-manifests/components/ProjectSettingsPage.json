@@ -1,0 +1,129 @@
+{
+  "component": "div",
+  "props": {
+    "class": "flex h-full"
+  },
+  "children": [
+    {
+      "component": "section",
+      "props": {
+        "class": "flex flex-col gap-8"
+      },
+      "children": [
+        {
+          "component": "div",
+          "props": {
+            "class": "border-default flex flex-col gap-4 border-b pb-8"
+          },
+          "children": [
+            {
+              "component": "div",
+              "props": {
+                "class": "flex flex-col gap-1"
+              },
+              "children": [
+                {
+                  "component": "h3",
+                  "props": {
+                    "class": "text-base font-medium"
+                  },
+                  "children": {
+                    "$type": "translation",
+                    "en": "Name",
+                    "ru": "Название"
+                  }
+                },
+                {
+                  "component": "p",
+                  "props": {
+                    "class": "text-muted text-sm"
+                  },
+                  "children": {
+                    "$type": "translation",
+                    "en": "Project name is displayed in the list and sidebar.",
+                    "ru": "Название проекта отображается в списке и боковом меню."
+                  }
+                }
+              ]
+            },
+            {
+              "component": "UInput",
+              "props": {
+                "class": "max-w-md",
+                "modelValue": "{{ project.data.name ?? '' }}"
+              },
+              "events": {
+                "blur": {
+                  "action": "updateName"
+                },
+                "keyup.enter": {
+                  "action": "updateName"
+                }
+              }
+            }
+          ]
+        },
+        {
+          "component": "div",
+          "children": [
+            {
+              "component": "h3",
+              "props": {
+                "class": "text-error mb-2 text-base font-medium"
+              },
+              "children": {
+                "$type": "translation",
+                "en": "Delete project",
+                "ru": "Удаление проекта"
+              }
+            },
+            {
+              "component": "p",
+              "props": {
+                "class": "text-muted mb-4 text-sm"
+              },
+              "children": {
+                "$type": "translation",
+                "en": "This action cannot be undone. All project data will be permanently deleted.",
+                "ru": "Это действие нельзя отменить. Все данные проекта будут безвозвратно удалены."
+              }
+            },
+            {
+              "component": "UButton",
+              "props": {
+                "color": "error",
+                "variant": "outline"
+              },
+              "events": {
+                "click": {
+                  "action": "openDeleteModal"
+                }
+              },
+              "children": [
+                {
+                  "component": "UIcon",
+                  "props": {
+                    "name": "i-lucide-trash-2",
+                    "class": "h-4 w-4"
+                  }
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "ml-2"
+                  },
+                  "children": {
+                    "$type": "translation",
+                    "en": "Delete",
+                    "ru": "Удалить"
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "rawScript": "import { useRoute, useRouter } from 'vue-router'\nimport { computed, ref } from 'vue'\nimport { useProjects, useUpdateItem, useDeleteItem } from '@/hooks'\n\nconst route = useRoute()\nconst router = useRouter()\nconst { items: projects, loading } = useProjects()\nconst [updateItem] = useUpdateItem()\nconst [deleteItem] = useDeleteItem()\n\nconst projectId = computed(() => route.params.id as string)\nconst project = computed(() => projects.value.find((p) => p.id === projectId.value))\n\nconst deleteModalOpen = ref(false)\n\nfunction updateName(e: FocusEvent | KeyboardEvent) {\n  const name = (e.target as HTMLInputElement).value\n  if (!project.value || name.trim() === '' || name === project.value.data.name) return\n  updateItem(project.value.id, { name })\n}\n\nfunction openDeleteModal() {\n  deleteModalOpen.value = true\n}\n\nfunction confirmDelete() {\n  if (!project.value) return\n  deleteItem(project.value.id)\n  deleteModalOpen.value = false\n  router.push('/projects')\n}"
+}

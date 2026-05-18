@@ -1,0 +1,93 @@
+{
+  "routes": [
+    {
+      "path": "/",
+      "redirect": "/projects"
+    },
+    {
+      "path": "/projects",
+      "root": "ProjectsListPage"
+    },
+    {
+      "path": "/project/:id",
+      "redirect": "/project/:id/overview",
+      "children": [
+        {
+          "path": "/overview",
+          "root": "ProjectPage"
+        },
+        {
+          "path": "/ideas",
+          "root": "ProjectIdeasPage"
+        },
+        {
+          "path": "/ideas/:ideaId",
+          "root": "IdeaPage"
+        },
+        {
+          "path": "/flows",
+          "root": "ProjectFlowsPage"
+        },
+        {
+          "path": "/flows/:flowId",
+          "redirect": "/project/:id/flows/:flowId/graph",
+          "children": [
+            {
+              "path": "/graph",
+              "root": "FlowEditorPage"
+            },
+            {
+              "path": "/code",
+              "root": "FlowCodePage"
+            },
+            {
+              "path": "/settings",
+              "root": "FlowSettingsPage"
+            }
+          ]
+        },
+        {
+          "path": "/settings",
+          "root": "ProjectSettingsPage"
+        }
+      ]
+    },
+    {
+      "path": "/debug",
+      "redirect": "/debug/logs",
+      "children": [
+        {
+          "path": "/logs",
+          "root": "DebugLogs"
+        },
+        {
+          "path": "/flows",
+          "root": "DebugFlows"
+        },
+        {
+          "path": "/flows/:flowId",
+          "root": "DebugFlowRuns"
+        }
+      ]
+    },
+    {
+      "path": "/settings",
+      "redirect": "/settings/appearance",
+      "children": [
+        {
+          "path": "/appearance",
+          "root": "SettingsAppearance"
+        },
+        {
+          "path": "/language",
+          "root": "SettingsLanguage"
+        }
+      ]
+    },
+    {
+      "path": "/:pathMatch(.*)*",
+      "root": "NotFound"
+    }
+  ],
+  "components": {}
+}
