@@ -1,3 +1,12 @@
+## [1.10.1](https://github.com/sygeman/exodus/compare/v1.10.0...v1.10.1) (2026-05-18)
+
+
+### Bug Fixes
+
+* **exodus:** install script fixes and CI test workflow ([3101618](https://github.com/sygeman/exodus/commit/3101618b2e48ba2d8fbeb6a74904c9ad11e5637b))
+
+
+
 # [1.10.0](https://github.com/sygeman/exodus/compare/v1.9.0...v1.10.0) (2026-05-15)
 
 
@@ -32,15 +41,6 @@
 ### Bug Fixes
 
 * **debug:** show duration before timestamp in run list ([2bf6477](https://github.com/sygeman/exodus/commit/2bf64773ca0c3a41bccf3ff586c25dab4611523e))
-
-
-
-# [1.8.0](https://github.com/sygeman/exodus/compare/v1.7.1...v1.8.0) (2026-05-14)
-
-
-### Features
-
-* **debug:** improve flow runs UI with timeline, force run, and full i18n ([c3070ff](https://github.com/sygeman/exodus/commit/c3070ff7b8a2de9ff0eb7c5491f2abfce6ab9f83))
 
 
 
