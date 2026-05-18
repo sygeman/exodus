@@ -1,8 +1,11 @@
 #!/bin/bash
 set -e
 
-SVG="src/assets/logo.svg"
-OUT_DIR="assets"
+SCRIPT_DIR="$(cd -- "$(dirname -- "$0")" && pwd)"
+ROOT_DIR="$(cd -- "$SCRIPT_DIR/.." && pwd)"
+
+SVG="$ROOT_DIR/src/assets/logo.svg"
+OUT_DIR="$ROOT_DIR/assets"
 ICONSET="$OUT_DIR/icon.iconset"
 ICNS="$OUT_DIR/icon.icns"
 ICO="$OUT_DIR/icon.ico"
@@ -40,6 +43,6 @@ for size in 16 32 48 64 128 256 512; do
 done
 
 echo "Generated:"
-echo "  macOS: $ICNS"
-echo "  Windows: $ICO"
-echo "  Linux: $LINUX_DIR/"
+echo "  macOS: ${ICNS#$ROOT_DIR/}"
+echo "  Windows: ${ICO#$ROOT_DIR/}"
+echo "  Linux: ${LINUX_DIR#$ROOT_DIR/}/"
