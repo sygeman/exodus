@@ -18,7 +18,7 @@ error_exit() {
   exit 1
 }
 
-RELEASE_URL="https://github.com/sygeman/exodus/releases/latest/download"
+RELEASE_URL="${RELEASE_URL:-https://github.com/sygeman/exodus/releases/latest/download}"
 
 # Detect architecture
 ARCH=$(uname -m)
@@ -67,6 +67,7 @@ log_ok "curl found"
 # ── Ensure directories exist ───────────────────────────────────────────────
 mkdir -p "$APPLICATIONS_DIR"
 mkdir -p "$BIN_DIR"
+mkdir -p "$(dirname "$APP_DIR")"
 
 # ── Download ───────────────────────────────────────────────────────────────
 log_info "Downloading $TARBALL..."

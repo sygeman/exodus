@@ -1,0 +1,138 @@
+name: Test Install Script
+
+on:
+  workflow_run:
+    workflows: ["Release"]
+    types: [completed]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test-install:
+    name: Install / Validate / Uninstall
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.workflow_run.conclusion == 'success' &&
+       github.event.workflow_run.event != 'pull_request')
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Find release tarball
+        id: find
+        run: |
+          RUN_ID="${{ github.event.workflow_run.id || '' }}"
+          if [ -z "$RUN_ID" ]; then
+            echo "No workflow_run — expecting manual dispatch with artifact"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          echo "Looking for artifacts from run $RUN_ID"
+          ARTIFACTS=$(gh api "repos/${{ github.repository }}/actions/runs/$RUN_ID/artifacts" --jq '.artifacts[].name' 2>/dev/null || true)
+          echo "$ARTIFACTS"
+
+          if echo "$ARTIFACTS" | grep -q "linux-x64-artifacts"; then
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "No linux-x64-artifacts found in run $RUN_ID"
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          fi
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Download Linux x64 artifact
+        if: steps.find.outputs.skip != 'true'
+        uses: actions/download-artifact@v8
+        with:
+          name: linux-x64-artifacts
+          run-id: ${{ github.event.workflow_run.id }}
+          path: artifacts
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Prepare tarball for local server
+        if: steps.find.outputs.skip != 'true'
+        run: |
+          TARBALL=$(ls artifacts/stable-linux-x64-Exodus.tar.zst 2>/dev/null || true)
+          if [ -z "$TARBALL" ]; then
+            echo "Expected artifact not found. Contents of artifacts/:"
+            find artifacts/ -type f
+            exit 1
+          fi
+          mkdir -p serve
+          cp "$TARBALL" serve/stable-linux-x64-Exodus.tar.zst
+
+      - name: Start local HTTP server
+        if: steps.find.outputs.skip != 'true'
+        run: |
+          cd serve
+          python3 -m http.server 8080 &
+          SERVER_PID=$!
+          echo "SERVER_PID=$SERVER_PID" >> "$GITHUB_ENV"
+          sleep 1
+          curl -fsSL http://localhost:8080/stable-linux-x64-Exodus.tar.zst -o /dev/null
+
+      - name: Install
+        if: steps.find.outputs.skip != 'true'
+        env:
+          RELEASE_URL: http://localhost:8080
+        run: |
+          bash apps/exodus/scripts/install-linux.sh
+
+      - name: Validate installation
+        if: steps.find.outputs.skip != 'true'
+        run: |
+          APP_DIR="$HOME/.local/share/exodus.sgmn.dev/stable/app"
+          BIN_DIR="$HOME/.local/bin"
+          DESKTOP_DIR="$HOME/.local/share/applications"
+
+          echo "── Checking app directory ──"
+          [ -d "$APP_DIR" ] || { echo "FAIL: $APP_DIR missing"; exit 1; }
+          [ -f "$APP_DIR/bin/launcher" ] || { echo "FAIL: bin/launcher missing"; exit 1; }
+          [ -x "$APP_DIR/bin/launcher" ] || { echo "FAIL: bin/launcher not executable"; exit 1; }
+
+          echo "── Checking symlink ──"
+          [ -L "$BIN_DIR/exodus" ] || { echo "FAIL: symlink missing"; exit 1; }
+          [ -x "$BIN_DIR/exodus" ] || { echo "FAIL: symlink not executable"; exit 1; }
+
+          echo "── Checking desktop entry ──"
+          [ -f "$DESKTOP_DIR/exodus.desktop" ] || { echo "FAIL: desktop entry missing"; exit 1; }
+          grep -q "Exec=$APP_DIR/bin/launcher" "$DESKTOP_DIR/exodus.desktop" || { echo "FAIL: Exec line incorrect"; exit 1; }
+
+          echo "── Checking ELF binary ──"
+          file "$APP_DIR/bin/launcher" | grep -q "ELF" || { echo "FAIL: launcher is not an ELF binary"; exit 1; }
+
+          echo "All checks passed."
+
+      - name: Reinstall (idempotency)
+        if: steps.find.outputs.skip != 'true'
+        env:
+          RELEASE_URL: http://localhost:8080
+        run: |
+          bash apps/exodus/scripts/install-linux.sh
+
+      - name: Uninstall
+        if: steps.find.outputs.skip != 'true'
+        run: |
+          bash apps/exodus/scripts/uninstall-linux.sh
+
+      - name: Validate uninstall
+        if: steps.find.outputs.skip != 'true'
+        run: |
+          APP_DIR="$HOME/.local/share/exodus.sgmn.dev/stable/app"
+          BIN_DIR="$HOME/.local/bin"
+          DESKTOP_DIR="$HOME/.local/share/applications"
+
+          [ ! -d "$APP_DIR" ] || { echo "FAIL: $APP_DIR still exists"; exit 1; }
+          [ ! -L "$BIN_DIR/exodus" ] || { echo "FAIL: symlink still exists"; exit 1; }
+          [ ! -f "$DESKTOP_DIR/exodus.desktop" ] || { echo "FAIL: desktop entry still exists"; exit 1; }
+
+          echo "Uninstall verified."
+
+      - name: Stop local server
+        if: always()
+        run: kill "$SERVER_PID" 2>/dev/null || true
