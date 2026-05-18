@@ -1,3 +1,18 @@
+# [1.12.0](https://github.com/sygeman/exodus/compare/v1.11.0...v1.12.0) (2026-05-18)
+
+
+### Bug Fixes
+
+* **edem-codegen:** always regenerate parity reports ([7dd8e2f](https://github.com/sygeman/exodus/commit/7dd8e2f07a0f08e690e5e804950c5549e7f55a17))
+
+
+### Features
+
+* **edem-codegen:** generate shared runtime hooks layer ([b2fd843](https://github.com/sygeman/exodus/commit/b2fd843fbb097c787c48b160469f7bf089c1b24e))
+* **edem-codegen:** scaffold settings slice layouts and handlers ([c3533d8](https://github.com/sygeman/exodus/commit/c3533d863c6ae47dd3caf001253ed8d002c9d2b1))
+
+
+
 # [1.11.0](https://github.com/sygeman/exodus/compare/v1.10.1...v1.11.0) (2026-05-18)
 
 
@@ -38,15 +53,6 @@
 ### Features
 
 * **edem-ui:** add rawScript field to ComponentNode for migration freedom ([d2d8f2d](https://github.com/sygeman/exodus/commit/d2d8f2dc32a0afacc8dc34ea393de2814915b03f))
-
-
-
-## [1.8.2](https://github.com/sygeman/exodus/compare/v1.8.1...v1.8.2) (2026-05-14)
-
-
-### Bug Fixes
-
-* **debug:** replace ⚡ emoji with lucide-zap icon in flow lists ([ec7c761](https://github.com/sygeman/exodus/commit/ec7c76143cbd30b8345d590de9ba8c23485f6b94))
 
 
 
