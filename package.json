@@ -12,6 +12,7 @@
     "codegen": "turbo run compare --filter=@exodus/edem-codegen",
     "compare": "turbo run compare --filter=@exodus/edem-codegen",
     "generated:install": "bun install",
+    "generated:format": "oxfmt apps/exodus-generated",
     "generated:lint": "oxlint apps/exodus-generated",
     "build": "turbo run build",
     "build:stable": "turbo run build:stable",

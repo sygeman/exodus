@@ -29,7 +29,7 @@ iconutil -c icns "$ICONSET" -o "$ICNS"
 # Generate Windows ICO with multiple sizes
 ICO_TMP_DIR=$(mktemp -d)
 for size in 16 32 48 128 256; do
-  convert "$TMP_PNG" -resize ${size}x${size} "$ICO_TMP_DIR/icon_${size}x${size}.png"
+  convert "$TMP_PNG" -strip -define png:exclude-chunks=date,time -resize ${size}x${size} "$ICO_TMP_DIR/icon_${size}x${size}.png"
 done
 convert "$ICO_TMP_DIR"/*.png "$ICO"
 rm -rf "$ICO_TMP_DIR"
@@ -39,7 +39,7 @@ LINUX_DIR="$OUT_DIR/linux"
 rm -rf "$LINUX_DIR"
 mkdir -p "$LINUX_DIR"
 for size in 16 32 48 64 128 256 512; do
-  convert "$TMP_PNG" -resize ${size}x${size} "$LINUX_DIR/icon_${size}x${size}.png"
+  convert "$TMP_PNG" -strip -define png:exclude-chunks=date,time -resize ${size}x${size} "$LINUX_DIR/icon_${size}x${size}.png"
 done
 
 echo "Generated:"

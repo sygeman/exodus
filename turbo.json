@@ -38,11 +38,15 @@
       "dependsOn": ["@exodus/edem-codegen#codegen"],
       "cache": false
     },
+    "//#generated:format": {
+      "dependsOn": ["//#generated:install"],
+      "cache": false
+    },
     "@exodus/edem-codegen#compare": {
       "dependsOn": ["//#generated:lint"]
     },
     "//#generated:lint": {
-      "dependsOn": ["//#generated:install"],
+      "dependsOn": ["//#generated:format"],
       "cache": true
     },
     "//#quality": {
