@@ -29,12 +29,20 @@ Edem UI ближе по философии к связке `Astro` + `Storybook`
 На момент старта в репозитории уже есть минимальный self-hosting baseline:
 
 - манифесты находятся в `apps/exodus/edem-manifests`
-- генерация запускается через `packages/edem-codegen/generate.ts`
+- генерация запускается только через `bun run codegen` из корня репозитория
 - output-таргет — `apps/exodus-generated`
 - parity-скрипт находится в `packages/edem-codegen/compare.ts`
 - текущий IR и validate живут в `packages/edem-codegen/src/ir.ts` и `packages/edem-codegen/src/validate.ts`
 - app-stage уже умеет генерировать базовые `.vue`-компоненты и `registry.ts` из `packages/edem-codegen/src/stages/app`
 - parity-классификация и её тесты вынесены в `packages/edem-codegen/src/compare.ts` и `packages/edem-codegen/src/compare.test.ts`
+
+## Операционные правила
+
+- единственный поддерживаемый способ регенерации `apps/exodus-generated` — `bun run codegen` из корня репозитория
+- не запускать генерацию обходными путями через `packages/edem-codegen/generate.ts`, `compare.ts --generate` или ручные команды внутри `apps/exodus-generated`, кроме случаев отдельной инфраструктурной отладки с явным решением команды
+- `apps/exodus` остаётся эталоном для parity-сравнения, пока не согласовано иное
+- запрещено подгонять `apps/exodus` под текущий generated output без явного одобрения; сначала нужно исправлять schema, manifests, codegen или parity tooling
+- если возникает соблазн «срезать угол» правкой reference-кода ради зелёного parity, это считается invalid progress, пока не зафиксировано отдельное решение о смене эталона
 
 Это означает, что задача не в создании системы с нуля, а в переходе от базовой генерации leaf-компонентов к полному self-hosting shell-уровня `Exodus`.
 
@@ -78,8 +86,7 @@ Edem UI ближе по философии к связке `Astro` + `Storybook`
 
 Проверено фактическим прогоном:
 
-- `packages/edem-codegen/generate.ts` запускается и пишет output
-- `packages/edem-codegen/compare.ts --generate` запускается и строит parity report
+- `bun run codegen` запускает полный поддерживаемый цикл генерации и parity-проверки
 - текущий parity baseline после последних прогонов `compare --generate`: `91` расхождение
 
 Текущие известные блокеры:
