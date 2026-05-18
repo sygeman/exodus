@@ -4,16 +4,16 @@
     "generatedNow": true
   },
   "summary": {
-    "total": 89,
+    "total": 91,
     "byArea": {
       "other": 52,
       "assets": 8,
       "shell": 8,
-      "layouts": 7,
-      "pages": 14
+      "layouts": 8,
+      "pages": 15
     },
     "byReason": {
-      "generator gap": 33,
+      "generator gap": 35,
       "schema gap": 44,
       "migration gap": 12
     }
@@ -392,6 +392,12 @@
       "status": "different"
     },
     {
+      "file": "src/components/ProjectSettingsPage.vue",
+      "area": "pages",
+      "reason": "generator gap",
+      "status": "different"
+    },
+    {
       "file": "src/components/ProjectsListPage.vue",
       "area": "pages",
       "reason": "generator gap",
@@ -412,6 +418,12 @@
     {
       "file": "src/components/SettingsLanguage.vue",
       "area": "pages",
+      "reason": "generator gap",
+      "status": "different"
+    },
+    {
+      "file": "src/components/SettingsLayout.vue",
+      "area": "layouts",
       "reason": "generator gap",
       "status": "different"
     },
