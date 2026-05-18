@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import LogoSvg from "@/assets/logo.svg"
-import { useT } from "@/composables/useT"
+import { useT } from "@exodus/edem-vue"
 
 const t = useT()
 </script>

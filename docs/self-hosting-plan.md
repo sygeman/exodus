@@ -80,7 +80,7 @@ Edem UI ближе по философии к связке `Astro` + `Storybook`
 
 - `packages/edem-codegen/generate.ts` запускается и пишет output
 - `packages/edem-codegen/compare.ts --generate` запускается и строит parity report
-- текущий parity baseline после добавления shared runtime layer: `91` расхождение
+- текущий parity baseline после миграции первой settings chain: `89` расхождений
 
 Текущие известные блокеры:
 
@@ -384,7 +384,8 @@ Definition of done:
 - `ProjectSettingsPage` уже использует `if` / `elseIf`, modal DSL и обычные manifest actions вместо ручной template-вёрстки только в reference app
 - codegen уже умеет выводить такие handler'ы в template, включая `blur`, `click` и `keyup.enter`
 - generated app теперь воспроизводит и shared runtime layer первого slice через `data-manifest.ts`, `edem-client.ts` и `hooks.ts`
-- end-to-end parity для slice ещё не достигнут, потому что остаются отличия в самом generated shell/layout/page коде и часть reference-only UI/runtime слоёв ещё не мигрирована
+- `ProjectSettingsPage` и `SettingsLayout` больше не фигурируют в parity diff как отдельные page/layout расхождения
+- end-to-end parity для slice ещё не достигнут, потому что в этой цепочке ещё остаётся `MenuLayout`, а вне неё — другие generated shell/layout/page различия и reference-only runtime/UI слои
 
 До тех пор, пока первый vertical slice не проходит end-to-end, расширять DSL дальше не стоит.
 
@@ -392,7 +393,7 @@ Definition of done:
 
 ## Ближайшие шаги
 
-1. Добиться parity для `MenuLayout`, `SettingsLayout` и `ProjectSettingsPage` как первой законченной route/layout/page цепочки
+1. Добить parity для `MenuLayout`, чтобы первая settings chain закрылась полностью
 2. После этого расширить тот же подход на `FlowSettingsPage`, где capability-профиль почти совпадает
 3. Вынести следующий слой reference-only runtime/UI контрактов, которые ещё мешают parity (`types/flow`, `persist-route`, `apply-theme`, wrapper-компоненты)
 4. Обновлять parity baseline после каждого замкнутого шага, а не после больших пачек изменений

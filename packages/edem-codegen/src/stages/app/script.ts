@@ -155,7 +155,7 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
   })
 
   if (hasTranslations) {
-    imports.push(`import { useT } from "@/composables/useT"`)
+    imports.push(`import { useT } from "@exodus/edem-vue"`)
     statements.push(`const t = useT()`)
   }
 

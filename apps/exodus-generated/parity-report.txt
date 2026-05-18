@@ -1,16 +1,16 @@
 generated app refreshed
-total differences: 91
+total differences: 89
 
 by area:
 - shell: 8
-- layouts: 8
-- pages: 15
+- layouts: 7
+- pages: 14
 - assets: 8
 - other: 52
 
 by reason:
 - schema gap: 44
-- generator gap: 35
+- generator gap: 33
 - migration gap: 12
 
 shell:
@@ -31,7 +31,6 @@ layouts:
 - [different] src/components/MenuLayout.vue -> generator gap
 - [only_in_reference] src/components/ProjectLayout.vue -> migration gap
 - [only_in_reference] src/components/ProjectsSidebar.vue -> migration gap
-- [different] src/components/SettingsLayout.vue -> generator gap
 
 pages:
 - [different] src/components/DebugFlowRuns.vue -> generator gap
@@ -45,7 +44,6 @@ pages:
 - [different] src/components/ProjectFlowsPage.vue -> generator gap
 - [different] src/components/ProjectIdeasPage.vue -> generator gap
 - [different] src/components/ProjectPage.vue -> generator gap
-- [different] src/components/ProjectSettingsPage.vue -> generator gap
 - [different] src/components/ProjectsListPage.vue -> generator gap
 - [different] src/components/SettingsAppearance.vue -> generator gap
 - [different] src/components/SettingsLanguage.vue -> generator gap

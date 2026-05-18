@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router"
 
-interface MenuLayoutItem {
+export interface MenuLayoutItem {
   to: string
   label: string
   icon: string

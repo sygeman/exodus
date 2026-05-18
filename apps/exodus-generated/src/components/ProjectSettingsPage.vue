@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import SettingsLayout from "@/components/SettingsLayout.vue"
-import { useT } from "@/composables/useT"
+import { useT } from "@exodus/edem-vue"
 
 const t = useT()
 
@@ -32,15 +32,15 @@ function updateName(e: FocusEvent | KeyboardEvent) {
   updateItem(project.value.id, { name })
 }
 
-function openDeleteModal() {
+function openDeleteModal(_event?: Event) {
   deleteModalOpen.value = true
 }
 
-function closeDeleteModal() {
+function closeDeleteModal(_event?: Event) {
   deleteModalOpen.value = false
 }
 
-function confirmDelete() {
+function confirmDelete(_event?: Event) {
   if (!project.value) return
   deleteItem(project.value.id)
   deleteModalOpen.value = false

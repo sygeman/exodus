@@ -1,12 +1,13 @@
 <script setup lang="ts">
-import { useT } from "@exodus/edem-vue"
-import { useCollectionQuery, useUpdateItem, useDeleteItem } from "@/hooks"
-import { useRoute, useRouter } from "vue-router"
-import { computed, ref } from "vue"
 import SettingsLayout from "@/components/SettingsLayout.vue"
-import type { MenuLayoutItem } from "@/components/MenuLayout.vue"
+import { useT } from "@exodus/edem-vue"
 
 const t = useT()
+
+import { useRoute, useRouter } from "vue-router"
+import { computed, ref } from "vue"
+import { useCollectionQuery, useUpdateItem, useDeleteItem } from "@/hooks"
+
 const route = useRoute()
 const router = useRouter()
 const { data: projects, loading } = useCollectionQuery("projects")
@@ -15,10 +16,9 @@ const [deleteItem] = useDeleteItem()
 
 const projectId = computed(() => route.params.id as string)
 const project = computed(() => projects.value.find((p) => p.id === projectId.value))
-
 const deleteModalOpen = ref(false)
 
-const navItems = computed<MenuLayoutItem[]>(() => [
+const navItems = computed(() => [
   {
     to: `/project/${projectId.value}/settings`,
     label: t({ en: "General", ru: "Общие" }),
@@ -26,16 +26,21 @@ const navItems = computed<MenuLayoutItem[]>(() => [
   },
 ])
 
-function updateName(name: string) {
+function updateName(e: FocusEvent | KeyboardEvent) {
+  const name = (e.target as HTMLInputElement).value
   if (!project.value || name.trim() === "" || name === project.value.data.name) return
   updateItem(project.value.id, { name })
 }
 
-function openDeleteModal() {
+function openDeleteModal(_event?: Event) {
   deleteModalOpen.value = true
 }
 
-function confirmDelete() {
+function closeDeleteModal(_event?: Event) {
+  deleteModalOpen.value = false
+}
+
+function confirmDelete(_event?: Event) {
   if (!project.value) return
   deleteItem(project.value.id)
   deleteModalOpen.value = false
@@ -44,11 +49,12 @@ function confirmDelete() {
 </script>
 
 <template>
-  <div v-if="project" class="flex h-full">
+  <div class="flex h-full">
     <SettingsLayout
       :title="t({ en: 'Settings', ru: 'Настройки' })"
       :items="navItems"
       :page-title="t({ en: 'Project Settings', ru: 'Настройки проекта' })"
+      v-if="project"
     >
       <section class="flex flex-col gap-8">
         <div class="border-default flex flex-col gap-4 border-b pb-8">
@@ -66,11 +72,10 @@ function confirmDelete() {
           <UInput
             class="max-w-md"
             :model-value="project.data.name ?? ''"
-            @blur="(e: FocusEvent) => updateName((e.target as HTMLInputElement).value)"
-            @keyup.enter="(e: KeyboardEvent) => updateName((e.target as HTMLInputElement).value)"
+            @blur="updateName($event)"
+            @keyup.enter="updateName($event)"
           />
         </div>
-
         <div>
           <h3 class="text-error mb-2 text-base font-medium">
             {{ t({ en: "Delete project", ru: "Удаление проекта" }) }}
@@ -83,13 +88,12 @@ function confirmDelete() {
               })
             }}
           </p>
-          <UButton color="error" variant="outline" @click="openDeleteModal">
+          <UButton color="error" variant="outline" @click="openDeleteModal($event)">
             <UIcon name="i-lucide-trash-2" class="h-4 w-4" />
             <span class="ml-2">{{ t({ en: "Delete", ru: "Удалить" }) }}</span>
           </UButton>
         </div>
       </section>
-
       <UModal
         v-model:open="deleteModalOpen"
         :title="t({ en: 'Delete project?', ru: 'Удалить проект?' })"
@@ -102,26 +106,25 @@ function confirmDelete() {
       >
         <template #footer>
           <div class="flex w-full justify-end gap-3">
-            <UButton variant="ghost" @click="deleteModalOpen = false">
-              {{ t({ en: "Cancel", ru: "Отмена" }) }}
-            </UButton>
-            <UButton color="error" @click="confirmDelete">
-              {{ t({ en: "Delete", ru: "Удалить" }) }}
-            </UButton>
+            <UButton variant="ghost" @click="closeDeleteModal($event)">{{
+              t({ en: "Cancel", ru: "Отмена" })
+            }}</UButton>
+            <UButton color="error" @click="confirmDelete($event)">{{
+              t({ en: "Delete", ru: "Удалить" })
+            }}</UButton>
           </div>
         </template>
       </UModal>
     </SettingsLayout>
-  </div>
-
-  <div
-    v-else-if="!loading"
-    class="text-muted flex h-full flex-col items-center justify-center gap-2"
-  >
-    <UIcon name="i-lucide-folder-x" class="h-10 w-10" />
-    <p>{{ t({ en: "Project not found", ru: "Проект не найден" }) }}</p>
-    <UButton to="/projects" variant="link">
-      {{ t({ en: "Back to projects", ru: "Назад к проектам" }) }}
-    </UButton>
+    <div
+      class="text-muted flex h-full flex-col items-center justify-center gap-2"
+      v-else-if="!loading"
+    >
+      <UIcon name="i-lucide-folder-x" class="h-10 w-10" />
+      <p>{{ t({ en: "Project not found", ru: "Проект не найден" }) }}</p>
+      <UButton to="/projects" variant="link">{{
+        t({ en: "Back to projects", ru: "Назад к проектам" })
+      }}</UButton>
+    </div>
   </div>
 </template>
