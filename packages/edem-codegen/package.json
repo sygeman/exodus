@@ -26,6 +26,8 @@
     "exodus-gen": "./generate.ts"
   },
   "scripts": {
+    "codegen": "bun run generate.ts",
+    "compare": "bun run compare.ts",
     "exodus-gen": "bun run generate.ts",
     "check-types": "tsc --noEmit",
     "test": "bun test"

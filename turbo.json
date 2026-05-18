@@ -28,6 +28,19 @@
     "check-types": {
       "dependsOn": ["topo"]
     },
+    "codegen": {
+      "cache": false
+    },
+    "compare": {
+      "cache": false
+    },
+    "@exodus/edem-codegen#compare": {
+      "dependsOn": ["//#generated:lint"]
+    },
+    "//#generated:lint": {
+      "dependsOn": ["@exodus/edem-codegen#codegen"],
+      "cache": false
+    },
     "//#quality": {
       "dependsOn": ["//#lint", "//#format"]
     },

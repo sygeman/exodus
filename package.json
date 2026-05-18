@@ -9,6 +9,9 @@
   "scripts": {
     "prepare": "husky",
     "dev": "turbo run dev",
+    "codegen": "turbo run codegen --filter=@exodus/edem-codegen",
+    "compare": "turbo run compare --filter=@exodus/edem-codegen",
+    "generated:lint": "./node_modules/.bin/oxlint -c .oxlintrc.generated.json apps/exodus-generated",
     "build": "turbo run build",
     "build:stable": "turbo run build:stable",
     "check-types": "turbo run check-types",

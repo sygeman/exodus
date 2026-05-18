@@ -1,6 +1,6 @@
 import { $ } from "bun"
 import { existsSync } from "fs"
-import { mkdir } from "fs/promises"
+import { mkdir, writeFile } from "fs/promises"
 import { join } from "path"
 import { buildParityReport, formatParityReport } from "./src/parity"
 
@@ -29,6 +29,9 @@ const parityReport = await buildParityReport({
   manifestsDir: MANIFESTS_DIR,
   generatedNow: didGenerate,
 })
+
+await writeFile(join(GENERATED, "parity-report.json"), JSON.stringify(parityReport, null, 2) + "\n")
+await writeFile(join(GENERATED, "parity-report.txt"), formatParityReport(parityReport) + "\n")
 
 if (json) {
   console.log(JSON.stringify(parityReport, null, 2))
