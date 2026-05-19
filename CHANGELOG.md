@@ -1,3 +1,12 @@
+# [1.15.0](https://github.com/sygeman/exodus/compare/v1.14.1...v1.15.0) (2026-05-19)
+
+
+### Features
+
+* **flows:** add flow and subflow graph contracts ([db42e05](https://github.com/sygeman/exodus/commit/db42e05fef7a7bb7fd1df012e028808a5c0ab450))
+
+
+
 ## [1.14.1](https://github.com/sygeman/exodus/compare/v1.14.0...v1.14.1) (2026-05-19)
 
 
@@ -48,21 +57,6 @@
 
 * **edem-codegen:** generate shared runtime hooks layer ([b2fd843](https://github.com/sygeman/exodus/commit/b2fd843fbb097c787c48b160469f7bf089c1b24e))
 * **edem-codegen:** scaffold settings slice layouts and handlers ([c3533d8](https://github.com/sygeman/exodus/commit/c3533d863c6ae47dd3caf001253ed8d002c9d2b1))
-
-
-
-# [1.11.0](https://github.com/sygeman/exodus/compare/v1.10.1...v1.11.0) (2026-05-18)
-
-
-### Bug Fixes
-
-* **edem-codegen:** resolve icon script paths from project root ([8951bf6](https://github.com/sygeman/exodus/commit/8951bf65a5a3008898236a024ec862bf51183a75))
-
-
-### Features
-
-* **edem-codegen:** add self-hosting parity reporting ([50e205a](https://github.com/sygeman/exodus/commit/50e205a426496fb4f5a6badad2e064a8ce125a47))
-* **edem-codegen:** emit parity report on generate ([7031176](https://github.com/sygeman/exodus/commit/70311768929ca16143118bb69c61063fe579bb52))
 
 
 
