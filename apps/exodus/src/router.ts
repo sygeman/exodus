@@ -1,9 +1,14 @@
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from "vue-router"
 
+import ProjectsListPage from "@/components/ProjectsListPage.vue"
 import ProjectLayout from "@/components/ProjectLayout.vue"
+import ProjectPage from "@/components/ProjectPage.vue"
+import ProjectIdeasPage from "@/components/ProjectIdeasPage.vue"
+import IdeaPage from "@/components/IdeaPage.vue"
+import ProjectFlowsPage from "@/components/ProjectFlowsPage.vue"
 import FlowEditorPage from "@/components/FlowEditorPage.vue"
 import FlowEditorLayout from "@/components/FlowEditorLayout.vue"
-import RuntimeScreenHost from "@/runtime/RuntimeScreenHost"
+import FlowCodePage from "@/components/FlowCodePage.vue"
 import FlowSettingsPage from "@/components/FlowSettingsPage.vue"
 import ProjectSettingsPage from "@/components/ProjectSettingsPage.vue"
 import DebugLayout from "@/components/DebugLayout.vue"
@@ -17,42 +22,16 @@ import NotFound from "@/components/NotFound.vue"
 
 const routes: RouteRecordRaw[] = [
   { path: "/", redirect: "/projects" },
-  {
-    path: "/projects",
-    name: "projects-list",
-    component: RuntimeScreenHost,
-    meta: { screenId: "ProjectsListPage" },
-  },
+  { path: "/projects", name: "projects-list", component: ProjectsListPage },
   {
     path: "/project/:id",
     redirect: `/project/:id/overview`,
     component: ProjectLayout,
     children: [
-      {
-        path: "overview",
-        name: "project-overview",
-        component: RuntimeScreenHost,
-        meta: { screenId: "ProjectPage" },
-      },
-      {
-        path: "ideas",
-        name: "project-ideas",
-        component: RuntimeScreenHost,
-        meta: { screenId: "ProjectIdeasPage" },
-      },
-      {
-        path: "ideas/:ideaId",
-        name: "project-idea",
-        props: true,
-        component: RuntimeScreenHost,
-        meta: { screenId: "IdeaPage" },
-      },
-      {
-        path: "flows",
-        name: "project-flows",
-        component: RuntimeScreenHost,
-        meta: { screenId: "ProjectFlowsPage" },
-      },
+      { path: "overview", name: "project-overview", component: ProjectPage },
+      { path: "ideas", name: "project-ideas", component: ProjectIdeasPage },
+      { path: "ideas/:ideaId", name: "project-idea", props: true, component: IdeaPage },
+      { path: "flows", name: "project-flows", component: ProjectFlowsPage },
       {
         path: "flows/:flowId",
         component: FlowEditorLayout,
@@ -71,8 +50,7 @@ const routes: RouteRecordRaw[] = [
             path: "code",
             name: "project-flow-code",
             props: true,
-            component: RuntimeScreenHost,
-            meta: { screenId: "FlowCodePage" },
+            component: FlowCodePage,
           },
           {
             path: "settings",
