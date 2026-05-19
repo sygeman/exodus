@@ -45,11 +45,17 @@ export interface ManifestAction {
   steps: ManifestActionStep[]
 }
 
+export interface ModelBinding {
+  value: unknown
+  onChange?: EventBinding
+}
+
 export interface ComponentNode {
   component: string
   props?: Record<string, unknown>
   children?: ComponentNode[] | string | Translation
   events?: Record<string, EventBinding>
+  model?: ModelBinding
   bind?: DataBinding
 
   // ── Extended fields (codegen) ──────────────────────────────────────────────
@@ -173,6 +179,14 @@ export const eventBindingSchema = z.union([
   expressionEventSchema,
 ])
 
+export const modelBindingSchema: z.ZodType<ModelBinding> = z.lazy(
+  () =>
+    z.object({
+      value: z.any(),
+      onChange: eventBindingSchema.optional(),
+    }) as z.ZodType<ModelBinding>,
+)
+
 const manifestQuerySchema: z.ZodType<ManifestQuery> = z.union([
   z.object({
     kind: z.literal("singleton"),
@@ -268,6 +282,7 @@ export const componentNodeSchema: z.ZodType<ComponentNode> = z.lazy(
       props: z.record(z.string(), z.any()).optional(),
       children: z.union([z.array(componentNodeSchema), z.string(), translationSchema]).optional(),
       events: z.record(z.string(), eventBindingSchema).optional(),
+      model: modelBindingSchema.optional(),
       bind: dataBindingSchema.optional(),
       if: z.string().optional(),
       elseIf: z.string().optional(),

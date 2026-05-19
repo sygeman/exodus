@@ -4,12 +4,14 @@ import {
   routeSchema,
   dataBindingSchema,
   eventBindingSchema,
+  modelBindingSchema,
   type RoutesManifest,
   type ComponentNode,
   type Translation,
   type Route,
   type DataBinding,
   type EventBinding,
+  type ModelBinding,
   type ManifestQuery,
   type ManifestAction,
   type ManifestActionStep,
@@ -22,6 +24,7 @@ export type {
   Route,
   DataBinding,
   EventBinding,
+  ModelBinding,
   ManifestQuery,
   ManifestAction,
   ManifestActionStep,
@@ -32,6 +35,7 @@ export {
   routeSchema,
   dataBindingSchema,
   eventBindingSchema,
+  modelBindingSchema,
 }
 
 // ── Template Engine ───────────────────────────────────────────────────────────

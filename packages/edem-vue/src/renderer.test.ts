@@ -269,6 +269,46 @@ describe("renderNode", () => {
     })
   })
 
+  it("maps model binding to Vue model props", () => {
+    const handler = () => {}
+    const ctx = createContext({
+      handlers: { "flow:updateField": handler },
+    })
+    const node: ComponentNode = {
+      component: "UInput",
+      model: {
+        value: "{{ route.id }}",
+        onChange: { flow: "updateField" },
+      },
+    }
+
+    const vNode = renderNode(node, createRegistry({ UInput: { name: "UInput" } }), {
+      ...ctx,
+      route: { id: "abc" },
+    })
+    expect(vNode).not.toBeNull()
+    expect(vNode!.props!.modelValue).toBe("abc")
+    expect(typeof vNode!.props!["onUpdate:modelValue"]).toBe("function")
+  })
+
+  it("renders modal wrapper", () => {
+    const registry = createRegistry({ UModal: { name: "UModal" } })
+    const node: ComponentNode = {
+      component: "div",
+      modal: {
+        vModel: "open",
+        title: { $type: "translation", en: "Confirm" },
+      },
+      children: [{ component: "span", children: "Body" }],
+    }
+
+    const vNode = renderNode(node, registry, createContext({ state: { open: ref(true) } }))
+    expect(vNode).not.toBeNull()
+    expect(vNode!.type).toBe(registry.UModal)
+    expect(vNode!.props!.open).toBe(true)
+    expect(vNode!.props!.title).toBe("Confirm")
+  })
+
   it("binds event handlers", () => {
     const handler = () => {}
     const ctx = createContext({

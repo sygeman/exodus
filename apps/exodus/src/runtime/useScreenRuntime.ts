@@ -10,8 +10,12 @@ import type {
 
 export function useScreenRuntime(input: UseScreenRuntimeInput): UseScreenRuntimeResult {
   const t = useT()
+  const stateEntries = [
+    ...Object.entries(input.screen.constants ?? {}),
+    ...Object.entries(input.screen.state ?? {}),
+  ]
   const state = Object.fromEntries(
-    Object.entries(input.screen.state ?? {}).map(([key, value]) => [key, ref(value)]),
+    stateEntries.map(([key, value]) => [key, ref(value)]),
   ) as ScreenRuntimeContext["state"]
 
   const queries: ScreenRuntimeContext["queries"] = {}
@@ -100,8 +104,12 @@ function buildContext(
   return {
     route,
     props: props ?? {},
-    ...Object.fromEntries(Object.entries(state).map(([key, value]) => [key, value.value])),
-    ...Object.fromEntries(Object.entries(queries).map(([key, value]) => [key, value.value])),
+    ...Object.fromEntries(
+      Object.entries(state).map(([key, value]) => [key, normalizeValue(value.value)]),
+    ),
+    ...Object.fromEntries(
+      Object.entries(queries).map(([key, value]) => [key, normalizeValue(value.value)]),
+    ),
   }
 }
 
@@ -151,4 +159,24 @@ function evaluateExpression(expr: string, context: Record<string, unknown>): unk
     ctx: Record<string, unknown>,
   ) => unknown
   return evaluator(context)
+}
+
+function normalizeValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeValue(entry))
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>
+    const data = record.data
+
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      return {
+        ...(normalizeValue(data) as Record<string, unknown>),
+        ...record,
+      }
+    }
+  }
+
+  return value
 }

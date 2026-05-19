@@ -9,7 +9,7 @@ import {
   type Component,
   type Ref,
 } from "vue"
-import type { ComponentNode, Translation, EventBinding } from "@exodus/edem-ui"
+import type { ComponentNode, Translation, EventBinding, ModelBinding } from "@exodus/edem-ui"
 import type { TypedItem } from "./types"
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -263,6 +263,10 @@ export function renderNode(
     return h(Fragment, null, children)
   }
 
+  if (node.modal) {
+    return renderModalNode(node, registry, ctx, getCtx)
+  }
+
   // ── Teleport ─────────────────────────────────────────────────────────
   if (node.teleport) {
     const inner = renderNode({ ...node, teleport: undefined }, registry, ctx, getCtx)
@@ -292,6 +296,7 @@ export function renderNode(
   // ── Props ────────────────────────────────────────────────────────────
   const evalCtx = getCtx()
   const resolvedProps = resolveProps(node.props, evalCtx, ctx.t)
+  const modelProps = resolveModel(node.model, ctx, evalCtx)
 
   // ── Events ───────────────────────────────────────────────────────────
   const eventHandlers: Record<string, (...args: unknown[]) => void> = {}
@@ -304,13 +309,13 @@ export function renderNode(
   // ── Named slots ──────────────────────────────────────────────────────
   if (node.namedSlots) {
     const slots = resolveSlots(node.namedSlots, registry, ctx, getCtx)
-    return h(component, { ...resolvedProps, ...eventHandlers }, slots)
+    return h(component, { ...resolvedProps, ...modelProps, ...eventHandlers }, slots)
   }
 
   // ── Children ─────────────────────────────────────────────────────────
   const children = resolveChildren(node.children, registry, ctx, getCtx)
 
-  return h(component, { ...resolvedProps, ...eventHandlers }, children)
+  return h(component, { ...resolvedProps, ...modelProps, ...eventHandlers }, children)
 }
 
 function renderBoundNode(
@@ -355,6 +360,72 @@ function renderBoundNode(
     .filter((vnode): vnode is VNode => vnode !== null)
 
   return h(Fragment, null, rendered)
+}
+
+function renderModalNode(
+  node: ComponentNode,
+  registry: ComponentRegistry,
+  ctx: RenderContext,
+  buildContext: () => Record<string, unknown>,
+): VNode | null {
+  const modal = node.modal
+  if (!modal) return null
+
+  const modalComponent = registry.UModal ?? resolveDynamicComponent("UModal")
+  const modalState = ctx.state[modal.vModel]
+  const evalCtx = buildContext()
+  const props: Record<string, unknown> = {
+    open: Boolean(modalState?.value),
+    "onUpdate:open": (value: unknown) => {
+      if (modalState) {
+        modalState.value = Boolean(value)
+      }
+    },
+  }
+
+  if (modal.title !== undefined) {
+    props.title = resolveValue(modal.title, evalCtx, ctx.t)
+  }
+
+  if (modal.description !== undefined) {
+    props.description = resolveValue(modal.description, evalCtx, ctx.t)
+  }
+
+  const slots: Record<string, () => unknown> = {}
+  const children = resolveChildren(node.children, registry, ctx, buildContext)
+  if (children !== undefined) {
+    slots.default = () => children
+  }
+
+  const footer = modal.footer
+  if (footer) {
+    slots.footer = () =>
+      footer
+        .map((entry) => renderNode(entry, registry, ctx, buildContext))
+        .filter((entry): entry is VNode => entry !== null)
+  }
+
+  return h(modalComponent, props, slots)
+}
+
+function resolveModel(
+  model: ModelBinding | undefined,
+  ctx: RenderContext,
+  evalCtx: Record<string, unknown>,
+): Record<string, unknown> | undefined {
+  if (!model) {
+    return undefined
+  }
+
+  const resolved: Record<string, unknown> = {
+    modelValue: resolveValue(model.value, evalCtx, ctx.t),
+  }
+
+  if (model.onChange) {
+    resolved["onUpdate:modelValue"] = createEventHandler(model.onChange, ctx)
+  }
+
+  return resolved
 }
 
 function resolveBindingItems(

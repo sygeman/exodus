@@ -67,6 +67,7 @@ export interface ScreenManifestDefinition {
   id: string
   root: ComponentNode
   queries?: Record<string, ManifestQuery>
+  constants?: Record<string, unknown>
   state?: Record<string, unknown>
   computed?: Record<string, string>
   flows?: Record<string, string>

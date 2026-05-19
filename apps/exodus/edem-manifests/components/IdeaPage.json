@@ -33,100 +33,9 @@
     ]
   },
   "computed": {
-    "idea": "{{ ideas.value.find((entry) => entry.id === route.params.ideaId) ?? null }}",
-    "loading": "{{ ideasLoading.value }}",
+    "idea": "{{ ideas.find((entry) => entry.id === route.params.ideaId) ?? null }}",
+    "loading": "{{ ideasLoading }}",
     "backLink": "{{ `/project/${route.params.id}/ideas` }}"
-  },
-  "actions": {
-    "openDeleteModal": {
-      "steps": [
-        { "type": "set-state", "state": "deleteModalOpen", "value": true }
-      ]
-    },
-    "closeDeleteModal": {
-      "steps": [
-        { "type": "set-state", "state": "deleteModalOpen", "value": false }
-      ]
-    },
-    "confirmDelete": {
-      "steps": [
-        { "type": "guard", "condition": "{{ idea.value }}" },
-        { "type": "delete-item", "collection": "ideas", "id": "{{ idea.value.id }}" },
-        { "type": "set-state", "state": "deleteModalOpen", "value": false },
-        { "type": "navigate", "to": "{{ backLink.value }}" }
-      ]
-    },
-    "updateTitle": {
-      "steps": [
-        { "type": "guard", "condition": "{{ idea.value }}" },
-        { "type": "guard", "condition": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value).trim() !== '' }}" },
-        { "type": "guard", "condition": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value).trim() !== (idea.value.title ?? '') }}" },
-        {
-          "type": "update-item",
-          "collection": "ideas",
-          "id": "{{ idea.value.id }}",
-          "data": {
-            "title": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value).trim() }}"
-          }
-        }
-      ]
-    },
-    "updateDescription": {
-      "steps": [
-        { "type": "guard", "condition": "{{ idea.value }}" },
-        { "type": "guard", "condition": "{{ (((($event as FocusEvent).target) as HTMLTextAreaElement).value) !== (idea.value.description ?? '') }}" },
-        {
-          "type": "update-item",
-          "collection": "ideas",
-          "id": "{{ idea.value.id }}",
-          "data": {
-            "description": "{{ (((($event as FocusEvent).target) as HTMLTextAreaElement).value) || null }}"
-          }
-        }
-      ]
-    },
-    "updateLevel": {
-      "steps": [
-        { "type": "guard", "condition": "{{ idea.value }}" },
-        { "type": "guard", "condition": "{{ $event !== idea.value.level }}" },
-        {
-          "type": "update-item",
-          "collection": "ideas",
-          "id": "{{ idea.value.id }}",
-          "data": {
-            "level": "{{ $event }}"
-          }
-        }
-      ]
-    },
-    "updateType": {
-      "steps": [
-        { "type": "guard", "condition": "{{ idea.value }}" },
-        { "type": "guard", "condition": "{{ $event !== idea.value.type }}" },
-        {
-          "type": "update-item",
-          "collection": "ideas",
-          "id": "{{ idea.value.id }}",
-          "data": {
-            "type": "{{ $event }}"
-          }
-        }
-      ]
-    },
-    "updateStatus": {
-      "steps": [
-        { "type": "guard", "condition": "{{ idea.value }}" },
-        { "type": "guard", "condition": "{{ $event !== idea.value.status }}" },
-        {
-          "type": "update-item",
-          "collection": "ideas",
-          "id": "{{ idea.value.id }}",
-          "data": {
-            "status": "{{ $event }}"
-          }
-        }
-      ]
-    }
   },
   "props": { "class": "flex h-full flex-col" },
   "children": [
@@ -229,7 +138,7 @@
                 "size": "sm",
                 "icon": "i-lucide-trash-2"
               },
-              "events": { "click": { "action": "openDeleteModal" } },
+              "events": { "click": { "flow": "idea.openDeleteModal" } },
               "children": { "$type": "translation", "en": "Delete", "ru": "Удалить" }
             }
           ]
@@ -240,16 +149,17 @@
           "children": [
             {
               "component": "UInput",
-              "props": { "modelValue": "{{ idea.title ?? '' }}", "size": "lg", "class": "w-full" },
+              "props": { "size": "lg", "class": "w-full" },
+              "model": { "value": "{{ idea.title ?? '' }}" },
               "events": {
-                "blur": { "action": "updateTitle" },
-                "keyup.enter": { "action": "updateTitle" }
+                "blur": { "flow": "idea.updateTitle" },
+                "keyup.enter": { "flow": "idea.updateTitle" }
               }
             },
             {
               "component": "UTextarea",
+              "model": { "value": "{{ idea.description ?? '' }}" },
               "props": {
-                "modelValue": "{{ idea.description ?? '' }}",
                 "placeholder": {
                   "$type": "translation",
                   "en": "Idea description (optional)",
@@ -258,7 +168,7 @@
                 "rows": 6,
                 "class": "w-full"
               },
-              "events": { "blur": { "action": "updateDescription" } }
+              "events": { "blur": { "flow": "idea.updateDescription" } }
             },
             {
               "component": "div",
@@ -275,15 +185,17 @@
                     },
                     {
                       "component": "USelect",
+                      "model": {
+                        "value": "{{ idea.level ?? null }}",
+                        "onChange": { "flow": "idea.updateLevel" }
+                      },
                       "props": {
-                        "modelValue": "{{ idea.level ?? null }}",
                         "items": "{{ levelItems }}",
                         "valueKey": "value",
                         "labelKey": "label",
                         "size": "sm",
                         "class": "w-full"
-                      },
-                      "events": { "update:model-value": { "action": "updateLevel" } }
+                      }
                     }
                   ]
                 },
@@ -298,15 +210,17 @@
                     },
                     {
                       "component": "USelect",
+                      "model": {
+                        "value": "{{ idea.type ?? null }}",
+                        "onChange": { "flow": "idea.updateType" }
+                      },
                       "props": {
-                        "modelValue": "{{ idea.type ?? null }}",
                         "items": "{{ typeItems }}",
                         "valueKey": "value",
                         "labelKey": "label",
                         "size": "sm",
                         "class": "w-full"
-                      },
-                      "events": { "update:model-value": { "action": "updateType" } }
+                      }
                     }
                   ]
                 },
@@ -321,15 +235,17 @@
                     },
                     {
                       "component": "USelect",
+                      "model": {
+                        "value": "{{ idea.status ?? 'draft' }}",
+                        "onChange": { "flow": "idea.updateStatus" }
+                      },
                       "props": {
-                        "modelValue": "{{ idea.status ?? 'draft' }}",
                         "items": "{{ statusItems }}",
                         "valueKey": "value",
                         "labelKey": "label",
                         "size": "sm",
                         "class": "w-full"
-                      },
-                      "events": { "update:model-value": { "action": "updateStatus" } }
+                      }
                     }
                   ]
                 }
@@ -351,13 +267,13 @@
               {
                 "component": "UButton",
                 "props": { "variant": "ghost" },
-                "events": { "click": { "action": "closeDeleteModal" } },
+                "events": { "click": { "flow": "idea.closeDeleteModal" } },
                 "children": { "$type": "translation", "en": "Cancel", "ru": "Отмена" }
               },
               {
                 "component": "UButton",
                 "props": { "color": "error" },
-                "events": { "click": { "action": "confirmDelete" } },
+                "events": { "click": { "flow": "idea.confirmDelete" } },
                 "children": { "$type": "translation", "en": "Delete", "ru": "Удалить" }
               }
             ]

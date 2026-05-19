@@ -283,10 +283,10 @@ function buildEvaluationContext(
   locals: Record<string, unknown>,
 ): Record<string, unknown> {
   const stateValues = Object.fromEntries(
-    Object.entries(screenContext.state).map(([key, value]) => [key, value.value]),
+    Object.entries(screenContext.state).map(([key, value]) => [key, normalizeValue(value.value)]),
   )
   const queryValues = Object.fromEntries(
-    Object.entries(screenContext.queries).map(([key, value]) => [key, value.value]),
+    Object.entries(screenContext.queries).map(([key, value]) => [key, normalizeValue(value.value)]),
   )
   const nodeValues = Object.fromEntries(
     [...outputs.entries()].map(([key, value]) => [
@@ -442,4 +442,24 @@ function evaluateTemplateExpression(expr: string, context: Record<string, unknow
     ctx: Record<string, unknown>,
   ) => unknown
   return evaluator(context)
+}
+
+function normalizeValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeValue(entry))
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>
+    const data = record.data
+
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      return {
+        ...(normalizeValue(data) as Record<string, unknown>),
+        ...record,
+      }
+    }
+  }
+
+  return value
 }

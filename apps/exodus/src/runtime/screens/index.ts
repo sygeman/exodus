@@ -3,6 +3,7 @@ import { getRuntimeFlowsForScreen } from "../flows"
 
 type RuntimeComponentNode = {
   queries?: ScreenManifestDefinition["queries"]
+  constants?: ScreenManifestDefinition["constants"]
   state?: ScreenManifestDefinition["state"]
   computed?: ScreenManifestDefinition["computed"]
 }
@@ -33,6 +34,7 @@ const runtimeScreens = Object.fromEntries(
           id: screenId,
           root: manifest,
           queries: manifest.queries,
+          constants: manifest.constants,
           state: manifest.state,
           computed: manifest.computed,
         } satisfies ScreenManifestDefinition,
