@@ -302,7 +302,7 @@ export function renderNode(
   const eventHandlers: Record<string, (...args: unknown[]) => void> = {}
   if (node.events) {
     for (const [eventName, binding] of Object.entries(node.events)) {
-      eventHandlers[vueEventName(eventName)] = createEventHandler(binding, ctx)
+      eventHandlers[vueEventName(eventName)] = createEventHandler(binding, ctx, getCtx)
     }
   }
 
@@ -422,7 +422,7 @@ function resolveModel(
   }
 
   if (model.onChange) {
-    resolved["onUpdate:modelValue"] = createEventHandler(model.onChange, ctx)
+    resolved["onUpdate:modelValue"] = createEventHandler(model.onChange, ctx, () => evalCtx)
   }
 
   return resolved
@@ -465,11 +465,16 @@ function normalizeValue(value: unknown): unknown {
 function createEventHandler(
   binding: EventBinding,
   ctx: RenderContext,
+  getCtx: () => Record<string, unknown>,
 ): (...args: unknown[]) => void {
   if ("flow" in binding) {
     return (...args: unknown[]) => {
-      const input = binding.input ? resolveEventHandlerInput(binding.input, args) : undefined
-      ctx.handlers[`flow:${binding.flow}`]?.(input, ...args)
+      const currentCtx = getCtx()
+      const currentItem = currentCtx.item
+      const event = binding.input
+        ? resolveEventHandlerInput(binding.input, args, currentCtx)
+        : args[0]
+      ctx.handlers[`flow:${binding.flow}`]?.(event, currentItem)
     }
   }
 
@@ -492,6 +497,7 @@ function createEventHandler(
 function resolveEventHandlerInput(
   input: Record<string, unknown>,
   args: unknown[],
+  ctx: Record<string, unknown>,
 ): Record<string, unknown> {
   const resolved: Record<string, unknown> = {}
   for (const [key, value] of Object.entries(input)) {
@@ -499,10 +505,8 @@ function resolveEventHandlerInput(
       const expr = value.slice(3, -2).trim()
       if (expr === "event") {
         resolved[key] = args[0]
-      } else if (expr.startsWith("item.")) {
-        resolved[key] = { __item: true, field: expr.slice(5) }
       } else {
-        resolved[key] = value
+        resolved[key] = evalExpr(expr, { ...ctx, event: args[0] })
       }
     } else {
       resolved[key] = value

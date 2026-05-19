@@ -1,7 +1,6 @@
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from "vue-router"
 
 import ProjectLayout from "@/components/ProjectLayout.vue"
-import ProjectFlowsPage from "@/components/ProjectFlowsPage.vue"
 import FlowEditorPage from "@/components/FlowEditorPage.vue"
 import FlowEditorLayout from "@/components/FlowEditorLayout.vue"
 import RuntimeScreenHost from "@/runtime/RuntimeScreenHost"
@@ -48,7 +47,12 @@ const routes: RouteRecordRaw[] = [
         component: RuntimeScreenHost,
         meta: { screenId: "IdeaPage" },
       },
-      { path: "flows", name: "project-flows", component: ProjectFlowsPage },
+      {
+        path: "flows",
+        name: "project-flows",
+        component: RuntimeScreenHost,
+        meta: { screenId: "ProjectFlowsPage" },
+      },
       {
         path: "flows/:flowId",
         component: FlowEditorLayout,

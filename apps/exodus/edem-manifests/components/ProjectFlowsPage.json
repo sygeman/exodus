@@ -22,42 +22,110 @@
       "webhook": "Webhook"
     }
   },
-  "actions": {
-    "handleCreate": {
-      "steps": [
+  "flows": {
+    "create": {
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": { "type": "ui-event", "event": "click" },
+      "nodes": [
+        { "id": "trigger", "type": "trigger", "position": { "x": 0, "y": 0 } },
         {
-          "type": "create-item",
-          "collection": "flows",
-          "assignTo": "createdId",
+          "id": "createFlow",
+          "type": "data:create-item",
+          "position": { "x": 220, "y": 0 },
           "data": {
-            "project_id": "{{ route.params.id }}",
-            "name": "New Flow",
-            "status": "draft",
-            "trigger": { "type": "manual" },
-            "nodes": [
-              {
-                "id": "{{ crypto.randomUUID() }}",
-                "type": "trigger",
-                "position": { "x": 250, "y": 50 },
-                "data": { "triggerType": "manual" }
-              }
-            ],
-            "edges": [],
-            "meta": { "viewport": { "x": 0, "y": 0, "zoom": 1 } }
+            "collection": "flows",
+            "assignTo": "createdId",
+            "data": {
+              "project_id": "{{ route.params.id }}",
+              "name": "New Flow",
+              "status": "draft",
+              "trigger": { "type": "manual" },
+              "nodes": [
+                {
+                  "id": "{{ crypto.randomUUID() }}",
+                  "type": "trigger",
+                  "position": { "x": 250, "y": 50 },
+                  "data": { "triggerType": "manual" }
+                }
+              ],
+              "edges": [],
+              "meta": { "viewport": { "x": 0, "y": 0, "zoom": 1 } }
+            }
           }
         },
-        { "type": "navigate", "to": "/project/{{ route.params.id }}/flows/{{ createdId }}" }
+        {
+          "id": "navigateToFlow",
+          "type": "ui:navigate",
+          "position": { "x": 480, "y": 0 },
+          "data": { "to": "/project/{{ route.params.id }}/flows/{{ createdId }}" }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": { "x": 720, "y": 0 },
+          "data": { "value": "{{ createdId }}" }
+        }
+      ],
+      "edges": [
+        { "id": "e-project-flows-create-1", "source": "trigger", "target": "createFlow" },
+        { "id": "e-project-flows-create-2", "source": "createFlow", "target": "navigateToFlow" },
+        { "id": "e-project-flows-create-3", "source": "navigateToFlow", "target": "output" }
       ]
     },
     "goToFlow": {
-      "steps": [
-        { "type": "navigate", "to": "/project/{{ route.params.id }}/flows/{{ item.id }}" }
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": { "type": "ui-event", "event": "click" },
+      "nodes": [
+        { "id": "trigger", "type": "trigger", "position": { "x": 0, "y": 0 } },
+        {
+          "id": "navigateToFlow",
+          "type": "ui:navigate",
+          "position": { "x": 220, "y": 0 },
+          "data": { "to": "/project/{{ route.params.id }}/flows/{{ trigger.item.id }}/graph" }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": { "x": 440, "y": 0 },
+          "data": { "value": "{{ trigger.item.id }}" }
+        }
+      ],
+      "edges": [
+        { "id": "e-project-flows-open-1", "source": "trigger", "target": "navigateToFlow" },
+        { "id": "e-project-flows-open-2", "source": "navigateToFlow", "target": "output" }
       ]
     },
-    "handleDelete": {
-      "steps": [
-        { "type": "event", "stopPropagation": true, "preventDefault": true },
-        { "type": "delete-item", "collection": "flows", "id": "{{ item.id }}" }
+    "delete": {
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": { "type": "ui-event", "event": "click" },
+      "nodes": [
+        { "id": "trigger", "type": "trigger", "position": { "x": 0, "y": 0 } },
+        {
+          "id": "stopEvent",
+          "type": "ui:event",
+          "position": { "x": 180, "y": 0 },
+          "data": { "stopPropagation": true, "preventDefault": true }
+        },
+        {
+          "id": "deleteFlow",
+          "type": "data:delete-item",
+          "position": { "x": 380, "y": 0 },
+          "data": { "collection": "flows", "id": "{{ trigger.item.id }}" }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": { "x": 580, "y": 0 },
+          "data": { "value": "{{ trigger.item.id }}" }
+        }
+      ],
+      "edges": [
+        { "id": "e-project-flows-delete-1", "source": "trigger", "target": "stopEvent" },
+        { "id": "e-project-flows-delete-2", "source": "stopEvent", "target": "deleteFlow" },
+        { "id": "e-project-flows-delete-3", "source": "deleteFlow", "target": "output" }
       ]
     }
   },
@@ -104,7 +172,7 @@
         { "component": "p", "props": { "class": "text-muted text-lg" }, "children": { "$type": "translation", "en": "No flows yet", "ru": "Пока нет потоков" } },
         {
           "component": "UButton",
-          "events": { "click": { "action": "handleCreate" } },
+          "events": { "click": { "flow": "create" } },
           "children": { "$type": "translation", "en": "Create flow", "ru": "Создать поток" }
         }
       ]
@@ -125,7 +193,7 @@
             },
             {
               "component": "UButton",
-              "events": { "click": { "action": "handleCreate" } },
+               "events": { "click": { "flow": "create" } },
               "children": { "$type": "translation", "en": "Create flow", "ru": "Создать поток" }
             }
           ]
@@ -142,7 +210,7 @@
               "props": {
                 "class": "border-default hover:bg-elevated flex items-center gap-4 rounded-lg border p-4 text-left transition-colors"
               },
-              "events": { "click": { "action": "goToFlow" } },
+              "events": { "click": { "flow": "goToFlow" } },
               "children": [
                 {
                   "component": "div",
@@ -177,7 +245,7 @@
                 {
                   "component": "UButton",
                   "props": { "variant": "ghost", "color": "error", "size": "xs", "icon": "i-lucide-trash-2" },
-                  "events": { "click": { "action": "handleDelete" } }
+                  "events": { "click": { "flow": "delete" } }
                 }
               ]
             }
