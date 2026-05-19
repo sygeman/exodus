@@ -2,7 +2,7 @@
 import { computed } from "vue"
 import { Handle, Position, type NodeProps } from "@vue-flow/core"
 import { buildHandleLayout, getNodeIcon, type HandleDef, type VueFlowNodeData } from "@/types/flow"
-import NodeWrapper from "./NodeWrapper.vue"
+import FlowNodeWrapper from "./FlowNodeWrapper.vue"
 import { useNodeTestMode } from "@/composables/useNodeTestMode"
 
 const props = defineProps<NodeProps<VueFlowNodeData>>()
@@ -68,7 +68,7 @@ const HANDLE_COLOR_MAP: Record<string, string> = {
 </script>
 
 <template>
-  <NodeWrapper
+  <FlowNodeWrapper
     :id="id"
     :data="data"
     :selected="selected"
@@ -131,5 +131,5 @@ const HANDLE_COLOR_MAP: Record<string, string> = {
         </UTooltip>
       </template>
     </template>
-  </NodeWrapper>
+  </FlowNodeWrapper>
 </template>

@@ -12,8 +12,8 @@ import { Background } from "@vue-flow/background"
 import { useCollectionQuery, useUpdateItem } from "@/hooks"
 import { useFlowHighlighting } from "@/composables/useFlowHighlighting"
 import FlowNode from "@/components/FlowNode.vue"
-import DeleteableEdge from "@/components/DeleteableEdge.vue"
-import NodeConfigPanel from "@/components/NodeConfigPanel.vue"
+import DeletableEdge from "@/components/DeletableEdge.vue"
+import FlowNodeConfigPanel from "@/components/FlowNodeConfigPanel.vue"
 
 const route = useRoute()
 const projectId = computed(() => route.params.id as string)
@@ -155,7 +155,7 @@ const nodeTypes = {
 }
 
 const edgeTypes = {
-  deleteable: markRaw(DeleteableEdge),
+  deleteable: markRaw(DeletableEdge),
 }
 
 const selectedNodeId = ref<string | null>(null)
@@ -387,7 +387,7 @@ provide("deleteEdge", handleDeleteEdge)
       </VueFlow>
     </div>
 
-    <NodeConfigPanel />
+    <FlowNodeConfigPanel />
   </div>
 </template>
 

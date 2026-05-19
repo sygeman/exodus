@@ -2,23 +2,23 @@ import { createRouter, createWebHashHistory, type RouteRecordRaw } from "vue-rou
 
 import ProjectsListPage from "@/components/ProjectsListPage.vue"
 import ProjectLayout from "@/components/ProjectLayout.vue"
-import ProjectPage from "@/components/ProjectPage.vue"
+import ProjectOverviewPage from "@/components/ProjectOverviewPage.vue"
 import ProjectIdeasPage from "@/components/ProjectIdeasPage.vue"
-import IdeaPage from "@/components/IdeaPage.vue"
+import ProjectIdeaPage from "@/components/ProjectIdeaPage.vue"
 import ProjectFlowsPage from "@/components/ProjectFlowsPage.vue"
-import FlowEditorPage from "@/components/FlowEditorPage.vue"
-import FlowEditorLayout from "@/components/FlowEditorLayout.vue"
-import FlowCodePage from "@/components/FlowCodePage.vue"
-import FlowSettingsPage from "@/components/FlowSettingsPage.vue"
+import ProjectFlowGraphPage from "@/components/ProjectFlowGraphPage.vue"
+import ProjectFlowLayout from "@/components/ProjectFlowLayout.vue"
+import ProjectFlowCodePage from "@/components/ProjectFlowCodePage.vue"
+import ProjectFlowSettingsPage from "@/components/ProjectFlowSettingsPage.vue"
 import ProjectSettingsPage from "@/components/ProjectSettingsPage.vue"
 import DebugLayout from "@/components/DebugLayout.vue"
-import DebugLogs from "@/components/DebugLogs.vue"
-import DebugFlows from "@/components/DebugFlows.vue"
-import DebugFlowRuns from "@/components/DebugFlowRuns.vue"
-import SettingsLayoutPage from "@/components/SettingsLayoutPage.vue"
-import SettingsAppearance from "@/components/SettingsAppearance.vue"
-import SettingsLanguage from "@/components/SettingsLanguage.vue"
-import NotFound from "@/components/NotFound.vue"
+import DebugLogsPage from "@/components/DebugLogsPage.vue"
+import DebugFlowsPage from "@/components/DebugFlowsPage.vue"
+import DebugFlowRunsPage from "@/components/DebugFlowRunsPage.vue"
+import SettingsPage from "@/components/SettingsPage.vue"
+import SettingsAppearancePage from "@/components/SettingsAppearancePage.vue"
+import SettingsLanguagePage from "@/components/SettingsLanguagePage.vue"
+import NotFoundPage from "@/components/NotFoundPage.vue"
 
 const routes: RouteRecordRaw[] = [
   { path: "/", redirect: "/projects" },
@@ -28,13 +28,13 @@ const routes: RouteRecordRaw[] = [
     redirect: `/project/:id/overview`,
     component: ProjectLayout,
     children: [
-      { path: "overview", name: "project-overview", component: ProjectPage },
+      { path: "overview", name: "project-overview", component: ProjectOverviewPage },
       { path: "ideas", name: "project-ideas", component: ProjectIdeasPage },
-      { path: "ideas/:ideaId", name: "project-idea", props: true, component: IdeaPage },
+      { path: "ideas/:ideaId", name: "project-idea", props: true, component: ProjectIdeaPage },
       { path: "flows", name: "project-flows", component: ProjectFlowsPage },
       {
         path: "flows/:flowId",
-        component: FlowEditorLayout,
+        component: ProjectFlowLayout,
         children: [
           {
             path: "",
@@ -44,19 +44,19 @@ const routes: RouteRecordRaw[] = [
             path: "graph",
             name: "project-flow-graph",
             props: true,
-            component: FlowEditorPage,
+            component: ProjectFlowGraphPage,
           },
           {
             path: "code",
             name: "project-flow-code",
             props: true,
-            component: FlowCodePage,
+            component: ProjectFlowCodePage,
           },
           {
             path: "settings",
             name: "project-flow-settings",
             props: true,
-            component: FlowSettingsPage,
+            component: ProjectFlowSettingsPage,
           },
         ],
       },
@@ -68,21 +68,26 @@ const routes: RouteRecordRaw[] = [
     redirect: "/debug/logs",
     component: DebugLayout,
     children: [
-      { path: "logs", name: "debug-logs", component: DebugLogs },
-      { path: "flows", name: "debug-flows", component: DebugFlows },
-      { path: "flows/:flowId", name: "debug-flow-runs", props: true, component: DebugFlowRuns },
+      { path: "logs", name: "debug-logs", component: DebugLogsPage },
+      { path: "flows", name: "debug-flows", component: DebugFlowsPage },
+      {
+        path: "flows/:flowId",
+        name: "debug-flow-runs",
+        props: true,
+        component: DebugFlowRunsPage,
+      },
     ],
   },
   {
     path: "/settings",
     redirect: "/settings/appearance",
-    component: SettingsLayoutPage,
+    component: SettingsPage,
     children: [
-      { path: "appearance", name: "settings-appearance", component: SettingsAppearance },
-      { path: "language", name: "settings-language", component: SettingsLanguage },
+      { path: "appearance", name: "settings-appearance", component: SettingsAppearancePage },
+      { path: "language", name: "settings-language", component: SettingsLanguagePage },
     ],
   },
-  { path: "/:pathMatch(.*)*", name: "not-found", component: NotFound },
+  { path: "/:pathMatch(.*)*", name: "not-found", component: NotFoundPage },
 ]
 
 export default createRouter({
