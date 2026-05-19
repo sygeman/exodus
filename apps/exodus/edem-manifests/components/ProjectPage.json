@@ -9,10 +9,29 @@
       "sort": ["-created_at"]
     }
   },
-  "actions": {
+  "flows": {
     "goToIdeas": {
-      "steps": [
-        { "type": "navigate", "to": "/project/{{ route.params.id }}/ideas" }
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": { "type": "ui-event", "event": "click" },
+      "nodes": [
+        { "id": "trigger", "type": "trigger", "position": { "x": 0, "y": 0 } },
+        {
+          "id": "navigateToIdeas",
+          "type": "ui:navigate",
+          "position": { "x": 220, "y": 0 },
+          "data": { "to": "/project/{{ route.params.id }}/ideas" }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": { "x": 440, "y": 0 },
+          "data": { "value": "/project/{{ route.params.id }}/ideas" }
+        }
+      ],
+      "edges": [
+        { "id": "e-project-page-1", "source": "trigger", "target": "navigateToIdeas" },
+        { "id": "e-project-page-2", "source": "navigateToIdeas", "target": "output" }
       ]
     }
   },
@@ -27,7 +46,7 @@
           "props": {
             "class": "border-default bg-elevated hover:bg-elevated/80 hover:border-primary flex flex-col gap-2 rounded-lg border p-5 text-left transition-colors"
           },
-          "events": { "click": { "action": "goToIdeas" } },
+          "events": { "click": { "flow": "goToIdeas" } },
           "children": [
             {
               "component": "div",

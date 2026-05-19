@@ -1,8 +1,6 @@
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from "vue-router"
 
 import ProjectLayout from "@/components/ProjectLayout.vue"
-import ProjectPage from "@/components/ProjectPage.vue"
-import ProjectIdeasPage from "@/components/ProjectIdeasPage.vue"
 import ProjectFlowsPage from "@/components/ProjectFlowsPage.vue"
 import FlowEditorPage from "@/components/FlowEditorPage.vue"
 import FlowEditorLayout from "@/components/FlowEditorLayout.vue"
@@ -31,8 +29,18 @@ const routes: RouteRecordRaw[] = [
     redirect: `/project/:id/overview`,
     component: ProjectLayout,
     children: [
-      { path: "overview", name: "project-overview", component: ProjectPage },
-      { path: "ideas", name: "project-ideas", component: ProjectIdeasPage },
+      {
+        path: "overview",
+        name: "project-overview",
+        component: RuntimeScreenHost,
+        meta: { screenId: "ProjectPage" },
+      },
+      {
+        path: "ideas",
+        name: "project-ideas",
+        component: RuntimeScreenHost,
+        meta: { screenId: "ProjectIdeasPage" },
+      },
       {
         path: "ideas/:ideaId",
         name: "project-idea",

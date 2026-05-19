@@ -9,20 +9,44 @@
       "sort": ["-created_at"]
     }
   },
-  "actions": {
-    "handleCreate": {
-      "steps": [
+  "flows": {
+    "create": {
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": { "type": "ui-event", "event": "click" },
+      "nodes": [
+        { "id": "trigger", "type": "trigger", "position": { "x": 0, "y": 0 } },
         {
-          "type": "create-item",
-          "collection": "ideas",
-          "assignTo": "createdId",
+          "id": "createIdea",
+          "type": "data:create-item",
+          "position": { "x": 220, "y": 0 },
           "data": {
-            "project_id": "{{ route.params.id }}",
-            "title": "Untitled",
-            "status": "draft"
+            "collection": "ideas",
+            "assignTo": "createdId",
+            "data": {
+              "project_id": "{{ route.params.id }}",
+              "title": "Untitled",
+              "status": "draft"
+            }
           }
         },
-        { "type": "navigate", "to": "/project/{{ route.params.id }}/ideas/{{ createdId }}" }
+        {
+          "id": "navigateToIdea",
+          "type": "ui:navigate",
+          "position": { "x": 480, "y": 0 },
+          "data": { "to": "/project/{{ route.params.id }}/ideas/{{ createdId }}" }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": { "x": 720, "y": 0 },
+          "data": { "value": "{{ createdId }}" }
+        }
+      ],
+      "edges": [
+        { "id": "e-project-ideas-create-1", "source": "trigger", "target": "createIdea" },
+        { "id": "e-project-ideas-create-2", "source": "createIdea", "target": "navigateToIdea" },
+        { "id": "e-project-ideas-create-3", "source": "navigateToIdea", "target": "output" }
       ]
     }
   },
@@ -40,7 +64,7 @@
         {
           "component": "UButton",
           "props": { "size": "sm" },
-          "events": { "click": { "action": "handleCreate" } },
+          "events": { "click": { "flow": "create" } },
           "children": [
             { "component": "UIcon", "props": { "name": "i-lucide-plus", "class": "h-4 w-4" } },
             { "$type": "translation", "en": "New Idea", "ru": "Новая идея" }
@@ -82,7 +106,7 @@
         {
           "component": "UButton",
           "props": { "size": "sm" },
-          "events": { "click": { "action": "handleCreate" } },
+          "events": { "click": { "flow": "create" } },
           "children": { "$type": "translation", "en": "Create first idea", "ru": "Создать первую идею" }
         }
       ]
