@@ -1,3 +1,13 @@
+# [1.13.0](https://github.com/sygeman/exodus/compare/v1.12.0...v1.13.0) (2026-05-19)
+
+
+### Features
+
+* **edem-codegen:** reduce settings parity gaps ([befaa8d](https://github.com/sygeman/exodus/commit/befaa8dc36e55256bca0d2f81c8e6e59f34ec223))
+* **exodus:** expand flow settings manifest slice ([a419369](https://github.com/sygeman/exodus/commit/a419369375171c04c467ff19c45f594e141a03a9))
+
+
+
 # [1.12.0](https://github.com/sygeman/exodus/compare/v1.11.0...v1.12.0) (2026-05-18)
 
 
@@ -44,15 +54,6 @@
 
 * **exodus:** add edem-manifests and compare script ([2b2739c](https://github.com/sygeman/exodus/commit/2b2739cfb9a9f82579700c414948063a3f58de10))
 * **exodus:** add rawScript to all component manifests ([3ded4f7](https://github.com/sygeman/exodus/commit/3ded4f78d66ec6cf3a27254776e4732cf5dbb95d))
-
-
-
-# [1.9.0](https://github.com/sygeman/exodus/compare/v1.8.2...v1.9.0) (2026-05-15)
-
-
-### Features
-
-* **edem-ui:** add rawScript field to ComponentNode for migration freedom ([d2d8f2d](https://github.com/sygeman/exodus/commit/d2d8f2dc32a0afacc8dc34ea393de2814915b03f))
 
 
 
