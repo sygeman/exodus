@@ -215,30 +215,35 @@ export function renderNode(
     for (const [k, v] of itemResult.handlers) handlers.set(k, v)
 
     let vfor = ""
+    const alias = node.bind.alias ?? "item"
     if (node.bind.collection) {
-      const keyExpr = node.bind.key ? extractExpr(node.bind.key) : "item.id"
-      vfor = ` v-for="item in ${node.bind.collection}" :key="${keyExpr}"`
+      const keyExpr = node.bind.key ? extractExpr(node.bind.key) : `${alias}.id`
+      vfor = ` v-for="${alias} in ${node.bind.collection}" :key="${keyExpr}"`
     } else if (node.bind.items) {
       const items = node.bind.items
       if (typeof items === "string") {
         const expr = items.includes("{{") ? items.replace(/\{\{\s*(.+?)\s*\}\}/g, "$1") : items
         const keyExpr = node.bind.key ? extractExpr(node.bind.key) : "idx"
-        vfor = ` v-for="(item, idx) in ${expr}" :key="${keyExpr}"`
+        const loopValue = keyExpr.includes("idx") ? `(${alias}, idx)` : alias
+        vfor = ` v-for="${loopValue} in ${expr}" :key="${keyExpr}"`
       } else if (Array.isArray(items)) {
         const hasObjects = items.some((v) => typeof v === "object" && v !== null)
         if (hasObjects) {
           const varName = `items_${compName ?? "static"}_${Math.random().toString(36).slice(2, 8)}`
           handlers.set(`const_${varName}`, `const ${varName} = ${JSON.stringify(items)} as const`)
           const keyExpr = node.bind.key ? extractExpr(node.bind.key) : "idx"
-          vfor = ` v-for="(item, idx) in ${varName}" :key="${keyExpr}"`
+          const loopValue = keyExpr.includes("idx") ? `(${alias}, idx)` : alias
+          vfor = ` v-for="${loopValue} in ${varName}" :key="${keyExpr}"`
         } else {
           const quoted = items.map((v) => (typeof v === "string" ? `'${v}'` : JSON.stringify(v)))
           const keyExpr = node.bind.key ? extractExpr(node.bind.key) : "idx"
-          vfor = ` v-for="(item, idx) in [${quoted.join(", ")}]" :key="${keyExpr}"`
+          const loopValue = keyExpr.includes("idx") ? `(${alias}, idx)` : alias
+          vfor = ` v-for="${loopValue} in [${quoted.join(", ")}]" :key="${keyExpr}"`
         }
       } else {
         const keyExpr = node.bind.key ? extractExpr(node.bind.key) : "idx"
-        vfor = ` v-for="(item, idx) in ${JSON.stringify(items)}" :key="${keyExpr}"`
+        const loopValue = keyExpr.includes("idx") ? `(${alias}, idx)` : alias
+        vfor = ` v-for="${loopValue} in ${JSON.stringify(items)}" :key="${keyExpr}"`
       }
     }
 
@@ -350,6 +355,12 @@ export function renderProps(props: Record<string, unknown>, ctx?: ExpressionCont
             // Single expression → :attr="expr"
             const singleMatch = value.match(/^\{\{\s*(.+?)\s*\}\}$/)
             if (singleMatch) {
+              if (key === "class") {
+                const splitClassBinding = splitStaticClassBinding(singleMatch[1])
+                if (splitClassBinding) {
+                  return splitClassBinding
+                }
+              }
               return ` :${attr}="${singleMatch[1]}"`
             }
             // Multi-expression → :attr="`resolved`"
@@ -468,11 +479,40 @@ export function extractExpr(template: string): string {
 }
 
 function injectOpeningTagAttrs(template: string, attrs: string): string {
-  const closeIndex = template.indexOf(">")
-  if (closeIndex === -1) {
+  const tagMatch = template.match(/^(\s*<[^\s>/]+)/)
+  if (!tagMatch) {
     return template
   }
 
-  const insertIndex = template[closeIndex - 1] === "/" ? closeIndex - 1 : closeIndex
+  const insertIndex = tagMatch[0].length
   return `${template.slice(0, insertIndex)}${attrs}${template.slice(insertIndex)}`
+}
+
+function splitStaticClassBinding(expression: string): string | null {
+  const trimmed = expression.trim()
+  if (!trimmed.startsWith("{") || !trimmed.endsWith("}")) {
+    return null
+  }
+
+  const staticClasses: string[] = []
+  const dynamicBody = trimmed
+    .slice(1, -1)
+    .replace(/(['"])(.*?)\1\s*:\s*true\s*,?/g, (_match, _quote: string, className: string) => {
+      staticClasses.push(className)
+      return ""
+    })
+    .replace(/^\s*,\s*|\s*,\s*$/g, "")
+    .replace(/,\s*,/g, ",")
+    .trim()
+
+  if (staticClasses.length === 0) {
+    return null
+  }
+
+  const parts: string[] = [` class="${escapeAttr(staticClasses.join(" "))}"`]
+  if (dynamicBody.length > 0) {
+    parts.push(` :class="{ ${dynamicBody} }"`)
+  }
+
+  return parts.join("")
 }

@@ -12,6 +12,7 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
   const routerImports = new Set<string>()
   let needsRef_flag = false
   const rawScript = typeof comp.tree.rawScript === "string" ? comp.tree.rawScript.trim() : ""
+  const rawScriptParts = splitRawScript(rawScript)
   const hasRawScript = rawScript.length > 0
 
   const assetNames = new Set(ir.assets.map((asset) => asset.name))
@@ -41,8 +42,13 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
     imports.unshift(`import ${componentName} from "@/components/${componentName}.vue"`)
   }
 
+  for (const rawImport of rawScriptParts.imports) {
+    imports.push(rawImport)
+  }
+
   const route = findRouteForComponent(ir, comp.name)
-  if (!hasRawScript && route && route.params.length > 0) {
+  const needsRouteParams = !hasRawScript && componentNeedsRouteParams(comp, ir)
+  if (needsRouteParams) {
     routerImports.add("useRoute")
     statements.push(`const route = useRoute()`)
   }
@@ -117,7 +123,7 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
   }
 
   // Generate route param computed variables
-  if (!hasRawScript && route && route.params.length > 0) {
+  if (needsRouteParams && route) {
     for (const param of route.params) {
       if (param.includes("(") || param.includes("*") || param.includes(".")) continue
       statements.push(`const ${param} = computed(() => route.params.${param})`)
@@ -187,20 +193,72 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
 
   const functionCalls = collectFunctionCalls(comp.tree)
   for (const fnName of functionCalls) {
-    if (isIdentifierDeclared(fnName, imports, statements, rawScript)) continue
+    if (isIdentifierDeclared(fnName, imports, statements, rawScriptParts.body)) continue
     statements.push("")
     statements.push(generateHelperFunction(fnName))
   }
 
-  if (hasRawScript) {
+  if (rawScriptParts.body.length > 0) {
     statements.push("")
-    statements.push(rawScript)
+    statements.push(rawScriptParts.body)
   }
 
   if (imports.length === 0 && statements.length === 0) return ""
 
   const importBlock = imports.length > 0 ? imports.join("\n") + "\n\n" : ""
   return `${importBlock}${statements.join("\n")}`
+}
+
+function componentNeedsRouteParams(comp: IRComponent, ir: IR): boolean {
+  const route = findRouteForComponent(ir, comp.name)
+  if (!route || route.params.length === 0) {
+    return false
+  }
+
+  if (comp.usedCollections.some((colId) => buildFilterParam(colId, comp, ir).length > 0)) {
+    return true
+  }
+
+  const treeContent = JSON.stringify(comp.tree)
+  return route.params.some((param) => {
+    const short = param.replace(/Id$/, "")
+    return (
+      treeContent.includes(`context.${param}`) ||
+      treeContent.includes(`context.${short}`) ||
+      treeContent.includes(`{{ ${param} }}`) ||
+      treeContent.includes(`{{ ${short} }}`)
+    )
+  })
+}
+
+function splitRawScript(rawScript: string): { imports: string[]; body: string } {
+  if (rawScript.length === 0) {
+    return { imports: [], body: "" }
+  }
+
+  const lines = rawScript.split("\n")
+  const imports: string[] = []
+  let index = 0
+
+  while (index < lines.length) {
+    const line = lines[index]
+    const trimmed = line.trim()
+
+    if (trimmed.length === 0) {
+      index += 1
+      continue
+    }
+
+    if (!trimmed.startsWith("import ")) {
+      break
+    }
+
+    imports.push(line)
+    index += 1
+  }
+
+  const body = lines.slice(index).join("\n").trim()
+  return { imports, body }
 }
 
 function needsRef(comp: IRComponent): boolean {

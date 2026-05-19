@@ -1,10 +1,9 @@
 <script setup lang="ts">
+import { useRouter } from "vue-router"
+import { useFlows } from "@/hooks"
 import { useT } from "@exodus/edem-vue"
 
 const t = useT()
-
-import { useRouter } from "vue-router"
-import { useFlows } from "@/hooks"
 
 const router = useRouter()
 const { items: flows, loading } = useFlows()

@@ -188,5 +188,10 @@ function normalizeImportOrder(content: string): string {
 }
 
 function normalizeVueInterpolations(content: string): string {
-  return content.replace(/>\s*\n\s*\{\{/g, ">{{").replace(/\}\}\s*\n\s*<\//g, "}}</")
+  return content
+    .replace(/>\s*\n\s*\{\{/g, ">{{")
+    .replace(/\}\}\s*\n\s*<\//g, "}}</")
+    .replace(/\{\{([\s\S]*?)\}\}/g, (_match, expression: string) => {
+      return `{{ ${expression.replace(/\s+/g, " ").trim()} }}`
+    })
 }

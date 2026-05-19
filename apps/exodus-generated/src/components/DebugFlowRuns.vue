@@ -1,4 +1,8 @@
 <script setup lang="ts">
+import { computed, ref, watch, shallowRef, onMounted, onUnmounted } from "vue"
+import { useFlow, useFlowRuns, useDeleteRuns, useRunFlow } from "@/hooks"
+import { edem } from "@/edem"
+import { parseEvery } from "@exodus/edem-flows"
 import { useT } from "@exodus/edem-vue"
 
 const t = useT()
@@ -6,11 +10,6 @@ const t = useT()
 function handleNavigatedebug_flows() {
   router.push("/debug/flows")
 }
-
-import { computed, ref, watch, shallowRef, onMounted, onUnmounted } from "vue"
-import { useFlow, useFlowRuns, useDeleteRuns, useRunFlow } from "@/hooks"
-import { edem } from "@/edem"
-import { parseEvery } from "@exodus/edem-flows"
 
 const props = defineProps<{ flowId: string }>()
 

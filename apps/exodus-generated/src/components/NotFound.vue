@@ -1,8 +1,6 @@
 <script setup lang="ts">
-import { useRoute } from "vue-router"
 import { useT } from "@exodus/edem-vue"
 
-const route = useRoute()
 const t = useT()
 </script>
 

@@ -107,11 +107,17 @@ function validateTemplateFields(ir: IR, errors: ValidationError[]): void {
   }
 }
 
+interface TemplateBindingContext {
+  collectionId?: string
+  itemAlias?: string
+}
+
 function validateNodeFields(
   node: import("@exodus/edem-ui").ComponentNode,
   compName: string,
   ir: IR,
   errors: ValidationError[],
+  context: TemplateBindingContext = {},
 ): void {
   if (node.bind?.collection) {
     const col = ir.collections.find((c) => c.id === node.bind!.collection)
@@ -145,20 +151,32 @@ function validateNodeFields(
     }
   }
 
+  const nextContext: TemplateBindingContext = node.bind?.collection
+    ? {
+        collectionId: node.bind.collection,
+        itemAlias: node.bind.alias ?? "item",
+      }
+    : context
+
   // Validate template expressions reference valid fields
   const validateExpr = (expr: string) => {
-    const fieldMatches = expr.matchAll(/\{\{\s*item\.(\w+)\s*\}\}/g)
+    if (!nextContext.collectionId || !nextContext.itemAlias) {
+      return
+    }
+
+    const aliasPattern = nextContext.itemAlias.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+    const fieldMatches = expr.matchAll(
+      new RegExp(`\\{\\{\\s*${aliasPattern}\\.(\\w+)\\s*\\}\\}`, "g"),
+    )
     for (const m of fieldMatches) {
       const fieldName = m[1]
-      if (node.bind?.collection) {
-        const col = ir.collections.find((c) => c.id === node.bind!.collection)
-        if (col && !col.fields.some((f) => f.name === fieldName) && fieldName !== "id") {
-          errors.push({
-            type: "warning",
-            message: `Component "${compName}" references unknown field "item.${fieldName}" in collection "${col.id}"`,
-            path: `components.${compName}`,
-          })
-        }
+      const col = ir.collections.find((c) => c.id === nextContext.collectionId)
+      if (col && !col.fields.some((f) => f.name === fieldName) && fieldName !== "id") {
+        errors.push({
+          type: "warning",
+          message: `Component "${compName}" references unknown field "${nextContext.itemAlias}.${fieldName}" in collection "${col.id}"`,
+          path: `components.${compName}`,
+        })
       }
     }
   }
@@ -175,7 +193,11 @@ function validateNodeFields(
 
   if (Array.isArray(node.children)) {
     for (const child of node.children) {
-      validateNodeFields(child, compName, ir, errors)
+      validateNodeFields(child, compName, ir, errors, nextContext)
     }
+  }
+
+  if (node.bind?.item) {
+    validateNodeFields(node.bind.item, compName, ir, errors, nextContext)
   }
 }

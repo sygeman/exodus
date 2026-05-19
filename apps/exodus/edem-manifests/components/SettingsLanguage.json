@@ -27,25 +27,26 @@
           "props": { "class": "flex flex-col gap-3" },
           "bind": {
             "items": "locales",
-            "key": "{{ item.value }}",
+            "key": "{{ l.value }}",
+            "alias": "l",
             "target": "item",
             "item": {
               "component": "button",
               "props": {
                 "type": "button",
-                "class": "{{ { 'flex items-center gap-3 rounded-md border p-3 text-left text-sm transition-all': true, 'border-primary bg-primary/10 text-default': selectedLocale === item.value, 'text-muted border-default bg-elevated/30 hover:bg-elevated hover:border-accent': selectedLocale !== item.value } }}"
+                "class": "{{ { 'flex items-center gap-3 rounded-md border p-3 text-left text-sm transition-all': true, 'border-primary bg-primary/10 text-default': selectedLocale === l.value, 'text-muted border-default bg-elevated/30 hover:bg-elevated hover:border-accent': selectedLocale !== l.value } }}"
               },
-              "events": { "click": { "expression": "selectedLocale = item.value" } },
+              "events": { "click": { "expression": "selectedLocale = l.value" } },
               "children": [
                 {
                   "component": "span",
                   "props": { "class": "text-2xl" },
-                  "children": "{{ item.flag }}"
+                  "children": "{{ l.flag }}"
                 },
                 {
                   "component": "span",
                   "props": { "class": "font-medium" },
-                  "children": "{{ item.label }}"
+                  "children": "{{ l.label }}"
                 }
               ]
             }

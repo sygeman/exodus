@@ -1,10 +1,9 @@
 <script setup lang="ts">
+import { computed } from "vue"
+import { useSingleton } from "@/hooks"
 import { useT } from "@exodus/edem-vue"
 
 const t = useT()
-
-import { computed } from "vue"
-import { useSingleton } from "@/hooks"
 
 const { data: appState, update: updateSetting } = useSingleton("app_state")
 
@@ -38,19 +37,19 @@ const selectedLocale = computed({
       </div>
       <div class="flex flex-col gap-3">
         <button
+          v-for="l in locales"
+          :key="l.value"
           type="button"
+          class="flex items-center gap-3 rounded-md border p-3 text-left text-sm transition-all"
           :class="{
-            'flex items-center gap-3 rounded-md border p-3 text-left text-sm transition-all': true,
-            'border-primary bg-primary/10 text-default': selectedLocale === item.value,
+            'border-primary bg-primary/10 text-default': selectedLocale === l.value,
             'text-muted border-default bg-elevated/30 hover:bg-elevated hover:border-accent':
-              selectedLocale !== item.value,
+              selectedLocale !== l.value,
           }"
-          @click="selectedLocale = item.value"
-          v-for="(item, idx) in locales"
-          :key="item.value"
+          @click="selectedLocale = l.value"
         >
-          <span class="text-2xl">{{ item.flag }}</span>
-          <span class="font-medium">{{ item.label }}</span>
+          <span class="text-2xl">{{ l.flag }}</span>
+          <span class="font-medium">{{ l.label }}</span>
         </button>
       </div>
     </div>

@@ -150,6 +150,17 @@ describe("helpers", () => {
     expect(contentsMatchForParity("src/example.vue", reference, generated)).toBe(true)
   })
 
+  it("treats wrapped interpolation bodies as parity matches", () => {
+    const reference = Buffer.from(
+      '<UButton to="/projects" color="primary">\n  {{ t({ en: "Back to projects", ru: "Назад к проектам" }) }}\n</UButton>\n',
+    )
+    const generated = Buffer.from(
+      '<UButton to="/projects" color="primary">{{\n  t({ en: "Back to projects", ru: "Назад к проектам" })\n}}</UButton>\n',
+    )
+
+    expect(contentsMatchForParity("src/example.vue", reference, generated)).toBe(true)
+  })
+
   it("keeps meaningful text diffs as mismatches", () => {
     const reference = Buffer.from("const a = 1\n")
     const generated = Buffer.from("const a = 2\n")

@@ -61,6 +61,7 @@ export interface DataBinding {
   filter?: Record<string, unknown>
   sort?: string[]
   key?: string
+  alias?: string
   target?: "container" | "item"
   item?: ComponentNode
 }
@@ -119,6 +120,7 @@ export const dataBindingSchema: z.ZodType<DataBinding> = z.lazy(
       filter: z.record(z.string(), z.any()).optional(),
       sort: z.array(z.string()).optional(),
       key: z.string().optional(),
+      alias: z.string().optional(),
       target: z.enum(["container", "item"]).optional(),
       item: componentNodeSchema.optional(),
     }) as z.ZodType<DataBinding>,

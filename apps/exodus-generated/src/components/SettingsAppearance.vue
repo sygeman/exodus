@@ -1,10 +1,9 @@
 <script setup lang="ts">
+import { computed } from "vue"
+import { useSingleton } from "@/hooks"
 import { useT } from "@exodus/edem-vue"
 
 const t = useT()
-
-import { computed } from "vue"
-import { useSingleton } from "@/hooks"
 
 const { data: appState, update: updateSetting } = useSingleton("app_state")
 

@@ -1,11 +1,10 @@
 <script setup lang="ts">
-import { useT } from "@exodus/edem-vue"
-
-const t = useT()
-
 import { computed, ref } from "vue"
 import { useLogs } from "@/hooks"
 import { edem } from "@/edem"
+import { useT } from "@exodus/edem-vue"
+
+const t = useT()
 
 const PAGE_SIZE = 100
 const offset = ref(0)

@@ -1,12 +1,11 @@
 <script setup lang="ts">
 import SettingsLayout from "@/components/SettingsLayout.vue"
-import { useT } from "@exodus/edem-vue"
-
-const t = useT()
-
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref } from "vue"
 import { useCollectionQuery, useUpdateItem, useDeleteItem } from "@/hooks"
+import { useT } from "@exodus/edem-vue"
+
+const t = useT()
 
 const route = useRoute()
 const router = useRouter()
