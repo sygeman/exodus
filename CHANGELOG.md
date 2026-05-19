@@ -1,3 +1,20 @@
+# [2.0.0](https://github.com/sygeman/exodus/compare/v1.15.0...v2.0.0) (2026-05-19)
+
+
+### Bug Fixes
+
+* **flows:** scope Exodus runtime to system flows ([82728de](https://github.com/sygeman/exodus/commit/82728de3cd135c68be5a89473ee9f9fe5b215c57))
+
+
+* refactor(flows)!: remove webhook trigger support ([bf5bcb8](https://github.com/sygeman/exodus/commit/bf5bcb89db361ee9f33041ce82e7bee4fd96d47f))
+
+
+### BREAKING CHANGES
+
+* webhook triggers are no longer accepted in flow definitions or exposed by the dispatcher API.
+
+
+
 # [1.15.0](https://github.com/sygeman/exodus/compare/v1.14.1...v1.15.0) (2026-05-19)
 
 
@@ -42,21 +59,6 @@
 
 * **edem-codegen:** reduce settings parity gaps ([befaa8d](https://github.com/sygeman/exodus/commit/befaa8dc36e55256bca0d2f81c8e6e59f34ec223))
 * **exodus:** expand flow settings manifest slice ([a419369](https://github.com/sygeman/exodus/commit/a419369375171c04c467ff19c45f594e141a03a9))
-
-
-
-# [1.12.0](https://github.com/sygeman/exodus/compare/v1.11.0...v1.12.0) (2026-05-18)
-
-
-### Bug Fixes
-
-* **edem-codegen:** always regenerate parity reports ([7dd8e2f](https://github.com/sygeman/exodus/commit/7dd8e2f07a0f08e690e5e804950c5549e7f55a17))
-
-
-### Features
-
-* **edem-codegen:** generate shared runtime hooks layer ([b2fd843](https://github.com/sygeman/exodus/commit/b2fd843fbb097c787c48b160469f7bf089c1b24e))
-* **edem-codegen:** scaffold settings slice layouts and handlers ([c3533d8](https://github.com/sygeman/exodus/commit/c3533d863c6ae47dd3caf001253ed8d002c9d2b1))
 
 
 
