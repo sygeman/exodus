@@ -84,19 +84,20 @@ Edem UI ближе по философии к связке `Astro` + `Storybook`
 - для первого product slice добавлены manifest-компоненты `MenuLayout` и `SettingsLayout`, а `ProjectSettingsPage` переведён на их использование
 - data-stage теперь генерирует shared runtime layer: `src/data-manifest.ts`, `src/edem-client.ts`, `src/hooks.ts`
 - parity-normalization теперь умеет игнорировать несущественные различия в порядке Vue-attrs и переносах внутри `{{ ... }}`
+- parity-normalization теперь также умеет игнорировать несущественные различия между handler-вызовами вида `fn` и `fn($event)`
 - loops по alias и последовательностям вида `[1, 2, 3, ...]` теперь генерируются ближе к reference-template, без лишних wrapper-узлов
 
 Проверено фактическим прогоном:
 
 - `bun run codegen` запускает полный поддерживаемый цикл генерации и parity-проверки
-- текущий parity baseline после последних прогонов `bun run codegen`: `73` расхождений
+- текущий parity baseline после последних прогонов `bun run codegen`: `72` расхождений
 
 Текущие известные блокеры:
 
 - shell/layout/page parity по-прежнему в основном находится в зоне `generator gap`
 - часть расхождений относится к `schema gap`, то есть не лечится только правками codegen
 - первая settings chain уже закрыта в parity, а `FlowSettingsPage`, `SettingsAppearance` и `SettingsLanguage` больше не попадают в page-level generator gap
-- page-level parity для `ProjectsListPage`, `ProjectPage`, `ProjectIdeasPage` и `ProjectFlowsPage` тоже закрыт; ближайший page-level остаток теперь сосредоточен в `IdeaPage`, `FlowCodePage`, `FlowEditorPage`, `DebugFlows`, `DebugFlowRuns`, `DebugLogs`
+- page-level parity для `ProjectsListPage`, `ProjectPage`, `ProjectIdeasPage`, `ProjectFlowsPage` и `IdeaPage` тоже закрыт; ближайший page-level остаток теперь сосредоточен в `FlowCodePage`, `FlowEditorPage`, `DebugFlows`, `DebugFlowRuns`, `DebugLogs`
 - settings slice всё ещё не завершён end-to-end: page gap внутри него уже снят, но более широкий остаток по-прежнему сидит в shell/layout коде и reference-only runtime/UI слоях
 
 ## Потоки работ
@@ -396,7 +397,7 @@ Definition of done:
 - codegen уже умеет выводить такие handler'ы в template, включая `blur`, `click` и `keyup.enter`
 - generated app теперь воспроизводит и shared runtime layer первого slice через `data-manifest.ts`, `edem-client.ts` и `hooks.ts`
 - первая settings chain уже закрыта в parity: `MenuLayout`, `SettingsLayout` и `ProjectSettingsPage` больше не попадают в page/layout diff
-- `FlowSettingsPage`, `SettingsAppearance`, `SettingsLanguage`, `ProjectsListPage`, `ProjectPage`, `ProjectIdeasPage` и `ProjectFlowsPage` тоже выведены из page-level generator gap, что снизило общий parity baseline до `73`
+- `FlowSettingsPage`, `SettingsAppearance`, `SettingsLanguage`, `ProjectsListPage`, `ProjectPage`, `ProjectIdeasPage`, `ProjectFlowsPage` и `IdeaPage` тоже выведены из page-level generator gap, что снизило общий parity baseline до `72`
 - end-to-end parity для settings-кластера ещё не достигнут, потому что помимо закрытого page gap остаются generated shell/layout различия и reference-only runtime/UI слои
 
 До тех пор, пока первый vertical slice не проходит end-to-end, расширять DSL дальше не стоит.

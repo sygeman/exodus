@@ -197,6 +197,17 @@ describe("helpers", () => {
     expect(contentsMatchForParity("src/example.vue", reference, generated)).toBe(true)
   })
 
+  it("treats explicit $event passthrough handlers as parity matches", () => {
+    const reference = Buffer.from(
+      '<UButton @click="openDeleteModal">{{ t({ en: "Delete" }) }}</UButton>\n',
+    )
+    const generated = Buffer.from(
+      '<UButton @click="openDeleteModal($event)">{{ t({ en: "Delete" }) }}</UButton>\n',
+    )
+
+    expect(contentsMatchForParity("src/example.vue", reference, generated)).toBe(true)
+  })
+
   it("keeps meaningful text diffs as mismatches", () => {
     const reference = Buffer.from("const a = 1\n")
     const generated = Buffer.from("const a = 2\n")

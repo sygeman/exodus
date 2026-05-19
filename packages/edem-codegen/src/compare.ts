@@ -162,16 +162,18 @@ function isTextParityFile(file: string): boolean {
 }
 
 function normalizeTextForParity(content: Uint8Array): string {
-  return normalizeVueTagAttributeOrder(
-    normalizeImportOrder(
-      Buffer.from(content)
-        .toString("utf8")
-        .replace(/<!--([\s\S]*?)-->/g, "")
-        .replaceAll("\r\n", "\n")
-        .split("\n")
-        .map((line) => line.trimEnd())
-        .filter((line) => line.length > 0)
-        .join("\n"),
+  return normalizeVueEventHandlerShorthand(
+    normalizeVueTagAttributeOrder(
+      normalizeImportOrder(
+        Buffer.from(content)
+          .toString("utf8")
+          .replace(/<!--([\s\S]*?)-->/g, "")
+          .replaceAll("\r\n", "\n")
+          .split("\n")
+          .map((line) => line.trimEnd())
+          .filter((line) => line.length > 0)
+          .join("\n"),
+      ),
     ),
   )
 }
@@ -241,4 +243,8 @@ function normalizeClassAttrs(attrs: string[]): string[] {
 
   const merged = `:class="\`${staticMatch[1]} \${${dynamicExpr}}\`"`
   return attrs.filter((attr) => attr !== staticClass && attr !== dynamicClass).concat(merged)
+}
+
+function normalizeVueEventHandlerShorthand(content: string): string {
+  return content.replace(/(@[\w:.-]+=")([A-Za-z_$][\w$]*?)\(\$event\)(")/g, "$1$2$3")
 }

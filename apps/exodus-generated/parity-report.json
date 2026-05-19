@@ -4,16 +4,16 @@
     "generatedNow": false
   },
   "summary": {
-    "total": 73,
+    "total": 72,
     "byArea": {
       "other": 46,
       "assets": 8,
       "shell": 8,
       "layouts": 5,
-      "pages": 6
+      "pages": 5
     },
     "byReason": {
-      "generator gap": 24,
+      "generator gap": 23,
       "schema gap": 38,
       "migration gap": 11
     }
@@ -321,12 +321,6 @@
     },
     {
       "file": "src/components/FlowEditorPage.vue",
-      "area": "pages",
-      "reason": "generator gap",
-      "status": "different"
-    },
-    {
-      "file": "src/components/IdeaPage.vue",
       "area": "pages",
       "reason": "generator gap",
       "status": "different"
