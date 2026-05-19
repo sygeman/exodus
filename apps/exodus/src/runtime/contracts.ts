@@ -70,7 +70,7 @@ export interface ScreenManifestDefinition {
   constants?: Record<string, unknown>
   state?: Record<string, unknown>
   computed?: Record<string, string>
-  flows?: Record<string, string>
+  flows?: Record<string, LogicFlowDefinition>
 }
 
 export interface ScreenRuntimeContext {

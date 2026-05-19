@@ -11,6 +11,53 @@
   "state": {
     "copied": false
   },
+  "flows": {
+    "copyToClipboard": {
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": { "type": "ui-event", "event": "click" },
+      "nodes": [
+        { "id": "trigger", "type": "trigger", "position": { "x": 0, "y": 0 } },
+        {
+          "id": "guardManifest",
+          "type": "guard",
+          "position": { "x": 180, "y": 0 },
+          "data": { "condition": "manifest" }
+        },
+        {
+          "id": "copy",
+          "type": "ui:clipboard-write",
+          "position": { "x": 360, "y": 0 },
+          "data": { "text": "{{ manifest }}" }
+        },
+        {
+          "id": "setCopied",
+          "type": "ui:set-state",
+          "position": { "x": 540, "y": 0 },
+          "data": { "state": "copied", "value": true }
+        },
+        {
+          "id": "resetCopied",
+          "type": "ui:set-timeout-state",
+          "position": { "x": 720, "y": 0 },
+          "data": { "state": "copied", "value": false, "delay": 2000 }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": { "x": 900, "y": 0 },
+          "data": { "value": "{{ manifest }}" }
+        }
+      ],
+      "edges": [
+        { "id": "e1", "source": "trigger", "target": "guardManifest" },
+        { "id": "e2", "source": "guardManifest", "sourceHandle": "true", "target": "copy" },
+        { "id": "e3", "source": "copy", "target": "setCopied" },
+        { "id": "e4", "source": "setCopied", "target": "resetCopied" },
+        { "id": "e5", "source": "resetCopied", "target": "output" }
+      ]
+    }
+  },
   "computed": {
     "loading": "{{ flowsLoading }}",
     "flow": "{{ flows.find((entry) => entry.id === route.params.flowId) ?? null }}",
@@ -56,7 +103,7 @@
                 "icon": "{{ copied ? 'i-lucide-check' : 'i-lucide-copy' }}",
                 "class": "absolute top-3 right-3"
               },
-              "events": { "click": { "flow": "flowCode.copyToClipboard" } }
+              "events": { "click": { "flow": "copyToClipboard" } }
             }
           ]
         }

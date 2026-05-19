@@ -1,11 +1,11 @@
 import type { LogicFlowDefinition, ScreenManifestDefinition } from "../contracts"
-import { getRuntimeFlowsForScreen } from "../flows"
 
 type RuntimeComponentNode = {
   queries?: ScreenManifestDefinition["queries"]
   constants?: ScreenManifestDefinition["constants"]
   state?: ScreenManifestDefinition["state"]
   computed?: ScreenManifestDefinition["computed"]
+  flows?: ScreenManifestDefinition["flows"]
 }
 
 export interface RuntimeScreenEntry {
@@ -37,8 +37,9 @@ const runtimeScreens = Object.fromEntries(
           constants: manifest.constants,
           state: manifest.state,
           computed: manifest.computed,
+          flows: manifest.flows,
         } satisfies ScreenManifestDefinition,
-        flows: getRuntimeFlowsForScreen(screenId),
+        flows: normalizeScreenFlows(manifest.flows),
       } satisfies RuntimeScreenEntry,
     ]
   }),
@@ -46,4 +47,24 @@ const runtimeScreens = Object.fromEntries(
 
 export function getRuntimeScreenEntry(screenId: string): RuntimeScreenEntry | undefined {
   return runtimeScreens[screenId]
+}
+
+function normalizeScreenFlows(
+  flows: ScreenManifestDefinition["flows"],
+): Record<string, LogicFlowDefinition> {
+  if (!flows) {
+    return {}
+  }
+
+  return Object.fromEntries(
+    Object.entries(flows).map(([flowId, flow]) => [
+      flowId,
+      {
+        ...flow,
+        id: flow.id || flowId,
+        profile: flow.profile ?? "ui-action",
+        runtime: flow.runtime ?? "client",
+      } satisfies LogicFlowDefinition,
+    ]),
+  )
 }

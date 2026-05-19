@@ -88,15 +88,56 @@ UI-манифест должен уметь ссылаться на:
 
 ```json
 {
+  "flows": {
+    "create": {
+      "profile": "ui-action"
+    }
+  },
   "events": {
     "click": {
-      "flow": "projects.create"
+      "flow": "create"
     }
   }
 }
 ```
 
 `event -> action` и component-local actions допустимы только как переходный слой во время миграции, но не как целевой контракт.
+
+## Screen-Local Logic
+
+Screen-local orchestration должна жить рядом со структурой экрана, а не в отдельном sidecar-файле.
+
+Практически это означает:
+
+- screen-specific `ui-action` flow объявляются в том же `ui manifest`
+- `events` внутри дерева ссылаются на локальные имена flow этого экрана
+- reusable `domain` и `system` flow остаются внешними first-class сущностями
+
+Пример:
+
+```json
+{
+  "flows": {
+    "confirmDelete": {
+      "profile": "ui-action",
+      "nodes": [
+        { "id": "trigger", "type": "trigger" },
+        { "id": "delete", "type": "data:delete-item" }
+      ]
+    }
+  },
+  "children": [
+    {
+      "component": "UButton",
+      "events": {
+        "click": { "flow": "confirmDelete" }
+      }
+    }
+  ]
+}
+```
+
+Так становится явно видно, что это именно логика экрана, а не общий внешний flow registry.
 
 ## Привязки данных
 
@@ -108,6 +149,7 @@ UI-модель должна покрывать базовые query-патте�
 - filters и sort
 - iteration по items
 - item alias
+- model bindings
 
 UI только объявляет, какие данные нужны экрану. Решение, что делать с этими данными при событии, живёт во flow.
 

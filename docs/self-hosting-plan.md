@@ -134,10 +134,11 @@ ui manifest + flow manifest + component registry + runtime -> экран при�
   - `useScreenRuntime`
   - `useLogicFlow`
   - `contracts.ts`
-- первый экран уже протянут через новый путь:
+- первые экраны уже протянуты через новый путь:
   - структура экрана берётся из `apps/exodus/edem-manifests/components/FlowCodePage.json`
-  - логика экрана берётся из `apps/exodus/edem-manifests/ui-flows.json`
+  - screen-local logic живёт в `flows` внутри того же manifest
   - роут `project-flow-code` идёт через общий `RuntimeScreenHost` с `meta.screenId = "FlowCodePage"`
+  - `ProjectsListPage` и `IdeaPage` также идут через тот же runtime path
 
 ### Что это доказывает
 
@@ -147,8 +148,7 @@ ui manifest + flow manifest + component registry + runtime -> экран при�
 
 ### Что пока остаётся прототипным
 
-- `runtimeScreens` пока собирается вручную в `apps/exodus/src/runtime/screens/index.ts`
-- `ui-flows.json` пока является отдельным runtime-manifest, а не частью общей first-class flow model в `edem-flows`
+- `runtimeScreens` всё ещё собирается runtime-side через manifest scan, а не через общий route/runtime manifest bundle
 - `useScreenRuntime` пока покрывает только минимальный набор query/state/computed сценариев, достаточный для первых экранов
 - `useLogicFlow` пока покрывает минимальный набор `ui-action` node types и не является полной заменой `edem-flows`
 - route registry всё ещё partly hand-written в `apps/exodus/src/router.ts`
@@ -170,7 +170,7 @@ ui manifest + flow manifest + component registry + runtime -> экран при�
 ### Что считать источником истины
 
 - структура экрана: `apps/exodus/edem-manifests/components/*.json`
-- UI-логика экрана: `apps/exodus/edem-manifests/ui-flows.json`
+- screen-local UI-логика: `flows` внутри `apps/exodus/edem-manifests/components/*.json`
 - временный runtime host и executors: `apps/exodus/src/runtime/*`
 
 ### Что делать следующим
@@ -178,7 +178,7 @@ ui manifest + flow manifest + component registry + runtime -> экран при�
 1. Перевести `IdeaPage`, чтобы проверить form editing, modal state и delete confirm.
 2. После этого перевести ещё 1-2 простых экрана без imperative widgets: `ProjectIdeasPage`, `ProjectPage` или `ProjectFlowsPage`.
 3. На этом наборе добить недостающие screen/runtime contract pieces, которые реально понадобятся, а не расширять DSL заранее.
-4. Начать сводить `ui-flows.json` и текущий `edem-flows` к одной profile-based модели вместо двух параллельных реальностей.
+4. Начать сводить screen-local `flows` и текущий `edem-flows` к одной profile-based модели вместо двух параллельных реальностей.
 5. Только после этого двигаться к wrapper-first интеграции сложных widgets.
 
 ### Порядок работы
@@ -251,17 +251,17 @@ ui manifest + flow manifest + component registry + runtime -> экран при�
 Сейчас следующий шаг уже можно формулировать не абстрактно, а по текущим файлам.
 
 1. `apps/exodus/edem-manifests/components/IdeaPage.json` остаётся хорошим тестом на следующий этап, но в нём всё ещё много action-style выражений, завязанных на `$event` и field-specific update.
-2. `apps/exodus/edem-manifests/ui-flows.json` пока работает как отдельный manifest-файл для runtime path, а не как first-class представление flow-модели для всего продукта.
-3. `apps/exodus/src/router.ts` всё ещё partly hand-written и пока использует manifest metadata только точечно.
-4. helper/context contract пока минимальный и расширяется ad hoc под реальные экраны.
-5. screen runtime уже умеет базовые loops, queries и `event -> flow`, но ещё не доказан на полном form-editing slice.
+2. `apps/exodus/src/router.ts` всё ещё partly hand-written и пока использует manifest metadata только точечно.
+3. helper/context contract пока минимальный и расширяется ad hoc под реальные экраны.
+4. screen runtime уже умеет базовые loops, queries и `event -> flow`, но ещё не доказан на более широком наборе list/detail/settings screen.
+5. distinction между screen-local `ui-action` flow и reusable `domain/system` flow ещё нужно формализовать строже.
 
 ### Практический backlog следующего шага
 
 Если продолжать работу прямо от текущего состояния репозитория, последовательность должна быть такой:
 
 1. Перевести `IdeaPage.json` с `events -> action` на `events -> flow`.
-2. Добавить в `ui-flows.json` набор flow для `IdeaPage`: open modal, close modal, confirm delete, field update.
+2. Держать screen-local logic в `flows` внутри того же manifest, а не во внешнем sidecar.
 3. Подключить маршрут `project-idea` к `RuntimeScreenHost` без возврата к screen-specific component logic.
 4. После успешного переноса удалить legacy `apps/exodus/src/components/IdeaPage.vue`, если он больше не используется.
 5. Только потом выбирать следующий простой экран из `ProjectIdeasPage`, `ProjectPage`, `ProjectFlowsPage`.
@@ -272,7 +272,7 @@ ui manifest + flow manifest + component registry + runtime -> экран при�
 - не нужно сначала убирать все legacy `.vue` в приложении
 - не нужно сначала устранять все исторические `actions` во всех manifests
 - не нужно сначала вводить wrapper registry полной формы
-- не нужно сначала интегрировать `ui-flows.json` внутрь общего `edem-flows` API
+- не нужно сначала интегрировать screen-local `flows` внутрь общего `edem-flows` API
 
 Достаточно продолжать короткими циклами: один экран -> runtime route -> удаление legacy component -> проверки.
 
@@ -427,14 +427,20 @@ UI manifest должен упроститься до следующей логи
 - UI описывает структуру
 - event binding указывает на `flow`
 - локальный state объявляется, но не исполняется вручную в component-local actions
+- screen-specific `ui-action` flow живут в том же manifest, а не в отдельном sidecar-файле
 
 Целевая event-модель:
 
 ```json
 {
+  "flows": {
+    "create": {
+      "profile": "ui-action"
+    }
+  },
   "events": {
     "click": {
-      "flow": "projects.create"
+      "flow": "create"
     }
   }
 }

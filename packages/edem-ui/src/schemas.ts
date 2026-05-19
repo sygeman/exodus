@@ -99,6 +99,7 @@ export interface ComponentNode {
   state?: Record<string, unknown>
   constants?: Record<string, unknown>
   computed?: Record<string, string>
+  flows?: Record<string, unknown>
   /**
    * @deprecated Target architecture moves screen behavior to flow manifests.
    * Keep for migration while existing component manifests are converted from
@@ -320,6 +321,7 @@ export const componentNodeSchema: z.ZodType<ComponentNode> = z.lazy(
       state: z.record(z.string(), z.any()).optional(),
       constants: z.record(z.string(), z.any()).optional(),
       computed: z.record(z.string(), z.string()).optional(),
+      flows: z.record(z.string(), z.unknown()).optional(),
       actions: z.record(z.string(), manifestActionSchema).optional(),
     }) as z.ZodType<ComponentNode>,
 )
