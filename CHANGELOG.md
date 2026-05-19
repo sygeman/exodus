@@ -1,3 +1,12 @@
+## [1.14.1](https://github.com/sygeman/exodus/compare/v1.14.0...v1.14.1) (2026-05-19)
+
+
+### Bug Fixes
+
+* **edem-vue:** evaluate templated runtime conditions ([162e7f0](https://github.com/sygeman/exodus/commit/162e7f0a33300a50b488cfa633a7c5f7808ac135))
+
+
+
 # [1.14.0](https://github.com/sygeman/exodus/compare/v1.13.0...v1.14.0) (2026-05-19)
 
 
@@ -54,15 +63,6 @@
 
 * **edem-codegen:** add self-hosting parity reporting ([50e205a](https://github.com/sygeman/exodus/commit/50e205a426496fb4f5a6badad2e064a8ce125a47))
 * **edem-codegen:** emit parity report on generate ([7031176](https://github.com/sygeman/exodus/commit/70311768929ca16143118bb69c61063fe579bb52))
-
-
-
-## [1.10.1](https://github.com/sygeman/exodus/compare/v1.10.0...v1.10.1) (2026-05-18)
-
-
-### Bug Fixes
-
-* **exodus:** install script fixes and CI test workflow ([3101618](https://github.com/sygeman/exodus/commit/3101618b2e48ba2d8fbeb6a74904c9ad11e5637b))
 
 
 
