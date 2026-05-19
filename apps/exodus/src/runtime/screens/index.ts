@@ -1,4 +1,3 @@
-import flowCodeScreen from "../../../edem-manifests/components/FlowCodePage.json"
 import type { LogicFlowDefinition, ScreenManifestDefinition } from "../contracts"
 import { getRuntimeFlowsForScreen } from "../flows"
 
@@ -13,15 +12,36 @@ export interface RuntimeScreenEntry {
   flows: Record<string, LogicFlowDefinition>
 }
 
-export const runtimeScreens: Record<string, RuntimeScreenEntry> = {
-  FlowCodePage: {
-    screen: {
-      id: "FlowCodePage",
-      root: flowCodeScreen as ScreenManifestDefinition["root"],
-      queries: (flowCodeScreen as RuntimeComponentNode).queries,
-      state: (flowCodeScreen as RuntimeComponentNode).state,
-      computed: (flowCodeScreen as RuntimeComponentNode).computed,
-    } satisfies ScreenManifestDefinition,
-    flows: getRuntimeFlowsForScreen("FlowCodePage"),
-  },
+const manifestModules = import.meta.glob("../../../edem-manifests/components/*.json", {
+  eager: true,
+  import: "default",
+}) as Record<string, ScreenManifestDefinition["root"] & RuntimeComponentNode>
+
+const runtimeScreens = Object.fromEntries(
+  Object.entries(manifestModules).map(([path, manifest]) => {
+    const match = path.match(/\/([^/]+)\.json$/)
+    const screenId = match?.[1]
+
+    if (!screenId) {
+      throw new Error(`Unable to derive screen id from manifest path: ${path}`)
+    }
+
+    return [
+      screenId,
+      {
+        screen: {
+          id: screenId,
+          root: manifest,
+          queries: manifest.queries,
+          state: manifest.state,
+          computed: manifest.computed,
+        } satisfies ScreenManifestDefinition,
+        flows: getRuntimeFlowsForScreen(screenId),
+      } satisfies RuntimeScreenEntry,
+    ]
+  }),
+) as Record<string, RuntimeScreenEntry>
+
+export function getRuntimeScreenEntry(screenId: string): RuntimeScreenEntry | undefined {
+  return runtimeScreens[screenId]
 }

@@ -5,24 +5,6 @@
       "collection": "projects"
     }
   },
-  "actions": {
-    "handleCreate": {
-      "steps": [
-        {
-          "type": "create-item",
-          "collection": "projects",
-          "assignTo": "createdId",
-          "data": {
-            "name": "Untitled",
-            "slug": "{{ `untitled-${crypto.randomUUID().slice(0, 8)}` }}",
-            "type": "desktop",
-            "sort_order": 0
-          }
-        },
-        { "type": "navigate", "to": "/project/{{ createdId }}/overview" }
-      ]
-    }
-  },
   "props": { "class": "flex h-full flex-col p-8" },
   "children": [
     {
@@ -73,7 +55,7 @@
         },
         {
           "component": "UButton",
-          "events": { "click": { "action": "handleCreate" } },
+          "events": { "click": { "flow": "projects.create" } },
           "children": { "$type": "translation", "en": "Create project", "ru": "Создать проект" }
         }
       ]
@@ -94,7 +76,7 @@
             },
             {
               "component": "UButton",
-              "events": { "click": { "action": "handleCreate" } },
+              "events": { "click": { "flow": "projects.create" } },
               "children": { "$type": "translation", "en": "Create project", "ru": "Создать проект" }
             }
           ]

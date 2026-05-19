@@ -113,6 +113,176 @@ ui manifest + flow manifest + component registry + runtime -> экран при�
 - `rawScript` больше не должен фигурировать как текущий escape hatch в этом плане
 - если старые упоминания `rawScript` или generated-only glue остались в других документах, их нужно считать историческим контекстом, а не действующей нормой
 
+## Статус на сегодня
+
+Ниже зафиксировано текущее состояние, чтобы работу можно было передать дальше без повторного исследования.
+
+### Уже сделано
+
+- архитектурные документы переведены в runtime-first модель:
+  - `docs/edem.md`
+  - `docs/ui.md`
+  - `docs/flows.md`
+  - `docs/codegen.md`
+  - `docs/self-hosting-plan.md`
+- `packages/edem-ui/src/schemas.ts` помечает `actions` и `action`/`navigate` event binding как переходный слой, а целевой контракт как `event -> flow`
+- в `packages/edem-vue/src/renderer.ts` исправлены две важные runtime-проблемы:
+  - `if / elseIf / else` теперь работают как цепочка, а не как независимые узлы
+  - компонент в render runtime резолвится через `resolveDynamicComponent`, а не остаётся сырой строкой
+- в `apps/exodus/src/runtime` добавлен первый runtime-first прототип:
+  - `RuntimeScreenHost`
+  - `useScreenRuntime`
+  - `useLogicFlow`
+  - `contracts.ts`
+- первый экран уже протянут через новый путь:
+  - структура экрана берётся из `apps/exodus/edem-manifests/components/FlowCodePage.json`
+  - логика экрана берётся из `apps/exodus/edem-manifests/ui-flows.json`
+  - роут `project-flow-code` идёт через общий `RuntimeScreenHost` с `meta.screenId = "FlowCodePage"`
+
+### Что это доказывает
+
+- runtime path уже может рендерить реальный экран из component manifest
+- runtime path уже может исполнять UI-ориентированный flow из manifest JSON
+- для первого slice больше не нужен dedicated page component с ручной экранной логикой
+
+### Что пока остаётся прототипным
+
+- `runtimeScreens` пока собирается вручную в `apps/exodus/src/runtime/screens/index.ts`
+- `ui-flows.json` пока является отдельным runtime-manifest, а не частью общей first-class flow model в `edem-flows`
+- `useScreenRuntime` пока покрывает только минимальный набор query/state/computed сценариев, достаточный для первых экранов
+- `useLogicFlow` пока покрывает минимальный набор `ui-action` node types и не является полной заменой `edem-flows`
+- route registry всё ещё partly hand-written в `apps/exodus/src/router.ts`
+- external component registry пока не формализован как полноценный wrapper contract
+
+### Чего специально не делали
+
+- не переносили `FlowEditorPage`, `NodeConfigPanel` и другие imperative widgets в базовый DSL
+- не пытались сделать auto-discovery всех screens и flows за один шаг
+- не трогали generated app как целевой runtime path
+- не тащили screen definition обратно в hand-written `.vue` или screen-specific TS component
+
+## Handoff
+
+Следующему исполнителю не нужно повторно решать, должна ли система быть runtime-first. Это уже зафиксировано и частично подтверждено кодом.
+
+Ему нужно продолжать в рамках уже выбранной модели.
+
+### Что считать источником истины
+
+- структура экрана: `apps/exodus/edem-manifests/components/*.json`
+- UI-логика экрана: `apps/exodus/edem-manifests/ui-flows.json`
+- временный runtime host и executors: `apps/exodus/src/runtime/*`
+
+### Что делать следующим
+
+1. Перевести `IdeaPage`, чтобы проверить form editing, modal state и delete confirm.
+2. После этого перевести ещё 1-2 простых экрана без imperative widgets: `ProjectIdeasPage`, `ProjectPage` или `ProjectFlowsPage`.
+3. На этом наборе добить недостающие screen/runtime contract pieces, которые реально понадобятся, а не расширять DSL заранее.
+4. Начать сводить `ui-flows.json` и текущий `edem-flows` к одной profile-based модели вместо двух параллельных реальностей.
+5. Только после этого двигаться к wrapper-first интеграции сложных widgets.
+
+### Порядок работы
+
+Текущий рекомендуемый порядок нужно считать таким:
+
+1. `FlowCodePage` как первый proof-of-concept runtime-first path.
+2. `ProjectsListPage` как первый простой CRUD/navigation slice.
+3. Удаление legacy `FlowCodePage.vue` и `ProjectsListPage.vue` после перевода маршрутов на `RuntimeScreenHost`.
+4. `IdeaPage` как следующий обязательный экран для проверки form lifecycle, modal state и delete confirm.
+5. `ProjectIdeasPage`, `ProjectPage` и `ProjectFlowsPage` как следующая волна простых manifest-driven экранов.
+6. Только после этого систематизация flow profiles, route metadata и wrapper boundary.
+
+Практическое правило работы:
+
+1. Сначала переводить реальный экран на `RuntimeScreenHost`.
+2. Потом удалять соответствующий legacy `.vue`, если он больше не используется.
+3. Только после 2-3 реальных экранов обобщать runtime API и schema.
+
+Не наоборот.
+
+### Черновой capability inventory по первым slice
+
+Ниже не полная матрица всего продукта, а стартовый inventory по тем экранам, которые уже подтверждают или должны подтвердить runtime-first путь.
+
+#### `FlowCodePage`
+
+- статус: уже идёт через `RuntimeScreenHost`, legacy `FlowCodePage.vue` удалён
+- view composition: покрыто runtime path
+- queries: одна collection query `flows`
+- local state: `copied`
+- computed: `loading`, `flow`, `manifest`
+- UI flow: copy to clipboard, transient feedback
+- domain/data operations: не нужны, кроме чтения данных через query
+- external widgets: не нужны
+- вывод: хороший proof-of-concept для `event -> flow`, но слабый тест для CRUD и route-driven editing
+
+#### `ProjectsListPage`
+
+- статус: уже идёт через `RuntimeScreenHost`, legacy `ProjectsListPage.vue` удалён
+- view composition: простой список + empty state + loading state
+- queries: одна collection query `projects`
+- local state: не нужен
+- computed: не нужен
+- UI flow: `create -> navigate`
+- domain/data operations: `data:create-item`
+- external widgets: не нужны
+- вывод: подтвердил, что для простого CRUD/navigation screen dedicated page component больше не нужен
+
+#### `IdeaPage`
+
+- статус: manifest уже есть, но экран пока использует старую action-модель
+- view composition: detail page c header, form fields и modal
+- queries: одна collection query `ideas` c route-aware filter
+- local state: `deleteModalOpen`
+- computed: `idea`, `loading`, `backLink`
+- UI flow: open/close modal, confirm delete, inline save по `blur` и `keyup.enter`, select update
+- domain/data operations: `data:update-item`, `data:delete-item`
+- external widgets: не нужны
+- вывод: это правильный третий slice, потому что он проверяет почти весь базовый screen orchestration без захода в imperative widgets
+
+#### Что это уже показывает
+
+- `FlowCodePage` подтверждает базовую жизнеспособность runtime-first path
+- `ProjectsListPage` уже подтвердил, что для простых CRUD screen не нужен dedicated page component
+- `IdeaPage` теперь является следующим обязательным тестом на form lifecycle и modal state
+
+### Конкретные runtime gaps перед следующим переносом
+
+Сейчас следующий шаг уже можно формулировать не абстрактно, а по текущим файлам.
+
+1. `apps/exodus/edem-manifests/components/IdeaPage.json` остаётся хорошим тестом на следующий этап, но в нём всё ещё много action-style выражений, завязанных на `$event` и field-specific update.
+2. `apps/exodus/edem-manifests/ui-flows.json` пока работает как отдельный manifest-файл для runtime path, а не как first-class представление flow-модели для всего продукта.
+3. `apps/exodus/src/router.ts` всё ещё partly hand-written и пока использует manifest metadata только точечно.
+4. helper/context contract пока минимальный и расширяется ad hoc под реальные экраны.
+5. screen runtime уже умеет базовые loops, queries и `event -> flow`, но ещё не доказан на полном form-editing slice.
+
+### Практический backlog следующего шага
+
+Если продолжать работу прямо от текущего состояния репозитория, последовательность должна быть такой:
+
+1. Перевести `IdeaPage.json` с `events -> action` на `events -> flow`.
+2. Добавить в `ui-flows.json` набор flow для `IdeaPage`: open modal, close modal, confirm delete, field update.
+3. Подключить маршрут `project-idea` к `RuntimeScreenHost` без возврата к screen-specific component logic.
+4. После успешного переноса удалить legacy `apps/exodus/src/components/IdeaPage.vue`, если он больше не используется.
+5. Только потом выбирать следующий простой экран из `ProjectIdeasPage`, `ProjectPage`, `ProjectFlowsPage`.
+
+### Что не должно считаться обязательным для шага с `ProjectsListPage`
+
+- не нужно сначала унифицировать весь router
+- не нужно сначала убирать все legacy `.vue` в приложении
+- не нужно сначала устранять все исторические `actions` во всех manifests
+- не нужно сначала вводить wrapper registry полной формы
+- не нужно сначала интегрировать `ui-flows.json` внутрь общего `edem-flows` API
+
+Достаточно продолжать короткими циклами: один экран -> runtime route -> удаление legacy component -> проверки.
+
+### Чего не делать следующим шагом
+
+- не возвращаться к generated `.vue` как целевой модели
+- не писать screen-specific runtime components для каждого экрана
+- не переносить сложные editor/debug widgets раньше, чем будут закрыты 2-3 простых runtime-first page slice
+- не расширять `actions` как самостоятельную DSL-модель
+
 ## Основные проблемы текущего состояния
 
 1. Архитектура всё ещё частично мыслится через generated `.vue`-страницы, хотя целевая модель должна быть runtime-first.

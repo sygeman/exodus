@@ -1,6 +1,5 @@
 import { createRouter, createWebHashHistory, type RouteRecordRaw } from "vue-router"
 
-import ProjectsListPage from "@/components/ProjectsListPage.vue"
 import ProjectLayout from "@/components/ProjectLayout.vue"
 import ProjectPage from "@/components/ProjectPage.vue"
 import ProjectIdeasPage from "@/components/ProjectIdeasPage.vue"
@@ -22,7 +21,12 @@ import NotFound from "@/components/NotFound.vue"
 
 const routes: RouteRecordRaw[] = [
   { path: "/", redirect: "/projects" },
-  { path: "/projects", name: "projects-list", component: ProjectsListPage },
+  {
+    path: "/projects",
+    name: "projects-list",
+    component: RuntimeScreenHost,
+    meta: { screenId: "ProjectsListPage" },
+  },
   {
     path: "/project/:id",
     redirect: `/project/:id/overview`,

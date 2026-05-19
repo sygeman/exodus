@@ -1,7 +1,9 @@
 import {
+  Fragment,
   h,
   Teleport,
   Transition,
+  cloneVNode,
   resolveDynamicComponent,
   type VNode,
   type Component,
@@ -52,11 +54,11 @@ function defaultBuildContext(ctx: RenderContext): () => Record<string, unknown> 
     }
 
     for (const [key, ref] of Object.entries(ctx.collections)) {
-      flat[key] = ref.value
+      flat[key] = normalizeValue(ref.value)
     }
 
     for (const [key, ref] of Object.entries(ctx.singletons)) {
-      flat[key] = ref.value
+      flat[key] = normalizeValue(ref.value)
     }
 
     return flat
@@ -92,6 +94,8 @@ function resolveValue(
 ): unknown {
   if (isTranslation(value)) return resolveTranslation(value, t)
   if (typeof value !== "string") return value
+  const exact = value.match(/^\s*\{\{\s*(.+?)\s*\}\}\s*$/)
+  if (exact) return evalExpr(exact[1], ctx)
   if (!value.includes("{{")) return value
 
   return value.replace(/\{\{\s*(.+?)\s*\}\}/g, (_, expr: string) => {
@@ -246,8 +250,18 @@ export function renderNode(
 ): VNode | null {
   const getCtx = buildContext ?? defaultBuildContext(ctx)
 
+  if (node.bind) {
+    return renderBoundNode(node, registry, ctx, getCtx)
+  }
+
   // ── Conditional ──────────────────────────────────────────────────────
   if (checkConditional(node, getCtx) === "skip") return null
+
+  if (node.component === "template") {
+    const children = resolveChildren(node.children, registry, ctx, getCtx)
+    if (typeof children === "string" || children === undefined) return null
+    return h(Fragment, null, children)
+  }
 
   // ── Teleport ─────────────────────────────────────────────────────────
   if (node.teleport) {
@@ -297,6 +311,82 @@ export function renderNode(
   const children = resolveChildren(node.children, registry, ctx, getCtx)
 
   return h(component, { ...resolvedProps, ...eventHandlers }, children)
+}
+
+function renderBoundNode(
+  node: ComponentNode,
+  registry: ComponentRegistry,
+  ctx: RenderContext,
+  buildContext: () => Record<string, unknown>,
+): VNode | null {
+  const binding = node.bind
+  if (!binding) return null
+
+  const items = resolveBindingItems(binding.items, buildContext())
+  const alias = binding.alias ?? "item"
+  const rendered = items
+    .map((entry, index) => {
+      const itemValue = normalizeValue(entry)
+      const childContext = () => ({
+        ...buildContext(),
+        [alias]: itemValue,
+        item: itemValue,
+        index,
+      })
+      const childNode = binding.item ?? node
+      const vnode = renderNode(
+        childNode === node ? { ...node, bind: undefined } : childNode,
+        registry,
+        ctx,
+        childContext,
+      )
+
+      if (!vnode) return null
+
+      const resolvedKey = binding.key ? resolveValue(binding.key, childContext(), ctx.t) : index
+      const key =
+        typeof resolvedKey === "string" ||
+        typeof resolvedKey === "number" ||
+        typeof resolvedKey === "symbol"
+          ? resolvedKey
+          : index
+      return cloneVNode(vnode, { key })
+    })
+    .filter((vnode): vnode is VNode => vnode !== null)
+
+  return h(Fragment, null, rendered)
+}
+
+function resolveBindingItems(
+  items: NonNullable<ComponentNode["bind"]>["items"],
+  ctx: Record<string, unknown>,
+): unknown[] {
+  if (items === undefined) return []
+  if (typeof items === "string") {
+    const resolved = evalExpr(items, ctx)
+    return Array.isArray(resolved) ? resolved : []
+  }
+  return items
+}
+
+function normalizeValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => normalizeValue(entry))
+  }
+
+  if (value && typeof value === "object") {
+    const record = value as Record<string, unknown>
+    const data = record.data
+
+    if (data && typeof data === "object" && !Array.isArray(data)) {
+      return {
+        ...(normalizeValue(data) as Record<string, unknown>),
+        ...record,
+      }
+    }
+  }
+
+  return value
 }
 
 // ── Event Handlers ───────────────────────────────────────────────────────────
