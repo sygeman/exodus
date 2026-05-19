@@ -53,6 +53,7 @@
     {
       "files": ["apps/exodus-generated/**/*.{ts,tsx,js,jsx,vue}"],
       "rules": {
+        "unicorn/consistent-function-scoping": "off",
         "tailwindcss/no-unknown-classes": "off",
         "tailwindcss/no-duplicate-classes": "off",
         "tailwindcss/no-conflicting-classes": "off",

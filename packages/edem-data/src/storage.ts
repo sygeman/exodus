@@ -12,12 +12,12 @@ export interface StoredFile {
   path: string
 }
 
+async function ensureDir(dir: string): Promise<void> {
+  await mkdir(dir, { recursive: true })
+}
+
 export function createFileStorage(options: FileStorageOptions) {
   const { baseDir } = options
-
-  async function ensureDir(dir: string): Promise<void> {
-    await mkdir(dir, { recursive: true })
-  }
 
   function getFilePath(hash: string): string {
     const prefix = hash.slice(0, 2)
