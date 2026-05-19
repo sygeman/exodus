@@ -41,49 +41,56 @@
           "children": { "$type": "translation", "en": "Recent ideas", "ru": "Последние идеи" }
         },
         {
-          "component": "template",
-          "bind": {
-            "items": "ideas.slice(0, 5)",
-            "alias": "idea",
-            "key": "{{ idea.id }}",
-            "item": {
-              "component": "RouterLink",
-              "props": {
-                "to": "/project/{{ projectId }}/ideas/{{ idea.id }}",
-                "class": "border-default hover:bg-elevated flex items-center gap-3 rounded-lg border p-4 transition-colors"
-              },
-              "children": [
-                {
-                  "component": "div",
+          "component": "div",
+          "props": { "class": "flex flex-col gap-2" },
+          "children": [
+            {
+              "component": "template",
+              "bind": {
+                "items": "ideas.slice(0, 5)",
+                "alias": "idea",
+                "key": "{{ idea.id }}",
+                "target": "item",
+                "item": {
+                  "component": "RouterLink",
                   "props": {
-                    "class": "bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded text-xs font-bold"
+                    "to": "/project/{{ projectId }}/ideas/{{ idea.id }}",
+                    "class": "border-default hover:bg-elevated flex items-center gap-3 rounded-lg border p-4 transition-colors"
                   },
-                  "children": "{{ idea.data.level ?? '?' }}"
-                },
-                {
-                  "component": "div",
-                  "props": { "class": "flex flex-col" },
                   "children": [
-                    { "component": "span", "props": { "class": "font-medium" }, "children": "{{ idea.data.title }}" },
+                    {
+                      "component": "div",
+                      "props": {
+                        "class": "bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded text-xs font-bold"
+                      },
+                      "children": "{{ idea.data.level ?? '?' }}"
+                    },
+                    {
+                      "component": "div",
+                      "props": { "class": "flex flex-col" },
+                      "children": [
+                        { "component": "span", "props": { "class": "font-medium" }, "children": "{{ idea.data.title }}" },
+                        {
+                          "component": "span",
+                          "if": "{{ idea.data.type }}",
+                          "props": { "class": "text-muted text-xs" },
+                          "children": "{{ idea.data.type }}"
+                        }
+                      ]
+                    },
                     {
                       "component": "span",
-                      "if": "{{ idea.data.type }}",
-                      "props": { "class": "text-muted text-xs" },
-                      "children": "{{ idea.data.type }}"
+                      "if": "{{ idea.data.status === 'stabilized' }}",
+                      "props": {
+                        "class": "ml-auto inline-flex h-5 items-center rounded bg-green-500/10 px-1.5 text-xs text-green-500"
+                      },
+                      "children": { "$type": "translation", "en": "Stabilized", "ru": "Стабилизирована" }
                     }
                   ]
-                },
-                {
-                  "component": "span",
-                  "if": "{{ idea.data.status === 'stabilized' }}",
-                  "props": {
-                    "class": "ml-auto inline-flex h-5 items-center rounded bg-green-500/10 px-1.5 text-xs text-green-500"
-                  },
-                  "children": { "$type": "translation", "en": "Stabilized", "ru": "Стабилизирована" }
                 }
-              ]
+              }
             }
-          }
+          ]
         }
       ]
     }

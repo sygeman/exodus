@@ -105,10 +105,6 @@ export function resolveInString(value: unknown, ctx: ExpressionContext): string 
   result = result.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, varName: string) => {
     const paramName = paramMap[`context.${varName}`]
     if (paramName) return `\${${paramName}}`
-    // Only resolve if varName looks like a route param (ends with "Id" or is "id")
-    if (varName === "id" || varName.endsWith("Id")) {
-      return `\${route.params.${varName}}`
-    }
     return `\${${varName}}`
   })
 
@@ -134,10 +130,6 @@ export function resolveVueExpression(value: string, ctx: ExpressionContext): str
       .replace(/\{\{\s*(\w+)\s*\}\}/g, (_, varName: string) => {
         const param = paramMap[`context.${varName}`]
         if (param) return `{{ ${param} }}`
-        // Only resolve if varName looks like a route param (ends with "Id" or is "id")
-        if (varName === "id" || varName.endsWith("Id")) {
-          return `{{ route.params.${varName} }}`
-        }
         return `{{ ${varName} }}`
       })
   )

@@ -172,6 +172,22 @@ describe("helpers", () => {
     expect(contentsMatchForParity("src/example.vue", reference, generated)).toBe(true)
   })
 
+  it("treats html comments as parity noise", () => {
+    const reference = Buffer.from("<div>\n<!-- Stats cards -->\n<span>Hi</span>\n</div>\n")
+    const generated = Buffer.from("<div>\n<span>Hi</span>\n</div>\n")
+
+    expect(contentsMatchForParity("src/example.vue", reference, generated)).toBe(true)
+  })
+
+  it("treats split tag delimiters around interpolations as parity matches", () => {
+    const reference = Buffer.from('<span v-if="ok" class="x">{{ t({ en: "Ready" }) }}</span>\n')
+    const generated = Buffer.from(
+      '<span\n  v-if="ok"\n  class="x"\n  >{{ t({ en: "Ready" }) }}</span\n>\n',
+    )
+
+    expect(contentsMatchForParity("src/example.vue", reference, generated)).toBe(true)
+  })
+
   it("keeps meaningful text diffs as mismatches", () => {
     const reference = Buffer.from("const a = 1\n")
     const generated = Buffer.from("const a = 2\n")

@@ -6,26 +6,96 @@
   "children": [
     {
       "component": "div",
+      "if": "{{ loading && showSkeleton }}",
       "props": {
-        "class": "mb-4 flex items-center justify-between"
+        "class": "flex flex-1 flex-col gap-4"
       },
       "children": [
         {
-          "component": "h1",
+          "component": "div",
           "props": {
-            "class": "text-2xl font-bold"
+            "class": "mb-4 flex items-center justify-between"
+          },
+          "children": [
+            {
+              "component": "USkeleton",
+              "props": {
+                "class": "h-8 w-40"
+              }
+            },
+            {
+              "component": "USkeleton",
+              "props": {
+                "class": "h-9 w-32"
+              }
+            }
+          ]
+        },
+        {
+          "component": "template",
+          "bind": {
+            "items": [
+              1,
+              2,
+              3
+            ],
+            "alias": "i",
+            "key": "{{ i }}",
+            "target": "item",
+            "item": {
+              "component": "div",
+              "props": {
+                "class": "border-default flex items-center gap-4 rounded-lg border p-4"
+              },
+              "children": [
+                {
+                  "component": "USkeleton",
+                  "props": {
+                    "class": "h-10 w-10 shrink-0 rounded-lg"
+                  }
+                },
+                {
+                  "component": "USkeleton",
+                  "props": {
+                    "class": "h-5 w-48"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "component": "div",
+      "elseIf": "{{ !loading && flows.length === 0 }}",
+      "props": {
+        "class": "flex flex-1 flex-col items-center justify-center gap-4"
+      },
+      "children": [
+        {
+          "component": "UIcon",
+          "props": {
+            "name": "i-lucide-workflow",
+            "class": "text-muted h-12 w-12"
+          }
+        },
+        {
+          "component": "p",
+          "props": {
+            "class": "text-muted text-lg"
           },
           "children": {
             "$type": "translation",
-            "en": "Flows",
-            "ru": "Потоки"
+            "en": "No flows yet",
+            "ru": "Пока нет потоков"
           }
         },
         {
           "component": "UButton",
           "events": {
             "click": {
-              "action": "handleCreate"
+              "expression": "handleCreate"
             }
           },
           "children": {
@@ -38,63 +108,138 @@
     },
     {
       "component": "div",
+      "else": true,
       "props": {
         "class": "flex flex-col gap-2"
       },
-      "bind": {
-        "collection": "flows",
-        "sort": [
-          "-created_at"
-        ],
-        "item": {
-          "component": "button",
+      "children": [
+        {
+          "component": "div",
           "props": {
-            "class": "border-default hover:bg-elevated flex items-center gap-4 rounded-lg border p-4 text-left transition-colors"
+            "class": "mb-4 flex items-center justify-between"
           },
           "children": [
             {
-              "component": "div",
+              "component": "h1",
               "props": {
-                "class": "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/10"
+                "class": "text-2xl font-bold"
               },
-              "children": [
-                {
-                  "component": "UIcon",
-                  "props": {
-                    "name": "i-lucide-zap",
-                    "class": "h-5 w-5 text-green-500"
-                  }
-                }
-              ]
-            },
-            {
-              "component": "div",
-              "props": {
-                "class": "flex flex-1 flex-col"
-              },
-              "children": [
-                {
-                  "component": "span",
-                  "props": {
-                    "class": "font-medium"
-                  },
-                  "children": "{{ item.data.name }}"
-                }
-              ]
+              "children": {
+                "$type": "translation",
+                "en": "Flows",
+                "ru": "Потоки"
+              }
             },
             {
               "component": "UButton",
-              "props": {
-                "variant": "ghost",
-                "color": "error",
-                "size": "xs",
-                "icon": "i-lucide-trash-2"
+              "events": {
+                "click": {
+                  "expression": "handleCreate"
+                }
+              },
+              "children": {
+                "$type": "translation",
+                "en": "Create flow",
+                "ru": "Создать поток"
               }
             }
           ]
+        },
+        {
+          "component": "template",
+          "bind": {
+            "items": "flows",
+            "alias": "flow",
+            "key": "{{ flow.id }}",
+            "target": "item",
+            "item": {
+              "component": "button",
+              "props": {
+                "class": "border-default hover:bg-elevated flex items-center gap-4 rounded-lg border p-4 text-left transition-colors"
+              },
+              "events": {
+                "click": {
+                  "expression": "goToFlow(flow.id)"
+                }
+              },
+              "children": [
+                {
+                  "component": "div",
+                  "props": {
+                    "class": "flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-green-500/10"
+                  },
+                  "children": [
+                    {
+                      "component": "UIcon",
+                      "props": {
+                        "name": "i-lucide-zap",
+                        "class": "h-5 w-5 text-green-500"
+                      }
+                    }
+                  ]
+                },
+                {
+                  "component": "div",
+                  "props": {
+                    "class": "flex flex-1 flex-col"
+                  },
+                  "children": [
+                    {
+                      "component": "span",
+                      "props": {
+                        "class": "font-medium"
+                      },
+                      "children": "{{ flow.data.name }}"
+                    },
+                    {
+                      "component": "div",
+                      "props": {
+                        "class": "text-muted flex items-center gap-2 text-xs"
+                      },
+                      "children": [
+                        {
+                          "component": "span",
+                          "children": "{{ TRIGGER_LABELS[getTriggerType(flow)] || '—' }}"
+                        },
+                        {
+                          "component": "span",
+                          "children": "·"
+                        },
+                        {
+                          "component": "span",
+                          "children": "{{ getNodeCount(flow) }} {{ getNodeCount(flow) === 1 ? 'node' : 'nodes' }}"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "{{ `inline-flex h-5 items-center rounded px-1.5 text-xs font-medium ${STATUS_MAP[flow.data.status || 'draft']?.class ?? ''}` }}"
+                  },
+                  "children": "{{ STATUS_MAP[flow.data.status || 'draft']?.label }}"
+                },
+                {
+                  "component": "UButton",
+                  "props": {
+                    "variant": "ghost",
+                    "color": "error",
+                    "size": "xs",
+                    "icon": "i-lucide-trash-2"
+                  },
+                  "events": {
+                    "click": {
+                      "expression": "handleDelete($event, flow.id)"
+                    }
+                  }
+                }
+              ]
+            }
+          }
         }
-      }
+      ]
     }
   ],
-  "rawScript": "import { useRoute, useRouter } from 'vue-router'\nimport { computed, ref, watch } from 'vue'\nimport { useFlows, useCreateItem, useDeleteItem } from '@/hooks'\n\nconst route = useRoute()\nconst router = useRouter()\nconst projectId = computed(() => route.params.id as string)\nconst [createItem] = useCreateItem()\nconst [deleteItem] = useDeleteItem()\nconst { items: flows, loading } = useFlows({ filter: { project_id: { _eq: projectId.value } }, sort: ['-created_at'] })\n\nconst showSkeleton = ref(false)\nlet skeletonTimeout: ReturnType<typeof setTimeout> | null = null\n\nwatch(\n  loading,\n  (isLoading) => {\n    if (isLoading) {\n      skeletonTimeout = setTimeout(() => {\n        showSkeleton.value = true\n      }, 150)\n    } else {\n      if (skeletonTimeout) {\n        clearTimeout(skeletonTimeout)\n        skeletonTimeout = null\n      }\n      showSkeleton.value = false\n    }\n  },\n  { immediate: true },\n)\n\nasync function handleCreate() {\n  const id = await createItem('flows', {\n    project_id: projectId.value,\n    name: 'New Flow',\n    status: 'draft',\n    trigger: { type: 'manual' },\n    nodes: [{\n      id: crypto.randomUUID(),\n      type: 'trigger',\n      position: { x: 250, y: 50 },\n      data: { triggerType: 'manual' },\n    }],\n    edges: [],\n    meta: { viewport: { x: 0, y: 0, zoom: 1 } },\n  })\n  router.push(`/project/${projectId.value}/flows/${id}`)\n}\n\nfunction getNodeCount(flow: { data: { nodes?: unknown } }): number {\n  return Array.isArray(flow.data.nodes) ? flow.data.nodes.length : 0\n}\n\nfunction getTriggerType(flow: { data: { trigger?: unknown } }): string {\n  const trigger = flow.data.trigger as Record<string, unknown> | undefined\n  return (trigger?.type as string) || ''\n}\n\nfunction goToFlow(flowId: string) {\n  router.push(`/project/${projectId.value}/flows/${flowId}/graph`)\n}\n\nasync function handleDelete(e: Event, flowId: string) {\n  e.stopPropagation()\n  await deleteItem(flowId)\n}"
+  "rawScript": "import { useRoute, useRouter } from 'vue-router'\nimport { computed, ref, watch } from 'vue'\nimport { useCollectionQuery, useCreateItem, useDeleteItem } from '@/hooks'\n\nconst route = useRoute()\nconst router = useRouter()\nconst projectId = computed(() => route.params.id as string)\nconst [createItem] = useCreateItem()\nconst [deleteItem] = useDeleteItem()\n\nconst { data: flows, loading } = useCollectionQuery('flows', () => ({\n  filter: { project_id: { _eq: projectId.value } },\n  sort: ['-created_at'],\n}))\n\nconst showSkeleton = ref(false)\nlet skeletonTimeout: ReturnType<typeof setTimeout> | null = null\n\nwatch(\n  loading,\n  (isLoading) => {\n    if (isLoading) {\n      skeletonTimeout = setTimeout(() => {\n        showSkeleton.value = true\n      }, 150)\n    } else {\n      if (skeletonTimeout) {\n        clearTimeout(skeletonTimeout)\n        skeletonTimeout = null\n      }\n      showSkeleton.value = false\n    }\n  },\n  { immediate: true },\n)\n\nconst STATUS_MAP: Record<string, { label: string; class: string }> = {\n  draft: {\n    label: 'Draft',\n    class: 'bg-gray-500/10 text-gray-500',\n  },\n  active: {\n    label: 'Active',\n    class: 'bg-green-500/10 text-green-500',\n  },\n  paused: {\n    label: 'Paused',\n    class: 'bg-yellow-500/10 text-yellow-500',\n  },\n}\n\nconst TRIGGER_LABELS: Record<string, string> = {\n  event: 'Event',\n  schedule: 'Schedule',\n  manual: 'Manual',\n  webhook: 'Webhook',\n}\n\nasync function handleCreate() {\n  const id = await createItem('flows', {\n    project_id: projectId.value,\n    name: 'New Flow',\n    status: 'draft',\n    trigger: { type: 'manual' },\n    nodes: [{\n      id: crypto.randomUUID(),\n      type: 'trigger',\n      position: { x: 250, y: 50 },\n      data: { triggerType: 'manual' },\n    }],\n    edges: [],\n    meta: { viewport: { x: 0, y: 0, zoom: 1 } },\n  })\n  router.push(`/project/${projectId.value}/flows/${id}`)\n}\n\nfunction getNodeCount(flow: { data: { nodes?: unknown } }): number {\n  return Array.isArray(flow.data.nodes) ? flow.data.nodes.length : 0\n}\n\nfunction getTriggerType(flow: { data: { trigger?: unknown } }): string {\n  const trigger = flow.data.trigger as Record<string, unknown> | undefined\n  return (trigger?.type as string) || ''\n}\n\nfunction goToFlow(flowId: string) {\n  router.push(`/project/${projectId.value}/flows/${flowId}/graph`)\n}\n\nasync function handleDelete(e: Event, flowId: string) {\n  e.stopPropagation()\n  await deleteItem(flowId)\n}"
 }

@@ -38,9 +38,11 @@ function goToIdeas() {
       <h3 class="text-muted mb-3 text-sm font-medium">
         {{ t({ en: "Recent ideas", ru: "Последние идеи" }) }}
       </h3>
-      <template v-for="idea in ideas.slice(0, 5)" :key="idea.id">
+      <div class="flex flex-col gap-2">
         <RouterLink
-          :to="`/project/${route.params.projectId}/ideas/${idea.id}`"
+          v-for="idea in ideas.slice(0, 5)"
+          :key="idea.id"
+          :to="`/project/${projectId}/ideas/${idea.id}`"
           class="border-default hover:bg-elevated flex items-center gap-3 rounded-lg border p-4 transition-colors"
         >
           <div
@@ -58,7 +60,7 @@ function goToIdeas() {
             >{{ t({ en: "Stabilized", ru: "Стабилизирована" }) }}</span
           >
         </RouterLink>
-      </template>
+      </div>
     </div>
   </div>
 </template>

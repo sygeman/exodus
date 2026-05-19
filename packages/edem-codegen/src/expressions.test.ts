@@ -113,6 +113,11 @@ describe("resolveInString", () => {
   it("returns strings without expressions as-is", () => {
     expect(resolveInString("hello", ctx())).toBe("hello")
   })
+
+  it("keeps local computed ids as local variables", () => {
+    const result = resolveInString("/project/{{ projectId }}/ideas", ctx())
+    expect(result).toBe("/project/${projectId}/ideas")
+  })
 })
 
 describe("resolveVueExpression", () => {
@@ -123,6 +128,11 @@ describe("resolveVueExpression", () => {
 
   it("returns strings without expressions as-is", () => {
     expect(resolveVueExpression("hello", ctx())).toBe("hello")
+  })
+
+  it("keeps local id-like variables in vue expressions", () => {
+    const result = resolveVueExpression("{{ projectId }}", ctx())
+    expect(result).toBe("{{ projectId }}")
   })
 })
 

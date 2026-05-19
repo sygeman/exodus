@@ -166,6 +166,7 @@ function normalizeTextForParity(content: Uint8Array): string {
     normalizeImportOrder(
       Buffer.from(content)
         .toString("utf8")
+        .replace(/<!--([\s\S]*?)-->/g, "")
         .replaceAll("\r\n", "\n")
         .split("\n")
         .map((line) => line.trimEnd())
@@ -192,7 +193,9 @@ function normalizeImportOrder(content: string): string {
 function normalizeVueInterpolations(content: string): string {
   return content
     .replace(/>\s*\n\s*\{\{/g, ">{{")
+    .replace(/\n\s*>\s*\{\{/g, ">{{")
     .replace(/\}\}\s*\n\s*<\//g, "}}</")
+    .replace(/<\/([A-Za-z][^\s/>]*)\s*\n\s*>/g, "</$1>")
     .replace(/\{\{([\s\S]*?)\}\}/g, (_match, expression: string) => {
       return `{{ ${expression.replace(/\s+/g, " ").trim()} }}`
     })
