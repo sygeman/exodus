@@ -19,6 +19,12 @@ describe("edem-flows", () => {
         trigger: { type: "manual" },
       })
       expect(result.flow_id).toBeDefined()
+
+      const { flow } = await edem.flows.getFlow({ flow_id: result.flow_id })
+      expect(flow?.kind).toBe("flow")
+      expect(flow?.valid).toBe(true)
+      expect(flow?.nodes).toHaveLength(1)
+      expect(flow?.nodes[0]?.type).toBe("trigger")
     })
 
     it("should create flow with nodes and edges", async () => {
@@ -26,7 +32,7 @@ describe("edem-flows", () => {
         name: "Complex Flow",
         trigger: { type: "event", event: "data:item_created" },
         nodes: [
-          { id: "n1", type: "condition", position: { x: 0, y: 0 }, data: {} },
+          { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
           { id: "n2", type: "update", position: { x: 100, y: 0 }, data: {} },
         ],
         edges: [{ id: "e1", source: "n1", target: "n2" }],
@@ -36,6 +42,22 @@ describe("edem-flows", () => {
       expect(flow).not.toBeNull()
       expect(flow?.nodes).toHaveLength(2)
       expect(flow?.edges).toHaveLength(1)
+      expect(flow?.valid).toBe(true)
+    })
+
+    it("should create default subflow skeleton", async () => {
+      const result = await edem.flows.createFlow({
+        name: "Subflow",
+        kind: "subflow",
+      })
+
+      const { flow } = await edem.flows.getFlow({ flow_id: result.flow_id })
+      expect(flow?.kind).toBe("subflow")
+      expect(flow?.trigger).toBeUndefined()
+      expect(flow?.nodes.map((node) => node.type)).toEqual(["input", "output"])
+      expect(flow?.edges).toEqual([{ id: "input-output", source: "input", target: "output" }])
+      expect(flow?.valid).toBe(true)
+      expect(flow?.validation_errors).toEqual([])
     })
 
     it("should persist flow in edem-data", async () => {
@@ -76,13 +98,37 @@ describe("edem-flows", () => {
       await edem.flows.updateFlow({
         flow_id,
         nodes: [
-          { id: "n1", type: "start", position: { x: 0, y: 0 } },
+          { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
           { id: "n2", type: "end", position: { x: 100, y: 0 } },
         ],
       })
 
       const { flow } = await edem.flows.getFlow({ flow_id })
       expect(flow?.nodes).toHaveLength(2)
+    })
+
+    it("should reset schema when kind changes", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Convertible",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "trigger", type: "trigger", position: { x: 0, y: 0 } },
+          { id: "n2", type: "transform", position: { x: 120, y: 0 } },
+        ],
+        edges: [{ id: "e1", source: "trigger", target: "n2" }],
+      })
+
+      await edem.flows.updateFlow({
+        flow_id,
+        kind: "subflow",
+      })
+
+      const { flow } = await edem.flows.getFlow({ flow_id })
+      expect(flow?.kind).toBe("subflow")
+      expect(flow?.trigger).toBeUndefined()
+      expect(flow?.nodes.map((node) => node.id)).toEqual(["input", "output"])
+      expect(flow?.edges).toEqual([{ id: "input-output", source: "input", target: "output" }])
+      expect(flow?.valid).toBe(true)
     })
 
     it("should throw on non-existent flow", async () => {
@@ -128,7 +174,7 @@ describe("edem-flows", () => {
 
       const { flow } = await edem.flows.getFlow({ flow_id })
       expect(flow?.name).toBe("Full Flow")
-      expect(flow?.trigger.type).toBe("event")
+      expect(flow?.trigger?.type).toBe("event")
       expect(flow?.nodes[0].data?.field).toBe("status")
       expect(flow?.meta?.version).toBe(1)
     })
@@ -193,8 +239,8 @@ describe("edem-flows", () => {
       })
 
       const { flow } = await edem.flows.getFlow({ flow_id })
-      expect(flow?.trigger.type).toBe("event")
-      if (flow?.trigger.type === "event") {
+      expect(flow?.trigger?.type).toBe("event")
+      if (flow?.trigger?.type === "event") {
         expect(flow.trigger.event).toBe("data:item_created")
         expect(flow.trigger.filter?.collection).toBe("tasks")
       }
@@ -207,8 +253,8 @@ describe("edem-flows", () => {
       })
 
       const { flow } = await edem.flows.getFlow({ flow_id })
-      expect(flow?.trigger.type).toBe("schedule")
-      if (flow?.trigger.type === "schedule") {
+      expect(flow?.trigger?.type).toBe("schedule")
+      if (flow?.trigger?.type === "schedule") {
         expect(flow.trigger.every).toBe("1d")
         expect(flow.trigger.at).toBe("09:00")
       }
@@ -221,7 +267,7 @@ describe("edem-flows", () => {
       })
 
       const { flow } = await edem.flows.getFlow({ flow_id })
-      expect(flow?.trigger.type).toBe("webhook")
+      expect(flow?.trigger?.type).toBe("webhook")
     })
   })
 

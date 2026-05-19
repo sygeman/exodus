@@ -9,6 +9,7 @@
   "scripts": {
     "prepare": "husky",
     "dev": "turbo run dev",
+    "dev:exodus": "turbo run dev --filter=exodus",
     "codegen": "turbo run compare --filter=@exodus/edem-codegen",
     "compare": "turbo run compare --filter=@exodus/edem-codegen",
     "generated:install": "bun install",

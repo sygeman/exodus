@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test"
-import { executeFlow, validateFlowRunTransition } from "./engine"
+import { executeFlow, validateFlow, validateFlowRunTransition } from "./engine"
 import type { Flow, NodeLifecycle } from "./engine"
 import { reg } from "./test-actions"
 
@@ -291,6 +291,37 @@ describe("executeFlow", () => {
     expect(result.context.node_outputs.n4).toEqual({ result: "B" })
     expect(result.context.node_outputs.n5.status).toBe("completed")
   })
+
+  it("should execute subflow from input node", async () => {
+    const flow: Flow = {
+      id: "subflow",
+      name: "Subflow",
+      kind: "subflow",
+      nodes: [
+        { id: "input", type: "input", position: { x: 0, y: 0 } },
+        {
+          id: "calc",
+          type: "transform",
+          position: { x: 100, y: 0 },
+          data: { field: "value", operation: "add", value: 1 },
+        },
+        {
+          id: "output",
+          type: "output",
+          position: { x: 200, y: 0 },
+          data: { outputs: { result: "{{nodes.calc.output.result}}" } },
+        },
+      ],
+      edges: [
+        { id: "e1", source: "input", target: "calc" },
+        { id: "e2", source: "calc", target: "output" },
+      ],
+    }
+
+    const result = await executeFlow(flow, { value: 2 })
+    expect(result.status).toBe("completed")
+    expect(result.context.node_outputs.output.outputs).toEqual({ result: 3 })
+  })
 })
 
 describe("node retry", () => {
@@ -414,5 +445,67 @@ describe("validateFlowRunTransition", () => {
   it("should reject unknown statuses", () => {
     expect(validateFlowRunTransition("unknown", "running")).toBe(false)
     expect(validateFlowRunTransition("running", "unknown")).toBe(false)
+  })
+})
+
+describe("validateFlow", () => {
+  it("accepts a valid regular flow", () => {
+    const result = validateFlow({
+      id: "flow",
+      name: "Flow",
+      kind: "flow",
+      trigger: { type: "manual" },
+      nodes: [{ id: "trigger", type: "trigger", position: { x: 0, y: 0 } }],
+      edges: [],
+    })
+
+    expect(result.valid).toBe(true)
+    expect(result.errors).toEqual([])
+  })
+
+  it("rejects regular flow with output node", () => {
+    const result = validateFlow({
+      id: "flow",
+      name: "Flow",
+      kind: "flow",
+      nodes: [
+        { id: "trigger", type: "trigger", position: { x: 0, y: 0 } },
+        { id: "output", type: "output", position: { x: 100, y: 0 } },
+      ],
+      edges: [{ id: "e1", source: "trigger", target: "output" }],
+    })
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain("Flow nodes cannot contain output nodes")
+  })
+
+  it("rejects subflow without path from input to output", () => {
+    const result = validateFlow({
+      id: "subflow",
+      name: "Subflow",
+      kind: "subflow",
+      nodes: [
+        { id: "input", type: "input", position: { x: 0, y: 0 } },
+        { id: "output", type: "output", position: { x: 200, y: 0 } },
+      ],
+      edges: [],
+    })
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain("Subflow must contain a path from input node to output node")
+  })
+
+  it("rejects empty subflow", () => {
+    const result = validateFlow({
+      id: "subflow",
+      name: "Empty Subflow",
+      kind: "subflow",
+      nodes: [],
+      edges: [],
+    })
+
+    expect(result.valid).toBe(false)
+    expect(result.errors).toContain("Subflow must have exactly one input node, got 0")
+    expect(result.errors).toContain("Subflow must have exactly one output node, got 0")
   })
 })

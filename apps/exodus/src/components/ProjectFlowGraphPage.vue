@@ -14,6 +14,15 @@ import { useFlowHighlighting } from "@/composables/useFlowHighlighting"
 import FlowNode from "@/components/FlowNode.vue"
 import DeletableEdge from "@/components/DeletableEdge.vue"
 import FlowNodeConfigPanel from "@/components/FlowNodeConfigPanel.vue"
+import {
+  deriveTriggerFromNodes,
+  getFlowKind,
+  getTriggerNodeData,
+  type FlowTrigger,
+  type StoredFlowEdge,
+  type StoredFlowNode,
+  validateFlowGraph,
+} from "@/types/flow"
 
 const route = useRoute()
 const projectId = computed(() => route.params.id as string)
@@ -24,29 +33,48 @@ const { data: flows } = useCollectionQuery("flows", () => ({
   filter: { project_id: { _eq: projectId.value } },
 }))
 
-const flow = computed(() => flows.value.find((f) => f.id === flowId.value))
+type FlowItem = {
+  id: string
+  data: {
+    name?: string
+    kind?: unknown
+    trigger?: FlowTrigger | null
+    nodes?: unknown
+    edges?: unknown
+    meta?: unknown
+    valid?: unknown
+    validation_errors?: unknown
+  }
+}
+
+const flow = computed(() => flows.value.find((f) => f.id === flowId.value) as FlowItem | undefined)
+const flowKind = computed(() => getFlowKind(flow.value?.data.kind))
 
 const { viewport, setViewport, onMoveEnd, screenToFlowCoordinate } = useVueFlow()
 
-interface FlowNode {
+interface FlowMeta {
+  viewport?: { x: number; y: number; zoom: number }
+  selectedNodeId?: string
+}
+
+type GraphNodeView = {
   id: string
   type: string
   position: { x: number; y: number }
   data: Record<string, unknown>
+  class?: string
 }
 
-interface FlowEdge {
+type GraphEdgeView = {
   id: string
   source: string
   target: string
   sourceHandle?: string
   targetHandle?: string
   label?: string
-}
-
-interface FlowMeta {
-  viewport?: { x: number; y: number; zoom: number }
-  selectedNodeId?: string
+  type?: string
+  style?: { stroke: string }
+  animated?: boolean
 }
 
 const NODE_TYPE_MAP: Record<string, string> = {
@@ -79,42 +107,34 @@ const REVERSE_TYPE_MAP: Record<string, string> = {
   subflow: "subflow",
 }
 
-const vfNodes = ref<
-  Array<{
-    id: string
-    type: string
-    position: { x: number; y: number }
-    data: Record<string, unknown>
-    class?: string
-  }>
->([])
+const vfNodes = ref<GraphNodeView[]>([])
 
-const vfEdges = ref<
-  Array<{
-    id: string
-    source: string
-    target: string
-    sourceHandle?: string
-    targetHandle?: string
-    label?: string
-    type?: string
-    style?: { stroke: string }
-    animated?: boolean
-  }>
->([])
+const vfEdges = ref<GraphEdgeView[]>([])
+
+const suppressAutoSave = ref(false)
 
 watch(
   flow,
   (f) => {
     if (!f) return
+    suppressAutoSave.value = true
     cancelPendingSave()
-    const nodes = (f.data.nodes ?? []) as FlowNode[]
-    const edges = (f.data.edges ?? []) as FlowEdge[]
+    const currentSelectedNodeId = selectedNodeId.value
+    const nodes = (f.data.nodes ?? []) as StoredFlowNode[]
+    const edges = (f.data.edges ?? []) as StoredFlowEdge[]
     vfNodes.value = nodes.map((n) => ({
       id: n.id,
       type: NODE_TYPE_MAP[n.type] || "action",
       position: n.position,
-      data: { ...n.data, nodeType: n.type },
+      data:
+        n.type === "trigger"
+          ? {
+              ...n.data,
+              ...getTriggerNodeData((f.data.trigger as FlowTrigger | null | undefined) ?? null),
+              label: typeof n.data?.label === "string" ? n.data.label : "Trigger",
+              nodeType: n.type,
+            }
+          : { ...n.data, nodeType: n.type },
     }))
     vfEdges.value = edges.map((e) => ({
       id: e.id,
@@ -127,12 +147,15 @@ watch(
     }))
 
     const meta = (f.data.meta ?? {}) as FlowMeta
-    if (meta.selectedNodeId) {
-      selectedNodeId.value = meta.selectedNodeId
-    }
+    selectedNodeId.value =
+      currentSelectedNodeId && nodes.some((node) => node.id === currentSelectedNodeId)
+        ? currentSelectedNodeId
+        : null
     if (meta.viewport) {
       setViewport(meta.viewport)
     }
+    suppressAutoSave.value = false
+    applyHighlighting()
   },
   { immediate: true },
 )
@@ -160,6 +183,29 @@ const edgeTypes = {
 
 const selectedNodeId = ref<string | null>(null)
 
+const validationState = computed(() =>
+  validateFlowGraph({
+    kind: flowKind.value,
+    nodes: vfNodes.value.map((node) => ({
+      id: node.id,
+      type:
+        ((node.data as Record<string, unknown>)?.nodeType as string) ||
+        REVERSE_TYPE_MAP[node.type] ||
+        "action",
+      position: node.position,
+      data: node.data,
+    })),
+    edges: vfEdges.value.map((edge) => ({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      sourceHandle: edge.sourceHandle,
+      targetHandle: edge.targetHandle,
+      label: edge.label,
+    })),
+  }),
+)
+
 const { highlightedNodeIds, applyEdgeHighlighting } = useFlowHighlighting(
   vfNodes,
   vfEdges,
@@ -181,7 +227,6 @@ function applyHighlighting() {
 
 watch(selectedNodeId, () => {
   applyHighlighting()
-  saveToDb()
 })
 
 // --- Node selection ---
@@ -342,7 +387,7 @@ function saveToDb() {
       "action",
     position: n.position,
     data: n.data,
-  }))
+  })) as StoredFlowNode[]
   const edgesForStorage = vfEdges.value.map((e) => ({
     id: e.id,
     source: e.source,
@@ -350,15 +395,32 @@ function saveToDb() {
     sourceHandle: e.sourceHandle,
     targetHandle: e.targetHandle,
     label: e.label,
-  }))
+  })) as StoredFlowEdge[]
+  const nextTrigger = deriveTriggerFromNodes(
+    flowKind.value,
+    nodesForStorage,
+    (flow.value.data.trigger as FlowTrigger | null | undefined) ?? null,
+  )
   const meta: FlowMeta = {
     viewport: { x: viewport.value.x, y: viewport.value.y, zoom: viewport.value.zoom },
-    selectedNodeId: selectedNodeId.value ?? undefined,
   }
-  updateItem(flow.value.id, { nodes: nodesForStorage, edges: edgesForStorage, meta })
+  updateItem(flow.value.id, {
+    kind: flowKind.value,
+    trigger: nextTrigger,
+    nodes: nodesForStorage,
+    edges: edgesForStorage,
+    valid: validationState.value.valid,
+    validation_errors: validationState.value.errors,
+    meta,
+  })
 }
 
 provide("deleteEdge", handleDeleteEdge)
+provide("flowKind", flowKind)
+provide("graphNodes", vfNodes)
+provide("graphEdges", vfEdges)
+provide("selectedNodeId", selectedNodeId)
+provide("saveGraph", saveToDb)
 </script>
 
 <template>

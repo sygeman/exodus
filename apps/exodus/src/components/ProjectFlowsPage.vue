@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useT } from "@exodus/edem-vue"
 import { useCollectionQuery, useCreateItem, useDeleteItem } from "@/hooks"
+import { createDefaultFlowShape, FlowKind, getFlowKind } from "@/types/flow"
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref, watch } from "vue"
 
@@ -59,21 +60,23 @@ const TRIGGER_LABELS: Record<string, string> = {
   webhook: "Webhook",
 }
 
+const KIND_LABELS: Record<string, string> = {
+  flow: "Flow",
+  subflow: "Subflow",
+}
+
 async function handleCreate() {
+  const defaults = createDefaultFlowShape(FlowKind.flow)
   const id = await createItem("flows", {
     project_id: projectId.value,
     name: "New Flow",
+    kind: FlowKind.flow,
     status: "draft",
-    trigger: { type: "manual" },
-    nodes: [
-      {
-        id: crypto.randomUUID(),
-        type: "trigger",
-        position: { x: 250, y: 50 },
-        data: { triggerType: "manual" },
-      },
-    ],
-    edges: [],
+    trigger: defaults.trigger,
+    nodes: defaults.nodes,
+    edges: defaults.edges,
+    valid: true,
+    validation_errors: [],
     meta: { viewport: { x: 0, y: 0, zoom: 1 } },
   })
   router.push(`/project/${projectId.value}/flows/${id}`)
@@ -86,6 +89,21 @@ function getNodeCount(flow: { data: { nodes?: unknown } }): number {
 function getTriggerType(flow: { data: { trigger?: unknown } }): string {
   const trigger = flow.data.trigger as Record<string, unknown> | undefined
   return (trigger?.type as string) || ""
+}
+
+function getFlowKindLabel(flow: { data: { kind?: unknown } }): string {
+  const kind = getFlowKind(flow.data.kind)
+  return KIND_LABELS[kind]
+}
+
+function getFlowSummary(flow: { data: { kind?: unknown; trigger?: unknown } }): string {
+  return getFlowKind(flow.data.kind) === FlowKind.subflow
+    ? "Input -> Output"
+    : (TRIGGER_LABELS[getTriggerType(flow)] ?? "—")
+}
+
+function isValidFlow(flow: { data: { valid?: unknown } }): boolean {
+  return flow.data.valid !== false
 }
 
 function goToFlow(flowId: string) {
@@ -142,11 +160,21 @@ async function handleDelete(e: Event, flowId: string) {
         <div class="flex flex-1 flex-col">
           <span class="font-medium">{{ flow.data.name }}</span>
           <div class="text-muted flex items-center gap-2 text-xs">
-            <span>{{ TRIGGER_LABELS[getTriggerType(flow)] || "—" }}</span>
+            <span>{{ getFlowKindLabel(flow) }}</span>
+            <span>·</span>
+            <span>{{ getFlowSummary(flow) }}</span>
             <span>·</span>
             <span>{{ getNodeCount(flow) }} {{ getNodeCount(flow) === 1 ? "node" : "nodes" }}</span>
           </div>
         </div>
+        <span
+          class="inline-flex h-5 items-center rounded px-1.5 text-xs font-medium"
+          :class="
+            isValidFlow(flow) ? 'bg-green-500/10 text-green-500' : 'bg-red-500/10 text-red-500'
+          "
+        >
+          {{ isValidFlow(flow) ? "Valid" : "Invalid" }}
+        </span>
         <span
           class="inline-flex h-5 items-center rounded px-1.5 text-xs font-medium"
           :class="STATUS_MAP[flow.data.status || 'draft']?.class"

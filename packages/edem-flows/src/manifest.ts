@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+export const flowKindSchema = z.enum(["flow", "subflow"])
+
 const dayEnum = z.enum(["mon", "tue", "wed", "thu", "fri", "sat", "sun"])
 
 export const triggerSchema = z.discriminatedUnion("type", [
@@ -100,7 +102,8 @@ export const edgeSchema = z.object({
 export const flowManifestSchema = z.object({
   id: z.string(),
   name: z.string(),
-  trigger: triggerSchema,
+  kind: flowKindSchema.optional(),
+  trigger: triggerSchema.optional(),
   nodes: z.array(nodeSchema),
   edges: z.array(edgeSchema),
   meta: z.record(z.string(), z.unknown()).optional(),

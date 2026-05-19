@@ -8,9 +8,9 @@ describe("subflow", () => {
     const edem = getEdem()
     const { flow_id: childId } = await edem.flows.createFlow({
       name: "Child",
-      trigger: { type: "manual" },
+      kind: "subflow",
       nodes: [
-        { id: "c_t", type: "trigger", position: { x: 0, y: 0 } },
+        { id: "c_in", type: "input", position: { x: 0, y: 0 } },
         {
           id: "c_calc",
           type: "transform",
@@ -25,7 +25,7 @@ describe("subflow", () => {
         },
       ],
       edges: [
-        { id: "ce1", source: "c_t", target: "c_calc" },
+        { id: "ce1", source: "c_in", target: "c_calc" },
         { id: "ce2", source: "c_calc", target: "c_out" },
       ],
     })
@@ -37,15 +37,15 @@ describe("subflow", () => {
         { id: "p_t", type: "trigger", position: { x: 0, y: 0 } },
         { id: "p_sub", type: "subflow", position: { x: 100, y: 0 }, data: { flow_id: childId } },
         {
-          id: "p_out",
-          type: "output",
+          id: "p_done",
+          type: "transform",
           position: { x: 200, y: 0 },
-          data: { outputs: { parentDone: true } },
+          data: { field: "done", operation: "set", value: true },
         },
       ],
       edges: [
         { id: "pe1", source: "p_t", target: "p_sub" },
-        { id: "pe2", source: "p_sub", target: "p_out" },
+        { id: "pe2", source: "p_sub", target: "p_done" },
       ],
     })
 
@@ -60,8 +60,12 @@ describe("subflow", () => {
     const edem = getEdem()
     const { flow_id: childId } = await edem.flows.createFlow({
       name: "Child Link",
-      trigger: { type: "manual" },
-      nodes: [{ id: "c_t", type: "trigger", position: { x: 0, y: 0 } }],
+      kind: "subflow",
+      nodes: [
+        { id: "c_in", type: "input", position: { x: 0, y: 0 } },
+        { id: "c_out", type: "output", position: { x: 200, y: 0 }, data: { outputs: {} } },
+      ],
+      edges: [{ id: "ce1", source: "c_in", target: "c_out" }],
     })
 
     const { flow_id: parentId } = await edem.flows.createFlow({
@@ -85,12 +89,16 @@ describe("subflow", () => {
     const edem = getEdem()
     const { flow_id: childId } = await edem.flows.createFlow({
       name: "Failing Child",
-      trigger: { type: "manual" },
+      kind: "subflow",
       nodes: [
-        { id: "c_t", type: "trigger", position: { x: 0, y: 0 } },
+        { id: "c_in", type: "input", position: { x: 0, y: 0 } },
         { id: "c_bad", type: "nonexistent_type_xyz", position: { x: 100, y: 0 } },
+        { id: "c_out", type: "output", position: { x: 200, y: 0 }, data: { outputs: {} } },
       ],
-      edges: [{ id: "ce1", source: "c_t", target: "c_bad" }],
+      edges: [
+        { id: "ce1", source: "c_in", target: "c_bad" },
+        { id: "ce2", source: "c_bad", target: "c_out" },
+      ],
     })
 
     const { flow_id: parentId } = await edem.flows.createFlow({
@@ -112,13 +120,49 @@ describe("subflow", () => {
     expect(run?.output).toBeDefined()
   })
 
+  it("invalid child subflow fails parent and emits runCompleted", async () => {
+    const edem = getEdem()
+    const completedRunIds: string[] = []
+
+    edem.flows.runCompleted((event) => {
+      completedRunIds.push(event.event.id)
+    })
+
+    const { flow_id: childId } = await edem.flows.createFlow({
+      name: "Invalid Child",
+      kind: "subflow",
+      nodes: [{ id: "c_in", type: "input", position: { x: 0, y: 0 } }],
+      edges: [],
+    })
+
+    const { flow_id: parentId } = await edem.flows.createFlow({
+      name: "Parent of Invalid Child",
+      trigger: { type: "manual" },
+      nodes: [
+        { id: "p_t", type: "trigger", position: { x: 0, y: 0 } },
+        { id: "p_sub", type: "subflow", position: { x: 100, y: 0 }, data: { flow_id: childId } },
+      ],
+      edges: [{ id: "pe1", source: "p_t", target: "p_sub" }],
+    })
+
+    const result = await edem.flows.runFlow({ flow_id: parentId })
+    expect(result.status).toBe("error")
+    expect(completedRunIds).toContain(result.run_id)
+
+    const { run } = await edem.flows.getRun({ run_id: result.run_id })
+    expect(run?.error).toContain("Invalid subflow")
+
+    const { runs } = await edem.flows.listRuns({})
+    expect(runs.filter((entry) => entry.flow_id === childId)).toHaveLength(0)
+  })
+
   it("subflow with async child (waiting) resumes parent after handleNodeCompleted on both", async () => {
     const edem = getEdem()
     const { flow_id: childId } = await edem.flows.createFlow({
       name: "Async Child",
-      trigger: { type: "manual" },
+      kind: "subflow",
       nodes: [
-        { id: "c_t", type: "trigger", position: { x: 0, y: 0 } },
+        { id: "c_in", type: "input", position: { x: 0, y: 0 } },
         {
           id: "c_wait",
           type: "action",
@@ -133,7 +177,7 @@ describe("subflow", () => {
         },
       ],
       edges: [
-        { id: "ce1", source: "c_t", target: "c_wait" },
+        { id: "ce1", source: "c_in", target: "c_wait" },
         { id: "ce2", source: "c_wait", target: "c_out" },
       ],
     })
@@ -195,17 +239,26 @@ describe("subflow", () => {
     const edem = getEdem()
     const { flow_id: childId } = await edem.flows.createFlow({
       name: "Shared Child",
-      trigger: { type: "manual" },
+      kind: "subflow",
       nodes: [
-        { id: "c_t", type: "trigger", position: { x: 0, y: 0 } },
+        { id: "c_in", type: "input", position: { x: 0, y: 0 } },
         {
           id: "c_val",
           type: "transform",
           position: { x: 100, y: 0 },
           data: { field: "x", operation: "set", value: 1 },
         },
+        {
+          id: "c_out",
+          type: "output",
+          position: { x: 200, y: 0 },
+          data: { outputs: { x: "{{nodes.c_val.output.result}}" } },
+        },
       ],
-      edges: [{ id: "ce1", source: "c_t", target: "c_val" }],
+      edges: [
+        { id: "ce1", source: "c_in", target: "c_val" },
+        { id: "ce2", source: "c_val", target: "c_out" },
+      ],
     })
 
     const { flow_id: parentId } = await edem.flows.createFlow({

@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { computed } from "vue"
-import { useRoute } from "vue-router"
+import { computed, inject, type ComputedRef, type Ref } from "vue"
 import { useT } from "@exodus/edem-vue"
-import { useCollectionQuery, useUpdateItem } from "@/hooks"
+import { getAllowedNodeTypes, isProtectedNode, type FlowKind } from "@/types/flow"
 
 type NodeData = {
   type?: string
@@ -21,14 +20,15 @@ type NodeData = {
   [key: string]: unknown
 }
 
-type StoredNode = {
+type GraphNode = {
   id: string
   type: string
   position: { x: number; y: number }
   data: NodeData
+  class?: string
 }
 
-type StoredEdge = {
+type GraphEdge = {
   id: string
   source: string
   target: string
@@ -37,29 +37,32 @@ type StoredEdge = {
   label?: string
 }
 
-interface FlowMeta {
-  selectedNodeId?: string
-}
-
-const route = useRoute()
-const [updateItem] = useUpdateItem()
 const t = useT()
 
-const flowId = computed(() => route.params.flowId as string)
+const injectedFlowKindRef = inject<ComputedRef<FlowKind>>("flowKind")
+const injectedGraphNodesRef = inject<Ref<GraphNode[]>>("graphNodes")
+const injectedGraphEdgesRef = inject<Ref<GraphEdge[]>>("graphEdges")
+const injectedSelectedNodeIdRef = inject<Ref<string | null>>("selectedNodeId")
+const injectedSaveGraph = inject<() => void>("saveGraph")
 
-const { data: flows } = useCollectionQuery("flows", () => ({
-  filter: { project_id: { _eq: route.params.id as string } },
-}))
+if (
+  !injectedFlowKindRef ||
+  !injectedGraphNodesRef ||
+  !injectedGraphEdgesRef ||
+  !injectedSelectedNodeIdRef ||
+  !injectedSaveGraph
+) {
+  throw new Error("FlowNodeConfigPanel requires graph context")
+}
 
-const flow = computed(() => flows.value.find((f) => f.id === flowId.value))
+const flowKind = injectedFlowKindRef
+const graphNodesRef = injectedGraphNodesRef
+const graphEdgesRef = injectedGraphEdgesRef
+const selectedNodeId = injectedSelectedNodeIdRef
+const saveGraph = injectedSaveGraph
 
-const nodes = computed<StoredNode[]>(() => (flow.value?.data.nodes ?? []) as StoredNode[])
-const edges = computed<StoredEdge[]>(() => (flow.value?.data.edges ?? []) as StoredEdge[])
-
-const selectedNodeId = computed(() => {
-  const meta = (flow.value?.data.meta ?? {}) as FlowMeta
-  return meta.selectedNodeId ?? null
-})
+const nodes = computed<GraphNode[]>(() => graphNodesRef.value)
+const edges = computed<GraphEdge[]>(() => graphEdgesRef.value)
 
 const node = computed(() => {
   if (!selectedNodeId.value) return null
@@ -68,15 +71,9 @@ const node = computed(() => {
   return { id: found.id, type: found.type, data: found.data }
 })
 
-const isTriggerNode = computed(() => node.value?.type === "trigger")
-
-function saveNode(updatedNodes: StoredNode[]) {
-  if (!flow.value) return
-  const meta: FlowMeta = {
-    selectedNodeId: selectedNodeId.value ?? undefined,
-  }
-  updateItem(flow.value.id, { nodes: updatedNodes, meta })
-}
+const isProtectedSelectedNode = computed(() =>
+  node.value ? isProtectedNode(flowKind.value, node.value) : false,
+)
 
 function updateField(key: string, value: unknown) {
   if (!node.value) return
@@ -84,33 +81,32 @@ function updateField(key: string, value: unknown) {
     if (n.id !== selectedNodeId.value) return n
     return { ...n, data: { ...n.data, [key]: value } }
   })
-  saveNode(updatedNodes)
+  graphNodesRef.value = updatedNodes
+  saveGraph()
 }
 
 function closePanel() {
-  if (!flow.value) return
-  updateItem(flow.value.id, { meta: { selectedNodeId: undefined } })
+  selectedNodeId.value = null
 }
 
 function deleteNode() {
-  if (!selectedNodeId.value || !flow.value || isTriggerNode.value) return
+  if (!selectedNodeId.value || isProtectedSelectedNode.value) return
   const nodeId = selectedNodeId.value
   const updatedNodes = nodes.value.filter((n) => n.id !== nodeId)
   const updatedEdges = edges.value.filter((e) => e.source !== nodeId && e.target !== nodeId)
-  updateItem(flow.value.id, {
-    nodes: updatedNodes,
-    edges: updatedEdges,
-    meta: { selectedNodeId: undefined },
-  })
+  graphNodesRef.value = updatedNodes
+  graphEdgesRef.value = updatedEdges
+  selectedNodeId.value = null
+  saveGraph()
 }
 
 function deleteEdge(edgeId: string) {
-  if (!flow.value) return
   const updatedEdges = edges.value.filter((e) => e.id !== edgeId)
-  updateItem(flow.value.id, { edges: updatedEdges })
+  graphEdgesRef.value = updatedEdges
+  saveGraph()
 }
 
-const NODE_TYPE_OPTIONS = [
+const BASE_NODE_TYPE_OPTIONS = [
   { label: "Action", value: "action" },
   { label: "Condition", value: "condition" },
   { label: "Delay", value: "delay" },
@@ -120,9 +116,28 @@ const NODE_TYPE_OPTIONS = [
   { label: "Switch", value: "switch" },
   { label: "Transform", value: "transform" },
   { label: "Subflow", value: "subflow" },
-  { label: "Input", value: "input" },
-  { label: "Output", value: "output" },
 ]
+
+const LOCKED_NODE_TYPE_LABELS: Record<string, string> = {
+  trigger: "Trigger",
+  input: "Input",
+  output: "Output",
+}
+
+const NODE_TYPE_OPTIONS = computed(() => {
+  const allowed = new Set(getAllowedNodeTypes(flowKind.value))
+  const options = BASE_NODE_TYPE_OPTIONS.filter((option) => allowed.has(option.value as never))
+  if (node.value && !options.some((option) => option.value === node.value?.type)) {
+    return [
+      {
+        label: LOCKED_NODE_TYPE_LABELS[node.value.type] ?? node.value.type,
+        value: node.value.type,
+      },
+      ...options,
+    ]
+  }
+  return options
+})
 
 const TRIGGER_TYPE_OPTIONS = [
   { label: "Manual", value: "manual" },
@@ -141,13 +156,27 @@ const OPERATOR_OPTIONS = [
   { label: "contains", value: "contains" },
 ]
 
-function changeNodeType(newType: string) {
-  if (!node.value) return
+function getSelectStringValue(value: unknown): string | null {
+  if (typeof value === "string") return value
+  if (Array.isArray(value)) return getSelectStringValue(value[0])
+  if (typeof value === "object" && value !== null && "value" in value) {
+    const next = (value as { value?: unknown }).value
+    return typeof next === "string" ? next : null
+  }
+  return null
+}
+
+function changeNodeType(newType: unknown) {
+  if (!node.value || isProtectedSelectedNode.value) return
+  const rawType = getSelectStringValue(newType)
+  if (!rawType) return
+
   const updatedNodes = nodes.value.map((n) => {
     if (n.id !== selectedNodeId.value) return n
-    return { ...n, type: newType, data: { ...n.data, type: newType } }
+    return { ...n, type: rawType, data: { ...n.data, type: rawType, nodeType: rawType } }
   })
-  saveNode(updatedNodes)
+  graphNodesRef.value = updatedNodes
+  saveGraph()
 }
 
 const incomingEdges = computed(() => {
@@ -190,6 +219,7 @@ function getNodeLabel(nodeId: string): string {
                 value-key="value"
                 label-key="label"
                 size="sm"
+                :disabled="isProtectedSelectedNode"
                 @update:model-value="changeNodeType"
               />
             </div>
@@ -448,7 +478,7 @@ function getNodeLabel(nodeId: string): string {
         <!-- Footer -->
         <div class="border-default border-t p-4">
           <UButton
-            v-if="!isTriggerNode"
+            v-if="!isProtectedSelectedNode"
             color="error"
             variant="outline"
             size="sm"
@@ -461,7 +491,12 @@ function getNodeLabel(nodeId: string): string {
           <div v-else class="flex items-center justify-center gap-1.5">
             <UIcon name="i-lucide-lock" class="text-muted h-3.5 w-3.5" />
             <p class="text-muted text-center text-xs">
-              {{ t({ en: "Cannot delete the initial node", ru: "Нельзя удалить начальную ноду" }) }}
+              {{
+                t({
+                  en: "Cannot delete or retype a system node",
+                  ru: "Нельзя удалить или сменить тип системной ноды",
+                })
+              }}
             </p>
           </div>
         </div>

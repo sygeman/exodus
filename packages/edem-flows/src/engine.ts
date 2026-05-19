@@ -24,6 +24,7 @@ export interface FlowEdge {
 export interface Flow {
   id: string
   name: string
+  kind?: "flow" | "subflow"
   nodes: FlowNode[]
   edges: FlowEdge[]
   trigger?: Record<string, unknown>
@@ -90,18 +91,20 @@ export async function executeFlow(
     adjacency.get(edge.source)!.push(edge)
   }
 
-  const triggerNodes = flow.nodes.filter((n) => n.type === "trigger")
+  const flowKind = flow.kind ?? "flow"
+  const entryNodeType = flowKind === "subflow" ? "input" : "trigger"
+  const entryNodes = flow.nodes.filter((n) => n.type === entryNodeType)
 
-  if (triggerNodes.length === 0) {
+  if (entryNodes.length === 0) {
     if (flow.nodes.length === 0) {
       return { context, nodeResults, status: "completed" }
     }
-    throw new Error(`Flow "${flow.name}" has no trigger node`)
+    throw new Error(`Flow "${flow.name}" has no ${entryNodeType} node`)
   }
 
-  for (const triggerNode of triggerNodes) {
+  for (const entryNode of entryNodes) {
     const result = await executeNode(
-      triggerNode.id,
+      entryNode.id,
       nodeMap,
       adjacency,
       context,
@@ -493,7 +496,11 @@ export interface FlowValidationResult {
  */
 export function validateFlow(flow: Flow): FlowValidationResult {
   const errors: string[] = []
+  const flowKind = flow.kind ?? "flow"
   const nodeIds = new Set(flow.nodes.map((n) => n.id))
+  const triggerNodes = flow.nodes.filter((n) => n.type === "trigger")
+  const inputNodes = flow.nodes.filter((n) => n.type === "input")
+  const outputNodes = flow.nodes.filter((n) => n.type === "output")
 
   for (const edge of flow.edges) {
     if (!nodeIds.has(edge.source)) {
@@ -504,10 +511,27 @@ export function validateFlow(flow: Flow): FlowValidationResult {
     }
   }
 
-  if (flow.nodes.length > 0) {
-    const triggerNodes = flow.nodes.filter((n) => n.type === "trigger")
-    if (triggerNodes.length === 0) {
-      errors.push("Flow has no trigger node")
+  if (flowKind === "flow" && flow.nodes.length > 0) {
+    if (triggerNodes.length !== 1) {
+      errors.push(`Flow must have exactly one trigger node, got ${triggerNodes.length}`)
+    }
+    if (inputNodes.length > 0) {
+      errors.push("Flow nodes cannot contain input nodes")
+    }
+    if (outputNodes.length > 0) {
+      errors.push("Flow nodes cannot contain output nodes")
+    }
+  }
+
+  if (flowKind === "subflow") {
+    if (triggerNodes.length > 0) {
+      errors.push("Subflow cannot contain trigger nodes")
+    }
+    if (inputNodes.length !== 1) {
+      errors.push(`Subflow must have exactly one input node, got ${inputNodes.length}`)
+    }
+    if (outputNodes.length !== 1) {
+      errors.push(`Subflow must have exactly one output node, got ${outputNodes.length}`)
     }
   }
 
@@ -539,6 +563,24 @@ export function validateFlow(flow: Flow): FlowValidationResult {
     if (dfs(nodeId)) {
       errors.push(`Flow contains a cycle involving node "${nodeId}"`)
       break
+    }
+  }
+
+  if (flowKind === "subflow" && inputNodes.length === 1 && outputNodes.length === 1) {
+    const reachable = new Set<string>()
+
+    function walk(nodeId: string): void {
+      if (reachable.has(nodeId)) return
+      reachable.add(nodeId)
+      for (const next of adj.get(nodeId) ?? []) {
+        walk(next)
+      }
+    }
+
+    walk(inputNodes[0].id)
+
+    if (!reachable.has(outputNodes[0].id)) {
+      errors.push("Subflow must contain a path from input node to output node")
     }
   }
 

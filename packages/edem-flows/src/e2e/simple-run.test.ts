@@ -35,25 +35,16 @@ describe("simple run", () => {
           position: { x: 100, y: 0 },
           data: { field: "value", operation: "add", value: 10 },
         },
-        {
-          id: "out",
-          type: "output",
-          position: { x: 200, y: 0 },
-          data: { outputs: { result: "{{nodes.calc.output.result}}" } },
-        },
       ],
-      edges: [
-        { id: "e1", source: "start", target: "calc" },
-        { id: "e2", source: "calc", target: "out" },
-      ],
+      edges: [{ id: "e1", source: "start", target: "calc" }],
     })
 
     const result = await edem.flows.runFlow({ flow_id, trigger_data: { value: 5 } })
     expect(result.status).toBe("completed")
 
     const { nodes } = await edem.flows.getRunNodes({ run_id: result.run_id })
-    const outNode = nodes.find((n) => n.node_id === "out")
-    expect(outNode?.output?.outputs).toEqual({ result: 15 })
+    const calcNode = nodes.find((n) => n.node_id === "calc")
+    expect(calcNode?.output).toEqual({ result: 15 })
   })
 
   it("last_run_at is updated", async () => {

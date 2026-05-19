@@ -2,6 +2,8 @@
 
 Движок визуального программирования — flows, nodes, edges, execution engine, template resolution.
 
+Подробный контракт видов flow и правил валидации: `./docs/flow-kinds.md`.
+
 ## Установка
 
 ```typescript
@@ -23,9 +25,12 @@ type Flow = {
   id: string
   name: string
   status: "draft" | "active" | "paused" | "archived"
-  trigger: Trigger
+  kind: "flow" | "subflow"
+  trigger?: Trigger
   nodes: FlowNode[]
   edges: FlowEdge[]
+  valid: boolean
+  validation_errors: string[]
   meta?: Record<string, unknown>
   backpressure?: {
     maxPending?: number
@@ -97,6 +102,7 @@ type FlowEdge = {
 ```typescript
 const { flow_id } = await edem.flows.createFlow({
   name: "My Flow",
+  kind: "flow",
   trigger: { type: "manual" },
   nodes: [
     { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
@@ -110,15 +116,18 @@ const { flow_id } = await edem.flows.createFlow({
 })
 ```
 
+Если `nodes` и `edges` не переданы, движок создаёт стартовый каркас по `kind`:
+
+- `flow` -> один `trigger`
+- `subflow` -> `input -> output`
+
 #### `updateFlow`
 
 ```typescript
 await edem.flows.updateFlow({
   flow_id: "...",
+  kind: "subflow", // смена kind сбрасывает граф в стартовый каркас
   name: "Updated Name",
-  trigger: { type: "event", event: "data:item_created" },
-  nodes: [...],
-  edges: [...],
   meta: { version: 2 },
   backpressure: { maxConcurrent: 5 },
 })
@@ -186,7 +195,7 @@ await edem.flows.handleNodeFailed({
 
 ```typescript
 const { flow } = await edem.flows.getFlow({ flow_id: "..." })
-// Flow | null
+// { id, name, kind, trigger?, nodes, edges, valid, validation_errors, ... } | null
 ```
 
 #### `listFlows`

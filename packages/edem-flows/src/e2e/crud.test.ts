@@ -25,7 +25,7 @@ describe("CRUD", () => {
     const { flow } = await edem.flows.getFlow({ flow_id })
     expect(flow).not.toBeNull()
     expect(flow?.name).toBe("Full Flow")
-    expect(flow?.trigger.type).toBe("event")
+    expect(flow?.trigger?.type).toBe("event")
     expect(flow?.nodes).toHaveLength(2)
     expect(flow?.edges).toHaveLength(1)
     expect(flow?.meta?.version).toBe(1)

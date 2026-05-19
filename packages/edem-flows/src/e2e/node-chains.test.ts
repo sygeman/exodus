@@ -233,9 +233,9 @@ describe("node chains", () => {
     const edem = getEdem()
     const { flow_id } = await edem.flows.createFlow({
       name: "Templates",
-      trigger: { type: "manual" },
+      kind: "subflow",
       nodes: [
-        { id: "t", type: "trigger", position: { x: 0, y: 0 } },
+        { id: "input", type: "input", position: { x: 0, y: 0 } },
         {
           id: "calc",
           type: "transform",
@@ -252,7 +252,7 @@ describe("node chains", () => {
         },
       ],
       edges: [
-        { id: "e1", source: "t", target: "calc" },
+        { id: "e1", source: "input", target: "calc" },
         { id: "e2", source: "calc", target: "out" },
       ],
     })
@@ -272,12 +272,19 @@ describe("node chains", () => {
     const edem = getEdem()
     const { flow_id } = await edem.flows.createFlow({
       name: "Input Node",
-      trigger: { type: "manual" },
+      kind: "subflow",
       nodes: [
-        { id: "t", type: "trigger", position: { x: 0, y: 0 } },
-        { id: "inp", type: "input", position: { x: 100, y: 0 } },
+        { id: "inp", type: "input", position: { x: 0, y: 0 } },
+        {
+          id: "out",
+          type: "output",
+          position: { x: 160, y: 0 },
+          data: {
+            outputs: { payload: "{{nodes.inp.output.name}}", age: "{{nodes.inp.output.age}}" },
+          },
+        },
       ],
-      edges: [{ id: "e1", source: "t", target: "inp" }],
+      edges: [{ id: "e1", source: "inp", target: "out" }],
     })
 
     const result = await edem.flows.runFlow({
@@ -287,7 +294,7 @@ describe("node chains", () => {
     expect(result.status).toBe("completed")
 
     const { run } = await edem.flows.getRun({ run_id: result.run_id })
-    expect(run?.output?.inp).toEqual({ name: "Bob", age: 30 })
+    expect(run?.output).toEqual({ payload: "Bob", age: 30 })
   })
 
   it("action with registered handler completes synchronously", async () => {

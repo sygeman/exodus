@@ -14,9 +14,9 @@ describe("flows: backup game saves", () => {
   it("full lifecycle: trigger → prepare → subflow → output", async () => {
     const { flow_id: childFlowId } = await edem.flows.createFlow({
       name: "Backup Single Game",
-      trigger: { type: "manual" },
+      kind: "subflow",
       nodes: [
-        { id: "c_trigger", type: "trigger", position: { x: 0, y: 0 } },
+        { id: "c_input", type: "input", position: { x: 0, y: 0 } },
         {
           id: "c_backup",
           type: "transform",
@@ -36,7 +36,7 @@ describe("flows: backup game saves", () => {
         },
       ],
       edges: [
-        { id: "ce1", source: "c_trigger", target: "c_backup" },
+        { id: "ce1", source: "c_input", target: "c_backup" },
         { id: "ce2", source: "c_backup", target: "c_output" },
       ],
     })
@@ -60,9 +60,9 @@ describe("flows: backup game saves", () => {
         },
         {
           id: "p_done",
-          type: "output",
+          type: "transform",
           position: { x: 300, y: 0 },
-          data: { outputs: { total: "1", status: "ok" } },
+          data: { field: "status", operation: "set", value: "ok" },
         },
       ],
       edges: [
@@ -102,7 +102,7 @@ describe("flows: backup game saves", () => {
 
     const { nodes: childNodes } = await edem.flows.getRunNodes({ run_id: childRun!.id })
     const childNodeIds = [...new Set(childNodes.map((n) => n.node_id))]
-    expect(childNodeIds).toContainEqual("c_trigger")
+    expect(childNodeIds).toContainEqual("c_input")
     expect(childNodeIds).toContainEqual("c_backup")
     expect(childNodeIds).toContainEqual("c_output")
     expect(childNodes.every((n) => n.status === "completed")).toBe(true)

@@ -10,6 +10,7 @@ import {
 } from "./engine"
 import { setEdemModules } from "./executors"
 import {
+  flowKindSchema,
   triggerSchema,
   nodeSchema,
   edgeSchema,
@@ -58,9 +59,12 @@ const flowSchema = z.object({
   id: z.string(),
   name: z.string(),
   status: z.enum(["draft", "active", "paused", "archived"]),
-  trigger: triggerSchema,
+  kind: flowKindSchema,
+  trigger: triggerSchema.optional(),
   nodes: z.array(nodeSchema),
   edges: z.array(edgeSchema),
+  valid: z.boolean(),
+  validation_errors: z.array(z.string()),
   meta: z.record(z.string(), z.unknown()).optional(),
   backpressure: backpressureSchema.optional(),
 })
@@ -99,9 +103,142 @@ const flowRunNodeSchema = z.object({
   completed_at: z.number().optional(),
 })
 
+type FlowRecord = z.infer<typeof flowSchema>
+type FlowKind = FlowRecord["kind"]
+type FlowStatus = FlowRecord["status"]
+type Trigger = z.infer<typeof triggerSchema>
+type FlowNodeRecord = z.infer<typeof nodeSchema>
+type FlowEdgeRecord = z.infer<typeof edgeSchema>
+
 function getData(): EdemData {
   if (!dataRef) throw new Error("edem-flows: data module not initialized")
   return dataRef
+}
+
+const DEFAULT_TRIGGER: Trigger = { type: "manual" }
+
+function createDefaultFlowShape(kind: FlowKind): {
+  trigger?: Trigger
+  nodes: FlowNodeRecord[]
+  edges: FlowEdgeRecord[]
+} {
+  if (kind === "subflow") {
+    return {
+      nodes: [
+        { id: "input", type: "input", position: { x: 0, y: 0 } },
+        {
+          id: "output",
+          type: "output",
+          position: { x: 240, y: 0 },
+          data: { outputs: {} },
+        },
+      ],
+      edges: [{ id: "input-output", source: "input", target: "output" }],
+    }
+  }
+
+  return {
+    trigger: DEFAULT_TRIGGER,
+    nodes: [{ id: "trigger", type: "trigger", position: { x: 0, y: 0 } }],
+    edges: [],
+  }
+}
+
+function createPersistedFlow(input: {
+  id: string
+  name: string
+  status: FlowStatus
+  kind: FlowKind
+  trigger?: Trigger
+  nodes: FlowNodeRecord[]
+  edges: FlowEdgeRecord[]
+  meta?: Record<string, unknown>
+  backpressure?: { maxPending?: number; maxConcurrent?: number }
+}): FlowRecord {
+  const flow: Omit<FlowRecord, "valid" | "validation_errors"> = {
+    id: input.id,
+    name: input.name,
+    status: input.status,
+    kind: input.kind,
+    trigger: input.kind === "flow" ? (input.trigger ?? DEFAULT_TRIGGER) : undefined,
+    nodes: input.nodes,
+    edges: input.edges,
+    meta: input.meta,
+    backpressure: input.backpressure,
+  }
+
+  const validation = validateFlow(flow)
+  return {
+    ...flow,
+    valid: validation.valid,
+    validation_errors: validation.errors,
+  }
+}
+
+function withoutId<T extends { id: string }>(value: T): Omit<T, "id"> {
+  return Object.fromEntries(Object.entries(value).filter(([key]) => key !== "id")) as Omit<T, "id">
+}
+
+function buildCreatedFlow(input: {
+  name: string
+  kind?: FlowKind
+  trigger?: Trigger
+  nodes?: FlowNodeRecord[]
+  edges?: FlowEdgeRecord[]
+  meta?: Record<string, unknown>
+  backpressure?: { maxPending?: number; maxConcurrent?: number }
+}): Omit<FlowRecord, "id"> {
+  const kind = input.kind ?? "flow"
+  const defaults = createDefaultFlowShape(kind)
+  const flow = createPersistedFlow({
+    id: "",
+    name: input.name,
+    status: "draft",
+    kind,
+    trigger: kind === "flow" ? (input.trigger ?? defaults.trigger) : undefined,
+    nodes: input.nodes ?? defaults.nodes,
+    edges: input.edges ?? defaults.edges,
+    meta: input.meta ?? {},
+    backpressure: input.backpressure,
+  })
+
+  return withoutId(flow)
+}
+
+function buildUpdatedFlow(
+  existing: FlowRecord,
+  input: {
+    name?: string
+    kind?: FlowKind
+    trigger?: Trigger
+    nodes?: FlowNodeRecord[]
+    edges?: FlowEdgeRecord[]
+    meta?: Record<string, unknown>
+    backpressure?: { maxPending?: number; maxConcurrent?: number }
+  },
+): Omit<FlowRecord, "id"> {
+  const kind = input.kind ?? existing.kind
+  const kindChanged = kind !== existing.kind
+  const defaults = createDefaultFlowShape(kind)
+
+  const flow = createPersistedFlow({
+    id: existing.id,
+    name: input.name ?? existing.name,
+    status: existing.status,
+    kind,
+    trigger:
+      kind === "flow"
+        ? kindChanged
+          ? (input.trigger ?? defaults.trigger)
+          : (input.trigger ?? existing.trigger ?? defaults.trigger)
+        : undefined,
+    nodes: kindChanged ? defaults.nodes : (input.nodes ?? existing.nodes),
+    edges: kindChanged ? defaults.edges : (input.edges ?? existing.edges),
+    meta: input.meta ?? existing.meta,
+    backpressure: input.backpressure ?? existing.backpressure,
+  })
+
+  return withoutId(flow)
 }
 
 type EmitFn = {
@@ -249,7 +386,8 @@ export const flowsModule = createEdemModule(
       .mutation("createFlow", {
         input: z.object({
           name: z.string(),
-          trigger: triggerSchema,
+          kind: flowKindSchema.optional(),
+          trigger: triggerSchema.optional(),
           nodes: z.array(nodeSchema).optional(),
           edges: z.array(edgeSchema).optional(),
           meta: z.record(z.string(), z.unknown()).optional(),
@@ -258,29 +396,16 @@ export const flowsModule = createEdemModule(
         output: z.object({ flow_id: z.string() }),
         resolve: async ({ input, emit }) => {
           const data = getData()
+          const flowData = buildCreatedFlow(input)
 
           const { id } = await data.createItem({
             collection_id: FLOWS_COLLECTION,
-            data: {
-              name: input.name,
-              status: "draft",
-              trigger: input.trigger,
-              nodes: input.nodes ?? [],
-              edges: input.edges ?? [],
-              meta: input.meta ?? {},
-              backpressure: input.backpressure ?? undefined,
-            },
+            data: flowData,
           })
 
-          const flow: z.infer<typeof flowSchema> = {
+          const flow: FlowRecord = {
             id,
-            name: input.name,
-            status: "draft",
-            trigger: input.trigger,
-            nodes: input.nodes ?? [],
-            edges: input.edges ?? [],
-            meta: input.meta,
-            backpressure: input.backpressure,
+            ...flowData,
           }
           await emit.flowCreated(flow)
 
@@ -291,6 +416,7 @@ export const flowsModule = createEdemModule(
         input: z.object({
           flow_id: z.string(),
           name: z.string().optional(),
+          kind: flowKindSchema.optional(),
           trigger: triggerSchema.optional(),
           nodes: z.array(nodeSchema).optional(),
           edges: z.array(edgeSchema).optional(),
@@ -305,7 +431,10 @@ export const flowsModule = createEdemModule(
           const { item } = await data.getItem({ item_id: flow_id })
           if (!item) throw new Error(`Flow ${flow_id} not found`)
 
-          await data.updateItem({ item_id: flow_id, data: updates })
+          const existing = parseFlow(item)
+          const flowData = buildUpdatedFlow(existing, updates)
+
+          await data.updateItem({ item_id: flow_id, data: flowData })
 
           const { item: updated } = await data.getItem({ item_id: flow_id })
           if (updated) {
@@ -809,6 +938,7 @@ export const flowsModule = createEdemModule(
               const existingData = existing.data
               const hasChanges =
                 existingData.name !== flowDef.name ||
+                (existingData.kind as FlowKind | undefined) !== (flowDef.kind ?? "flow") ||
                 !deepEqual(existingData.trigger, flowDef.trigger) ||
                 !deepEqual(existingData.nodes, flowDef.nodes) ||
                 !deepEqual(existingData.edges, flowDef.edges) ||
@@ -816,57 +946,52 @@ export const flowsModule = createEdemModule(
                 !deepEqual(existingData.backpressure, flowDef.backpressure)
 
               if (hasChanges) {
-                await data.updateItem({
-                  item_id: existing.id,
-                  data: {
-                    name: flowDef.name,
-                    trigger: flowDef.trigger,
-                    nodes: flowDef.nodes,
-                    edges: flowDef.edges,
-                    meta: flowDef.meta ?? {},
-                    backpressure: flowDef.backpressure ?? undefined,
-                  },
-                })
-                updated.push(flowDef.id)
-                await emit.flowUpdated({
+                const nextFlow = createPersistedFlow({
                   id: existing.id,
                   name: flowDef.name,
-                  status:
-                    (existing.data.status as z.infer<typeof flowSchema>["status"]) ?? "active",
-                  trigger: flowDef.trigger,
-                  nodes: flowDef.nodes,
-                  edges: flowDef.edges,
-                  meta: flowDef.meta,
-                  backpressure: flowDef.backpressure,
-                })
-              } else {
-                skipped.push(flowDef.id)
-              }
-            } else {
-              const { id } = await data.createItem({
-                collection_id: FLOWS_COLLECTION,
-                data: {
-                  manifest_id: flowDef.id,
-                  name: flowDef.name,
-                  status: "active",
+                  status: ((existing.data.status as FlowStatus | undefined) ??
+                    "active") as FlowStatus,
+                  kind: flowDef.kind ?? "flow",
                   trigger: flowDef.trigger,
                   nodes: flowDef.nodes,
                   edges: flowDef.edges,
                   meta: flowDef.meta ?? {},
-                  backpressure: flowDef.backpressure ?? undefined,
-                },
-              })
-              created.push(flowDef.id)
-              await emit.flowCreated({
-                id,
+                  backpressure: flowDef.backpressure,
+                })
+                const flowData = withoutId(nextFlow)
+
+                await data.updateItem({
+                  item_id: existing.id,
+                  data: flowData,
+                })
+                updated.push(flowDef.id)
+                await emit.flowUpdated(nextFlow)
+              } else {
+                skipped.push(flowDef.id)
+              }
+            } else {
+              const nextFlow = createPersistedFlow({
+                id: "",
                 name: flowDef.name,
                 status: "active",
+                kind: flowDef.kind ?? "flow",
                 trigger: flowDef.trigger,
                 nodes: flowDef.nodes,
                 edges: flowDef.edges,
-                meta: flowDef.meta,
+                meta: flowDef.meta ?? {},
                 backpressure: flowDef.backpressure,
               })
+              const flowData = withoutId(nextFlow)
+
+              const { id } = await data.createItem({
+                collection_id: FLOWS_COLLECTION,
+                data: {
+                  manifest_id: flowDef.id,
+                  ...flowData,
+                },
+              })
+              created.push(flowDef.id)
+              await emit.flowCreated({ ...nextFlow, id })
             }
           }
 
@@ -894,10 +1019,14 @@ export const flowsModule = createEdemModule(
           const flows = items.map((item) => ({
             id: (item.data.manifest_id as string) ?? item.id,
             name: item.data.name as string,
-            trigger: item.data.trigger as z.infer<typeof triggerSchema>,
+            kind: ((item.data.kind as FlowKind | undefined) ?? "flow") as FlowKind,
+            trigger: item.data.trigger as z.infer<typeof triggerSchema> | undefined,
             nodes: (item.data.nodes as z.infer<typeof nodeSchema>[]) ?? [],
             edges: (item.data.edges as z.infer<typeof edgeSchema>[]) ?? [],
             meta: item.data.meta as Record<string, unknown> | undefined,
+            backpressure: item.data.backpressure as
+              | { maxPending?: number; maxConcurrent?: number }
+              | undefined,
           }))
 
           return { flows }
@@ -1007,6 +1136,7 @@ export const flowsModule = createEdemModule(
 )
 
 const VALID_FLOW_STATUSES = ["draft", "active", "paused", "archived"] as const
+const VALID_FLOW_KINDS = ["flow", "subflow"] as const
 const VALID_RUN_STATUSES = [
   "pending",
   "running",
@@ -1028,15 +1158,17 @@ function parseFlow(item: {
   id: string
   collection_id: string
   data: Record<string, unknown>
-}): z.infer<typeof flowSchema> {
+}): FlowRecord {
   const status = toStr(item.data.status, "draft")
-  return {
+  const kind = toStr(item.data.kind, "flow")
+  const flow: Omit<FlowRecord, "valid" | "validation_errors"> = {
     id: item.id,
     name: toStr(item.data.name, ""),
     status: (VALID_FLOW_STATUSES as readonly string[]).includes(status)
-      ? (status as z.infer<typeof flowSchema>["status"])
+      ? (status as FlowStatus)
       : "draft",
-    trigger: item.data.trigger as z.infer<typeof triggerSchema>,
+    kind: (VALID_FLOW_KINDS as readonly string[]).includes(kind) ? (kind as FlowKind) : "flow",
+    trigger: item.data.trigger as Trigger | undefined,
     nodes: (Array.isArray(item.data.nodes) ? item.data.nodes : []) as z.infer<typeof nodeSchema>[],
     edges: (Array.isArray(item.data.edges) ? item.data.edges : []) as z.infer<typeof edgeSchema>[],
     meta: (item.data.meta && typeof item.data.meta === "object" ? item.data.meta : undefined) as
@@ -1045,6 +1177,18 @@ function parseFlow(item: {
     backpressure: (item.data.backpressure && typeof item.data.backpressure === "object"
       ? item.data.backpressure
       : undefined) as { maxPending?: number; maxConcurrent?: number } | undefined,
+  }
+
+  const computed = validateFlow(flow)
+  const valid = typeof item.data.valid === "boolean" ? item.data.valid : computed.valid
+  const validation_errors = Array.isArray(item.data.validation_errors)
+    ? item.data.validation_errors.filter((error): error is string => typeof error === "string")
+    : computed.errors
+
+  return {
+    ...flow,
+    valid,
+    validation_errors,
   }
 }
 
@@ -1080,13 +1224,17 @@ function parseRun(item: {
 
 /**
  * Extracts the flow output from execution context.
- * Returns the output node's resolved outputs if an output node exists,
- * otherwise returns all node outputs (used for debugging/transparency).
+ * Subflows return only their output-node payload, while regular flows expose
+ * all node outputs for debugging/transparency.
  */
 function extractFlowOutput(
-  flow: z.infer<typeof flowSchema>,
+  flow: FlowRecord,
   context: { node_outputs: Record<string, Record<string, unknown>> },
 ): Record<string, unknown> {
+  if (flow.kind !== "subflow") {
+    return context.node_outputs
+  }
+
   const outputNode = flow.nodes.find((n) => n.type === "output")
   if (outputNode && context.node_outputs[outputNode.id]) {
     const nodeOut = context.node_outputs[outputNode.id]
@@ -1180,33 +1328,58 @@ async function handleSubflow(
   parentItem: { data: Record<string, unknown> },
   lifecycle: NodeLifecycle,
 ): Promise<{ run_id: string; status: string } | null> {
-  const childFlowId = (waitingNode.data as Record<string, unknown>)?.flow_id as string
-  if (!childFlowId) {
+  async function completeParentRunWithError(
+    error: string,
+  ): Promise<{ run_id: string; status: string }> {
+    const completedAt = Date.now()
+    const output = extractFlowOutput(flow, result.context)
+
     await data.updateItem({
       item_id: runId,
       data: {
         status: "error",
-        error: "subflow node missing flow_id",
-        completed_at: Date.now(),
+        output,
+        error,
+        waiting_node_id: null,
+        completed_at: completedAt,
       },
     })
+
+    const errorRun: z.infer<typeof runSchema> = {
+      ...run,
+      status: "error",
+      output,
+      error,
+      waiting_node_id: null,
+      completed_at: completedAt,
+    }
+    await emit.runCompleted(errorRun)
+
     return { run_id: runId, status: "error" }
+  }
+
+  const childFlowId = (waitingNode.data as Record<string, unknown>)?.flow_id as string
+  if (!childFlowId) {
+    return completeParentRunWithError("subflow node missing flow_id")
   }
 
   const childFlowItem = await data.getItem({ item_id: childFlowId })
   if (!childFlowItem.item) {
-    await data.updateItem({
-      item_id: runId,
-      data: {
-        status: "error",
-        error: `Subflow flow ${childFlowId} not found`,
-        completed_at: Date.now(),
-      },
-    })
-    return { run_id: runId, status: "error" }
+    return completeParentRunWithError(`Subflow flow ${childFlowId} not found`)
   }
 
   const childFlow = parseFlow(childFlowItem.item)
+  if (childFlow.kind !== "subflow") {
+    return completeParentRunWithError(`Subflow target ${childFlowId} must have kind "subflow"`)
+  }
+
+  const childValidation = validateFlow(childFlow)
+  if (!childValidation.valid) {
+    return completeParentRunWithError(
+      `Invalid subflow ${childFlowId}: ${childValidation.errors.join("; ")}`,
+    )
+  }
+
   const waitingOutput = result.context.node_outputs[result.waitingNodeId!] as
     | Record<string, unknown>
     | undefined
@@ -1215,15 +1388,7 @@ async function handleSubflow(
 
   const parentDepth = (parentItem.data.depth as number) ?? 0
   if (parentDepth >= 10) {
-    await data.updateItem({
-      item_id: runId,
-      data: {
-        status: "error",
-        error: `Subflow max depth (10) exceeded`,
-        completed_at: Date.now(),
-      },
-    })
-    return { run_id: runId, status: "error" }
+    return completeParentRunWithError(`Subflow max depth (10) exceeded`)
   }
 
   const { id: childRunId } = await data.createItem({
@@ -1270,27 +1435,17 @@ async function handleSubflow(
       item_id: childRunId,
       data: {
         status: childResult.status,
-        output: childResult.context.node_outputs,
+        output: extractFlowOutput(childFlow, childResult.context),
         error: childResult.error ?? null,
         completed_at: Date.now(),
       },
     })
 
     if (childResult.status === "error") {
-      await data.updateItem({
-        item_id: runId,
-        data: {
-          status: "error",
-          output: extractFlowOutput(flow, result.context),
-          error: `Subflow failed: ${childResult.error}`,
-          waiting_node_id: null,
-          completed_at: Date.now(),
-        },
-      })
-      return { run_id: runId, status: "error" }
+      return completeParentRunWithError(`Subflow failed: ${childResult.error}`)
     }
 
-    const subflowOutput = childResult.context.node_outputs
+    const subflowOutput = extractFlowOutput(childFlow, childResult.context)
 
     result.context.node_outputs[result.waitingNodeId!] = {
       ...result.context.node_outputs[result.waitingNodeId!],
@@ -1348,16 +1503,7 @@ async function handleSubflow(
         completed_at: Date.now(),
       },
     })
-    await data.updateItem({
-      item_id: runId,
-      data: {
-        status: "error",
-        error: `Subflow failed: ${error}`,
-        waiting_node_id: null,
-        completed_at: Date.now(),
-      },
-    })
-    return { run_id: runId, status: "error" }
+    return completeParentRunWithError(`Subflow failed: ${error}`)
   }
 }
 
@@ -1369,9 +1515,12 @@ async function ensureCollections(data: EdemData, retries = 3) {
       fields: [
         { name: "name", type: "string", required: true },
         { name: "status", type: "string" },
-        { name: "trigger", type: "json", required: true },
+        { name: "kind", type: "string" },
+        { name: "trigger", type: "json" },
         { name: "nodes", type: "json" },
         { name: "edges", type: "json" },
+        { name: "valid", type: "boolean" },
+        { name: "validation_errors", type: "json" },
         { name: "meta", type: "json" },
         { name: "manifest_id", type: "string" },
         { name: "backpressure", type: "json" },
@@ -1423,7 +1572,7 @@ async function ensureCollections(data: EdemData, retries = 3) {
               name: def.name,
               fields: def.fields as {
                 name: string
-                type: "string" | "json" | "number"
+                type: "string" | "json" | "number" | "boolean"
                 required?: boolean
               }[],
             })
