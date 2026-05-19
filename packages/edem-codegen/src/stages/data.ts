@@ -31,7 +31,7 @@ export const dataStage: Stage = {
 
     files.push({
       path: "src/hooks.ts",
-      content: generateHooks(),
+      content: generateHooks(ir.collections),
     })
 
     for (const col of ir.collections) {
@@ -119,7 +119,28 @@ export const client = new EdemClient<typeof dataManifest>(edem.data)
 `
 }
 
-function generateHooks(): string {
+function generateHooks(collections: IRCollection[]): string {
+  const reservedHookNames = new Set([
+    "useFlows",
+    "useFlow",
+    "useFlowRuns",
+    "useRun",
+    "useRunNodes",
+    "useCreateFlow",
+    "useUpdateFlow",
+    "useDeleteFlow",
+    "useRunFlow",
+    "useCancelRun",
+    "useResumeRun",
+    "useDeleteRuns",
+  ])
+
+  const collectionExports = collections
+    .map((collection) => `use${capitalize(collection.id)}`)
+    .filter((hookName) => !reservedHookNames.has(hookName))
+    .map((hookName) => `export { ${hookName} } from "./composables/${hookName}"`)
+    .join("\n")
+
   return `import { createEdemHooks, createElectrobunHooks, createFlowsHooks } from "@exodus/edem-vue"
 import { client } from "./edem-client"
 import { edem } from "./edem"
@@ -145,6 +166,8 @@ export const {
   useResumeRun,
   useDeleteRuns,
 } = createFlowsHooks(edem.flows)
+
+${collectionExports}
 `
 }
 

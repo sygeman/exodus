@@ -3,15 +3,6 @@ import { useT } from "@exodus/edem-vue"
 
 const t = useT()
 
-function formatTime(ts: number | string | Date): string {
-  const d = new Date(ts)
-  return d.toLocaleTimeString()
-}
-
-// TODO: implement levelBadgeColor
-
-// TODO: implement t
-
 import { computed, ref } from "vue"
 import { useLogs } from "@/hooks"
 import { edem } from "@/edem"

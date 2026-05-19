@@ -16,7 +16,7 @@
     },
     "apps/exodus": {
       "name": "exodus",
-      "version": "1.12.0",
+      "version": "1.13.0",
       "dependencies": {
         "@exodus/edem-core": "workspace:*",
         "@exodus/edem-data": "workspace:*",
@@ -55,6 +55,8 @@
         "@exodus/edem-flows": "workspace:*",
         "@exodus/edem-vue": "workspace:*",
         "@nuxt/ui": "4.7.1",
+        "@vue-flow/background": "1.3.2",
+        "@vue-flow/core": "1.48.2",
         "electrobun": "1.18.1",
         "tailwindcss": "4.3.0",
         "vue": "3.5.34",

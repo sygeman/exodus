@@ -187,10 +187,9 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
 
   const functionCalls = collectFunctionCalls(comp.tree)
   for (const fnName of functionCalls) {
-    if (!statements.some((s) => s.includes(`function ${fnName}`))) {
-      statements.push("")
-      statements.push(generateHelperFunction(fnName))
-    }
+    if (isIdentifierDeclared(fnName, imports, statements, rawScript)) continue
+    statements.push("")
+    statements.push(generateHelperFunction(fnName))
   }
 
   if (hasRawScript) {
@@ -239,6 +238,20 @@ function collectFunctionCalls(node: ExtendedComponentNode): Set<string> {
     return result
   })
   return new Set(calls)
+}
+
+function isIdentifierDeclared(
+  name: string,
+  imports: string[],
+  statements: string[],
+  rawScript: string,
+): boolean {
+  const escapedName = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")
+  const declarationPattern = new RegExp(
+    String.raw`\b(?:function|const|let|var|class)\s+${escapedName}\b|\bimport\s+${escapedName}\b|\bimport\s*\{[^}]*\b${escapedName}\b[^}]*\}`,
+  )
+  const sources = [...imports, ...statements, rawScript]
+  return sources.some((source) => declarationPattern.test(source))
 }
 
 function buildFilterParam(colId: string, comp: IRComponent, ir: IR): string {

@@ -1,7 +1,7 @@
 import { z } from "zod"
 import { createEdemModule } from "@exodus/edem-core"
 import { existsSync, readFileSync, readdirSync } from "fs"
-import { dirname, join } from "path"
+import { dirname, join, relative, resolve } from "path"
 import { parseManifests, type Manifests } from "./parse"
 import { validateIR } from "./validate"
 import {
@@ -87,6 +87,10 @@ export const codegenModule = createEdemModule("codegen", (module) => {
             Object.assign(allScripts, result.scripts)
           }
         }
+
+        const sharedSourceFiles = collectSharedSourceFiles(allFiles, input.manifests_dir)
+        allFiles.push(...sharedSourceFiles)
+        allDeps.push(...collectRuntimeDependencies(allFiles))
 
         // 5. Separate workspace and external deps
         const uniqueDeps = [...new Set(allDeps)]
@@ -272,6 +276,132 @@ function collectDependencyVersions(startDir: string): Map<string, string> {
   }
 
   return catalog
+}
+
+function collectSharedSourceFiles(files: OutputFile[], manifestsDir?: string): OutputFile[] {
+  if (!manifestsDir) return []
+
+  const sourceRoot = join(dirname(manifestsDir), "src")
+  if (!existsSync(sourceRoot)) return []
+
+  const knownPaths = new Set(files.map((file) => file.path))
+  const pending = [...files]
+  const copied: OutputFile[] = []
+
+  while (pending.length > 0) {
+    const file = pending.shift()!
+
+    for (const specifier of extractLocalImportSpecifiers(file.content)) {
+      const resolvedFile = resolveSharedSourceFile(sourceRoot, file.path, specifier)
+      if (!resolvedFile || knownPaths.has(resolvedFile.outputPath)) continue
+
+      const content = readFileSync(resolvedFile.sourcePath, "utf-8")
+      const copiedFile = { path: resolvedFile.outputPath, content }
+      knownPaths.add(copiedFile.path)
+      copied.push(copiedFile)
+      pending.push(copiedFile)
+    }
+  }
+
+  return copied
+}
+
+function extractLocalImportSpecifiers(content: string): string[] {
+  const specifiers = new Set<string>()
+  const importPatterns = [/\bfrom\s+["']([^"']+)["']/g, /\bimport\s+["']([^"']+)["']/g]
+
+  for (const pattern of importPatterns) {
+    for (const match of content.matchAll(pattern)) {
+      const specifier = match[1]
+      if (specifier.startsWith("@/") || specifier.startsWith("./") || specifier.startsWith("../")) {
+        specifiers.add(specifier)
+      }
+    }
+  }
+
+  return [...specifiers]
+}
+
+function resolveSharedSourceFile(sourceRoot: string, importerPath: string, specifier: string) {
+  const importerDir = dirname(
+    importerPath.startsWith("src/") ? importerPath.slice(4) : importerPath,
+  )
+  const basePath = specifier.startsWith("@/")
+    ? resolve(sourceRoot, specifier.slice(2))
+    : resolve(sourceRoot, importerDir, specifier)
+
+  if (!basePath.startsWith(sourceRoot)) return null
+
+  for (const candidate of buildSourceCandidates(basePath)) {
+    if (!existsSync(candidate)) continue
+    const outputPath = `src/${relative(sourceRoot, candidate)}`
+    return { sourcePath: candidate, outputPath }
+  }
+
+  return null
+}
+
+function buildSourceCandidates(basePath: string): string[] {
+  return [
+    basePath,
+    `${basePath}.ts`,
+    `${basePath}.tsx`,
+    `${basePath}.js`,
+    `${basePath}.jsx`,
+    `${basePath}.vue`,
+    join(basePath, "index.ts"),
+    join(basePath, "index.tsx"),
+    join(basePath, "index.js"),
+    join(basePath, "index.jsx"),
+  ]
+}
+
+function collectRuntimeDependencies(files: OutputFile[]): string[] {
+  const packages = new Set<string>()
+
+  for (const file of files) {
+    if (!file.path.startsWith("src/")) continue
+
+    for (const specifier of extractImportSpecifiers(file.content)) {
+      if (specifier.startsWith("@/") || specifier.startsWith("./") || specifier.startsWith("../")) {
+        continue
+      }
+
+      const packageName = getPackageName(specifier)
+      if (!packageName || isBuiltinPackage(packageName)) continue
+      packages.add(packageName)
+    }
+  }
+
+  return [...packages]
+}
+
+function extractImportSpecifiers(content: string): string[] {
+  const specifiers = new Set<string>()
+  const importPatterns = [/\bfrom\s+["']([^"']+)["']/g, /\bimport\s+["']([^"']+)["']/g]
+
+  for (const pattern of importPatterns) {
+    for (const match of content.matchAll(pattern)) {
+      specifiers.add(match[1])
+    }
+  }
+
+  return [...specifiers]
+}
+
+function getPackageName(specifier: string): string | null {
+  if (!specifier) return null
+  if (specifier.startsWith("@")) {
+    const [scope, name] = specifier.split("/")
+    return scope && name ? `${scope}/${name}` : null
+  }
+
+  const [name] = specifier.split("/")
+  return name || null
+}
+
+function isBuiltinPackage(packageName: string): boolean {
+  return packageName === "bun" || packageName === "node" || packageName === "path"
 }
 
 function addManifestDeps(catalog: Map<string, string>, manifest: PackageManifest): void {

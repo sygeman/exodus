@@ -3,10 +3,6 @@ import { useT } from "@exodus/edem-vue"
 
 const t = useT()
 
-function getInitials(name: string): string {
-  return name.slice(0, 2).toUpperCase()
-}
-
 import { useRouter } from "vue-router"
 import { ref, watch } from "vue"
 import { useProjects, useCreateItem } from "@/hooks"

@@ -7,8 +7,6 @@ function handleNavigatedebug_flows() {
   router.push("/debug/flows")
 }
 
-// TODO: implement formatDuration
-
 import { computed, ref, watch, shallowRef, onMounted, onUnmounted } from "vue"
 import { useFlow, useFlowRuns, useDeleteRuns, useRunFlow } from "@/hooks"
 import { edem } from "@/edem"
