@@ -1,3 +1,22 @@
+# [1.14.0](https://github.com/sygeman/exodus/compare/v1.13.0...v1.14.0) (2026-05-19)
+
+
+### Bug Fixes
+
+* **edem-codegen:** close IdeaPage parity slice ([9f5b1e6](https://github.com/sygeman/exodus/commit/9f5b1e616be035b8c23047201dcd1988094f553b))
+* **edem-codegen:** improve manifest page parity generation ([2d6da9c](https://github.com/sygeman/exodus/commit/2d6da9cac73db2136cafe13e813d93081b9d1903))
+* **edem-codegen:** reduce flow page parity gaps ([3f341c5](https://github.com/sygeman/exodus/commit/3f341c560a910b5d3e4ee114502da76e36508387))
+* **edem-codegen:** reduce parity noise for manifest pages ([134d242](https://github.com/sygeman/exodus/commit/134d24236ebc5bab0595891811ac43ea0449a169))
+* **edem-codegen:** reduce project page parity gaps ([2005509](https://github.com/sygeman/exodus/commit/2005509cfce81e6eb57d17a651d5444194d5eb78))
+* **edem-codegen:** sync shared runtime files into generated app ([6925279](https://github.com/sygeman/exodus/commit/6925279f06e7bedab372527c2131e347474ec8a5))
+
+
+### Features
+
+* **edem-codegen:** add page wrappers and manifest action helpers ([2c47cf0](https://github.com/sygeman/exodus/commit/2c47cf0bfd2c69a93f6b38533e8f2c90cf689669))
+
+
+
 # [1.13.0](https://github.com/sygeman/exodus/compare/v1.12.0...v1.13.0) (2026-05-19)
 
 
@@ -44,16 +63,6 @@
 ### Bug Fixes
 
 * **exodus:** install script fixes and CI test workflow ([3101618](https://github.com/sygeman/exodus/commit/3101618b2e48ba2d8fbeb6a74904c9ad11e5637b))
-
-
-
-# [1.10.0](https://github.com/sygeman/exodus/compare/v1.9.0...v1.10.0) (2026-05-15)
-
-
-### Features
-
-* **exodus:** add edem-manifests and compare script ([2b2739c](https://github.com/sygeman/exodus/commit/2b2739cfb9a9f82579700c414948063a3f58de10))
-* **exodus:** add rawScript to all component manifests ([3ded4f7](https://github.com/sygeman/exodus/commit/3ded4f78d66ec6cf3a27254776e4732cf5dbb95d))
 
 
 
