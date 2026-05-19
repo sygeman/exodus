@@ -143,7 +143,6 @@ const TRIGGER_TYPE_OPTIONS = [
   { label: "Manual", value: "manual" },
   { label: "Event", value: "event" },
   { label: "Schedule", value: "schedule" },
-  { label: "Webhook", value: "webhook" },
 ]
 
 const OPERATOR_OPTIONS = [

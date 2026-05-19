@@ -46,7 +46,6 @@ type Flow = {
 | `event` | Реакция на системное событие | `event`, `filter?` |
 | `schedule` | По расписанию | `every` (Nm/Nh/Nd/Nw), `at?`, `days?` |
 | `manual` | Ручной запуск | — |
-| `webhook` | HTTP вызов | `path` |
 
 ### FlowNode
 
@@ -615,7 +614,7 @@ import {
   flowsModule,        // основной модуль
   registerAction,     // регистрация action handlers
   startScheduler,     // запуск schedule триггеров
-  startDispatcher,    // запуск event/webhook триггеров
+  startDispatcher,    // запуск event триггеров
   parseEvery,         // парсинг "15m" → миллисекунды
   matchesSchedule,    // проверка расписания
   validateFlow,       // валидация структуры flow
@@ -656,13 +655,12 @@ scheduler.stop()
 ```typescript
 import { startDispatcher } from "@exodus/edem-flows"
 
-const { emit, triggerWebhook } = await startDispatcher(flowsAPI, dataAPI)
+const { emit } = await startDispatcher(flowsAPI, dataAPI)
 ```
 
-Создаёт индексы event и webhook триггеров. Слушает события `itemCreated`/`itemUpdated`/`itemDeleted` от data модуля.
+Создаёт индексы event триггеров. Слушает события `itemCreated`/`itemUpdated`/`itemDeleted` от data модуля.
 
 - `emit(name, payload)` — триггер event-based flows
-- `triggerWebhook(path, payload)` — триггер webhook-based flows
 - `stop()` — отписывается от всех событий и очищает индексы
 
 ### parseEvery

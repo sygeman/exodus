@@ -5,18 +5,13 @@ interface FlowItem {
 
 interface EventFlowEntry {
   flowId: string
-  trigger: EventTrigger | WebhookTrigger
+  trigger: EventTrigger
 }
 
 interface EventTrigger {
   type: "event"
   event: string
   filter?: Record<string, unknown>
-}
-
-interface WebhookTrigger {
-  type: "webhook"
-  path: string
 }
 
 interface FlowsAPI {
@@ -43,14 +38,12 @@ interface DataItemEvent {
 }
 
 const eventFlows = new Map<string, EventFlowEntry[]>()
-const webhookFlows = new Map<string, EventFlowEntry[]>()
 let flowsRef: FlowsAPI | null = null
 
 import { withRetry } from "./retry"
 
 function rebuildIndex(items: FlowItem[]): void {
   eventFlows.clear()
-  webhookFlows.clear()
   for (const item of items) {
     const trigger = item.data.trigger as Record<string, unknown> | undefined
     if (trigger?.type === "event") {
@@ -66,18 +59,6 @@ function rebuildIndex(items: FlowItem[]): void {
       const existing = eventFlows.get(eventName) ?? []
       existing.push(entry)
       eventFlows.set(eventName, existing)
-    } else if (trigger?.type === "webhook") {
-      const path = trigger.path as string
-      const entry: EventFlowEntry = {
-        flowId: item.id,
-        trigger: {
-          type: "webhook",
-          path,
-        },
-      }
-      const existing = webhookFlows.get(path) ?? []
-      existing.push(entry)
-      webhookFlows.set(path, existing)
     }
   }
 }
@@ -107,31 +88,14 @@ function triggerFlows(eventName: string, triggerData: Record<string, unknown>): 
   }
 }
 
-function triggerWebhook(path: string, payload: Record<string, unknown>): void {
-  if (!flowsRef) return
-
-  const entries = webhookFlows.get(path)
-  if (!entries) return
-
-  for (const entry of entries) {
-    withRetry(
-      () => flowsRef!.runFlow({ flow_id: entry.flowId, trigger_data: payload }),
-      "dispatcher",
-      `run flow ${entry.flowId}`,
-    ).catch(() => {})
-  }
-}
-
 export async function startDispatcher(
   flows: FlowsAPI,
   data: DataAPI,
 ): Promise<{
   emit: (name: string, payload: Record<string, unknown>) => void
-  triggerWebhook: (path: string, payload: Record<string, unknown>) => void
   stop: () => void
 }> {
   eventFlows.clear()
-  webhookFlows.clear()
   flowsRef = flows
 
   const { items } = await data.queryItems({ collection_id: "flows" })
@@ -163,16 +127,11 @@ export async function startDispatcher(
     triggerFlows(`item:deleted:${item.collection_id}`, { item })
   })
 
-  console.log(
-    `[flows:dispatcher] Watching ${eventFlows.size} event triggers, ${webhookFlows.size} webhook triggers`,
-  )
+  console.log(`[flows:dispatcher] Watching ${eventFlows.size} event triggers`)
 
   return {
     emit(name: string, payload: Record<string, unknown>): void {
       triggerFlows(name, payload)
-    },
-    triggerWebhook(path: string, payload: Record<string, unknown>): void {
-      triggerWebhook(path, payload)
     },
     stop() {
       unsubFlowCreated()
@@ -183,7 +142,6 @@ export async function startDispatcher(
       unsubItemDeleted()
       flowsRef = null
       eventFlows.clear()
-      webhookFlows.clear()
       console.log("[flows:dispatcher] Stopped")
     },
   }

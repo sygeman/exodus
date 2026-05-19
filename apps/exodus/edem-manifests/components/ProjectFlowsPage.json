@@ -18,8 +18,7 @@
     "TRIGGER_LABELS": {
       "event": "Event",
       "schedule": "Schedule",
-      "manual": "Manual",
-      "webhook": "Webhook"
+      "manual": "Manual"
     }
   },
   "flows": {

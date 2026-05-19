@@ -19,10 +19,6 @@ export const triggerSchema = z.discriminatedUnion("type", [
   z.object({
     type: z.literal("manual"),
   }),
-  z.object({
-    type: z.literal("webhook"),
-    path: z.string(),
-  }),
 ])
 
 export type ScheduleTrigger = z.infer<typeof triggerSchema> & { type: "schedule" }

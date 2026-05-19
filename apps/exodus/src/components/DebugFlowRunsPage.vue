@@ -259,7 +259,6 @@ function formatJson(obj: unknown) {
 function triggerTypeLabel(type: string) {
   const map: Record<string, string> = {
     schedule: t({ en: "Schedule", ru: "По расписанию" }),
-    webhook: t({ en: "Webhook", ru: "Вебхук" }),
     event: t({ en: "Event", ru: "Событие" }),
     manual: t({ en: "Manual", ru: "Ручной" }),
   }

@@ -57,7 +57,6 @@ const TRIGGER_LABELS: Record<string, string> = {
   event: "Event",
   schedule: "Schedule",
   manual: "Manual",
-  webhook: "Webhook",
 }
 
 const KIND_LABELS: Record<string, string> = {

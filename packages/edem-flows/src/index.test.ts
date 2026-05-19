@@ -259,16 +259,6 @@ describe("edem-flows", () => {
         expect(flow.trigger.at).toBe("09:00")
       }
     })
-
-    it("should support webhook trigger", async () => {
-      const { flow_id } = await edem.flows.createFlow({
-        name: "Webhook Flow",
-        trigger: { type: "webhook", path: "/hooks/my-flow" },
-      })
-
-      const { flow } = await edem.flows.getFlow({ flow_id })
-      expect(flow?.trigger?.type).toBe("webhook")
-    })
   })
 
   describe("runFlow - last_run_at", () => {

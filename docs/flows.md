@@ -28,7 +28,7 @@ Flow не должен быть «любым графом из любых нод
 
 - `ui-action` — реакция на UI-события
 - `domain` — бизнес-операции и orchestration без UI-specific effects
-- `system` — scheduler/webhook/platform/background behavior
+- `system` — scheduler/platform/background behavior
 
 ## Runtime profile
 
@@ -103,7 +103,7 @@ Flow должен иметь явные boundary-точки.
 
 - `ui-action` использует UI event или ручной запуск из screen runtime
 - `domain` обычно использует `manual`, `event` или вызов из другого flow
-- `system` использует `schedule`, `webhook`, `event`
+- `system` использует `schedule`, `event`
 
 ## Контекст выполнения
 
@@ -196,7 +196,6 @@ Dispatcher отвечает за маршрутизацию событий в п
 
 - data/system events -> `domain` / `system`
 - UI events -> `ui-action`
-- webhook paths -> `system`
 
 Для UI flow dispatcher может быть частью screen runtime, а не только отдельного серверного процесса.
 

@@ -26,7 +26,6 @@ export type FlowTrigger =
   | { type: "manual" }
   | { type: "event"; event: string; filter?: Record<string, unknown> }
   | { type: "schedule"; every: string; at?: string; days?: string[] }
-  | { type: "webhook"; path: string }
 
 export type StoredFlowNode = {
   id: string
@@ -157,12 +156,6 @@ export function getTriggerNodeData(
           days: nextTrigger.days ?? [],
         },
       }
-    case "webhook":
-      return {
-        nodeType: NodeType.trigger,
-        triggerType: nextTrigger.type,
-        config: { path: nextTrigger.path },
-      }
     case "manual":
     default:
       return {
@@ -201,11 +194,6 @@ export function deriveTriggerFromNodes(
         days: Array.isArray(config.days)
           ? config.days.filter((day): day is string => typeof day === "string")
           : undefined,
-      }
-    case "webhook":
-      return {
-        type: "webhook",
-        path: typeof config.path === "string" ? config.path : "",
       }
     case "manual":
     default:

@@ -4,11 +4,10 @@ import { getEdem, setupTests } from "./setup"
 
 describe("dispatcher", () => {
   setupTests()
-  it("startDispatcher returns emit and triggerWebhook", async () => {
+  it("startDispatcher returns emit", async () => {
     const edem = getEdem()
-    const { emit, triggerWebhook } = await startDispatcher(edem.flows as any, edem.data as any)
+    const { emit } = await startDispatcher(edem.flows as any, edem.data as any)
     expect(typeof emit).toBe("function")
-    expect(typeof triggerWebhook).toBe("function")
   })
 
   it("dispatcher triggers flow on matching event", async () => {
@@ -67,32 +66,6 @@ describe("dispatcher", () => {
 
     const { runs } = await edem.flows.listRuns({})
     expect(runs).toHaveLength(0)
-  })
-
-  it("dispatcher triggers webhook flow", async () => {
-    const edem = getEdem()
-    await edem.flows.createFlow({
-      name: "Webhook Flow",
-      trigger: { type: "webhook", path: "/hooks/deploy" },
-      nodes: [
-        { id: "t", type: "trigger", position: { x: 0, y: 0 } },
-        {
-          id: "out",
-          type: "transform",
-          position: { x: 100, y: 0 },
-          data: { field: "deployed", operation: "set", value: true },
-        },
-      ],
-      edges: [{ id: "e1", source: "t", target: "out" }],
-    })
-
-    const { triggerWebhook } = await startDispatcher(edem.flows as any, edem.data as any)
-    triggerWebhook("/hooks/deploy", { repo: "exodus" })
-
-    await new Promise((r) => setTimeout(r, 50))
-
-    const { runs } = await edem.flows.listRuns({})
-    expect(runs.length).toBeGreaterThanOrEqual(1)
   })
 
   it("dispatcher multiple flows for same event", async () => {
