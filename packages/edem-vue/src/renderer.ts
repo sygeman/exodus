@@ -1,4 +1,12 @@
-import { h, Teleport, Transition, type VNode, type Component, type Ref } from "vue"
+import {
+  h,
+  Teleport,
+  Transition,
+  resolveDynamicComponent,
+  type VNode,
+  type Component,
+  type Ref,
+} from "vue"
 import type { ComponentNode, Translation, EventBinding } from "@exodus/edem-ui"
 import type { TypedItem } from "./types"
 
@@ -125,9 +133,47 @@ function resolveChildren(
   }
 
   if (Array.isArray(children)) {
-    return children
-      .map((child) => renderNode(child, registry, ctx, buildContext))
-      .filter((v): v is VNode => v !== null)
+    const nodes: VNode[] = []
+
+    for (let index = 0; index < children.length; index++) {
+      const child = children[index]
+
+      if (child.if !== undefined) {
+        const chain = [child]
+        let cursor = index + 1
+        while (cursor < children.length) {
+          const next = children[cursor]
+          if (next.elseIf !== undefined || next.else === true) {
+            chain.push(next)
+            cursor++
+            continue
+          }
+          break
+        }
+
+        for (const candidate of chain) {
+          const rendered = renderNode(candidate, registry, ctx, buildContext)
+          if (rendered) {
+            nodes.push(rendered)
+            break
+          }
+        }
+
+        index = cursor - 1
+        continue
+      }
+
+      if (child.elseIf !== undefined || child.else === true) {
+        continue
+      }
+
+      const rendered = renderNode(child, registry, ctx, buildContext)
+      if (rendered) {
+        nodes.push(rendered)
+      }
+    }
+
+    return nodes
   }
 
   return undefined
@@ -227,7 +273,7 @@ export function renderNode(
   }
 
   // ── Resolve component ────────────────────────────────────────────────
-  const component = registry[node.component] ?? node.component
+  const component = registry[node.component] ?? resolveDynamicComponent(node.component)
 
   // ── Props ────────────────────────────────────────────────────────────
   const evalCtx = getCtx()

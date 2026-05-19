@@ -22,6 +22,13 @@ export interface SingletonQuery {
 
 export type ManifestQuery = ComponentQuery | SingletonQuery
 
+/**
+ * Transitional component-local action model.
+ *
+ * Target architecture moves screen behavior into flow manifests and keeps
+ * `actions` only as a migration layer while existing manifests are being moved
+ * to `event -> flow` bindings.
+ */
 export type ManifestActionStep =
   | { type: "guard"; condition: string; unless?: boolean }
   | { type: "set-state"; state: string; value: unknown }
@@ -86,6 +93,11 @@ export interface ComponentNode {
   state?: Record<string, unknown>
   constants?: Record<string, unknown>
   computed?: Record<string, string>
+  /**
+   * @deprecated Target architecture moves screen behavior to flow manifests.
+   * Keep for migration while existing component manifests are converted from
+   * component-local actions to `event -> flow` bindings.
+   */
   actions?: Record<string, ManifestAction>
 }
 
@@ -101,9 +113,22 @@ export interface DataBinding {
 }
 
 export type FlowEvent = { flow: string; input?: Record<string, unknown> }
+/**
+ * @deprecated Transitional event form. Prefer `flow` bindings and move CRUD
+ * behavior into UI flows instead of binding events directly to ad-hoc actions.
+ */
 export type ActionEvent = { action: string; collection?: string; data?: Record<string, unknown> }
+/**
+ * @deprecated Transitional event form. Prefer navigation as a UI flow effect.
+ */
 export type NavigateEvent = { navigate: string }
 export type ExpressionEvent = { expression: string }
+/**
+ * Target event model is `event -> flow`.
+ *
+ * `action` and `navigate` remain here only for backward compatibility with the
+ * current manifest set during migration.
+ */
 export type EventBinding = FlowEvent | ActionEvent | NavigateEvent | ExpressionEvent
 
 export interface Route {
@@ -125,6 +150,8 @@ export const flowEventSchema = z.object({
   input: z.record(z.string(), z.unknown()).optional(),
 })
 
+// Transitional schemas kept for backward compatibility while manifests migrate
+// toward the target `event -> flow` contract.
 export const actionEventSchema = z.object({
   action: z.string(),
   collection: z.string().optional(),

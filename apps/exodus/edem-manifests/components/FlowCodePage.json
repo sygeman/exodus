@@ -12,19 +12,9 @@
     "copied": false
   },
   "computed": {
-    "flow": "{{ flows.value.find((entry) => entry.id === route.params.flowId) ?? null }}",
-    "loading": "{{ flowsLoading.value }}",
-    "manifest": "{{ flow.value ? JSON.stringify(flow.value, null, 2) : '' }}"
-  },
-  "actions": {
-    "copyToClipboard": {
-      "steps": [
-        { "type": "guard", "condition": "{{ manifest.value }}" },
-        { "type": "clipboard-write", "text": "{{ manifest.value }}" },
-        { "type": "set-state", "state": "copied", "value": true },
-        { "type": "set-timeout-state", "state": "copied", "value": false, "delay": 2000 }
-      ]
-    }
+    "loading": "{{ flowsLoading }}",
+    "flow": "{{ flows.find((entry) => entry.id === route.params.flowId) ?? null }}",
+    "manifest": "{{ flow ? JSON.stringify(flow.data, null, 2) : '' }}"
   },
   "props": { "class": "flex min-h-0 flex-1 flex-col" },
   "children": [
@@ -66,7 +56,7 @@
                 "icon": "{{ copied ? 'i-lucide-check' : 'i-lucide-copy' }}",
                 "class": "absolute top-3 right-3"
               },
-              "events": { "click": { "action": "copyToClipboard" } }
+              "events": { "click": { "flow": "flowCode.copyToClipboard" } }
             }
           ]
         }

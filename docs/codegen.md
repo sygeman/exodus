@@ -1,80 +1,166 @@
 # Слой генерации (Codegen)
 
-Build-time трансформация манифестов в готовый код.
+Build-time слой подготовки manifests, metadata и runtime glue. Codegen остаётся важной частью системы, но не является целевой машиной генерации экранных `.vue`-страниц.
 
 ← [Edem](./edem.md) · Реализация: [edem-codegen](../packages/edem-codegen/README.md)
 
+## Роль слоя
+
+Codegen нужен для того, чтобы подготовить приложение к runtime-исполнению manifests:
+
+- собрать manifests
+- построить `IR`
+- провалидировать контракты
+- подготовить metadata для runtime
+- собрать route tables и registry metadata
+- подготовить platform glue
+
+Целевая архитектура self-hosting не должна зависеть от generated `.vue`-экранов.
+
 ## Pipeline
 
+```text
+Манифесты -> Парсинг -> IR -> Валидация -> Runtime Artifacts
 ```
-Манифесты → Парсинг → IR → Валидация → Трансформации → Файлы
-```
 
-1. **Парсинг** — чтение манифестов, построение типизированного промежуточного представления (IR)
-2. **Валидация** — проверка перекрёстных ссылок (маршруты → компоненты, компоненты → коллекции, потоки → ноды, шаблоны → поля)
-3. **Трансформации (stages)** — каждый stage генерирует подмножество файлов:
-   - Хранилище и data-слой
-   - Бизнес-логика и bootstrap потоков
-   - UI-компоненты из JSON-деревьев
-   - Конфигурация платформы
-   - Конфигурация сборки
-4. **Сборка зависимостей** — автоматическое объявление внешних и внутренних зависимостей
-5. **Post-processing** — копирование манифестов, ресурсов, скриптов
+Где runtime artifacts могут включать:
 
-## Генерация компонентов
+- manifest bundles
+- type artifacts
+- route metadata
+- component registry metadata
+- wrapper metadata
+- platform/runtime bootstrap files
 
-Самая сложная трансформация. JSON-дерево рекурсивно преобразуется в компоненты целевого фреймворка:
+## Что codegen обязан делать
 
-- Имена компонентов → импорты
-- Свойства → пропсы (с разрешением шаблонов)
-- События → обработчики (с генерацией функций)
-- Привязки данные → реактивные запросы
-- Условия → условные конструкции
-- Именованные слоты → slot API
+1. **Парсинг**
+- читать UI, flow, route, data, asset manifests
+- строить типизированное промежуточное представление
 
-Codegen не должен пытаться реализовывать сложные компоненты заново. Его задача — сгенерировать orchestration-код вокруг них: imports, registry, props mapping, bindings, slots, routing и state glue code.
+2. **Валидация**
+- проверять перекрёстные ссылки
+- валидировать contracts для state, queries, flows, wrappers и layouts
+- падать раньше runtime там, где нарушение можно поймать на build-time
 
-## Генерация обёрток над внешними компонентами
+3. **Сборка runtime metadata**
+- route tables
+- component registry declarations
+- wrapper import metadata
+- type-safe manifest bundles
 
-Один из ключевых сценариев codegen — подключение существующих компонентов из npm-пакетов или внутренних пакетов монорепы. Для такого компонента pipeline должен уметь:
+4. **Platform glue**
+- bootstrap runtime
+- platform-specific configuration
+- packaging metadata
 
-- сгенерировать корректные imports
-- подключить компонент в registry рендерера
-- передать props и slots
-- сопоставить events с Edem-actions, flows и navigation
-- при необходимости подключить связанные assets или framework-specific adapters
+## Что codegen не должен быть обязан делать
 
-Это позволяет Edem опираться на зрелые существующие UI-пакеты вместо попытки выразить всю сложность интерфейса внутри собственного DSL.
+- генерировать экранные `.vue`-страницы как основную форму исполнения
+- генерировать bespoke imperative handlers для экранной логики
+- подменять screen runtime большим количеством framework-specific glue code
+- повторно реализовывать сложные внешние компоненты
 
-## Генерация composable-ов
+## IR
 
-Для каждой коллекции:
+IR должен выражать фактический runtime contract, а не только удобства текущей генерации.
 
-- Reactive-обёртка над CRUD-операциями
-- Автоматические подписки на изменения
-- Пагинация, фильтрация, поиск (на основе метаданных коллекций)
+Минимально IR должен уметь хранить:
 
-Для UI self-hosting этого недостаточно: codegen также должен уметь генерировать базовый glue code для локального state, route-derived значений, query options и event handlers, не подменяя собой реальный runtime внешних компонентов.
+- component tree
+- routes, layouts и shell metadata
+- query/state/computed declarations
+- event -> flow bindings
+- wrapper contracts
+- flow profile metadata
+- platform metadata
 
-## Генерация platform-кода
+## Валидация
 
-На основе feature flags:
+Validation должна проверять не только структуру файлов, но и архитектурный контракт.
 
-- Логгер, persistence, system detection, updater
+Примеры:
 
-## Генерация shell и layouts
+- route ссылается на существующий экран или layout
+- UI event ссылается на существующий flow
+- wrapper contract совместим с declared props/events/model
+- `ui-action` flow не использует запрещённые node types
+- layout и screen composition корректны для target runtime
 
-Отдельная часть pipeline — генерация shell-уровня приложения:
+## Wrapper Model
 
-- `App.vue` и корневого composition tree
-- router-конфигурации
-- nested layouts и route shells
-- shared navigation wrappers
+Codegen должен понимать first-class metadata внешних компонентов:
 
-Для self-hosting приложений вроде Exodus layout-слой так же важен, как и leaf-pages: без него манифесты не могут выразить полную структуру приложения.
+- `source`
+- `export`
+- `name`
+- `props`
+- `events`
+- `model`
+- `slots`
+- optional renderer/platform metadata
+
+Это позволяет runtime использовать npm/internal components как black-box building blocks без генерации их внутренней логики.
+
+## Route, Shell и Layout Metadata
+
+Codegen должен уметь собирать:
+
+- route tables
+- nested layout relations
+- shell-level composition metadata
+- navigation metadata, если она нужна runtime
+
+Но shell/layout не обязаны материализоваться как generated `.vue`-files. Целевой результат — корректная runtime-композиция.
+
+## Flow Metadata
+
+Codegen должен подготавливать flow artifacts для runtime:
+
+- flow manifests
+- profile metadata (`ui-action`, `domain`, `system`)
+- node capability metadata
+- validation artifacts
+
+Ключевая задача — не породить handler-код, а обеспечить runtime достаточной структурированной информацией для исполнения поведения.
+
+## Runtime-first следствие
+
+Если экран целиком описан через:
+
+- `ui manifest`
+- `flow manifest`
+- wrapper registry
+
+то codegen не обязан производить page-SFC. Он должен произвести всё необходимое для честного runtime-исполнения.
+
+## Migration Tooling
+
+На переходном этапе codegen может продолжать поддерживать generated output и сравнение с reference app.
+
+Это допустимо как миграционный инструмент для:
+
+- сравнения coverage
+- поиска schema/runtime gap
+- контроля регрессий в переходный период
+
+Но generated output не должен диктовать целевую архитектуру.
+
+## Compare и generated app
+
+`compare.ts` и `apps/exodus-generated` полезны для миграции, но не являются определением self-hosting.
+
+Их задача:
+
+- помогать локализовать пробелы
+- измерять миграционный прогресс
+- контролировать совпадение там, где это всё ещё важно
+
+Их не задача:
+
+- определять основную архитектурную форму экрана
+- закреплять generated `.vue` как обязательный output
 
 ## Ключевое свойство
 
-IR не привязан к языку. Один и тот же IR может генерировать код на разных языках и для разных фреймворков.
-
-Практическая цель — не «сгенерировать всё любой ценой», а выразить приложение через манифесты и автоматически собрать рабочий orchestration-код вокруг базовых UI-концепций и внешних компонентов.
+Практическая цель codegen — не «сгенерировать всё любой ценой», а подготовить manifests и runtime contract так, чтобы приложение собиралось и исполнялось честно, предсказуемо и без скрытого imperative glue.

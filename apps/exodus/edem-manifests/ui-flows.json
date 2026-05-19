@@ -1,0 +1,55 @@
+{
+  "flows": [
+    {
+      "id": "flowCode.copyToClipboard",
+      "name": "Flow Code Copy To Clipboard",
+      "trigger": { "type": "manual" },
+      "nodes": [
+        { "id": "trigger", "type": "trigger", "position": { "x": 0, "y": 0 } },
+        {
+          "id": "guardManifest",
+          "type": "guard",
+          "position": { "x": 180, "y": 0 },
+          "data": { "condition": "manifest" }
+        },
+        {
+          "id": "copy",
+          "type": "ui:clipboard-write",
+          "position": { "x": 360, "y": 0 },
+          "data": { "text": "{{ manifest }}" }
+        },
+        {
+          "id": "setCopied",
+          "type": "ui:set-state",
+          "position": { "x": 540, "y": 0 },
+          "data": { "state": "copied", "value": true }
+        },
+        {
+          "id": "resetCopied",
+          "type": "ui:set-timeout-state",
+          "position": { "x": 720, "y": 0 },
+          "data": { "state": "copied", "value": false, "delay": 2000 }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": { "x": 900, "y": 0 },
+          "data": { "value": "{{ manifest }}" }
+        }
+      ],
+      "edges": [
+        { "id": "e1", "source": "trigger", "target": "guardManifest" },
+        { "id": "e2", "source": "guardManifest", "sourceHandle": "true", "target": "copy" },
+        { "id": "e3", "source": "copy", "target": "setCopied" },
+        { "id": "e4", "source": "setCopied", "target": "resetCopied" },
+        { "id": "e5", "source": "resetCopied", "target": "output" }
+      ],
+      "meta": {
+        "profile": "ui-action",
+        "runtime": "client",
+        "screen": "FlowCodePage",
+        "uiTrigger": { "type": "ui-event", "event": "click" }
+      }
+    }
+  ]
+}

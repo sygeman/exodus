@@ -1,515 +1,474 @@
 # План Self-Hosting UI
 
-Рабочий план доведения `edem-codegen` и UI-манифестов до состояния, где `Exodus` может собирать свой интерфейс сам из `edem-manifests`.
+Рабочий план перевода `Exodus` к честной self-hosting модели, где экран описывается через `ui manifest`, поведение описывается через `flow manifest`, а runtime собирает экран без generated `.vue`-страниц.
 
 ← [Edem](./edem.md) · [UI-слой](./ui.md) · [Codegen](./codegen.md)
 
 ## Цель
 
-Цель этапа — не переизобрести UI-фреймворк, а сделать UI-манифесты достаточно выразительными для описания:
+Целевое состояние:
 
-- композиции экранов
-- базовой локальной логики
-- route/layout shell
-- привязки к данным и flows
-- обёрток над внешними компонентами
+- `Exodus` не использует hand-written или generated `.vue`-экраны как основную форму описания UI
+- экран описывается через `ui manifest`
+- логика экрана описывается через `flow manifest`
+- сложные интерактивные системы подключаются как внешние npm/internal packages
+- runtime умеет собрать экран напрямую из манифестов
 
-Сложные интерактивные виджеты не реализуются внутри Edem заново. Они выносятся в пакеты и подключаются в манифестах как обычные компоненты.
+Self-hosting в этом документе означает не `manifest -> codegen -> Vue SFC`, а:
+
+```text
+ui manifest + flow manifest + component registry + runtime -> экран приложения
+```
+
+## Не-цели
+
+- не превращать Edem в ещё один UI-фреймворк общего назначения
+- не выражать через базовый DSL внутренности graph editor, canvas-виджетов и других imperative систем
+- не считать generated `.vue`-страницы целевым результатом
+- не подменять архитектуру красивым parity-отчётом
 
 ## Архитектурная рамка
 
-Edem UI ближе по философии к связке `Astro` + `Storybook`, чем к отдельному приложенческому фреймворку.
+Граница ответственности должна быть жёсткой.
 
-- **Edem описывает orchestration** — дерево компонентов, props, children, slots, состояния, события, данные, маршруты
-- **Пакеты описывают сложность** — graph editors, rich widgets, контекстные меню, canvas-логика, сложные interactive systems
-- **Codegen собирает glue code** — imports, registry, handlers, queries, layouts, shell
-
-## Текущий baseline в репозитории
-
-На момент старта в репозитории уже есть минимальный self-hosting baseline:
-
-- манифесты находятся в `apps/exodus/edem-manifests`
-- генерация запускается только через `bun run codegen` из корня репозитория
-- output-таргет — `apps/exodus-generated`
-- parity-скрипт находится в `packages/edem-codegen/compare.ts`
-- текущий IR и validate живут в `packages/edem-codegen/src/ir.ts` и `packages/edem-codegen/src/validate.ts`
-- app-stage уже умеет генерировать базовые `.vue`-компоненты и `registry.ts` из `packages/edem-codegen/src/stages/app`
-- parity-классификация и её тесты вынесены в `packages/edem-codegen/src/compare.ts` и `packages/edem-codegen/src/compare.test.ts`
-
-## Операционные правила
-
-- единственный поддерживаемый способ регенерации `apps/exodus-generated` — `bun run codegen` из корня репозитория
-- не запускать генерацию обходными путями через `packages/edem-codegen/generate.ts`, `compare.ts --generate` или ручные команды внутри `apps/exodus-generated`, кроме случаев отдельной инфраструктурной отладки с явным решением команды
-- `apps/exodus` остаётся эталоном для parity-сравнения, пока не согласовано иное
-- запрещено подгонять `apps/exodus` под текущий generated output без явного одобрения; сначала нужно исправлять schema, manifests, codegen или parity tooling
-- если возникает соблазн «срезать угол» правкой reference-кода ради зелёного parity, это считается invalid progress, пока не зафиксировано отдельное решение о смене эталона
-
-Это означает, что задача не в создании системы с нуля, а в переходе от базовой генерации leaf-компонентов к полному self-hosting shell-уровня `Exodus`.
-
-## Что сейчас уже есть, а чего не хватает
-
-Уже есть:
-
-- data/flows/routes/assets manifest pipeline
-- базовый IR для компонентов, маршрутов, коллекций, flows, assets, platform
-- генерация компонентных файлов
-- примитивный component registry
-- parity report между `apps/exodus` и `apps/exodus-generated` с группировкой по областям и классификацией причин
-- unit-тесты на parity classification layer
-- генерация `package.json` без `bun add` / `bun install` внутри generated app
-
-Пока не хватает:
-
-- capability inventory по реальным экранам `Exodus`
-- явной schema для local state / computed / actions / queries / layouts
-- wrapper metadata для внешних компонентов
-- route-shell и nested-layout генерации как first-class части pipeline
-- validation для state/action/wrapper contract'ов
-- исправления icon/assets pipeline, чтобы генерация platform icons не падала на generated app
-- реального vertical slice, который проходит parity не только на уровне отчёта, но и на уровне поведения
-
-## Текущий статус реализации
-
-Уже реализовано:
-
-- `compare.ts` больше не является простым файловым `diff`
-- parity-инструмент умеет при необходимости регенерировать `apps/exodus-generated`
-- parity-инструмент умеет выдавать текстовый и `--json` отчёт
-- расхождения группируются по `shell`, `layouts`, `pages`, `assets`, `other`
-- расхождения классифицируются как `schema gap`, `generator gap`, `migration gap`
-- генератор больше не зависит от `bun add` / `bun install` внутри output-проекта
-- pipeline генерации иконок больше не падает из-за относительных `asset`-путей в generated app
-- app-stage умеет прокидывать обычные manifest action handlers в template events, включая события с modifier'ами вроде `keyup.enter`
-- app-stage умеет импортировать локальные manifest-компоненты, используемые внутри других generated components
-- для первого product slice добавлены manifest-компоненты `MenuLayout` и `SettingsLayout`, а `ProjectSettingsPage` переведён на их использование
-- data-stage теперь генерирует shared runtime layer: `src/data-manifest.ts`, `src/edem-client.ts`, `src/hooks.ts`
-- parity-normalization теперь умеет игнорировать несущественные различия в порядке Vue-attrs и переносах внутри `{{ ... }}`
-- parity-normalization теперь также умеет игнорировать несущественные различия между handler-вызовами вида `fn` и `fn($event)`
-- loops по alias и последовательностям вида `[1, 2, 3, ...]` теперь генерируются ближе к reference-template, без лишних wrapper-узлов
-
-Проверено фактическим прогоном:
-
-- `bun run codegen` запускает полный поддерживаемый цикл генерации и parity-проверки
-- текущий parity baseline после последних прогонов `bun run codegen`: `72` расхождений
-
-Текущие известные блокеры:
-
-- shell/layout/page parity по-прежнему в основном находится в зоне `generator gap`
-- часть расхождений относится к `schema gap`, то есть не лечится только правками codegen
-- первая settings chain уже закрыта в parity, а `FlowSettingsPage`, `SettingsAppearance` и `SettingsLanguage` больше не попадают в page-level generator gap
-- page-level parity для `ProjectsListPage`, `ProjectPage`, `ProjectIdeasPage`, `ProjectFlowsPage` и `IdeaPage` тоже закрыт; ближайший page-level остаток теперь сосредоточен в `FlowCodePage`, `FlowEditorPage`, `DebugFlows`, `DebugFlowRuns`, `DebugLogs`
-- settings slice всё ещё не завершён end-to-end: page gap внутри него уже снят, но более широкий остаток по-прежнему сидит в shell/layout коде и reference-only runtime/UI слоях
-
-## Аудит текущего codegen
-
-Перед следующим этапом нужно зафиксировать не только прогресс, но и текущие архитектурные и качественные проблемы. Без этого план дальше будет подталкивать к наращиванию DSL поверх нестабильной основы.
-
-Ключевые проблемы текущей реализации:
-
-- generated app сейчас не является честно self-hosted в строгом смысле, потому что codegen умеет подтягивать shared source-файлы из reference app (`apps/exodus/src`) по локальным import-цепочкам
-- в app-stage уже существует escape hatch в виде `rawScript`, который позволяет встраивать framework-specific Vue/TS-код в manifest-driven компонент и тем самым обходить schema, IR и validate
-- data/runtime слой пока генерируется частично по эвристикам и уже содержит поведенческие риски; например, подписки и загрузка в collection composables не отделены достаточно жёстко, чтобы гарантировать отсутствие повторных subscribe/load циклов
-- shell/layout логика в основном выводится по naming conventions и обходу деревьев (`AppLayout`, `AppSidebar`, `AppTopMenu`), а не по first-class layout/shell schema
-- parity tooling местами скрывает архитектурные различия через normalization, вместо того чтобы измерять только действительно допустимый шум форматирования
-- IR и validate пока слишком бедны относительно заявленного плана: в них ещё нет first-class моделей для local state, computed, queries, wrappers, layout-shell и их контрактной валидации
-- template/script generation всё ещё держится на хрупких эвристиках, включая fallback-порождаемый helper-код и локальные special cases вместо строгой модели
-
-Практический вывод из аудита:
-
-- текущая проблема не только в качестве отдельных функций, а в том, что система одновременно пытается быть чистым manifest-driven codegen, migration bridge, parity-репликой reference app и copier'ом runtime-кода
-- пока эти роли не разведены, новый DSL будет наслаиваться на обходные пути, а не вытеснять их
-- поэтому следующим шагом должен быть не очередной рост schema сам по себе, а фиксация красных линий и удаление ключевых escape hatch'ей
-
-## Красные линии
-
-До следующего product slice нужно принять следующие ограничения:
-
-- не считать copy-from-reference механизм частью целевого self-hosting; это только временный migration bridge, который должен быть явно помечен и постепенно выключен
-- не расширять использование `rawScript`; наоборот, любой новый сценарий сначала должен пытаться пройти через schema/IR/validate
-- не принимать parity-only улучшения, если они лишь маскируют расхождение normalization-логикой вместо исправления generator contract
-- не добавлять новые naming-based special cases для shell/layout/runtime там, где требуется first-class модель
-- не считать экран закрытым, если он собирается только при наличии reference-only glue code вне формального runtime-контракта
-
-## Этап 0. Stabilization
-
-Перед продолжением этапов A-E нужен нулевой этап стабилизации.
-
-Цель этапа — сделать текущее состояние честным и измеримым, чтобы дальнейшая schema-работа происходила поверх реального контракта, а не поверх временных обходов.
-
-Работы этапа:
-
-1. Явно пометить и изолировать migration bridge-механизмы
-2. Перестать рассматривать copy-from-reference как нормальный путь достижения parity
-3. Ограничить или убрать `rawScript` как основной escape hatch
-4. Сделать generated output детерминированным
-5. Отделить допустимую parity-normalization от normalization, скрывающей архитектурный gap
-6. Исправить явные runtime-баги в generated shared layer раньше, чем расширять DSL дальше
-
-Definition of done:
-
-- generated app может собираться без неявного подтягивания runtime-кода из `apps/exodus/src`, кроме явно выделенного migration bridge-слоя с понятным контрактом
-- новый экран нельзя закрыть за счёт `rawScript`, если для него ещё не выражен соответствующий schema-contract
-- parity-отчёт перестаёт быть основным KPI сам по себе и используется только вместе с проверкой происхождения runtime/glue слоёв
-- output генератора стабилен между прогонами при одинаковом входе
-- устранены известные поведенческие баги в generated shared runtime, которые искажают оценку product slice
-
-## Потоки работ
-
-### 1. Capability Inventory
-
-Сначала нужно собрать полную матрицу механизмов UI, которые реально используются в `Exodus`.
-
-Категории:
-
-- view composition
-- props и slots
-- local state
-- computed values
-- effects и lifecycle
-- queries и singleton bindings
-- CRUD и flow events
-- navigation
-- layouts и route shells
-- external component wrappers
-
-Результат этого шага — не список файлов, а список capability-gap между текущей schema и реальным приложением.
-
-Артефакты этапа:
-
-- capability matrix по всем основным экранам `Exodus`
-- список `must-have` возможностей для self-hosting v1
-- список `external-only` сценариев, которые не должны попадать в native DSL
-- список экранов-кандидатов для первой manifest-driven миграции
-
-### 2. Native vs External Boundary
-
-Для каждой capability нужно определить, где она должна жить:
-
-- **Native Edem UI** — универсальные концепции современного UI
-- **External package** — сложная специализированная логика компонента
-
-В native-слой должны входить:
+### UI manifest отвечает за
 
 - component tree
 - props
-- slots
-- conditions
-- loops
-- basic local state
-- computed values
-- data/query bindings
-- CRUD/flow/navigation actions
-- layouts
+- children и slots
+- conditions и loops
+- route/layout composition
+- query declarations
+- local state declarations
+- event -> flow binding
+- wrapper metadata для внешних компонентов
 
-Во внешний пакет должны уходить:
+### Flow manifest отвечает за
+
+- обработку UI-событий
+- guard-логику
+- CRUD и domain-вызовы
+- navigation
+- local UI effects
+- orchestration между UI и domain/system flow
+
+### External packages отвечают за
 
 - graph editors
-- canvas-driven widgets
-- rich imperative interactive systems
-- сложные context-menu engines
-- custom node/edge renderers со своей внутренней логикой
+- canvas/runtime-heavy widgets
+- drag/drop и gesture systems
+- сложные imperative viewers/editors
+- любой специализированный UI со своей внутренней state machine
 
-Артефакты этапа:
+### Runtime отвечает за
 
-- письменная таблица `capability -> native | external`
-- набор правил эскалации, чтобы новые фичи не размывали границу DSL
-- список конкретных компонентов `Exodus`, которые должны жить как wrappers
+- разрешение manifests
+- подъем queries/state/computed
+- routing/layout composition
+- event -> flow execution
+- применение UI effects
+- интеграцию external component registry
 
-### 3. UI Manifest Schema Redesign
+## Ключевой вывод
 
-После инвентаризации нужно доопределить schema UI-манифестов.
+Текущий план self-hosting нельзя дальше вести как codegen-first проект генерации `.vue`-экранов. Генерация может оставаться вспомогательным инструментом, но целевая архитектура должна быть runtime-first.
 
-Обязательные подсистемы:
+Из этого следует:
 
-- **View DSL** — components, props, children, slots, conditions, loops
-- **State DSL** — локальные значения, computed, writable state
-- **Data DSL** — collection queries, singleton bindings, reactive query params, totals, refetch
-- **Actions DSL** — CRUD, flow triggers, navigation, local state updates, payload mapping
-- **Layout DSL** — route shells, nested layouts, sidebar/topbar composition
-- **Wrapper DSL** — external imports, registry, model bindings, slots, component events
+- generated `.vue`-pages больше не являются целевым артефактом
+- `actions` как отдельный component-local mini-runtime не являются целевой моделью
+- `event -> action` не является целевой связью
+- целевая связь: `event -> flow`
 
-Критерий качества schema: типичный экран Exodus должен описываться как манифест orchestration-уровня, без встраивания произвольного framework-specific кода.
+## Что остаётся актуальным из старого плана
 
-Артефакты этапа:
+- необходимость честкого runtime-контракта
+- first-class schema для state, queries, layouts и wrappers
+- capability inventory по реальным экранам `Exodus`
+- boundary между native orchestration и external widgets
+- отказ от copy-from-reference как архитектурного решения
+- сильный `IR` и `validate`
+- проверка прогресса на реальных product slice, а не только на инфраструктуре
 
-- новая или расширенная schema UI-манифестов
-- примеры manifest-описания для минимум одного list-page и одного form-page
-- обновлённый контракт документации в `docs/ui.md` и связанных README
+## Что больше не является целевым направлением
 
-### 4. External Component Wrapper Model
+- наращивание генерации `.vue`-экранов и template handlers
+- достижение page parity как самостоятельная цель
+- shell/layout/page diff как основной KPI self-hosting
+- логика экрана, размазанная между `actions`, generated handlers и reference-компонентами
 
-Это центральная часть всей работы.
+## Текущий baseline
 
-Модель обёртки должна отвечать на вопросы:
+На сегодня в репозитории уже есть полезные строительные блоки, которые можно переиспользовать:
 
-- откуда импортировать компонент
-- как его регистрировать в рендерере
-- какие props он принимает
-- какие events он эмитит
-- какие slots поддерживает
-- есть ли `v-model`-подобные bindings
-- какие assets или adapters нужны рядом
+- манифесты находятся в `apps/exodus/edem-manifests`
+- runtime data/flows hooks уже существуют
+- `edem-ui` уже умеет runtime-рендеринг component tree
+- `edem-flows` уже умеет исполнение flow как отдельный движок
+- `apps/exodus` можно использовать как полигон для runtime-first прототипа
+- `compare.ts` и `apps/exodus-generated` можно использовать как миграционный инструмент, но не как целевую форму системы
 
-Именно эта модель позволяет использовать сложные npm-компоненты внутри Edem без повторной реализации их внутреннего поведения.
+Отдельно важно:
 
-Минимальный контракт wrapper model:
+- `rawScript` больше не должен фигурировать как текущий escape hatch в этом плане
+- если старые упоминания `rawScript` или generated-only glue остались в других документах, их нужно считать историческим контекстом, а не действующей нормой
 
-- `source` — откуда импортируется компонент
-- `export` — default/named export
-- `name` — публичное имя в Edem registry
-- `props` — декларация допустимых props и их типов
-- `events` — перечень событий и форма payload
-- `model` — optional `v-model`-подобные bindings
-- `slots` — поддерживаемые slot'ы
-- `assets` — связанные стили, иконки, адаптеры
-- `renderer` — optional target-specific metadata, если без неё нельзя обойтись
+## Основные проблемы текущего состояния
 
-Артефакты этапа:
+1. Архитектура всё ещё частично мыслится через generated `.vue`-страницы, хотя целевая модель должна быть runtime-first.
+2. UI-логика сейчас размазана между `events`, `actions`, generated handlers и reference-компонентами.
+3. В `Exodus` уже видны повторяющиеся UI-сценарии, которые хорошо ложатся в flow, но пока не имеют общего runtime-контракта.
+4. Сложные widgets пока не оформлены как систематический wrapper boundary.
+5. `compare.ts` и `apps/exodus-generated` полезны для перехода, но начинают искажать приоритеты, если рассматривать их как основной KPI.
 
-- schema wrapper metadata
-- 1-2 референсных wrapper-примера на реальных компонентах `Exodus`
-- правила генерации imports/registry/assets для wrapper'ов
+## Красные линии
 
-### 5. IR and Validation Redesign
+- не считать generated `.vue`-экран конечной целью
+- не вводить новую экранную логику через framework-specific слой, если её можно выразить через manifest + flow
+- не тащить внутренности complex widget в базовый DSL
+- не улучшать parity ценой размытия runtime-контракта
+- не считать экран self-hosted, если его поведение всё ещё зависит от hidden imperative glue вне формального runtime
 
-После стабилизации schema нужно расширить IR и validation.
+## Runtime-first целевая архитектура
 
-IR должен уметь хранить:
+Нужны четыре связных слоя.
 
-- описания layouts
-- описания queries и state
-- imports/registry metadata для внешних компонентов
-- action descriptors
-- route-shell metadata
+### 1. Screen Runtime
 
-Validation должна проверять:
+Единый runtime экрана, который:
 
-- ссылки на компоненты, layouts и routes
-- корректность props/event bindings
-- совместимость wrapper metadata
-- зависимости между state, queries и actions
-- unsupported combinations для target renderer
+- принимает `ui manifest`
+- поднимает `queries`
+- создаёт local `state`
+- вычисляет `computed`
+- собирает `handlers`
+- рендерит дерево через component registry
 
-Артефакты этапа:
+Экран должен собираться без dedicated `.vue`-страницы.
 
-- обновлённые типы в `packages/edem-codegen/src/ir.ts`
-- расширенный validate pipeline в `packages/edem-codegen/src/validate.ts`
-- диагностические ошибки, которые указывают не только место, но и нарушенный контракт
+### 2. Logic Flow Runtime
 
-### 6. Codegen Redesign
+UI-ориентированный runtime логики, который:
 
-Когда schema и IR стабилизированы, pipeline обновляется в таком порядке:
+- принимает flow definitions
+- исполняет `ui-action` flow
+- умеет работать с контекстом экрана
+- вызывает data/domain/system APIs
+- возвращает output и применяет UI effects
 
-1. imports и registry для внешних компонентов
-2. shell-уровень: `App.vue`, router, layouts
-3. leaf-pages и обычные form/list pages
-4. local state, query glue, actions
-5. wrapper integration вокруг сложных компонентов
+Минимальные входные scope для UI-flow:
 
-Codegen должен генерировать orchestration-код, а не заменять внутреннюю реализацию внешних компонентов.
+- `trigger.event`
+- `trigger.item`
+- `trigger.route`
+- `trigger.props`
+- `context.state`
+- `context.queries`
+- `context.helpers`
 
-Артефакты этапа:
+### 3. Wrapper Registry
 
-- генерация imports и registry из wrapper metadata
-- генерация shell-слоя приложения
-- генерация layout-слоя и route nesting
-- генерация action/state/query glue code
-- генерация wrapper integration без ручных вставок в generated app
-- генерация финального `package.json` без runtime-вызовов package manager внутри output-проекта
+Контракт внешних компонентов должен описывать:
 
-### 7. Parity Tooling
+- import source
+- export name
+- публичное registry name
+- props contract
+- events contract
+- model bindings
+- slots
+- optional renderer metadata
 
-`compare.ts` должен стать инструментом контроля прогресса, а не просто файловым `diff`.
+### 4. Domain/System Flow Boundary
 
-Статус: базовая реализация уже сделана.
+UI-flow не должен нести всё на себе.
 
-Он должен:
+Нужны как минимум три класса flow:
 
-- генерировать или проверять наличие `apps/exodus-generated`
-- сравнивать generated и reference по группам: shell, layouts, pages, assets
-- показывать coverage по manifest-driven частям приложения
-- классифицировать расхождения: `schema gap`, `generator gap`, `migration gap`
+- `ui-action`
+- `domain`
+- `system`
 
-Артефакты этапа:
+Типичный паттерн:
 
-- новая версия `packages/edem-codegen/compare.ts`
-- machine-readable parity report
-- человекочитаемый статус по областям приложения
-- unit-тесты на classification и aggregation parity-логики
+```text
+UI event -> ui-action flow -> domain flow/procedure -> UI effect
+```
 
-## Очередность внедрения
+## Что реально должно выражаться через flow
 
-### Этап 0. Stabilization
+По текущим экранам `Exodus` в flow-модель хорошо ложатся:
 
-1. Зафиксировать и изолировать migration bridge-механизмы
-2. Убрать зависимость прогресса от reference-copying и `rawScript`
-3. Исправить детерминизм output и явные runtime-баги shared layer
+- create -> navigate
+- inline field update с guard'ами
+- confirm delete
+- clipboard + transient feedback
+- stopPropagation / preventDefault + business action
+- local modal state
+- route-aware navigation
+
+Типичные экраны-кандидаты:
+
+- `ProjectsListPage`
+- `ProjectIdeasPage`
+- `ProjectFlowsPage`
+- `SettingsAppearance`
+- `SettingsLanguage`
+- `ProjectSettingsPage`
+- `FlowCodePage`
+- большая часть `IdeaPage`
+
+## Что не должно выражаться через базовый flow DSL
+
+- внутренности `FlowEditor`
+- canvas/drag/drop runtime
+- сложная pointer-логика
+- node/edge editor internals
+- большие imperative debug/viewer widgets
+
+Такие вещи должны приходить как external component wrappers.
+
+## Capability inventory
+
+Следующий полезный артефакт не parity-таблица, а capability inventory по реальным экранам.
+
+Нужно собрать матрицу по категориям:
+
+- view composition
+- route/layout composition
+- queries и singleton bindings
+- local state
+- computed values
+- UI actions
+- domain actions
+- UI effects
+- external widget wrappers
+
+Результат inventory должен отвечать на три вопроса:
+
+1. что покрывается runtime-native моделью
+2. что должно быть flow-native
+3. что должно жить только как external component
+
+## Целевая схема UI-контракта
+
+UI manifest должен упроститься до следующей логики:
+
+- UI описывает структуру
+- event binding указывает на `flow`
+- локальный state объявляется, но не исполняется вручную в component-local actions
+
+Целевая event-модель:
+
+```json
+{
+  "events": {
+    "click": {
+      "flow": "projects.create"
+    }
+  }
+}
+```
+
+`actions` как отдельная DSL-модель не являются целевым интерфейсом и должны рассматриваться как переходный слой.
+
+## Целевая схема flow-контракта
+
+Для UI-нужд достаточно начать с профилированных flow.
+
+Минимальные виды:
+
+- `ui-action`
+- `domain`
+- `system`
+
+Минимальные UI-ноды первой версии:
+
+- `guard`
+- `ui:set-state`
+- `ui:set-timeout-state`
+- `ui:navigate`
+- `ui:clipboard-write`
+- `ui:event`
+- `data:create-item`
+- `data:update-item`
+- `data:delete-item`
+- `data:update-singleton`
+- `domain:invoke`
+- `output`
+
+## Роль codegen после смены курса
+
+Codegen не обязательно исчезает, но его роль меняется.
+
+Он остаётся полезен для:
+
+- сборки manifest bundles
+- type artifacts
+- registry metadata
+- route tables
+- platform glue
+- validation pipeline
+- migration tooling
+
+Он не должен оставаться основной машиной производства экранных `.vue`-страниц.
+
+## Роль compare.ts и apps/exodus-generated
+
+Эти инструменты всё ещё полезны, но их статус теперь вспомогательный.
+
+Они нужны для:
+
+- миграционного контроля
+- фиксации coverage уже перенесённых экранов
+- поиска runtime/schema gap на переходном этапе
+
+Они не должны задавать целевую архитектуру.
+
+Практическое следствие:
+
+- parity допустимо использовать как сигнал
+- parity нельзя использовать как главный критерий архитектурной готовности
+
+## План внедрения
+
+### Этап 0. Актуализация направления
+
+1. Зафиксировать runtime-first модель как целевую.
+2. Обновить документы так, чтобы generated `.vue`-pages больше не описывались как целевой output.
+3. Сохранить `apps/exodus-generated` и `compare.ts` только как migration tooling.
 
 Definition of done:
 
-- текущий baseline измеряет реальный codegen contract, а не смесь генерации и обходных путей
-- у каждого оставшегося parity gap понятно происхождение: schema, generator или осознанный migration bridge
-- можно начинать следующий vertical slice без дальнейшего разрастания ad-hoc слоёв
+- целевая архитектура описана как `manifest + runtime`, а не как `manifest -> SFC`
+- документация не предполагает `.vue`-экраны как основную форму self-hosting
 
-### Этап A. Архитектура
+### Этап 1. Capability Inventory
 
-1. Зафиксировать философию `composition + wrappers`
-2. Собрать capability matrix по `Exodus`
-3. Зафиксировать boundary между native Edem UI и external packages
-
-Definition of done:
-
-- понятно, какие возможности блокируют self-hosting прямо сейчас
-- для каждой спорной capability принято решение `native` или `external`
-- выбран первый экран или vertical slice для миграции
-
-### Этап B. Schema
-
-1. Расширить UI schema для state/data/actions/layouts
-2. Спроектировать wrapper model для внешних компонентов
-3. Обновить документацию и контракт UI-манифестов
+1. Пройтись по реальным экранам `Exodus`.
+2. Собрать матрицу сценариев `native UI / ui-flow / external component`.
+3. Выбрать первый runtime-first vertical slice.
 
 Definition of done:
 
-- schema покрывает минимальный набор для первого vertical slice
-- есть хотя бы один валидный manifest-пример нового формата
-- нет необходимости писать framework-specific код внутри manifest'а
+- есть capability matrix
+- выбран стартовый экран и следующий экран после него
+- для спорных сценариев принята граница `runtime-native` vs `external`
 
-### Этап C. Pipeline
+### Этап 2. UI Runtime Prototype в apps/exodus
 
-1. Расширить IR
-2. Переписать validate
-3. Обновить app/vue/codegen stages
-4. Научить pipeline генерировать shell и layout-слой
-
-Definition of done:
-
-- `edem-codegen` собирает vertical slice end-to-end
-- generated output не требует ручной дописки glue code
-- validation падает на некорректных wrapper/state/action связях заранее
-
-### Этап D. Parity
-
-1. Усилить `compare.ts`
-2. Ввести сравнение generated и reference по областям
-3. Сделать отчёт о текущем parity status
+1. Сделать первый `ScreenRuntime` прямо в `apps/exodus`.
+2. Использовать существующие hooks и renderer там, где это возможно.
+3. Проверить, что экран можно собрать без dedicated `.vue`-страницы.
 
 Definition of done:
 
-- parity-инструмент показывает не только diff, но и класс проблемы
-- можно отдельно оценить готовность shell, layouts, pages и assets
-- видно, какие расхождения исправляются schema-работой, а какие миграцией экранов
+- есть рабочий runtime prototype
+- он поднимает state, queries и handlers из manifests
+- он не требует generated page component для первого slice
 
-Статус сейчас:
+### Этап 3. Logic Flow Runtime Prototype
 
-- базовый DoD этапа D уже достигнут
-- этап не закрыт полностью только потому, что parity report ещё не используется как регулярный KPI по конкретным vertical slice
-
-### Этап E. Migration
-
-1. Переносить экраны Exodus на новую schema
-2. Выносить сложные interactive pieces в отдельные пакеты
-3. Подключать их через wrapper model
+1. Сделать `useLogicFlow` или эквивалентный UI runtime adapter.
+2. Реализовать минимальный набор `ui-action` node types.
+3. Проверить контекст `event/item/route/state/queries` на реальном экране.
 
 Definition of done:
 
-- выбранные экраны больше не зависят от ручного UI-кода в `apps/exodus`
-- сложные виджеты подключаются как внешние building blocks
-- parity coverage растёт экран за экраном, а не только на уровне файлового diff
+- UI-логика первого slice исполняется единым flow runtime
+- component-local action runtime больше не нужен для этого slice
+
+### Этап 4. Wrapper Model
+
+1. Формализовать metadata внешних компонентов.
+2. Подключить 1-2 реальных widgets через wrapper contract.
+3. Зафиксировать boundary, который не пускает internal imperative logic в базовый DSL.
+
+Definition of done:
+
+- wrapper contract покрывает реальный компонент
+- сложный widget используется как black-box без попытки описать его внутренности в flow/UI DSL
+
+### Этап 5. Flow Profile System
+
+1. Ввести `ui-action`, `domain`, `system` как first-class профили.
+2. Ограничить доступные ноды и runtime scope по профилю.
+3. Научить validation проверять эти ограничения.
+
+Definition of done:
+
+- flow type влияет на реальный контракт
+- UI-нод нельзя использовать в `domain/system` flow
+
+### Этап 6. Schema и IR Cleanup
+
+1. Упростить UI event contract до `event -> flow`.
+2. Перевести `actions` в переходный слой или убрать их из целевого контракта.
+3. Протянуть новые сущности через schema, IR и validate.
+
+Definition of done:
+
+- UI schema соответствует runtime-first модели
+- документация и типы не расходятся с фактическим runtime
+
+### Этап 7. Migration
+
+Переносить экраны короткими циклами:
+
+1. выбрать экран
+2. описать его `ui manifest`
+3. описать его `flow manifest`
+4. подключить нужные wrappers
+5. собрать экран runtime-способом
+6. только потом обобщать решение
+
+Definition of done:
+
+- каждый перенесённый экран живёт без dedicated `.vue`-страницы
+- сложные части остаются wrapper-based
+- runtime contract не размывается между экранами
 
 ## Первый vertical slice
 
-Чтобы не размазывать работу по всей системе, нужен первый узкий, но полный сценарий. Хороший кандидат должен:
+Рекомендуемый порядок:
 
-- иметь route
-- использовать layout shell
-- читать данные из collection или singleton
-- иметь хотя бы одно локальное состояние
-- вызывать хотя бы одно action или flow
-- не зависеть от самого сложного imperative widget
+1. `FlowCodePage`
+2. `ProjectsListPage`
+3. `IdeaPage`
 
-Цель первого slice:
+Причина:
 
-- проверить schema state/data/actions/layouts на реальном экране
-- проверить, что IR и validate держат этот контракт
-- проверить, что codegen собирает экран без ручной дописки
-- получить baseline для parity-отчёта
+- `FlowCodePage` проверяет guard, clipboard, transient state
+- `ProjectsListPage` проверяет create + navigate
+- `IdeaPage` проверяет form editing, modal state, delete confirm и несколько событий
 
-Выбранный кандидат для первого product slice: `ProjectSettingsPage`.
+Не стоит начинать с:
 
-Почему именно он:
+- `FlowEditorPage`
+- `NodeConfigPanel`
+- сложных debug/runtime widgets
 
-- экран находится на реальном nested route: `/project/:id/settings`
-- использует layout shell через `SettingsLayout`
-- читает данные проекта по route param
-- имеет локальное состояние `deleteModalOpen`
-- выполняет реальные actions: update, delete, navigate
-- остаётся достаточно узким и не зависит от graph/canvas widget'ов
+## Критерии готовности self-hosting v1
 
-Минимальный capability-gap для `ProjectSettingsPage`:
+Версия v1 готова, когда одновременно выполнены условия:
 
-- layout DSL должен уметь описывать nested settings-layout с nav items и page title
-- data DSL должен уметь связывать route params с collection query и derived `project`
-- state DSL должен покрывать локальный modal state
-- actions DSL должен покрывать update field, delete entity, close modal и navigation после delete
-- view DSL должен уметь описывать conditional rendering для `project` / `!loading`
-- wrapper contract должен покрывать используемые `UInput`, `UButton`, `UModal`, `UIcon`
-
-Статус после текущей фазы:
-
-- layout-компоненты `MenuLayout` и `SettingsLayout` уже описаны манифестами
-- `ProjectSettingsPage` уже использует `if` / `elseIf`, modal DSL и обычные manifest actions вместо ручной template-вёрстки только в reference app
-- codegen уже умеет выводить такие handler'ы в template, включая `blur`, `click` и `keyup.enter`
-- generated app теперь воспроизводит и shared runtime layer первого slice через `data-manifest.ts`, `edem-client.ts` и `hooks.ts`
-- первая settings chain уже закрыта в parity: `MenuLayout`, `SettingsLayout` и `ProjectSettingsPage` больше не попадают в page/layout diff
-- `FlowSettingsPage`, `SettingsAppearance`, `SettingsLanguage`, `ProjectsListPage`, `ProjectPage`, `ProjectIdeasPage`, `ProjectFlowsPage` и `IdeaPage` тоже выведены из page-level generator gap, что снизило общий parity baseline до `72`
-- end-to-end parity для settings-кластера ещё не достигнут, потому что помимо закрытого page gap остаются generated shell/layout различия и reference-only runtime/UI слои
-
-До тех пор, пока первый vertical slice не проходит end-to-end, расширять DSL дальше не стоит.
-
-Практический вывод после первых прогонов: отдельный technical slice на генератор и parity tooling уже был нужен и уже реализован. Следующий slice должен быть не инфраструктурным, а продуктовым: один реальный экран `Exodus`, который проходит через route, layout, data binding и action без ручных правок generated app.
-
-## Ближайшие шаги
-
-1. Пройти нулевой stabilization-цикл: зафиксировать все текущие escape hatch'и и пометить, какие из них migration-only
-2. Убрать из ближайшего KPI иллюзию self-hosting за счёт copy-from-reference и `rawScript`
-3. Исправить явные runtime-проблемы shared generated layer, чтобы product slice оценивался по поведению, а не по lucky parity
-4. Только после этого переносить подход на следующий manifest-driven page gap из project/debug семейства экранов
-5. После закрытия следующего экрана добивать layout/shell parity вокруг уже закрытых страниц, а не только сами leaf-pages
-6. Обновлять parity baseline после каждого замкнутого шага и отдельно отмечать, был ли достигнут прогресс без migration bridge
-
-## Порядок реальной реализации
-
-Практически работу лучше вести не слоями в полном отрыве, а короткими замкнутыми циклами:
-
-1. выбрать первый экран
-2. собрать capability-gap именно для него
-3. расширить schema только под этот минимальный набор
-4. протащить изменения через IR, validate и codegen
-5. добиться parity для этого экрана
-6. только после этого обобщать решение на остальные экраны
-
-Такой порядок снижает риск спроектировать слишком широкий DSL без проверки на реальном `Exodus`.
-
-## Критерии готовности этапа
-
-Этап можно считать завершённым, когда выполнены все условия:
-
-- UI-манифесты покрывают базовые универсальные механизмы, реально нужные `Exodus`
-- сложные компоненты выражаются через внешние пакеты и wrappers, а не через ad-hoc ручной код вокруг генератора
-- `edem-codegen` генерирует shell, layouts и manifest-driven pages в согласованном виде
-- `compare.ts` показывает понятный parity report между `apps/exodus` и `apps/exodus-generated`
-- архитектурная граница между native Edem UI и external package logic зафиксирована и не размывается
+- экранные `.vue`-страницы не нужны для manifest-driven экранов
+- UI-логика типовых экранов живёт в flow runtime
+- external widgets подключаются через wrapper model
+- runtime умеет собирать route/layout/page composition напрямую из manifests
+- schema, IR и validate описывают фактический runtime contract
+- migration tooling больше не диктует архитектурные решения
 
 ## Главные риски
 
-- попытка превратить Edem в ещё один UI-фреймворк
-- попытка выразить сложный imperative widget напрямую в базовом DSL
-- расширение schema без жёсткой границы ответственности
-- codegen, который повторно реализует поведение внешних компонентов вместо orchestration вокруг них
+- сохранить generated `.vue` как неявную целевую модель
+- начать тащить сложные widgets в базовый DSL
+- недооценить важность screen runtime и пытаться решить всё одним codegen
+- сохранить две равноправные модели логики: `actions` и `flow`
+- продолжать измерять успех главным образом через parity, а не через честный runtime contract
 
 ## Принцип принятия решений
 
-Если новая задача относится к универсальным концепциям современного UI, она должна идти в Edem schema.
+Если сценарий относится к универсальному orchestration-уровню экрана, он должен выражаться через `ui manifest + flow manifest + runtime`.
 
-Если новая задача относится к специализированной логике конкретного сложного компонента, она должна решаться во внешнем пакете и подключаться в Edem через wrapper model.
+Если сценарий относится к внутренней реализации сложного компонента, он должен жить во внешнем пакете и подключаться через wrapper contract.
