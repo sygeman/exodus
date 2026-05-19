@@ -190,11 +190,11 @@ function checkConditional(
   buildContext: () => Record<string, unknown>,
 ): "render" | "skip" {
   if (node.if !== undefined) {
-    return evalExpr(node.if, buildContext()) ? "render" : "skip"
+    return evaluateConditional(node.if, buildContext()) ? "render" : "skip"
   }
 
   if (node.elseIf !== undefined) {
-    return evalExpr(node.elseIf, buildContext()) ? "render" : "skip"
+    return evaluateConditional(node.elseIf, buildContext()) ? "render" : "skip"
   }
 
   if (node.else === true) {
@@ -202,6 +202,12 @@ function checkConditional(
   }
 
   return "render"
+}
+
+function evaluateConditional(expression: string, context: Record<string, unknown>): boolean {
+  const exact = expression.match(/^\s*\{\{\s*(.+?)\s*\}\}\s*$/)
+  const source = exact ? exact[1] : expression
+  return Boolean(evalExpr(source, context))
 }
 
 // ── Named Slots ──────────────────────────────────────────────────────────────
