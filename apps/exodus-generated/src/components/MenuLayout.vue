@@ -36,7 +36,7 @@ const route = useRoute()
         </RouterLink>
       </nav>
     </aside>
-    <main :class="`w-full flex-1 ${props.mainClass ?? ''}`">
+    <main class="w-full flex-1" :class="props.mainClass ?? ''">
       <slot />
     </main>
   </div>

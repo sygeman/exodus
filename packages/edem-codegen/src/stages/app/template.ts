@@ -371,6 +371,11 @@ export function renderProps(props: Record<string, unknown>, ctx?: ExpressionCont
                 if (splitClassBinding) {
                   return splitClassBinding
                 }
+
+                const splitTemplateLiteralBinding = splitTemplateLiteralClassBinding(singleMatch[1])
+                if (splitTemplateLiteralBinding) {
+                  return splitTemplateLiteralBinding
+                }
               }
               return ` :${attr}="${singleMatch[1]}"`
             }
@@ -526,6 +531,28 @@ function splitStaticClassBinding(expression: string): string | null {
   }
 
   return parts.join("")
+}
+
+function splitTemplateLiteralClassBinding(expression: string): string | null {
+  const trimmed = expression.trim()
+  const match = trimmed.match(/^`([^`]*)\$\{([\s\S]+)\}([^`]*)`$/)
+  if (!match) {
+    return null
+  }
+
+  const staticClass = `${match[1]} ${match[3]}`.replace(/\s+/g, " ").trim()
+  const dynamicExpr = match[2].trim()
+  const parts: string[] = []
+
+  if (staticClass.length > 0) {
+    parts.push(` class="${escapeAttr(staticClass)}"`)
+  }
+
+  if (dynamicExpr.length > 0) {
+    parts.push(` :class="${dynamicExpr}"`)
+  }
+
+  return parts.length > 0 ? parts.join("") : null
 }
 
 function isSequentialIndexArray(items: unknown[]): items is number[] {

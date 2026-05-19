@@ -89,14 +89,14 @@ Edem UI ближе по философии к связке `Astro` + `Storybook`
 Проверено фактическим прогоном:
 
 - `bun run codegen` запускает полный поддерживаемый цикл генерации и parity-проверки
-- текущий parity baseline после последних прогонов `bun run codegen`: `74` расхождений
+- текущий parity baseline после последних прогонов `bun run codegen`: `73` расхождений
 
 Текущие известные блокеры:
 
 - shell/layout/page parity по-прежнему в основном находится в зоне `generator gap`
 - часть расхождений относится к `schema gap`, то есть не лечится только правками codegen
 - первая settings chain уже закрыта в parity, а `FlowSettingsPage`, `SettingsAppearance` и `SettingsLanguage` больше не попадают в page-level generator gap
-- page-level parity для `ProjectsListPage`, `ProjectPage` и `ProjectIdeasPage` тоже закрыт; ближайший page-level остаток теперь сосредоточен в `ProjectFlowsPage`, `IdeaPage`, `FlowCodePage`, `FlowEditorPage`, `DebugFlows`, `DebugFlowRuns`, `DebugLogs`
+- page-level parity для `ProjectsListPage`, `ProjectPage`, `ProjectIdeasPage` и `ProjectFlowsPage` тоже закрыт; ближайший page-level остаток теперь сосредоточен в `IdeaPage`, `FlowCodePage`, `FlowEditorPage`, `DebugFlows`, `DebugFlowRuns`, `DebugLogs`
 - settings slice всё ещё не завершён end-to-end: page gap внутри него уже снят, но более широкий остаток по-прежнему сидит в shell/layout коде и reference-only runtime/UI слоях
 
 ## Потоки работ
@@ -396,7 +396,7 @@ Definition of done:
 - codegen уже умеет выводить такие handler'ы в template, включая `blur`, `click` и `keyup.enter`
 - generated app теперь воспроизводит и shared runtime layer первого slice через `data-manifest.ts`, `edem-client.ts` и `hooks.ts`
 - первая settings chain уже закрыта в parity: `MenuLayout`, `SettingsLayout` и `ProjectSettingsPage` больше не попадают в page/layout diff
-- `FlowSettingsPage`, `SettingsAppearance`, `SettingsLanguage`, `ProjectsListPage`, `ProjectPage` и `ProjectIdeasPage` тоже выведены из page-level generator gap, что снизило общий parity baseline до `74`
+- `FlowSettingsPage`, `SettingsAppearance`, `SettingsLanguage`, `ProjectsListPage`, `ProjectPage`, `ProjectIdeasPage` и `ProjectFlowsPage` тоже выведены из page-level generator gap, что снизило общий parity baseline до `73`
 - end-to-end parity для settings-кластера ещё не достигнут, потому что помимо закрытого page gap остаются generated shell/layout различия и reference-only runtime/UI слои
 
 До тех пор, пока первый vertical slice не проходит end-to-end, расширять DSL дальше не стоит.

@@ -146,7 +146,8 @@ async function handleDelete(e: Event, flowId: string) {
           </div>
         </div>
         <span
-          :class="`inline-flex h-5 items-center rounded px-1.5 text-xs font-medium ${STATUS_MAP[flow.data.status || 'draft']?.class ?? ''}`"
+          class="inline-flex h-5 items-center rounded px-1.5 text-xs font-medium"
+          :class="STATUS_MAP[flow.data.status || 'draft']?.class"
           >{{ STATUS_MAP[flow.data.status || "draft"]?.label }}</span
         >
         <UButton

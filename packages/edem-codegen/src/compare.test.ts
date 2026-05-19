@@ -188,6 +188,15 @@ describe("helpers", () => {
     expect(contentsMatchForParity("src/example.vue", reference, generated)).toBe(true)
   })
 
+  it("treats split static and dynamic classes as parity matches", () => {
+    const reference = Buffer.from("<main :class=\"`w-full flex-1 ${props.mainClass ?? ''}`\" />\n")
+    const generated = Buffer.from(
+      '<main class="w-full flex-1" :class="props.mainClass ?? \'\'" />\n',
+    )
+
+    expect(contentsMatchForParity("src/example.vue", reference, generated)).toBe(true)
+  })
+
   it("keeps meaningful text diffs as mismatches", () => {
     const reference = Buffer.from("const a = 1\n")
     const generated = Buffer.from("const a = 2\n")

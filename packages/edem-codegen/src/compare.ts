@@ -213,8 +213,32 @@ function normalizeVueTagAttributeOrder(content: string): string {
         return `<${tag}${rawAttrs}${close}>`
       }
 
-      const sortedAttrs = attrs.toSorted((a, b) => a.localeCompare(b))
+      const normalizedAttrs = normalizeClassAttrs(attrs)
+      const sortedAttrs = normalizedAttrs.toSorted((a, b) => a.localeCompare(b))
       return `<${tag} ${sortedAttrs.join(" ")}${close}>`
     },
   )
+}
+
+function normalizeClassAttrs(attrs: string[]): string[] {
+  const staticClass = attrs.find((attr) => attr.startsWith('class="'))
+  const dynamicClass = attrs.find((attr) => attr.startsWith(':class="'))
+
+  if (!staticClass || !dynamicClass) {
+    return attrs
+  }
+
+  const staticMatch = staticClass.match(/^class="([\s\S]*)"$/)
+  const dynamicMatch = dynamicClass.match(/^:class="([\s\S]*)"$/)
+  if (!staticMatch || !dynamicMatch) {
+    return attrs
+  }
+
+  const dynamicExpr = dynamicMatch[1].trim()
+  if (dynamicExpr.startsWith("{") || dynamicExpr.startsWith("[") || dynamicExpr.startsWith("`")) {
+    return attrs
+  }
+
+  const merged = `:class="\`${staticMatch[1]} \${${dynamicExpr}}\`"`
+  return attrs.filter((attr) => attr !== staticClass && attr !== dynamicClass).concat(merged)
 }

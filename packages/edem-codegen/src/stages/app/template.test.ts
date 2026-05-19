@@ -87,4 +87,19 @@ describe("renderNode", () => {
 
     expect(template).toContain('<div v-for="i in 5" :key="i">{{ i }}</div>')
   })
+
+  it("splits template literal class bindings into static and dynamic parts", () => {
+    const node: ExtendedComponentNode = {
+      component: "span",
+      props: {
+        class: "{{ `base classes ${statusClass ?? ''}` }}",
+      },
+      children: "Label",
+    }
+
+    const { template } = renderNode(node, "  ", ir, "ProjectFlowsPage")
+
+    expect(template).toContain('class="base classes"')
+    expect(template).toContain(`:class="statusClass ?? ''"`)
+  })
 })
