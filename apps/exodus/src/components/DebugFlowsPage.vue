@@ -1,17 +1,30 @@
 <script setup lang="ts">
 import { useRouter } from "vue-router"
 import { useT } from "@exodus/edem-vue"
-import { useFlows } from "@/hooks"
+import { useCollectionQuery } from "@/hooks"
 
 const t = useT()
 const router = useRouter()
 
-const { data: flows, loading } = useFlows()
+const { data: flows, loading } = useCollectionQuery("flows", () => ({
+  filter: { project_id: { _eq: null } },
+  sort: ["name"],
+}))
 
 const TRIGGER_LABELS: Record<string, string> = {
   event: "Event",
   schedule: "Schedule",
   manual: "Manual",
+}
+
+type DebugFlow = {
+  id: string
+  data: {
+    name?: unknown
+    status?: unknown
+    trigger?: unknown
+    nodes?: unknown
+  }
 }
 
 const STATUS_CLASS: Record<string, string> = {
@@ -25,22 +38,37 @@ function goToRuns(flowId: string) {
   router.push(`/debug/flows/${flowId}`)
 }
 
-function getNodeCount(flow: { nodes?: unknown[] }): number {
-  return Array.isArray(flow.nodes) ? flow.nodes.length : 0
+function getNodeCount(flow: DebugFlow): number {
+  return Array.isArray(flow.data.nodes) ? flow.data.nodes.length : 0
 }
 
-function getTriggerType(flow: { trigger?: { type?: string } }): string {
-  return flow.trigger?.type || ""
+function getTriggerType(flow: DebugFlow): string {
+  const trigger = flow.data.trigger
+  if (typeof trigger !== "object" || trigger === null || !("type" in trigger)) {
+    return ""
+  }
+  const triggerRecord = trigger as Record<string, unknown>
+  return typeof triggerRecord.type === "string" ? triggerRecord.type : ""
 }
 
-function getScheduleLabel(flow: {
-  trigger?: { type?: string; every?: string; at?: string; days?: string[] }
-}): string {
-  if (flow.trigger?.type !== "schedule") return ""
+function getScheduleLabel(flow: DebugFlow): string {
+  const trigger = flow.data.trigger
+  if (typeof trigger !== "object" || trigger === null) {
+    return ""
+  }
+
+  const triggerRecord = trigger as Record<string, unknown>
+  if (triggerRecord.type !== "schedule") return ""
+
   const parts: string[] = []
-  if (flow.trigger.every) parts.push(flow.trigger.every)
-  if (flow.trigger.at) parts.push(`at ${flow.trigger.at}`)
-  if (flow.trigger.days?.length) parts.push(flow.trigger.days.join(", "))
+  if (typeof triggerRecord.every === "string") parts.push(triggerRecord.every)
+  if (typeof triggerRecord.at === "string") parts.push(`at ${triggerRecord.at}`)
+  if (Array.isArray(triggerRecord.days)) {
+    parts.push(
+      triggerRecord.days.filter((day): day is string => typeof day === "string").join(", "),
+    )
+  }
+
   return parts.join(" ") || "schedule"
 }
 </script>
@@ -87,7 +115,7 @@ function getScheduleLabel(flow: {
             <UIcon name="i-lucide-zap" class="h-5 w-5 text-green-500" />
           </div>
           <div class="flex flex-1 flex-col">
-            <span class="font-medium">{{ flow.name }}</span>
+            <span class="font-medium">{{ flow.data.name }}</span>
             <div class="text-muted flex items-center gap-2 text-xs">
               <span>{{ TRIGGER_LABELS[getTriggerType(flow)] || "—" }}</span>
               <span v-if="getScheduleLabel(flow)" class="text-primary font-mono">{{
@@ -101,9 +129,9 @@ function getScheduleLabel(flow: {
           </div>
           <span
             class="inline-flex h-5 items-center rounded px-1.5 text-xs font-medium"
-            :class="STATUS_CLASS[flow.status || 'draft']"
+            :class="STATUS_CLASS[(flow.data.status as string) || 'draft']"
           >
-            {{ flow.status || "draft" }}
+            {{ flow.data.status || "draft" }}
           </span>
         </button>
       </div>

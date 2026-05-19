@@ -3,7 +3,7 @@ import type { RPCSchema } from "electrobun"
 import { createBunEdemBridge } from "@exodus/edem-electrobun/bun"
 import type { EdemMsg } from "@exodus/edem-electrobun/types"
 import { setElectrobunDeps } from "@exodus/edem-electrobun/module"
-import { startScheduler, startDispatcher } from "@exodus/edem-flows"
+import { startScheduler, startDispatcher, type FlowFilter } from "@exodus/edem-flows"
 import { edem, modules } from "@/bun/edem"
 import { ensureCollections } from "@/manifest"
 import { ensureFlows } from "@/flows-bootstrap"
@@ -56,6 +56,10 @@ const url = await getMainViewUrl()
 
 const edemBridge = createBunEdemBridge(edem, modules)
 
+const systemFlowFilter: FlowFilter = {
+  project_id: { _eq: null },
+}
+
 const rpc = BrowserView.defineRPC<{
   bun: RPCSchema<{
     messages: { edem: EdemMsg }
@@ -83,8 +87,10 @@ bunLogger.attach((entry) => {
   edem.data.createItem({ collection_id: "logs", data: entry }).catch(() => {})
 })
 
-await startScheduler(edem.flows, edem.data)
-const flowsDispatcher = await startDispatcher(edem.flows, edem.data)
+await startScheduler(edem.flows, edem.data, { flowFilter: systemFlowFilter })
+const flowsDispatcher = await startDispatcher(edem.flows, edem.data, {
+  flowFilter: systemFlowFilter,
+})
 
 edemBridge.onWebviewEvent((name, payload) => {
   flowsDispatcher.emit(name, payload)

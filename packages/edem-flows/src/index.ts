@@ -938,6 +938,7 @@ export const flowsModule = createEdemModule(
               const existingData = existing.data
               const hasChanges =
                 existingData.name !== flowDef.name ||
+                existingData.project_id !== null ||
                 (existingData.kind as FlowKind | undefined) !== (flowDef.kind ?? "flow") ||
                 !deepEqual(existingData.trigger, flowDef.trigger) ||
                 !deepEqual(existingData.nodes, flowDef.nodes) ||
@@ -962,7 +963,10 @@ export const flowsModule = createEdemModule(
 
                 await data.updateItem({
                   item_id: existing.id,
-                  data: flowData,
+                  data: {
+                    project_id: null,
+                    ...flowData,
+                  },
                 })
                 updated.push(flowDef.id)
                 await emit.flowUpdated(nextFlow)
@@ -986,6 +990,7 @@ export const flowsModule = createEdemModule(
               const { id } = await data.createItem({
                 collection_id: FLOWS_COLLECTION,
                 data: {
+                  project_id: null,
                   manifest_id: flowDef.id,
                   ...flowData,
                 },
@@ -1598,5 +1603,7 @@ export default flowsModule
 
 export { startScheduler } from "./scheduler"
 export { startDispatcher } from "./dispatcher"
+export type { SchedulerOptions } from "./scheduler"
+export type { DispatcherOptions, FlowFilter } from "./dispatcher"
 export { parseEvery, matchesSchedule, type ScheduleTrigger, type DayOfWeek } from "./manifest"
 export { validateFlow } from "./engine"

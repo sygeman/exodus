@@ -650,6 +650,14 @@ scheduler.stop()
 
 Запускает таймеры для flows с `schedule` триггером. Подписывается на создание/обновление/удаление flows. Возвращает `{ stop() }` для остановки.
 
+Можно ограничить runtime только частью коллекции flows, например системными flow без `project_id`:
+
+```typescript
+const scheduler = await startScheduler(flowsAPI, dataAPI, {
+  flowFilter: { project_id: { _eq: null } },
+})
+```
+
 ### startDispatcher
 
 ```typescript
@@ -659,6 +667,14 @@ const { emit } = await startDispatcher(flowsAPI, dataAPI)
 ```
 
 Создаёт индексы event триггеров. Слушает события `itemCreated`/`itemUpdated`/`itemDeleted` от data модуля.
+
+Как и scheduler, dispatcher можно ограничить подмножеством flows:
+
+```typescript
+const { emit } = await startDispatcher(flowsAPI, dataAPI, {
+  flowFilter: { project_id: { _eq: null } },
+})
+```
 
 - `emit(name, payload)` — триггер event-based flows
 - `stop()` — отписывается от всех событий и очищает индексы

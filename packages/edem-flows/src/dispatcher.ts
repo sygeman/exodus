@@ -25,7 +25,10 @@ interface FlowsAPI {
 }
 
 interface DataAPI {
-  queryItems: (input: { collection_id: string }) => Promise<{ items: FlowItem[] }>
+  queryItems: (input: {
+    collection_id: string
+    filter?: Record<string, unknown>
+  }) => Promise<{ items: FlowItem[] }>
   itemCreated: (handler: (args: { event: unknown }) => void) => () => void
   itemUpdated: (handler: (args: { event: unknown }) => void) => () => void
   itemDeleted: (handler: (args: { event: unknown }) => void) => () => void
@@ -41,6 +44,12 @@ const eventFlows = new Map<string, EventFlowEntry[]>()
 let flowsRef: FlowsAPI | null = null
 
 import { withRetry } from "./retry"
+
+export type FlowFilter = Record<string, unknown>
+
+export type DispatcherOptions = {
+  flowFilter?: FlowFilter
+}
 
 function rebuildIndex(items: FlowItem[]): void {
   eventFlows.clear()
@@ -91,19 +100,24 @@ function triggerFlows(eventName: string, triggerData: Record<string, unknown>): 
 export async function startDispatcher(
   flows: FlowsAPI,
   data: DataAPI,
+  options?: DispatcherOptions,
 ): Promise<{
   emit: (name: string, payload: Record<string, unknown>) => void
   stop: () => void
 }> {
   eventFlows.clear()
   flowsRef = flows
+  const flowFilter = options?.flowFilter
 
-  const { items } = await data.queryItems({ collection_id: "flows" })
+  const { items } = await data.queryItems({
+    collection_id: "flows",
+    filter: flowFilter,
+  })
   rebuildIndex(items)
 
   const refresh = () => {
     data
-      .queryItems({ collection_id: "flows" })
+      .queryItems({ collection_id: "flows", filter: flowFilter })
       .then(({ items: refreshed }) => rebuildIndex(refreshed))
       .catch(console.error)
   }

@@ -60,6 +60,65 @@ describe("flows manifest", () => {
       expect(result.skipped).toEqual(["test-flow"])
     })
 
+    it("should persist system manifest flows with null project_id", async () => {
+      const manifest: FlowsManifest = {
+        flows: [
+          {
+            id: "system-flow",
+            name: "System Flow",
+            trigger: { type: "manual" },
+            nodes: [{ id: "n1", type: "trigger", position: { x: 0, y: 0 } }],
+            edges: [],
+          },
+        ],
+      }
+
+      await edem.flows.applyManifest({ manifest })
+
+      const { items } = await edem.data.queryItems({ collection_id: "flows" })
+      const flow = items.find((item) => item.data.manifest_id === "system-flow")
+
+      expect(flow?.data.project_id).toBeNull()
+    })
+
+    it("should normalize legacy manifest flows without project_id", async () => {
+      const manifest: FlowsManifest = {
+        flows: [
+          {
+            id: "legacy-system-flow",
+            name: "Legacy System Flow",
+            trigger: { type: "manual" },
+            nodes: [{ id: "n1", type: "trigger", position: { x: 0, y: 0 } }],
+            edges: [],
+          },
+        ],
+      }
+
+      await edem.flows.applyManifest({ manifest })
+
+      const { items: createdItems } = await edem.data.queryItems({ collection_id: "flows" })
+      const createdFlow = createdItems.find(
+        (item) => item.data.manifest_id === "legacy-system-flow",
+      )
+
+      expect(createdFlow).toBeDefined()
+
+      await edem.data.updateItem({
+        item_id: createdFlow!.id,
+        data: { project_id: undefined },
+      })
+
+      const result = await edem.flows.applyManifest({ manifest })
+      expect(result.updated).toEqual(["legacy-system-flow"])
+
+      const { items: updatedItems } = await edem.data.queryItems({ collection_id: "flows" })
+      const updatedFlow = updatedItems.find(
+        (item) => item.data.manifest_id === "legacy-system-flow",
+      )
+
+      expect(updatedFlow?.data.project_id).toBeNull()
+    })
+
     it("should update changed flows", async () => {
       const manifest: FlowsManifest = {
         flows: [

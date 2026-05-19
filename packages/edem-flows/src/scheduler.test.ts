@@ -151,6 +151,19 @@ describe("startScheduler", () => {
     expect(console.log).toHaveBeenCalled()
   })
 
+  it("should query only scoped flows when filter is provided", async () => {
+    const flows = createMockFlows()
+    const data = createMockData([])
+    const flowFilter = { project_id: { _eq: null } }
+
+    await startScheduler(flows as any, data as any, { flowFilter })
+
+    expect(data.queryItems).toHaveBeenCalledWith({
+      collection_id: "flows",
+      filter: flowFilter,
+    })
+  })
+
   it("should run flow immediately on setup", async () => {
     const flows = createMockFlows()
     const data = createMockData([

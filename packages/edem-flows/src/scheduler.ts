@@ -1,5 +1,6 @@
 import { parseEvery, matchesSchedule, type ScheduleTrigger } from "./manifest"
 import { withRetry } from "./retry"
+import type { FlowFilter } from "./dispatcher"
 
 interface FlowItem {
   id: string
@@ -28,7 +29,10 @@ interface FlowsAPI {
 }
 
 interface DataAPI {
-  queryItems: (input: { collection_id: string }) => Promise<{ items: FlowItem[] | RunItem[] }>
+  queryItems: (input: {
+    collection_id: string
+    filter?: Record<string, unknown>
+  }) => Promise<{ items: FlowItem[] | RunItem[] }>
 }
 
 interface ScheduleEntry {
@@ -42,6 +46,10 @@ interface ScheduleEntry {
 const schedules = new Map<string, ScheduleEntry>()
 
 let delayCheckTimer: ReturnType<typeof setInterval> | null = null
+
+export type SchedulerOptions = {
+  flowFilter?: FlowFilter
+}
 
 async function checkDelayedRunsAndTimeouts(flows: FlowsAPI, data: DataAPI): Promise<void> {
   try {
@@ -160,17 +168,17 @@ function stopAll(): void {
   }
 }
 
-export async function startScheduler(
+async function reloadSchedules(
   flows: FlowsAPI,
   data: DataAPI,
-): Promise<{ stop: () => void }> {
+  flowFilter?: FlowFilter,
+): Promise<void> {
   stopAll()
-  if (delayCheckTimer) {
-    clearInterval(delayCheckTimer)
-    delayCheckTimer = null
-  }
 
-  const { items } = await data.queryItems({ collection_id: "flows" })
+  const { items } = await data.queryItems({
+    collection_id: "flows",
+    filter: flowFilter,
+  })
 
   for (const item of items) {
     const trigger = item.data.trigger as Record<string, unknown> | undefined
@@ -178,27 +186,34 @@ export async function startScheduler(
       setupSchedule(item.id, trigger as ScheduleTrigger, flows)
     }
   }
+}
 
-  const unsubCreated = flows.flowCreated(({ event }) => {
-    const flow = event as { id: string; trigger: ScheduleTrigger }
-    if (flow.trigger?.type === "schedule") {
-      setupSchedule(flow.id, flow.trigger, flows)
-    }
-  })
+export async function startScheduler(
+  flows: FlowsAPI,
+  data: DataAPI,
+  options?: SchedulerOptions,
+): Promise<{ stop: () => void }> {
+  stopAll()
+  if (delayCheckTimer) {
+    clearInterval(delayCheckTimer)
+    delayCheckTimer = null
+  }
 
-  const unsubUpdated = flows.flowUpdated(({ event }) => {
-    const flow = event as { id: string; trigger: ScheduleTrigger }
-    if (flow.trigger?.type === "schedule") {
-      setupSchedule(flow.id, flow.trigger, flows)
-    } else {
-      clearSchedule(flow.id)
-    }
-  })
+  const flowFilter = options?.flowFilter
 
-  const unsubDeleted = flows.flowDeleted(({ event }) => {
-    const { flow_id } = event as { flow_id: string }
-    clearSchedule(flow_id)
-  })
+  await reloadSchedules(flows, data, flowFilter)
+
+  const refreshSchedules = () => {
+    reloadSchedules(flows, data, flowFilter).catch((err) => {
+      console.error("[flows:scheduler] Failed to refresh schedules:", err)
+    })
+  }
+
+  const unsubCreated = flows.flowCreated(refreshSchedules)
+
+  const unsubUpdated = flows.flowUpdated(refreshSchedules)
+
+  const unsubDeleted = flows.flowDeleted(refreshSchedules)
 
   delayCheckTimer = setInterval(() => {
     checkDelayedRunsAndTimeouts(flows, data).catch(() => {})

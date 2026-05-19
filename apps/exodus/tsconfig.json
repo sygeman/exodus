@@ -3,6 +3,7 @@
   "compilerOptions": {
     "paths": {
       "@/*": ["./src/*"],
+      "@exodus/edem-flows": ["../../packages/edem-flows/src/index.ts"],
       "@exodus/edem-vue": ["../../packages/edem-vue/src/index.ts"],
       "#build/ui": ["./node_modules/.nuxt-ui/ui"],
       "#build/ui/*": ["./node_modules/.nuxt-ui/ui/*"]

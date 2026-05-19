@@ -67,6 +67,20 @@ describe("startDispatcher", () => {
 
     expect(data.queryItems).toHaveBeenCalledWith({
       collection_id: "flows",
+      filter: undefined,
+    })
+  })
+
+  it("should query only scoped flows when filter is provided", async () => {
+    const flows = createMockFlows()
+    const data = createMockData([])
+    const flowFilter = { project_id: { _eq: null } }
+
+    await startDispatcher(flows as any, data as any, { flowFilter })
+
+    expect(data.queryItems).toHaveBeenCalledWith({
+      collection_id: "flows",
+      filter: flowFilter,
     })
   })
 
