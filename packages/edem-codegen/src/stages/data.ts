@@ -261,7 +261,7 @@ export interface ${itemType} {
 ${fieldDefs}
 }
 
-export function use${typeName}(options?: { filter?: Record<string, unknown> }) {
+export function use${typeName}(options?: { filter?: Record<string, unknown>; sort?: string[] }) {
   const items = ref<${itemType}[]>([])
   const loading = ref(true)
   const unsubs: (() => void)[] = []
@@ -272,6 +272,7 @@ export function use${typeName}(options?: { filter?: Record<string, unknown> }) {
       const result = await edem.data.queryItems({
         collection_id: "${collectionId}",
         filter: filter ?? options?.filter ?? {},
+        sort: options?.sort,
       })
       items.value = result.items as ${itemType}[]
     } finally {

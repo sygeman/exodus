@@ -1,10 +1,66 @@
 {
   "component": "div",
+  "queries": {
+    "projects": {
+      "collection": "projects"
+    }
+  },
+  "state": {
+    "deleteModalOpen": false
+  },
+  "constants": {
+    "navItems": [
+      {
+        "to": "/project/{{ route.params.id }}/settings",
+        "label": { "$type": "translation", "en": "General", "ru": "Общие" },
+        "icon": "i-lucide-settings"
+      }
+    ]
+  },
+  "computed": {
+    "project": "{{ projects.value.find((p) => p.id === route.params.id) ?? null }}",
+    "loading": "{{ projectsLoading.value }}"
+  },
+  "actions": {
+    "updateName": {
+      "steps": [
+        { "type": "guard", "condition": "{{ project.value }}" },
+        { "type": "guard", "condition": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value).trim() !== '' }}" },
+        { "type": "guard", "condition": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value) !== project.value.name }}" },
+        {
+          "type": "update-item",
+          "collection": "projects",
+          "id": "{{ project.value.id }}",
+          "data": {
+            "name": "{{ ((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value }}"
+          }
+        }
+      ]
+    },
+    "openDeleteModal": {
+      "steps": [
+        { "type": "set-state", "state": "deleteModalOpen", "value": true }
+      ]
+    },
+    "closeDeleteModal": {
+      "steps": [
+        { "type": "set-state", "state": "deleteModalOpen", "value": false }
+      ]
+    },
+    "confirmDelete": {
+      "steps": [
+        { "type": "guard", "condition": "{{ project.value }}" },
+        { "type": "delete-item", "collection": "projects", "id": "{{ project.value.id }}" },
+        { "type": "set-state", "state": "deleteModalOpen", "value": false },
+        { "type": "navigate", "to": "/projects" }
+      ]
+    }
+  },
   "props": { "class": "flex h-full" },
   "children": [
     {
       "component": "SettingsLayout",
-      "if": "{{ project }}",
+        "if": "{{ project }}",
       "props": {
         "title": { "$type": "translation", "en": "Settings", "ru": "Настройки" },
         "items": "{{ navItems }}",
@@ -41,7 +97,7 @@
                 },
                 {
                   "component": "UInput",
-                  "props": { "class": "max-w-md", "modelValue": "{{ project.data.name ?? '' }}" },
+                  "props": { "class": "max-w-md", "modelValue": "{{ project.name ?? '' }}" },
                   "events": {
                     "blur": { "action": "updateName" },
                     "keyup.enter": { "action": "updateName" }
@@ -128,6 +184,5 @@
         }
       ]
     }
-  ],
-  "rawScript": "import { useRoute, useRouter } from 'vue-router'\nimport { computed, ref } from 'vue'\nimport { useCollectionQuery, useUpdateItem, useDeleteItem } from '@/hooks'\n\nconst route = useRoute()\nconst router = useRouter()\nconst { data: projects, loading } = useCollectionQuery('projects')\nconst [updateItem] = useUpdateItem()\nconst [deleteItem] = useDeleteItem()\n\nconst projectId = computed(() => route.params.id as string)\nconst project = computed(() => projects.value.find((p) => p.id === projectId.value))\nconst deleteModalOpen = ref(false)\n\nconst navItems = computed(() => [\n  {\n    to: `/project/${projectId.value}/settings`,\n    label: t({ en: 'General', ru: 'Общие' }),\n    icon: 'i-lucide-settings',\n  },\n])\n\nfunction updateName(e: FocusEvent | KeyboardEvent) {\n  const name = (e.target as HTMLInputElement).value\n  if (!project.value || name.trim() === '' || name === project.value.data.name) return\n  updateItem(project.value.id, { name })\n}\n\nfunction openDeleteModal(_event?: Event) {\n  deleteModalOpen.value = true\n}\n\nfunction closeDeleteModal(_event?: Event) {\n  deleteModalOpen.value = false\n}\n\nfunction confirmDelete(_event?: Event) {\n  if (!project.value) return\n  deleteItem(project.value.id)\n  deleteModalOpen.value = false\n  router.push('/projects')\n}"
+  ]
 }

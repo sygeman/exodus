@@ -20,6 +20,5 @@
         }
       ]
     }
-  ],
-  "rawScript": "interface MenuLayoutItem {\n  to: string\n  label: string\n  icon: string\n}\n\nconst props = defineProps<{\n  title: string\n  items: MenuLayoutItem[]\n  pageTitle: string\n}>()"
+  ]
 }

@@ -100,6 +100,59 @@ Edem UI ближе по философии к связке `Astro` + `Storybook`
 - page-level parity для `ProjectsListPage`, `ProjectPage`, `ProjectIdeasPage`, `ProjectFlowsPage` и `IdeaPage` тоже закрыт; ближайший page-level остаток теперь сосредоточен в `FlowCodePage`, `FlowEditorPage`, `DebugFlows`, `DebugFlowRuns`, `DebugLogs`
 - settings slice всё ещё не завершён end-to-end: page gap внутри него уже снят, но более широкий остаток по-прежнему сидит в shell/layout коде и reference-only runtime/UI слоях
 
+## Аудит текущего codegen
+
+Перед следующим этапом нужно зафиксировать не только прогресс, но и текущие архитектурные и качественные проблемы. Без этого план дальше будет подталкивать к наращиванию DSL поверх нестабильной основы.
+
+Ключевые проблемы текущей реализации:
+
+- generated app сейчас не является честно self-hosted в строгом смысле, потому что codegen умеет подтягивать shared source-файлы из reference app (`apps/exodus/src`) по локальным import-цепочкам
+- в app-stage уже существует escape hatch в виде `rawScript`, который позволяет встраивать framework-specific Vue/TS-код в manifest-driven компонент и тем самым обходить schema, IR и validate
+- data/runtime слой пока генерируется частично по эвристикам и уже содержит поведенческие риски; например, подписки и загрузка в collection composables не отделены достаточно жёстко, чтобы гарантировать отсутствие повторных subscribe/load циклов
+- shell/layout логика в основном выводится по naming conventions и обходу деревьев (`AppLayout`, `AppSidebar`, `AppTopMenu`), а не по first-class layout/shell schema
+- parity tooling местами скрывает архитектурные различия через normalization, вместо того чтобы измерять только действительно допустимый шум форматирования
+- IR и validate пока слишком бедны относительно заявленного плана: в них ещё нет first-class моделей для local state, computed, queries, wrappers, layout-shell и их контрактной валидации
+- template/script generation всё ещё держится на хрупких эвристиках, включая fallback-порождаемый helper-код и локальные special cases вместо строгой модели
+
+Практический вывод из аудита:
+
+- текущая проблема не только в качестве отдельных функций, а в том, что система одновременно пытается быть чистым manifest-driven codegen, migration bridge, parity-репликой reference app и copier'ом runtime-кода
+- пока эти роли не разведены, новый DSL будет наслаиваться на обходные пути, а не вытеснять их
+- поэтому следующим шагом должен быть не очередной рост schema сам по себе, а фиксация красных линий и удаление ключевых escape hatch'ей
+
+## Красные линии
+
+До следующего product slice нужно принять следующие ограничения:
+
+- не считать copy-from-reference механизм частью целевого self-hosting; это только временный migration bridge, который должен быть явно помечен и постепенно выключен
+- не расширять использование `rawScript`; наоборот, любой новый сценарий сначала должен пытаться пройти через schema/IR/validate
+- не принимать parity-only улучшения, если они лишь маскируют расхождение normalization-логикой вместо исправления generator contract
+- не добавлять новые naming-based special cases для shell/layout/runtime там, где требуется first-class модель
+- не считать экран закрытым, если он собирается только при наличии reference-only glue code вне формального runtime-контракта
+
+## Этап 0. Stabilization
+
+Перед продолжением этапов A-E нужен нулевой этап стабилизации.
+
+Цель этапа — сделать текущее состояние честным и измеримым, чтобы дальнейшая schema-работа происходила поверх реального контракта, а не поверх временных обходов.
+
+Работы этапа:
+
+1. Явно пометить и изолировать migration bridge-механизмы
+2. Перестать рассматривать copy-from-reference как нормальный путь достижения parity
+3. Ограничить или убрать `rawScript` как основной escape hatch
+4. Сделать generated output детерминированным
+5. Отделить допустимую parity-normalization от normalization, скрывающей архитектурный gap
+6. Исправить явные runtime-баги в generated shared layer раньше, чем расширять DSL дальше
+
+Definition of done:
+
+- generated app может собираться без неявного подтягивания runtime-кода из `apps/exodus/src`, кроме явно выделенного migration bridge-слоя с понятным контрактом
+- новый экран нельзя закрыть за счёт `rawScript`, если для него ещё не выражен соответствующий schema-contract
+- parity-отчёт перестаёт быть основным KPI сам по себе и используется только вместе с проверкой происхождения runtime/glue слоёв
+- output генератора стабилен между прогонами при одинаковом входе
+- устранены известные поведенческие баги в generated shared runtime, которые искажают оценку product slice
+
 ## Потоки работ
 
 ### 1. Capability Inventory
@@ -286,6 +339,18 @@ Codegen должен генерировать orchestration-код, а не за
 
 ## Очередность внедрения
 
+### Этап 0. Stabilization
+
+1. Зафиксировать и изолировать migration bridge-механизмы
+2. Убрать зависимость прогресса от reference-copying и `rawScript`
+3. Исправить детерминизм output и явные runtime-баги shared layer
+
+Definition of done:
+
+- текущий baseline измеряет реальный codegen contract, а не смесь генерации и обходных путей
+- у каждого оставшегося parity gap понятно происхождение: schema, generator или осознанный migration bridge
+- можно начинать следующий vertical slice без дальнейшего разрастания ad-hoc слоёв
+
 ### Этап A. Архитектура
 
 1. Зафиксировать философию `composition + wrappers`
@@ -406,10 +471,12 @@ Definition of done:
 
 ## Ближайшие шаги
 
-1. Перенести тот же подход на следующий manifest-driven page gap из project/debug семейства экранов
-2. После этого добивать layout/shell parity вокруг уже закрытых страниц, а не только сами leaf-pages
-3. Вынести следующий слой reference-only runtime/UI контрактов, которые ещё мешают parity (`types/flow`, `persist-route`, `apply-theme`, wrapper-компоненты)
-4. Обновлять parity baseline после каждого замкнутого шага, а не после больших пачек изменений
+1. Пройти нулевой stabilization-цикл: зафиксировать все текущие escape hatch'и и пометить, какие из них migration-only
+2. Убрать из ближайшего KPI иллюзию self-hosting за счёт copy-from-reference и `rawScript`
+3. Исправить явные runtime-проблемы shared generated layer, чтобы product slice оценивался по поведению, а не по lucky parity
+4. Только после этого переносить подход на следующий manifest-driven page gap из project/debug семейства экранов
+5. После закрытия следующего экрана добивать layout/shell parity вокруг уже закрытых страниц, а не только сами leaf-pages
+6. Обновлять parity baseline после каждого замкнутого шага и отдельно отмечать, был ли достигнут прогресс без migration bridge
 
 ## Порядок реальной реализации
 

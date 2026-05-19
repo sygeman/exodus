@@ -1,45 +1,9 @@
 <script setup lang="ts">
-import { useRouter } from "vue-router"
-import { useFlows } from "@/hooks"
+import { useFlows } from "@/composables/useFlows"
 import { useT } from "@exodus/edem-vue"
 
+const { items: flows, loading, update: updateFlows, remove: removeFlows } = useFlows()
 const t = useT()
-
-const router = useRouter()
-const { items: flows, loading } = useFlows()
-
-const TRIGGER_LABELS: Record<string, string> = {
-  event: "Event",
-  schedule: "Schedule",
-  manual: "Manual",
-  webhook: "Webhook",
-}
-const STATUS_CLASS: Record<string, string> = {
-  draft: "bg-gray-500/10 text-gray-500",
-  active: "bg-green-500/10 text-green-500",
-  paused: "bg-yellow-500/10 text-yellow-500",
-  archived: "bg-red-500/10 text-red-500",
-}
-
-function goToRuns(flowId: string) {
-  router.push(`/debug/flows/${flowId}`)
-}
-function getNodeCount(flow: { nodes?: unknown[] }): number {
-  return Array.isArray(flow.nodes) ? flow.nodes.length : 0
-}
-function getTriggerType(flow: { trigger?: { type?: string } }): string {
-  return flow.trigger?.type || ""
-}
-function getScheduleLabel(flow: {
-  trigger?: { type?: string; every?: string; at?: string; days?: string[] }
-}): string {
-  if (flow.trigger?.type !== "schedule") return ""
-  const parts: string[] = []
-  if (flow.trigger.every) parts.push(flow.trigger.every)
-  if (flow.trigger.at) parts.push(`at ${flow.trigger.at}`)
-  if (flow.trigger.days?.length) parts.push(flow.trigger.days.join(", "))
-  return parts.join(" ") || "schedule"
-}
 </script>
 
 <template>

@@ -1,5 +1,31 @@
 {
   "component": "div",
+  "queries": {
+    "ideas": {
+      "collection": "ideas",
+      "filter": {
+        "project_id": { "_eq": "{{ route.params.id }}" }
+      },
+      "sort": ["-created_at"]
+    }
+  },
+  "actions": {
+    "handleCreate": {
+      "steps": [
+        {
+          "type": "create-item",
+          "collection": "ideas",
+          "assignTo": "createdId",
+          "data": {
+            "project_id": "{{ route.params.id }}",
+            "title": "Untitled",
+            "status": "draft"
+          }
+        },
+        { "type": "navigate", "to": "/project/{{ route.params.id }}/ideas/{{ createdId }}" }
+      ]
+    }
+  },
   "props": { "class": "flex h-full flex-col p-6" },
   "children": [
     {
@@ -14,7 +40,7 @@
         {
           "component": "UButton",
           "props": { "size": "sm" },
-          "events": { "click": { "expression": "handleCreate" } },
+          "events": { "click": { "action": "handleCreate" } },
           "children": [
             { "component": "UIcon", "props": { "name": "i-lucide-plus", "class": "h-4 w-4" } },
             { "$type": "translation", "en": "New Idea", "ru": "Новая идея" }
@@ -24,7 +50,7 @@
     },
     {
       "component": "div",
-      "if": "{{ loading && showSkeleton }}",
+      "if": "{{ ideasLoading }}",
       "props": { "class": "flex flex-col gap-3" },
       "children": [
         {
@@ -48,7 +74,7 @@
     },
     {
       "component": "div",
-      "elseIf": "{{ !loading && ideas.length === 0 }}",
+      "elseIf": "{{ !ideasLoading && ideas.length === 0 }}",
       "props": { "class": "text-muted flex flex-1 flex-col items-center justify-center gap-2" },
       "children": [
         { "component": "UIcon", "props": { "name": "i-lucide-lightbulb", "class": "h-12 w-12 opacity-20" } },
@@ -56,7 +82,7 @@
         {
           "component": "UButton",
           "props": { "size": "sm" },
-          "events": { "click": { "expression": "handleCreate" } },
+          "events": { "click": { "action": "handleCreate" } },
           "children": { "$type": "translation", "en": "Create first idea", "ru": "Создать первую идею" }
         }
       ]
@@ -76,7 +102,7 @@
             "item": {
               "component": "RouterLink",
               "props": {
-                "to": "{{ ideaLink(idea.id) }}",
+                "to": "/project/{{ route.params.id }}/ideas/{{ idea.id }}",
                 "class": "border-default hover:bg-elevated flex items-center gap-3 rounded-lg border p-4 transition-colors"
               },
               "children": [
@@ -85,24 +111,24 @@
                   "props": {
                     "class": "bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded text-xs font-bold"
                   },
-                  "children": "{{ idea.data.level ?? '?' }}"
+                  "children": "{{ idea.level ?? '?' }}"
                 },
                 {
                   "component": "div",
                   "props": { "class": "flex flex-col" },
                   "children": [
-                    { "component": "span", "props": { "class": "font-medium" }, "children": "{{ idea.data.title }}" },
+                    { "component": "span", "props": { "class": "font-medium" }, "children": "{{ idea.title }}" },
                     {
                       "component": "span",
-                      "if": "{{ idea.data.type }}",
+                      "if": "{{ idea.type }}",
                       "props": { "class": "text-muted text-xs" },
-                      "children": "{{ idea.data.type }}"
+                      "children": "{{ idea.type }}"
                     }
                   ]
                 },
                 {
                   "component": "span",
-                  "if": "{{ idea.data.status === 'stabilized' }}",
+                  "if": "{{ idea.status === 'stabilized' }}",
                   "props": {
                     "class": "ml-auto inline-flex h-5 items-center rounded bg-green-500/10 px-1.5 text-xs text-green-500"
                   },
@@ -114,6 +140,5 @@
         }
       ]
     }
-  ],
-  "rawScript": "import { useRoute, useRouter } from 'vue-router'\nimport { computed, ref, watch } from 'vue'\nimport { useCollectionQuery, useCreateItem } from '@/hooks'\n\nconst route = useRoute()\nconst router = useRouter()\nconst projectId = computed(() => route.params.id as string)\n\nconst { data: ideas, loading } = useCollectionQuery('ideas', () => ({\n  filter: { project_id: { _eq: projectId.value } },\n  sort: ['-created_at'],\n}))\nconst [createItem] = useCreateItem()\n\nconst showSkeleton = ref(false)\nlet skeletonTimeout: ReturnType<typeof setTimeout> | null = null\n\nwatch(\n  loading,\n  (isLoading) => {\n    if (isLoading) {\n      skeletonTimeout = setTimeout(() => {\n        showSkeleton.value = true\n      }, 150)\n    } else {\n      if (skeletonTimeout) {\n        clearTimeout(skeletonTimeout)\n        skeletonTimeout = null\n      }\n      showSkeleton.value = false\n    }\n  },\n  { immediate: true },\n)\n\nasync function handleCreate() {\n  const id = await createItem('ideas', {\n    project_id: projectId.value,\n    title: 'Untitled',\n    status: 'draft',\n  })\n  router.push(`/project/${projectId.value}/ideas/${id}`)\n}\n\nfunction ideaLink(id: string) {\n  return `/project/${projectId.value}/ideas/${id}`\n}"
+  ]
 }

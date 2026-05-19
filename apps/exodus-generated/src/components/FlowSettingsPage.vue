@@ -1,69 +1,71 @@
 <script setup lang="ts">
-import SettingsLayout from "@/components/SettingsLayout.vue"
-import { useRoute, useRouter } from "vue-router"
 import { computed, ref } from "vue"
-import { useCollectionQuery, useUpdateItem, useDeleteItem } from "@/hooks"
+import { useRoute } from "vue-router"
+import SettingsLayout from "@/components/SettingsLayout.vue"
+import { useFlows } from "@/composables/useFlows"
 import { useT } from "@exodus/edem-vue"
 
-const t = useT()
-
 const route = useRoute()
-const router = useRouter()
-const projectId = computed(() => route.params.id as string)
-const flowId = computed(() => route.params.flowId as string)
-
-const { data: flows } = useCollectionQuery("flows", () => ({
-  filter: { project_id: { _eq: projectId.value } },
-}))
-const [updateItem] = useUpdateItem()
-const [deleteItem] = useDeleteItem()
-
-const flow = computed(() => flows.value.find((f) => f.id === flowId.value))
+const {
+  items: flows,
+  loading: flowsLoading,
+  create: createFlows,
+  update: updateFlows,
+  remove: removeFlows,
+} = useFlows({ filter: { project_id: { _eq: route.params.id } } })
 const deleteModalOpen = ref(false)
-
-const navItems = computed(() => [
+const navItems = [
   {
-    to: `/project/${projectId.value}/flows/${flowId.value}/settings`,
+    to: `/project/${route.params.id}/flows/${route.params.flowId}/settings`,
     label: t({ en: "General", ru: "Общие" }),
     icon: "i-lucide-settings",
   },
-])
-
-function updateName(e: FocusEvent | KeyboardEvent) {
-  const value = (e.target as HTMLInputElement).value
-  if (!flow.value) return
-  const trimmed = value.trim()
-  if (trimmed === "") return
-  if (trimmed === flow.value.data.name) return
-  updateItem(flow.value.id, { name: trimmed })
-}
-
-function updateStatus(value: string) {
-  if (!flow.value || value === flow.value.data.status) return
-  updateItem(flow.value.id, { status: value })
-}
-
-function openDeleteModal(_event?: Event) {
-  deleteModalOpen.value = true
-}
-
-function closeDeleteModal(_event?: Event) {
-  deleteModalOpen.value = false
-}
-
-function confirmDelete(_event?: Event) {
-  if (!flow.value) return
-  deleteItem(flow.value.id)
-  deleteModalOpen.value = false
-  router.push(`/project/${projectId.value}/flows`)
-}
-
+]
 const statusItems = [
   { label: "draft", value: "draft" },
   { label: "active", value: "active" },
   { label: "paused", value: "paused" },
   { label: "archived", value: "archived" },
 ]
+const flow = computed(() => flows.value.find((entry) => entry.id === route.params.flowId) ?? null)
+const t = useT()
+
+async function updateName($event?: Event, item?: Record<string, unknown>) {
+  if (!flow.value) return
+  if (!((($event as FocusEvent | KeyboardEvent).target as HTMLInputElement).value.trim() !== ""))
+    return
+  if (
+    !(
+      (($event as FocusEvent | KeyboardEvent).target as HTMLInputElement).value.trim() !==
+      flow.value.name
+    )
+  )
+    return
+  await updateFlows(flow.value.id, {
+    name: (($event as FocusEvent | KeyboardEvent).target as HTMLInputElement).value.trim(),
+  })
+}
+
+async function updateStatus($event?: Event, item?: Record<string, unknown>) {
+  if (!flow.value) return
+  if (!($event !== flow.value.status)) return
+  await updateFlows(flow.value.id, { status: $event })
+}
+
+async function openDeleteModal($event?: Event, item?: Record<string, unknown>) {
+  deleteModalOpen.value = true
+}
+
+async function closeDeleteModal($event?: Event, item?: Record<string, unknown>) {
+  deleteModalOpen.value = false
+}
+
+async function confirmDelete($event?: Event, item?: Record<string, unknown>) {
+  if (!flow.value) return
+  await removeFlows(flow.value.id)
+  deleteModalOpen.value = false
+  await router.push(`/project/${route.params.id}/flows`)
+}
 </script>
 
 <template>
@@ -89,7 +91,7 @@ const statusItems = [
           </div>
           <UInput
             class="max-w-md"
-            :model-value="flow.data.name ?? ''"
+            :model-value="flow.name ?? ''"
             @blur="updateName($event)"
             @keyup.enter="updateName($event)"
           />
@@ -107,7 +109,7 @@ const statusItems = [
             </p>
           </div>
           <USelect
-            :model-value="flow.data.status ?? 'draft'"
+            :model-value="flow.status ?? 'draft'"
             :items="statusItems"
             value-key="value"
             label-key="label"

@@ -10,9 +10,22 @@ import {
   type Route,
   type DataBinding,
   type EventBinding,
+  type ManifestQuery,
+  type ManifestAction,
+  type ManifestActionStep,
 } from "./schemas"
 
-export type { RoutesManifest, ComponentNode, Translation, Route, DataBinding, EventBinding }
+export type {
+  RoutesManifest,
+  ComponentNode,
+  Translation,
+  Route,
+  DataBinding,
+  EventBinding,
+  ManifestQuery,
+  ManifestAction,
+  ManifestActionStep,
+}
 export {
   routesManifestSchema,
   componentNodeSchema,

@@ -1,5 +1,229 @@
 {
   "component": "div",
+  "queries": {
+    "ideas": {
+      "collection": "ideas",
+      "filter": {
+        "project_id": {
+          "_eq": "{{ route.params.id }}"
+        }
+      }
+    }
+  },
+  "state": {
+    "deleteModalOpen": false
+  },
+  "constants": {
+    "levelItems": [
+      {
+        "label": "L1",
+        "value": "L1"
+      },
+      {
+        "label": "L2",
+        "value": "L2"
+      },
+      {
+        "label": "L3",
+        "value": "L3"
+      },
+      {
+        "label": "L4",
+        "value": "L4"
+      }
+    ],
+    "typeItems": [
+      {
+        "label": "goal",
+        "value": "goal"
+      },
+      {
+        "label": "non_goal",
+        "value": "non_goal"
+      },
+      {
+        "label": "constraint",
+        "value": "constraint"
+      },
+      {
+        "label": "invariant",
+        "value": "invariant"
+      },
+      {
+        "label": "component",
+        "value": "component"
+      },
+      {
+        "label": "decision",
+        "value": "decision"
+      },
+      {
+        "label": "principle",
+        "value": "principle"
+      }
+    ],
+    "statusItems": [
+      {
+        "label": "draft",
+        "value": "draft"
+      },
+      {
+        "label": "stabilized",
+        "value": "stabilized"
+      }
+    ]
+  },
+  "computed": {
+    "idea": "{{ ideas.value.find((entry) => entry.id === route.params.ideaId) ?? null }}",
+    "loading": "{{ ideasLoading.value }}",
+    "backLink": "{{ `/project/${route.params.id}/ideas` }}"
+  },
+  "actions": {
+    "openDeleteModal": {
+      "steps": [
+        {
+          "type": "set-state",
+          "state": "deleteModalOpen",
+          "value": true
+        }
+      ]
+    },
+    "closeDeleteModal": {
+      "steps": [
+        {
+          "type": "set-state",
+          "state": "deleteModalOpen",
+          "value": false
+        }
+      ]
+    },
+    "confirmDelete": {
+      "steps": [
+        {
+          "type": "guard",
+          "condition": "{{ idea.value }}"
+        },
+        {
+          "type": "delete-item",
+          "collection": "ideas",
+          "id": "{{ idea.value.id }}"
+        },
+        {
+          "type": "set-state",
+          "state": "deleteModalOpen",
+          "value": false
+        },
+        {
+          "type": "navigate",
+          "to": "{{ backLink.value }}"
+        }
+      ]
+    },
+    "updateTitle": {
+      "steps": [
+        {
+          "type": "guard",
+          "condition": "{{ idea.value }}"
+        },
+        {
+          "type": "guard",
+          "condition": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value).trim() !== '' }}"
+        },
+        {
+          "type": "guard",
+          "condition": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value).trim() !== (idea.value.title ?? '') }}"
+        },
+        {
+          "type": "update-item",
+          "collection": "ideas",
+          "id": "{{ idea.value.id }}",
+          "data": {
+            "title": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value).trim() }}"
+          }
+        }
+      ]
+    },
+    "updateDescription": {
+      "steps": [
+        {
+          "type": "guard",
+          "condition": "{{ idea.value }}"
+        },
+        {
+          "type": "guard",
+          "condition": "{{ (((($event as FocusEvent).target) as HTMLTextAreaElement).value) !== (idea.value.description ?? '') }}"
+        },
+        {
+          "type": "update-item",
+          "collection": "ideas",
+          "id": "{{ idea.value.id }}",
+          "data": {
+            "description": "{{ (((($event as FocusEvent).target) as HTMLTextAreaElement).value) || null }}"
+          }
+        }
+      ]
+    },
+    "updateLevel": {
+      "steps": [
+        {
+          "type": "guard",
+          "condition": "{{ idea.value }}"
+        },
+        {
+          "type": "guard",
+          "condition": "{{ $event !== idea.value.level }}"
+        },
+        {
+          "type": "update-item",
+          "collection": "ideas",
+          "id": "{{ idea.value.id }}",
+          "data": {
+            "level": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "updateType": {
+      "steps": [
+        {
+          "type": "guard",
+          "condition": "{{ idea.value }}"
+        },
+        {
+          "type": "guard",
+          "condition": "{{ $event !== idea.value.type }}"
+        },
+        {
+          "type": "update-item",
+          "collection": "ideas",
+          "id": "{{ idea.value.id }}",
+          "data": {
+            "type": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "updateStatus": {
+      "steps": [
+        {
+          "type": "guard",
+          "condition": "{{ idea.value }}"
+        },
+        {
+          "type": "guard",
+          "condition": "{{ $event !== idea.value.status }}"
+        },
+        {
+          "type": "update-item",
+          "collection": "ideas",
+          "id": "{{ idea.value.id }}",
+          "data": {
+            "status": "{{ $event }}"
+          }
+        }
+      ]
+    }
+  },
   "props": {
     "class": "flex h-full flex-col"
   },
@@ -98,7 +322,7 @@
                     {
                       "component": "UBadge",
                       "props": {
-                        "label": "{{ idea.data.level || t({ en: 'No level', ru: 'Без уровня' }) }}",
+                        "label": "{{ idea.level || t({ en: 'No level', ru: 'Без уровня' }) }}",
                         "color": "neutral",
                         "variant": "subtle",
                         "class": "bg-primary/10 text-primary text-xs font-semibold"
@@ -106,9 +330,9 @@
                     },
                     {
                       "component": "UBadge",
-                      "if": "{{ idea.data.type }}",
+                      "if": "{{ idea.type }}",
                       "props": {
-                        "label": "{{ idea.data.type }}",
+                        "label": "{{ idea.type }}",
                         "color": "neutral",
                         "variant": "soft",
                         "size": "sm"
@@ -116,7 +340,7 @@
                     },
                     {
                       "component": "UBadge",
-                      "if": "{{ idea.data.status === 'stabilized' }}",
+                      "if": "{{ idea.status === 'stabilized' }}",
                       "props": {
                         "label": {
                           "$type": "translation",
@@ -162,7 +386,7 @@
             {
               "component": "UInput",
               "props": {
-                "vModel": "{{ title }}",
+                "modelValue": "{{ idea.title ?? '' }}",
                 "size": "lg",
                 "class": "w-full"
               },
@@ -178,7 +402,7 @@
             {
               "component": "UTextarea",
               "props": {
-                "vModel": "{{ description }}",
+                "modelValue": "{{ idea.description ?? '' }}",
                 "placeholder": {
                   "$type": "translation",
                   "en": "Idea description (optional)",
@@ -219,12 +443,17 @@
                     {
                       "component": "USelect",
                       "props": {
-                        "vModel": "{{ level }}",
+                        "modelValue": "{{ idea.level ?? null }}",
                         "items": "{{ levelItems }}",
                         "valueKey": "value",
                         "labelKey": "label",
                         "size": "sm",
                         "class": "w-full"
+                      },
+                      "events": {
+                        "update:model-value": {
+                          "action": "updateLevel"
+                        }
                       }
                     }
                   ]
@@ -249,12 +478,17 @@
                     {
                       "component": "USelect",
                       "props": {
-                        "vModel": "{{ typeValue }}",
+                        "modelValue": "{{ idea.type ?? null }}",
                         "items": "{{ typeItems }}",
                         "valueKey": "value",
                         "labelKey": "label",
                         "size": "sm",
                         "class": "w-full"
+                      },
+                      "events": {
+                        "update:model-value": {
+                          "action": "updateType"
+                        }
                       }
                     }
                   ]
@@ -279,12 +513,17 @@
                     {
                       "component": "USelect",
                       "props": {
-                        "vModel": "{{ status }}",
+                        "modelValue": "{{ idea.status ?? 'draft' }}",
                         "items": "{{ statusItems }}",
                         "valueKey": "value",
                         "labelKey": "label",
                         "size": "sm",
                         "class": "w-full"
+                      },
+                      "events": {
+                        "update:model-value": {
+                          "action": "updateStatus"
+                        }
                       }
                     }
                   ]
@@ -315,7 +554,7 @@
                 },
                 "events": {
                   "click": {
-                    "expression": "deleteModalOpen = false"
+                    "action": "closeDeleteModal"
                   }
                 },
                 "children": {
@@ -345,6 +584,5 @@
         }
       ]
     }
-  ],
-  "rawScript": "import { useRoute, useRouter } from 'vue-router'\nimport { computed, ref, watch, nextTick } from 'vue'\nimport { useCollectionQuery, useUpdateItem, useDeleteItem } from '@/hooks'\n\nconst route = useRoute()\nconst router = useRouter()\nconst projectId = computed(() => route.params.id as string)\nconst ideaId = computed(() => route.params.ideaId as string)\n\nconst { data: ideas, loading } = useCollectionQuery('ideas', () => ({\n  filter: { project_id: { _eq: projectId.value } },\n}))\nconst [updateItem] = useUpdateItem()\nconst [deleteItem] = useDeleteItem()\n\nconst idea = computed(() => ideas.value.find((i) => i.id === ideaId.value) ?? null)\n\nconst backLink = computed(() => `/project/${projectId.value}/ideas`)\n\nconst deleteModalOpen = ref(false)\n\nconst title = ref('')\nconst description = ref('')\nconst level = ref<string | null>(null)\nconst typeValue = ref<string | null>(null)\nconst status = ref<string>('draft')\nconst isInitialized = ref(false)\n\nwatch(\n  idea,\n  (i) => {\n    if (!i) return\n    title.value = i.data.title ?? ''\n    description.value = i.data.description ?? ''\n    level.value = i.data.level ?? null\n    typeValue.value = i.data.type ?? null\n    status.value = i.data.status ?? 'draft'\n    nextTick(() => {\n      isInitialized.value = true\n    })\n  },\n  { immediate: true },\n)\n\nfunction updateTitle() {\n  if (!idea.value) return\n  const trimmed = title.value.trim()\n  if (trimmed === '') {\n    title.value = idea.value.data.title ?? ''\n    return\n  }\n  if (trimmed === idea.value.data.title) return\n  updateItem(idea.value.id, { title: trimmed })\n}\n\nfunction updateDescription() {\n  if (!idea.value || description.value === (idea.value.data.description ?? '')) return\n  updateItem(idea.value.id, { description: description.value || null })\n}\n\nwatch(level, (v) => {\n  if (!isInitialized.value || !idea.value || v === idea.value.data.level) return\n  updateItem(idea.value.id, { level: v })\n})\n\nwatch(typeValue, (v) => {\n  if (!isInitialized.value || !idea.value || v === idea.value.data.type) return\n  updateItem(idea.value.id, { type: v })\n})\n\nwatch(status, (v) => {\n  if (!isInitialized.value || !idea.value || v === idea.value.data.status) return\n  updateItem(idea.value.id, { status: v })\n})\n\nfunction openDeleteModal() {\n  deleteModalOpen.value = true\n}\n\nfunction confirmDelete() {\n  if (!idea.value) return\n  deleteItem(idea.value.id)\n  deleteModalOpen.value = false\n  router.push(`/project/${projectId.value}/ideas`)\n}\n\nconst LEVELS = ['L0', 'L1', 'L2', 'L3', 'L4']\nconst TYPES = ['goal', 'non_goal', 'constraint', 'invariant', 'component', 'decision', 'principle']\n\nconst levelItems = [\n  { label: t({ en: 'No level', ru: 'Без уровня' }), value: null },\n  ...LEVELS.map((l) => ({ label: l, value: l })),\n]\n\nconst typeItems = [\n  { label: t({ en: 'No type', ru: 'Без типа' }), value: null },\n  ...TYPES.map((type) => ({ label: type, value: type })),\n]\n\nconst statusItems = [\n  { label: t({ en: 'Draft', ru: 'Черновик' }), value: 'draft' },\n  { label: t({ en: 'Stabilized', ru: 'Стабилизирована' }), value: 'stabilized' },\n]"
+  ]
 }

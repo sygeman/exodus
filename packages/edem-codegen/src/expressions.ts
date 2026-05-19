@@ -64,8 +64,9 @@ export function resolveInTemplate(template: string, ctx: ExpressionContext): str
     .replace(/\{\{\s*context\.(\w+)\s*\}\}/g, (_, key: string) => {
       return `\${${paramMap[`context.${key}`] ?? `route.params.${key}`}}`
     })
-    .replace(/\{\{\s*(\w+)\s*\}\}/g, (_, varName: string) => {
-      return `\${${paramMap[`context.${varName}`] ?? `route.params.${varName}`}}`
+    .replace(/\{\{\s*([\s\S]+?)\s*\}\}/g, (_, expression: string) => {
+      const trimmed = expression.trim()
+      return `\${${paramMap[`context.${trimmed}`] ?? trimmed}}`
     })
 }
 
@@ -102,10 +103,11 @@ export function resolveInString(value: unknown, ctx: ExpressionContext): string 
     return `\${${paramMap[`context.${key}`] ?? `route.params.${key}`}}`
   })
 
-  result = result.replace(/\{\{\s*(\w+)\s*\}\}/g, (_, varName: string) => {
-    const paramName = paramMap[`context.${varName}`]
+  result = result.replace(/\{\{\s*([\s\S]+?)\s*\}\}/g, (_, expression: string) => {
+    const trimmed = expression.trim()
+    const paramName = paramMap[`context.${trimmed}`]
     if (paramName) return `\${${paramName}}`
-    return `\${${varName}}`
+    return `\${${trimmed}}`
   })
 
   return result

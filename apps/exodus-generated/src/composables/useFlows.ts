@@ -14,7 +14,7 @@ export interface FlowsItem {
   backpressure: unknown | null
 }
 
-export function useFlows(options?: { filter?: Record<string, unknown> }) {
+export function useFlows(options?: { filter?: Record<string, unknown>; sort?: string[] }) {
   const items = ref<FlowsItem[]>([])
   const loading = ref(true)
   const unsubs: (() => void)[] = []
@@ -25,6 +25,7 @@ export function useFlows(options?: { filter?: Record<string, unknown> }) {
       const result = await edem.data.queryItems({
         collection_id: "flows",
         filter: filter ?? options?.filter ?? {},
+        sort: options?.sort,
       })
       items.value = result.items as FlowsItem[]
     } finally {

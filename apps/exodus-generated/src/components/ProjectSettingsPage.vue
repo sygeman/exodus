@@ -1,49 +1,59 @@
 <script setup lang="ts">
-import SettingsLayout from "@/components/SettingsLayout.vue"
-import { useRoute, useRouter } from "vue-router"
 import { computed, ref } from "vue"
-import { useCollectionQuery, useUpdateItem, useDeleteItem } from "@/hooks"
+import { useRoute } from "vue-router"
+import SettingsLayout from "@/components/SettingsLayout.vue"
+import { useProjects } from "@/composables/useProjects"
 import { useT } from "@exodus/edem-vue"
 
-const t = useT()
-
 const route = useRoute()
-const router = useRouter()
-const { data: projects, loading } = useCollectionQuery("projects")
-const [updateItem] = useUpdateItem()
-const [deleteItem] = useDeleteItem()
-
-const projectId = computed(() => route.params.id as string)
-const project = computed(() => projects.value.find((p) => p.id === projectId.value))
+const {
+  items: projects,
+  loading: projectsLoading,
+  create: createProjects,
+  update: updateProjects,
+  remove: removeProjects,
+} = useProjects({})
 const deleteModalOpen = ref(false)
-
-const navItems = computed(() => [
+const navItems = [
   {
-    to: `/project/${projectId.value}/settings`,
+    to: `/project/${route.params.id}/settings`,
     label: t({ en: "General", ru: "Общие" }),
     icon: "i-lucide-settings",
   },
-])
+]
+const project = computed(() => projects.value.find((p) => p.id === route.params.id) ?? null)
+const loading = computed(() => projectsLoading.value)
+const t = useT()
 
-function updateName(e: FocusEvent | KeyboardEvent) {
-  const name = (e.target as HTMLInputElement).value
-  if (!project.value || name.trim() === "" || name === project.value.data.name) return
-  updateItem(project.value.id, { name })
+async function updateName($event?: Event, item?: Record<string, unknown>) {
+  if (!project.value) return
+  if (!((($event as FocusEvent | KeyboardEvent).target as HTMLInputElement).value.trim() !== ""))
+    return
+  if (
+    !(
+      (($event as FocusEvent | KeyboardEvent).target as HTMLInputElement).value !==
+      project.value.name
+    )
+  )
+    return
+  await updateProjects(project.value.id, {
+    name: (($event as FocusEvent | KeyboardEvent).target as HTMLInputElement).value,
+  })
 }
 
-function openDeleteModal(_event?: Event) {
+async function openDeleteModal($event?: Event, item?: Record<string, unknown>) {
   deleteModalOpen.value = true
 }
 
-function closeDeleteModal(_event?: Event) {
+async function closeDeleteModal($event?: Event, item?: Record<string, unknown>) {
   deleteModalOpen.value = false
 }
 
-function confirmDelete(_event?: Event) {
+async function confirmDelete($event?: Event, item?: Record<string, unknown>) {
   if (!project.value) return
-  deleteItem(project.value.id)
+  await removeProjects(project.value.id)
   deleteModalOpen.value = false
-  router.push("/projects")
+  await router.push("/projects")
 }
 </script>
 
@@ -70,7 +80,7 @@ function confirmDelete(_event?: Event) {
           </div>
           <UInput
             class="max-w-md"
-            :model-value="project.data.name ?? ''"
+            :model-value="project.name ?? ''"
             @blur="updateName($event)"
             @keyup.enter="updateName($event)"
           />

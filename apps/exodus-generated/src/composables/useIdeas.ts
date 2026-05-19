@@ -11,7 +11,7 @@ export interface IdeasItem {
   status: string | null
 }
 
-export function useIdeas(options?: { filter?: Record<string, unknown> }) {
+export function useIdeas(options?: { filter?: Record<string, unknown>; sort?: string[] }) {
   const items = ref<IdeasItem[]>([])
   const loading = ref(true)
   const unsubs: (() => void)[] = []
@@ -22,6 +22,7 @@ export function useIdeas(options?: { filter?: Record<string, unknown> }) {
       const result = await edem.data.queryItems({
         collection_id: "ideas",
         filter: filter ?? options?.filter ?? {},
+        sort: options?.sort,
       })
       items.value = result.items as IdeasItem[]
     } finally {

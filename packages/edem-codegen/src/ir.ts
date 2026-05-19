@@ -1,4 +1,4 @@
-import type { ComponentNode, Translation } from "@exodus/edem-ui"
+import type { ComponentNode, Translation, ManifestQuery, ManifestAction } from "@exodus/edem-ui"
 
 // ── Extended ComponentNode ─────────────────────────────────────────────────────
 // Adds conditional rendering, modals, teleport, slots, navigation links,
@@ -51,6 +51,12 @@ export interface ExtendedComponentNode extends Omit<ComponentNode, "children"> {
     text?: string | Translation
     action?: ExtendedComponentNode
   }
+
+  queries?: Record<string, ManifestQuery>
+  state?: Record<string, unknown>
+  constants?: Record<string, unknown>
+  computed?: Record<string, string>
+  actions?: Record<string, ManifestAction>
 }
 
 // ── Intermediate Representation (IR) ──────────────────────────────────────────

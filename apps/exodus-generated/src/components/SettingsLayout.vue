@@ -1,17 +1,7 @@
 <script setup lang="ts">
 import MenuLayout from "@/components/MenuLayout.vue"
 
-interface MenuLayoutItem {
-  to: string
-  label: string
-  icon: string
-}
-
-const props = defineProps<{
-  title: string
-  items: MenuLayoutItem[]
-  pageTitle: string
-}>()
+const props = defineProps<Record<string, unknown>>()
 </script>
 
 <template>

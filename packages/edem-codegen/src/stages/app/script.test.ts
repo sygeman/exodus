@@ -17,14 +17,12 @@ function makeIR(component: IRComponent): IR {
 }
 
 describe("renderScript", () => {
-  it("hoists rawScript imports before generated statements", () => {
+  it("generates defineProps when manifest template uses props", () => {
     const component: IRComponent = {
-      name: "SettingsLanguage",
+      name: "SettingsLayout",
       tree: {
         component: "section",
-        children: { $type: "translation", en: "Language", ru: "Язык" },
-        rawScript:
-          "import { computed } from 'vue'\nimport { useSingleton } from '@/hooks'\n\nconst { data: appState } = useSingleton('app_state')\nconst selectedLocale = computed(() => appState.value?.data.locale)",
+        children: "{{ props.title }}",
       },
       usedCollections: [],
       usedFlows: [],
@@ -36,15 +34,7 @@ describe("renderScript", () => {
 
     const script = renderScript(component, makeIR(component), new Map())
 
-    expect(script).toContain("import { computed } from 'vue'")
-    expect(script).toContain('import { useT } from "@exodus/edem-vue"')
-    expect(script).toContain("import { useSingleton } from '@/hooks'")
-    expect(script.indexOf("import { computed } from 'vue'")).toBeLessThan(
-      script.indexOf("const t = useT()"),
-    )
-    expect(script.indexOf("import { useSingleton } from '@/hooks'")).toBeLessThan(
-      script.indexOf("const t = useT()"),
-    )
+    expect(script).toContain("const props = defineProps<Record<string, unknown>>()")
   })
 
   it("skips useRoute when a catch-all route param is unused", () => {

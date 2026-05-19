@@ -1,12 +1,38 @@
 {
   "component": "div",
+  "queries": {
+    "data": {
+      "collection": "projects"
+    }
+  },
+  "actions": {
+    "handleCreate": {
+      "steps": [
+        {
+          "type": "create-item",
+          "collection": "projects",
+          "assignTo": "createdId",
+          "data": {
+            "name": "Untitled",
+            "slug": "{{ `untitled-${crypto.randomUUID().slice(0, 8)}` }}",
+            "type": "desktop",
+            "sort_order": 0
+          }
+        },
+        {
+          "type": "navigate",
+          "to": "/project/{{ createdId }}/overview"
+        }
+      ]
+    }
+  },
   "props": {
     "class": "flex h-full flex-col p-8"
   },
   "children": [
     {
       "component": "div",
-      "if": "{{ loading && showSkeleton }}",
+      "if": "{{ dataLoading }}",
       "props": {
         "class": "flex flex-1 flex-col gap-4"
       },
@@ -70,7 +96,7 @@
     },
     {
       "component": "div",
-      "elseIf": "{{ !loading && data.length === 0 }}",
+      "elseIf": "{{ !dataLoading && data.length === 0 }}",
       "props": {
         "class": "flex flex-1 flex-col items-center justify-center gap-4"
       },
@@ -97,7 +123,7 @@
           "component": "UButton",
           "events": {
             "click": {
-              "expression": "handleCreate"
+              "action": "handleCreate"
             }
           },
           "children": {
@@ -136,7 +162,7 @@
               "component": "UButton",
               "events": {
                 "click": {
-                  "expression": "handleCreate"
+                  "action": "handleCreate"
                 }
               },
               "children": {
@@ -166,14 +192,14 @@
                   "props": {
                     "class": "bg-elevated flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-2 border-transparent font-semibold transition-colors"
                   },
-                  "children": "{{ getInitials(project.data.name) }}"
+                  "children": "{{ getInitials(project.name) }}"
                 },
                 {
                   "component": "span",
                   "props": {
                     "class": "font-medium"
                   },
-                  "children": "{{ project.data.name }}"
+                  "children": "{{ project.name }}"
                 }
               ]
             }
@@ -181,6 +207,5 @@
         }
       ]
     }
-  ],
-  "rawScript": "import { useRouter } from 'vue-router'\nimport { ref, watch } from 'vue'\nimport { useCollectionQuery, useCreateItem } from '@/hooks'\n\nconst { data, loading } = useCollectionQuery('projects')\nconst [createItem] = useCreateItem()\nconst router = useRouter()\n\nconst showSkeleton = ref(false)\n\nlet skeletonTimeout: ReturnType<typeof setTimeout> | null = null\n\nwatch(\n  loading,\n  (isLoading) => {\n    if (isLoading) {\n      skeletonTimeout = setTimeout(() => {\n        showSkeleton.value = true\n      }, 150)\n    } else {\n      if (skeletonTimeout) {\n        clearTimeout(skeletonTimeout)\n        skeletonTimeout = null\n      }\n      showSkeleton.value = false\n    }\n  },\n  { immediate: true },\n)\n\nasync function handleCreate() {\n  const name = 'Untitled'\n  const slug = `${name.toLowerCase().replace(/\\s+/g, '-')}-${crypto.randomUUID().slice(0, 8)}`\n  const id = await createItem('projects', {\n    name,\n    slug,\n    type: 'desktop',\n    sort_order: 0,\n  })\n  router.push(`/project/${id}/overview`)\n}\n\nfunction getInitials(name: string): string {\n  return name.slice(0, 2).toUpperCase()\n}"
+  ]
 }

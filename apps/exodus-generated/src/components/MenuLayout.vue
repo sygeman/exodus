@@ -1,19 +1,8 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router"
 
-export interface MenuLayoutItem {
-  to: string
-  label: string
-  icon: string
-}
-
-const props = defineProps<{
-  title: string
-  items: MenuLayoutItem[]
-  mainClass?: string
-}>()
-
 const route = useRoute()
+const props = defineProps<Record<string, unknown>>()
 </script>
 
 <template>

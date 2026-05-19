@@ -7,6 +7,35 @@ export interface Translation {
   [lang: string]: string
 }
 
+export interface ComponentQuery {
+  kind?: "collection"
+  collection: string
+  filter?: Record<string, unknown>
+  sort?: string[]
+  mode?: "list" | "first"
+}
+
+export interface SingletonQuery {
+  kind: "singleton"
+  collection: string
+}
+
+export type ManifestQuery = ComponentQuery | SingletonQuery
+
+export type ManifestActionStep =
+  | { type: "guard"; condition: string; unless?: boolean }
+  | { type: "set-state"; state: string; value: unknown }
+  | { type: "create-item"; collection: string; data?: Record<string, unknown>; assignTo?: string }
+  | { type: "update-item"; collection: string; id: string; data: Record<string, unknown> }
+  | { type: "delete-item"; collection: string; id: string }
+  | { type: "update-singleton"; collection: string; data: Record<string, unknown> }
+  | { type: "navigate"; to: string }
+  | { type: "event"; stopPropagation?: boolean; preventDefault?: boolean }
+
+export interface ManifestAction {
+  steps: ManifestActionStep[]
+}
+
 export interface ComponentNode {
   component: string
   props?: Record<string, unknown>
@@ -51,8 +80,11 @@ export interface ComponentNode {
     text?: string | Translation
     action?: ComponentNode
   }
-  /** Raw script injected as-is into <script setup> */
-  rawScript?: string
+  queries?: Record<string, ManifestQuery>
+  state?: Record<string, unknown>
+  constants?: Record<string, unknown>
+  computed?: Record<string, string>
+  actions?: Record<string, ManifestAction>
 }
 
 export interface DataBinding {
@@ -112,6 +144,68 @@ export const eventBindingSchema = z.union([
   expressionEventSchema,
 ])
 
+const manifestQuerySchema: z.ZodType<ManifestQuery> = z.union([
+  z.object({
+    kind: z.literal("singleton"),
+    collection: z.string(),
+  }),
+  z.object({
+    kind: z.literal("collection").optional(),
+    collection: z.string(),
+    filter: z.record(z.string(), z.any()).optional(),
+    sort: z.array(z.string()).optional(),
+    mode: z.enum(["list", "first"]).optional(),
+  }),
+])
+
+const manifestActionStepSchema: z.ZodType<ManifestActionStep> = z.union([
+  z.object({
+    type: z.literal("guard"),
+    condition: z.string(),
+    unless: z.boolean().optional(),
+  }),
+  z.object({
+    type: z.literal("set-state"),
+    state: z.string(),
+    value: z.any(),
+  }),
+  z.object({
+    type: z.literal("create-item"),
+    collection: z.string(),
+    data: z.record(z.string(), z.any()).optional(),
+    assignTo: z.string().optional(),
+  }),
+  z.object({
+    type: z.literal("update-item"),
+    collection: z.string(),
+    id: z.string(),
+    data: z.record(z.string(), z.any()),
+  }),
+  z.object({
+    type: z.literal("delete-item"),
+    collection: z.string(),
+    id: z.string(),
+  }),
+  z.object({
+    type: z.literal("update-singleton"),
+    collection: z.string(),
+    data: z.record(z.string(), z.any()),
+  }),
+  z.object({
+    type: z.literal("navigate"),
+    to: z.string(),
+  }),
+  z.object({
+    type: z.literal("event"),
+    stopPropagation: z.boolean().optional(),
+    preventDefault: z.boolean().optional(),
+  }),
+])
+
+const manifestActionSchema: z.ZodType<ManifestAction> = z.object({
+  steps: z.array(manifestActionStepSchema),
+})
+
 export const dataBindingSchema: z.ZodType<DataBinding> = z.lazy(
   () =>
     z.object({
@@ -168,7 +262,11 @@ export const componentNodeSchema: z.ZodType<ComponentNode> = z.lazy(
           action: componentNodeSchema.optional(),
         })
         .optional(),
-      rawScript: z.string().optional(),
+      queries: z.record(z.string(), manifestQuerySchema).optional(),
+      state: z.record(z.string(), z.any()).optional(),
+      constants: z.record(z.string(), z.any()).optional(),
+      computed: z.record(z.string(), z.string()).optional(),
+      actions: z.record(z.string(), manifestActionSchema).optional(),
     }) as z.ZodType<ComponentNode>,
 )
 

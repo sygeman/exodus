@@ -10,7 +10,7 @@ export interface LogsItem {
   count: number | null
 }
 
-export function useLogs(options?: { filter?: Record<string, unknown> }) {
+export function useLogs(options?: { filter?: Record<string, unknown>; sort?: string[] }) {
   const items = ref<LogsItem[]>([])
   const loading = ref(true)
   const unsubs: (() => void)[] = []
@@ -21,6 +21,7 @@ export function useLogs(options?: { filter?: Record<string, unknown> }) {
       const result = await edem.data.queryItems({
         collection_id: "logs",
         filter: filter ?? options?.filter ?? {},
+        sort: options?.sort,
       })
       items.value = result.items as LogsItem[]
     } finally {

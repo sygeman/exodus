@@ -1,20 +1,13 @@
 <script setup lang="ts">
-import { computed } from "vue"
-import { useSingleton } from "@/hooks"
+import { useApp_state } from "@/composables/useApp_state"
 import { useT } from "@exodus/edem-vue"
 
+const { item: appState, loading: appStateLoading, update: updateApp_state } = useApp_state()
 const t = useT()
 
-const { data: appState, update: updateSetting } = useSingleton("app_state")
-
-const isDark = computed({
-  get() {
-    return !!appState.value?.data.dark
-  },
-  set(_isDark: boolean) {
-    updateSetting({ dark: _isDark })
-  },
-})
+async function updateDarkMode($event?: Event, item?: Record<string, unknown>) {
+  await updateApp_state({ dark: $event })
+}
 </script>
 
 <template>
@@ -27,7 +20,7 @@ const isDark = computed({
         </p>
       </div>
       <div class="flex items-center">
-        <USwitch v-model="isDark" />
+        <USwitch :model-value="!!appState?.dark" @update:model-value="updateDarkMode($event)" />
       </div>
     </div>
   </section>

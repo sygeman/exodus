@@ -1,5 +1,83 @@
 {
   "component": "div",
+  "queries": {
+    "flows": {
+      "collection": "flows",
+      "filter": {
+        "project_id": { "_eq": "{{ route.params.id }}" }
+      }
+    }
+  },
+  "state": {
+    "deleteModalOpen": false
+  },
+  "constants": {
+    "navItems": [
+      {
+        "to": "/project/{{ route.params.id }}/flows/{{ route.params.flowId }}/settings",
+        "label": { "$type": "translation", "en": "General", "ru": "Общие" },
+        "icon": "i-lucide-settings"
+      }
+    ],
+    "statusItems": [
+      { "label": "draft", "value": "draft" },
+      { "label": "active", "value": "active" },
+      { "label": "paused", "value": "paused" },
+      { "label": "archived", "value": "archived" }
+    ]
+  },
+  "computed": {
+    "flow": "{{ flows.value.find((entry) => entry.id === route.params.flowId) ?? null }}"
+  },
+  "actions": {
+    "updateName": {
+      "steps": [
+        { "type": "guard", "condition": "{{ flow.value }}" },
+        { "type": "guard", "condition": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value).trim() !== '' }}" },
+        { "type": "guard", "condition": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value).trim() !== flow.value.name }}" },
+        {
+          "type": "update-item",
+          "collection": "flows",
+          "id": "{{ flow.value.id }}",
+          "data": {
+            "name": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value).trim() }}"
+          }
+        }
+      ]
+    },
+    "updateStatus": {
+      "steps": [
+        { "type": "guard", "condition": "{{ flow.value }}" },
+        { "type": "guard", "condition": "{{ $event !== flow.value.status }}" },
+        {
+          "type": "update-item",
+          "collection": "flows",
+          "id": "{{ flow.value.id }}",
+          "data": {
+            "status": "{{ $event }}"
+          }
+        }
+      ]
+    },
+    "openDeleteModal": {
+      "steps": [
+        { "type": "set-state", "state": "deleteModalOpen", "value": true }
+      ]
+    },
+    "closeDeleteModal": {
+      "steps": [
+        { "type": "set-state", "state": "deleteModalOpen", "value": false }
+      ]
+    },
+    "confirmDelete": {
+      "steps": [
+        { "type": "guard", "condition": "{{ flow.value }}" },
+        { "type": "delete-item", "collection": "flows", "id": "{{ flow.value.id }}" },
+        { "type": "set-state", "state": "deleteModalOpen", "value": false },
+        { "type": "navigate", "to": "/project/{{ route.params.id }}/flows" }
+      ]
+    }
+  },
   "props": { "class": "flex h-full" },
   "children": [
     {
@@ -37,7 +115,7 @@
                 },
                 {
                   "component": "UInput",
-                  "props": { "class": "max-w-md", "modelValue": "{{ flow.data.name ?? '' }}" },
+                  "props": { "class": "max-w-md", "modelValue": "{{ flow.name ?? '' }}" },
                   "events": {
                     "blur": { "action": "updateName" },
                     "keyup.enter": { "action": "updateName" }
@@ -68,7 +146,7 @@
                 {
                   "component": "USelect",
                   "props": {
-                    "modelValue": "{{ flow.data.status ?? 'draft' }}",
+                      "modelValue": "{{ flow.status ?? 'draft' }}",
                     "items": "{{ statusItems }}",
                     "valueKey": "value",
                     "labelKey": "label",
@@ -133,6 +211,5 @@
         }
       ]
     }
-  ],
-  "rawScript": "import { useRoute, useRouter } from 'vue-router'\nimport { computed, ref } from 'vue'\nimport { useCollectionQuery, useUpdateItem, useDeleteItem } from '@/hooks'\n\nconst route = useRoute()\nconst router = useRouter()\nconst projectId = computed(() => route.params.id as string)\nconst flowId = computed(() => route.params.flowId as string)\n\nconst { data: flows } = useCollectionQuery('flows', () => ({\n  filter: { project_id: { _eq: projectId.value } },\n}))\nconst [updateItem] = useUpdateItem()\nconst [deleteItem] = useDeleteItem()\n\nconst flow = computed(() => flows.value.find((f) => f.id === flowId.value))\nconst deleteModalOpen = ref(false)\n\nconst navItems = computed(() => [\n  {\n    to: `/project/${projectId.value}/flows/${flowId.value}/settings`,\n    label: t({ en: 'General', ru: 'Общие' }),\n    icon: 'i-lucide-settings',\n  },\n])\n\nfunction updateName(e: FocusEvent | KeyboardEvent) {\n  const value = (e.target as HTMLInputElement).value\n  if (!flow.value) return\n  const trimmed = value.trim()\n  if (trimmed === '') return\n  if (trimmed === flow.value.data.name) return\n  updateItem(flow.value.id, { name: trimmed })\n}\n\nfunction updateStatus(value: string) {\n  if (!flow.value || value === flow.value.data.status) return\n  updateItem(flow.value.id, { status: value })\n}\n\nfunction openDeleteModal(_event?: Event) {\n  deleteModalOpen.value = true\n}\n\nfunction closeDeleteModal(_event?: Event) {\n  deleteModalOpen.value = false\n}\n\nfunction confirmDelete(_event?: Event) {\n  if (!flow.value) return\n  deleteItem(flow.value.id)\n  deleteModalOpen.value = false\n  router.push(`/project/${projectId.value}/flows`)\n}\n\nconst statusItems = [\n  { label: 'draft', value: 'draft' },\n  { label: 'active', value: 'active' },\n  { label: 'paused', value: 'paused' },\n  { label: 'archived', value: 'archived' },\n]"
+  ]
 }

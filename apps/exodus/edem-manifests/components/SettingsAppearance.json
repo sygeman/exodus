@@ -1,5 +1,24 @@
 {
   "component": "section",
+  "queries": {
+    "appState": {
+      "kind": "singleton",
+      "collection": "app_state"
+    }
+  },
+  "actions": {
+    "updateDarkMode": {
+      "steps": [
+        {
+          "type": "update-singleton",
+          "collection": "app_state",
+          "data": {
+            "dark": "{{ $event }}"
+          }
+        }
+      ]
+    }
+  },
   "props": { "class": "flex flex-col gap-8" },
   "children": [
     {
@@ -28,12 +47,12 @@
           "children": [
             {
               "component": "USwitch",
-              "props": { "vModel": "{{ isDark }}" }
+              "props": { "modelValue": "{{ !!appState?.dark }}" },
+              "events": { "update:model-value": { "action": "updateDarkMode" } }
             }
           ]
         }
       ]
     }
-  ],
-  "rawScript": "import { computed } from 'vue'\nimport { useSingleton } from '@/hooks'\n\nconst { data: appState, update: updateSetting } = useSingleton('app_state')\n\nconst isDark = computed({\n  get() {\n    return !!appState.value?.data.dark\n  },\n  set(_isDark: boolean) {\n    updateSetting({ dark: _isDark })\n  },\n})"
+  ]
 }

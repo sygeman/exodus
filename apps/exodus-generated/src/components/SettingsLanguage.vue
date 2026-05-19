@@ -1,24 +1,16 @@
 <script setup lang="ts">
 import { computed } from "vue"
-import { useSingleton } from "@/hooks"
+import { useApp_state } from "@/composables/useApp_state"
 import { useT } from "@exodus/edem-vue"
 
+const { item: appState, loading: appStateLoading, update: updateApp_state } = useApp_state()
+const locales = computed(() => appState.value?.locales ?? [])
+const selectedLocale = computed(() => appState.value?.locale)
 const t = useT()
 
-const { data: appState, update: updateSetting } = useSingleton("app_state")
-
-const locales = computed(
-  () => (appState.value?.data.locales as { value: string; label: string; flag: string }[]) ?? [],
-)
-
-const selectedLocale = computed({
-  get() {
-    return appState.value?.data.locale
-  },
-  set(value) {
-    updateSetting({ locale: value })
-  },
-})
+async function updateLocale($event?: Event, item?: Record<string, unknown>) {
+  await updateApp_state({ locale: item?.value })
+}
 </script>
 
 <template>
@@ -46,7 +38,7 @@ const selectedLocale = computed({
             'text-muted border-default bg-elevated/30 hover:bg-elevated hover:border-accent':
               selectedLocale !== l.value,
           }"
-          @click="selectedLocale = l.value"
+          @click="updateLocale($event, item)"
         >
           <span class="text-2xl">{{ l.flag }}</span>
           <span class="font-medium">{{ l.label }}</span>

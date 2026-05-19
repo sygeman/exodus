@@ -1,110 +1,105 @@
 <script setup lang="ts">
-import { useRoute, useRouter } from "vue-router"
-import { computed, ref, watch, nextTick } from "vue"
-import { useCollectionQuery, useUpdateItem, useDeleteItem } from "@/hooks"
+import { computed, ref } from "vue"
+import { useRoute } from "vue-router"
+import { useIdeas } from "@/composables/useIdeas"
 import { useT } from "@exodus/edem-vue"
 
+const route = useRoute()
+const {
+  items: ideas,
+  loading: ideasLoading,
+  create: createIdeas,
+  update: updateIdeas,
+  remove: removeIdeas,
+} = useIdeas({ filter: { project_id: { _eq: route.params.id } } })
+const deleteModalOpen = ref(false)
+const levelItems = [
+  { label: "L1", value: "L1" },
+  { label: "L2", value: "L2" },
+  { label: "L3", value: "L3" },
+  { label: "L4", value: "L4" },
+]
+const typeItems = [
+  { label: "goal", value: "goal" },
+  { label: "non_goal", value: "non_goal" },
+  { label: "constraint", value: "constraint" },
+  { label: "invariant", value: "invariant" },
+  { label: "component", value: "component" },
+  { label: "decision", value: "decision" },
+  { label: "principle", value: "principle" },
+]
+const statusItems = [
+  { label: "draft", value: "draft" },
+  { label: "stabilized", value: "stabilized" },
+]
+const idea = computed(() => ideas.value.find((entry) => entry.id === route.params.ideaId) ?? null)
+const loading = computed(() => ideasLoading.value)
+const backLink = computed(() => `/project/${route.params.id}/ideas`)
+const ideaId = computed(() => route.params.ideaId)
 const t = useT()
 
-const route = useRoute()
-const router = useRouter()
-const projectId = computed(() => route.params.id as string)
-const ideaId = computed(() => route.params.ideaId as string)
-
-const { data: ideas, loading } = useCollectionQuery("ideas", () => ({
-  filter: { project_id: { _eq: projectId.value } },
-}))
-const [updateItem] = useUpdateItem()
-const [deleteItem] = useDeleteItem()
-
-const idea = computed(() => ideas.value.find((i) => i.id === ideaId.value) ?? null)
-
-const backLink = computed(() => `/project/${projectId.value}/ideas`)
-
-const deleteModalOpen = ref(false)
-
-const title = ref("")
-const description = ref("")
-const level = ref<string | null>(null)
-const typeValue = ref<string | null>(null)
-const status = ref<string>("draft")
-const isInitialized = ref(false)
-
-watch(
-  idea,
-  (i) => {
-    if (!i) return
-    title.value = i.data.title ?? ""
-    description.value = i.data.description ?? ""
-    level.value = i.data.level ?? null
-    typeValue.value = i.data.type ?? null
-    status.value = i.data.status ?? "draft"
-    nextTick(() => {
-      isInitialized.value = true
-    })
-  },
-  { immediate: true },
-)
-
-function updateTitle() {
-  if (!idea.value) return
-  const trimmed = title.value.trim()
-  if (trimmed === "") {
-    title.value = idea.value.data.title ?? ""
-    return
-  }
-  if (trimmed === idea.value.data.title) return
-  updateItem(idea.value.id, { title: trimmed })
-}
-
-function updateDescription() {
-  if (!idea.value || description.value === (idea.value.data.description ?? "")) return
-  updateItem(idea.value.id, { description: description.value || null })
-}
-
-watch(level, (v) => {
-  if (!isInitialized.value || !idea.value || v === idea.value.data.level) return
-  updateItem(idea.value.id, { level: v })
-})
-
-watch(typeValue, (v) => {
-  if (!isInitialized.value || !idea.value || v === idea.value.data.type) return
-  updateItem(idea.value.id, { type: v })
-})
-
-watch(status, (v) => {
-  if (!isInitialized.value || !idea.value || v === idea.value.data.status) return
-  updateItem(idea.value.id, { status: v })
-})
-
-function openDeleteModal() {
+async function openDeleteModal($event?: Event, item?: Record<string, unknown>) {
   deleteModalOpen.value = true
 }
 
-function confirmDelete() {
-  if (!idea.value) return
-  deleteItem(idea.value.id)
+async function closeDeleteModal($event?: Event, item?: Record<string, unknown>) {
   deleteModalOpen.value = false
-  router.push(`/project/${projectId.value}/ideas`)
 }
 
-const LEVELS = ["L0", "L1", "L2", "L3", "L4"]
-const TYPES = ["goal", "non_goal", "constraint", "invariant", "component", "decision", "principle"]
+async function confirmDelete($event?: Event, item?: Record<string, unknown>) {
+  if (!idea.value) return
+  await removeIdeas(idea.value.id)
+  deleteModalOpen.value = false
+  await router.push(backLink.value)
+}
 
-const levelItems = [
-  { label: t({ en: "No level", ru: "Без уровня" }), value: null },
-  ...LEVELS.map((l) => ({ label: l, value: l })),
-]
+async function updateTitle($event?: Event, item?: Record<string, unknown>) {
+  if (!idea.value) return
+  if (!((($event as FocusEvent | KeyboardEvent).target as HTMLInputElement).value.trim() !== ""))
+    return
+  if (
+    !(
+      (($event as FocusEvent | KeyboardEvent).target as HTMLInputElement).value.trim() !==
+      (idea.value.title ?? "")
+    )
+  )
+    return
+  await updateIdeas(idea.value.id, {
+    title: (($event as FocusEvent | KeyboardEvent).target as HTMLInputElement).value.trim(),
+  })
+}
 
-const typeItems = [
-  { label: t({ en: "No type", ru: "Без типа" }), value: null },
-  ...TYPES.map((type) => ({ label: type, value: type })),
-]
+async function updateDescription($event?: Event, item?: Record<string, unknown>) {
+  if (!idea.value) return
+  if (
+    !(
+      (($event as FocusEvent).target as HTMLTextAreaElement).value !==
+      (idea.value.description ?? "")
+    )
+  )
+    return
+  await updateIdeas(idea.value.id, {
+    description: (($event as FocusEvent).target as HTMLTextAreaElement).value || null,
+  })
+}
 
-const statusItems = [
-  { label: t({ en: "Draft", ru: "Черновик" }), value: "draft" },
-  { label: t({ en: "Stabilized", ru: "Стабилизирована" }), value: "stabilized" },
-]
+async function updateLevel($event?: Event, item?: Record<string, unknown>) {
+  if (!idea.value) return
+  if (!($event !== idea.value.level)) return
+  await updateIdeas(idea.value.id, { level: $event })
+}
+
+async function updateType($event?: Event, item?: Record<string, unknown>) {
+  if (!idea.value) return
+  if (!($event !== idea.value.type)) return
+  await updateIdeas(idea.value.id, { type: $event })
+}
+
+async function updateStatus($event?: Event, item?: Record<string, unknown>) {
+  if (!idea.value) return
+  if (!($event !== idea.value.status)) return
+  await updateIdeas(idea.value.id, { status: $event })
+}
 </script>
 
 <template>
@@ -130,20 +125,14 @@ const statusItems = [
           }}</UButton>
           <div class="flex flex-wrap items-center gap-2">
             <UBadge
-              :label="idea.data.level || t({ en: 'No level', ru: 'Без уровня' })"
+              :label="idea.level || t({ en: 'No level', ru: 'Без уровня' })"
               color="neutral"
               variant="subtle"
               class="bg-primary/10 text-primary text-xs font-semibold"
             />
+            <UBadge v-if="idea.type" :label="idea.type" color="neutral" variant="soft" size="sm" />
             <UBadge
-              v-if="idea.data.type"
-              :label="idea.data.type"
-              color="neutral"
-              variant="soft"
-              size="sm"
-            />
-            <UBadge
-              v-if="idea.data.status === 'stabilized'"
+              v-if="idea.status === 'stabilized'"
               :label="t({ en: 'Stabilized', ru: 'Стабилизирована' })"
               color="success"
               variant="subtle"
@@ -162,14 +151,14 @@ const statusItems = [
       </div>
       <div class="flex flex-col gap-6 px-6 pb-6">
         <UInput
-          v-model="title"
+          :model-value="idea.title ?? ''"
           size="lg"
           class="w-full"
           @blur="updateTitle($event)"
           @keyup.enter="updateTitle($event)"
         />
         <UTextarea
-          v-model="description"
+          :model-value="idea.description ?? ''"
           :placeholder="t({ en: 'Idea description (optional)', ru: 'Описание идеи (опционально)' })"
           :rows="6"
           class="w-full"
@@ -181,23 +170,25 @@ const statusItems = [
               t({ en: "Level", ru: "Уровень" })
             }}</label>
             <USelect
-              v-model="level"
+              :model-value="idea.level ?? null"
               :items="levelItems"
               value-key="value"
               label-key="label"
               size="sm"
               class="w-full"
+              @update:model-value="updateLevel($event)"
             />
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-muted text-sm font-medium">{{ t({ en: "Type", ru: "Тип" }) }}</label>
             <USelect
-              v-model="typeValue"
+              :model-value="idea.type ?? null"
               :items="typeItems"
               value-key="value"
               label-key="label"
               size="sm"
               class="w-full"
+              @update:model-value="updateType($event)"
             />
           </div>
           <div class="flex flex-col gap-1.5">
@@ -205,12 +196,13 @@ const statusItems = [
               t({ en: "Status", ru: "Статус" })
             }}</label>
             <USelect
-              v-model="status"
+              :model-value="idea.status ?? 'draft'"
               :items="statusItems"
               value-key="value"
               label-key="label"
               size="sm"
               class="w-full"
+              @update:model-value="updateStatus($event)"
             />
           </div>
         </div>
@@ -227,7 +219,7 @@ const statusItems = [
       >
         <template #footer>
           <div class="flex w-full justify-end gap-3">
-            <UButton variant="ghost" @click="deleteModalOpen = false">{{
+            <UButton variant="ghost" @click="closeDeleteModal($event)">{{
               t({ en: "Cancel", ru: "Отмена" })
             }}</UButton>
             <UButton color="error" @click="confirmDelete($event)">{{
