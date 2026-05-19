@@ -157,7 +157,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build
-        run: bun run build:stable
+        run: bun x turbo run build:stable --filter=exodus
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -219,7 +219,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build
-        run: bun run build:stable
+        run: bun x turbo run build:stable --filter=exodus
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
@@ -281,7 +281,7 @@ jobs:
         run: bun install --frozen-lockfile
 
       - name: Build
-        run: bun run build:stable
+        run: bun x turbo run build:stable --filter=exodus
 
       - name: Upload artifacts
         uses: actions/upload-artifact@v7
