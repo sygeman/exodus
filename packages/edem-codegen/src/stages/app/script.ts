@@ -411,6 +411,12 @@ function renderManifestAction(name: string, steps: Array<Record<string, unknown>
         lines.push(`  ${String(step.state)}.value = ${renderScriptValue(step.value)}`)
         break
       }
+      case "set-timeout-state": {
+        lines.push(
+          `  setTimeout(() => { ${String(step.state)}.value = ${renderScriptValue(step.value)} }, ${Number(step.delay)})`,
+        )
+        break
+      }
       case "create-item": {
         const data = renderScriptValue(step.data ?? {})
         const call = `await create${capitalize(String(step.collection))}(${data})`
@@ -444,6 +450,10 @@ function renderManifestAction(name: string, steps: Array<Record<string, unknown>
       }
       case "navigate": {
         lines.push(`  await router.push(${renderScriptValue(step.to)})`)
+        break
+      }
+      case "clipboard-write": {
+        lines.push(`  await navigator.clipboard.writeText(${renderScriptValue(step.text)})`)
         break
       }
       case "event": {

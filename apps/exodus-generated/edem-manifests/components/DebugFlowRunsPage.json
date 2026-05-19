@@ -1,0 +1,6 @@
+{
+  "component": "DebugFlowRuns",
+  "props": {
+    "flowId": "{{ route.params.flowId }}"
+  }
+}

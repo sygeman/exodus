@@ -78,6 +78,5 @@
         }
       ]
     }
-  ],
-  "rawScript": "import { useRouter } from 'vue-router'\nimport { useFlows } from '@/hooks'\n\nconst router = useRouter()\nconst { items: flows, loading } = useFlows()\n\nconst TRIGGER_LABELS: Record<string, string> = { event: 'Event', schedule: 'Schedule', manual: 'Manual', webhook: 'Webhook' }\nconst STATUS_CLASS: Record<string, string> = { draft: 'bg-gray-500/10 text-gray-500', active: 'bg-green-500/10 text-green-500', paused: 'bg-yellow-500/10 text-yellow-500', archived: 'bg-red-500/10 text-red-500' }\n\nfunction goToRuns(flowId: string) { router.push(`/debug/flows/${flowId}`) }\nfunction getNodeCount(flow: { nodes?: unknown[] }): number { return Array.isArray(flow.nodes) ? flow.nodes.length : 0 }\nfunction getTriggerType(flow: { trigger?: { type?: string } }): string { return flow.trigger?.type || '' }\nfunction getScheduleLabel(flow: { trigger?: { type?: string; every?: string; at?: string; days?: string[] } }): string {\n  if (flow.trigger?.type !== 'schedule') return ''\n  const parts: string[] = []\n  if (flow.trigger.every) parts.push(flow.trigger.every)\n  if (flow.trigger.at) parts.push(`at ${flow.trigger.at}`)\n  if (flow.trigger.days?.length) parts.push(flow.trigger.days.join(', '))\n  return parts.join(' ') || 'schedule'\n}"
+  ]
 }

@@ -34,7 +34,7 @@
           "children": [
             {
               "path": "/graph",
-              "root": "FlowEditorPage"
+              "root": "FlowEditorGraphPage"
             },
             {
               "path": "/code",
@@ -58,7 +58,7 @@
       "children": [
         {
           "path": "/logs",
-          "root": "DebugLogs"
+          "root": "DebugLogsPage"
         },
         {
           "path": "/flows",
@@ -66,7 +66,7 @@
         },
         {
           "path": "/flows/:flowId",
-          "root": "DebugFlowRuns"
+          "root": "DebugFlowRunsPage"
         }
       ]
     },

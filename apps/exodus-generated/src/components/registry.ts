@@ -6,19 +6,19 @@ import {
   UInput,
   UScrollArea,
   USelect,
-  USelectMenu,
   USkeleton,
   USwitch,
   UTextarea,
   UTooltip,
 } from "@nuxt/ui"
 import { RouterLink } from "vue-router"
+import DebugFlowRuns from "@/components/DebugFlowRuns.vue"
+import DebugLogs from "@/components/DebugLogs.vue"
+import FlowEditorPage from "@/components/FlowEditorPage.vue"
 import LogoSvg from "@/components/LogoSvg.vue"
 import MenuLayout from "@/components/MenuLayout.vue"
-import NodeConfigPanel from "@/components/NodeConfigPanel.vue"
 import ProjectsSidebar from "@/components/ProjectsSidebar.vue"
 import SettingsLayout from "@/components/SettingsLayout.vue"
-import VueFlow from "@/components/VueFlow.vue"
 
 export const registry = {
   RouterLink,
@@ -28,15 +28,15 @@ export const registry = {
   UInput,
   UScrollArea,
   USelect,
-  USelectMenu,
   USkeleton,
   USwitch,
   UTextarea,
   UTooltip,
+  DebugFlowRuns,
+  DebugLogs,
+  FlowEditorPage,
   LogoSvg,
   MenuLayout,
-  NodeConfigPanel,
   ProjectsSidebar,
   SettingsLayout,
-  VueFlow,
 }

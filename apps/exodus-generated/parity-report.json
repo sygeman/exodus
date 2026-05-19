@@ -4,17 +4,17 @@
     "generatedNow": false
   },
   "summary": {
-    "total": 90,
+    "total": 86,
     "byArea": {
-      "other": 53,
+      "other": 49,
       "assets": 8,
       "shell": 8,
       "layouts": 7,
       "pages": 14
     },
     "byReason": {
-      "generator gap": 34,
-      "schema gap": 45,
+      "generator gap": 37,
+      "schema gap": 38,
       "migration gap": 11
     }
   },
@@ -101,7 +101,13 @@
       "file": "edem-manifests/components/DebugFlowRuns.json",
       "area": "other",
       "reason": "schema gap",
-      "status": "different"
+      "status": "only_in_reference"
+    },
+    {
+      "file": "edem-manifests/components/DebugFlowRunsPage.json",
+      "area": "other",
+      "reason": "generator gap",
+      "status": "only_in_generated"
     },
     {
       "file": "edem-manifests/components/DebugFlows.json",
@@ -113,7 +119,13 @@
       "file": "edem-manifests/components/DebugLogs.json",
       "area": "other",
       "reason": "schema gap",
-      "status": "different"
+      "status": "only_in_reference"
+    },
+    {
+      "file": "edem-manifests/components/DebugLogsPage.json",
+      "area": "other",
+      "reason": "generator gap",
+      "status": "only_in_generated"
     },
     {
       "file": "edem-manifests/components/FlowCodePage.json",
@@ -122,10 +134,16 @@
       "status": "different"
     },
     {
+      "file": "edem-manifests/components/FlowEditorGraphPage.json",
+      "area": "other",
+      "reason": "generator gap",
+      "status": "only_in_generated"
+    },
+    {
       "file": "edem-manifests/components/FlowEditorPage.json",
       "area": "other",
       "reason": "schema gap",
-      "status": "different"
+      "status": "only_in_reference"
     },
     {
       "file": "edem-manifests/components/FlowSettingsPage.json",
@@ -284,10 +302,10 @@
       "status": "only_in_reference"
     },
     {
-      "file": "src/components/DebugFlowRuns.vue",
+      "file": "src/components/DebugFlowRunsPage.vue",
       "area": "pages",
       "reason": "generator gap",
-      "status": "different"
+      "status": "only_in_generated"
     },
     {
       "file": "src/components/DebugFlows.vue",
@@ -302,16 +320,10 @@
       "status": "only_in_reference"
     },
     {
-      "file": "src/components/DebugLogs.vue",
+      "file": "src/components/DebugLogsPage.vue",
       "area": "pages",
       "reason": "generator gap",
-      "status": "different"
-    },
-    {
-      "file": "src/components/DeleteableEdge.vue",
-      "area": "other",
-      "reason": "schema gap",
-      "status": "only_in_reference"
+      "status": "only_in_generated"
     },
     {
       "file": "src/components/FlowCodePage.vue",
@@ -320,21 +332,15 @@
       "status": "different"
     },
     {
+      "file": "src/components/FlowEditorGraphPage.vue",
+      "area": "pages",
+      "reason": "generator gap",
+      "status": "only_in_generated"
+    },
+    {
       "file": "src/components/FlowEditorLayout.vue",
       "area": "layouts",
       "reason": "migration gap",
-      "status": "only_in_reference"
-    },
-    {
-      "file": "src/components/FlowEditorPage.vue",
-      "area": "pages",
-      "reason": "generator gap",
-      "status": "different"
-    },
-    {
-      "file": "src/components/FlowNode.vue",
-      "area": "other",
-      "reason": "schema gap",
       "status": "only_in_reference"
     },
     {
@@ -354,12 +360,6 @@
       "area": "layouts",
       "reason": "generator gap",
       "status": "different"
-    },
-    {
-      "file": "src/components/NodeWrapper.vue",
-      "area": "other",
-      "reason": "schema gap",
-      "status": "only_in_reference"
     },
     {
       "file": "src/components/ProjectFlowsPage.vue",
@@ -440,12 +440,6 @@
       "status": "only_in_generated"
     },
     {
-      "file": "src/composables/useFlowHighlighting.ts",
-      "area": "other",
-      "reason": "schema gap",
-      "status": "only_in_reference"
-    },
-    {
       "file": "src/composables/useFlows.ts",
       "area": "other",
       "reason": "generator gap",
@@ -462,18 +456,6 @@
       "area": "other",
       "reason": "generator gap",
       "status": "only_in_generated"
-    },
-    {
-      "file": "src/composables/useNodeLabel.ts",
-      "area": "other",
-      "reason": "schema gap",
-      "status": "only_in_reference"
-    },
-    {
-      "file": "src/composables/useNodeTestMode.ts",
-      "area": "other",
-      "reason": "schema gap",
-      "status": "only_in_reference"
     },
     {
       "file": "src/composables/useProjects.ts",
@@ -528,12 +510,6 @@
       "area": "shell",
       "reason": "generator gap",
       "status": "different"
-    },
-    {
-      "file": "src/types/flow.ts",
-      "area": "other",
-      "reason": "schema gap",
-      "status": "only_in_reference"
     },
     {
       "file": "src/utils/apply-theme.ts",

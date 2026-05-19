@@ -25,11 +25,13 @@ export type ManifestQuery = ComponentQuery | SingletonQuery
 export type ManifestActionStep =
   | { type: "guard"; condition: string; unless?: boolean }
   | { type: "set-state"; state: string; value: unknown }
+  | { type: "set-timeout-state"; state: string; value: unknown; delay: number }
   | { type: "create-item"; collection: string; data?: Record<string, unknown>; assignTo?: string }
   | { type: "update-item"; collection: string; id: string; data: Record<string, unknown> }
   | { type: "delete-item"; collection: string; id: string }
   | { type: "update-singleton"; collection: string; data: Record<string, unknown> }
   | { type: "navigate"; to: string }
+  | { type: "clipboard-write"; text: string }
   | { type: "event"; stopPropagation?: boolean; preventDefault?: boolean }
 
 export interface ManifestAction {
@@ -170,6 +172,12 @@ const manifestActionStepSchema: z.ZodType<ManifestActionStep> = z.union([
     value: z.any(),
   }),
   z.object({
+    type: z.literal("set-timeout-state"),
+    state: z.string(),
+    value: z.any(),
+    delay: z.number(),
+  }),
+  z.object({
     type: z.literal("create-item"),
     collection: z.string(),
     data: z.record(z.string(), z.any()).optional(),
@@ -194,6 +202,10 @@ const manifestActionStepSchema: z.ZodType<ManifestActionStep> = z.union([
   z.object({
     type: z.literal("navigate"),
     to: z.string(),
+  }),
+  z.object({
+    type: z.literal("clipboard-write"),
+    text: z.string(),
   }),
   z.object({
     type: z.literal("event"),

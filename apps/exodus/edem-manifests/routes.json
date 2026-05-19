@@ -14,7 +14,7 @@
           "path": "/flows/:flowId",
           "redirect": "/project/:id/flows/:flowId/graph",
           "children": [
-            { "path": "/graph", "root": "FlowEditorPage" },
+            { "path": "/graph", "root": "FlowEditorGraphPage" },
             { "path": "/code", "root": "FlowCodePage" },
             { "path": "/settings", "root": "FlowSettingsPage" }
           ]
@@ -26,9 +26,9 @@
       "path": "/debug",
       "redirect": "/debug/logs",
       "children": [
-        { "path": "/logs", "root": "DebugLogs" },
+        { "path": "/logs", "root": "DebugLogsPage" },
         { "path": "/flows", "root": "DebugFlows" },
-        { "path": "/flows/:flowId", "root": "DebugFlowRuns" }
+        { "path": "/flows/:flowId", "root": "DebugFlowRunsPage" }
       ]
     },
     {
