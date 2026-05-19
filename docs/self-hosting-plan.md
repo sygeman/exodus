@@ -83,18 +83,21 @@ Edem UI ближе по философии к связке `Astro` + `Storybook`
 - app-stage умеет импортировать локальные manifest-компоненты, используемые внутри других generated components
 - для первого product slice добавлены manifest-компоненты `MenuLayout` и `SettingsLayout`, а `ProjectSettingsPage` переведён на их использование
 - data-stage теперь генерирует shared runtime layer: `src/data-manifest.ts`, `src/edem-client.ts`, `src/hooks.ts`
+- parity-normalization теперь умеет игнорировать несущественные различия в порядке Vue-attrs и переносах внутри `{{ ... }}`
+- loops по alias и последовательностям вида `[1, 2, 3, ...]` теперь генерируются ближе к reference-template, без лишних wrapper-узлов
 
 Проверено фактическим прогоном:
 
 - `bun run codegen` запускает полный поддерживаемый цикл генерации и parity-проверки
-- текущий parity baseline после последних прогонов `bun run codegen`: `87` расхождений
+- текущий parity baseline после последних прогонов `bun run codegen`: `76` расхождений
 
 Текущие известные блокеры:
 
 - shell/layout/page parity по-прежнему в основном находится в зоне `generator gap`
 - часть расхождений относится к `schema gap`, то есть не лечится только правками codegen
-- первая settings chain уже закрыта в parity, а `FlowSettingsPage` и `SettingsAppearance` больше не попадают в page-level generator gap
-- settings slice всё ещё не завершён end-to-end: главным ближайшим хвостом в этом кластере остаётся `SettingsLanguage`, а более широкий остаток по-прежнему сидит в shell/layout/page коде и reference-only runtime/UI слоях
+- первая settings chain уже закрыта в parity, а `FlowSettingsPage`, `SettingsAppearance` и `SettingsLanguage` больше не попадают в page-level generator gap
+- page-level parity для `ProjectsListPage` тоже закрыт; ближайший page-level остаток теперь сосредоточен в `ProjectPage`, `ProjectIdeasPage`, `ProjectFlowsPage`, `IdeaPage`, `FlowCodePage`, `FlowEditorPage`, `DebugFlows`, `DebugFlowRuns`, `DebugLogs`
+- settings slice всё ещё не завершён end-to-end: page gap внутри него уже снят, но более широкий остаток по-прежнему сидит в shell/layout коде и reference-only runtime/UI слоях
 
 ## Потоки работ
 
@@ -393,8 +396,8 @@ Definition of done:
 - codegen уже умеет выводить такие handler'ы в template, включая `blur`, `click` и `keyup.enter`
 - generated app теперь воспроизводит и shared runtime layer первого slice через `data-manifest.ts`, `edem-client.ts` и `hooks.ts`
 - первая settings chain уже закрыта в parity: `MenuLayout`, `SettingsLayout` и `ProjectSettingsPage` больше не попадают в page/layout diff
-- `FlowSettingsPage` и `SettingsAppearance` тоже выведены из page-level generator gap, что снизило общий parity baseline до `87`
-- end-to-end parity для settings-кластера ещё не достигнут, потому что `SettingsLanguage` всё ещё расходится, а помимо него остаются другие generated shell/layout/page различия и reference-only runtime/UI слои
+- `FlowSettingsPage`, `SettingsAppearance`, `SettingsLanguage` и `ProjectsListPage` тоже выведены из page-level generator gap, что снизило общий parity baseline до `76`
+- end-to-end parity для settings-кластера ещё не достигнут, потому что помимо закрытого page gap остаются generated shell/layout различия и reference-only runtime/UI слои
 
 До тех пор, пока первый vertical slice не проходит end-to-end, расширять DSL дальше не стоит.
 
@@ -402,8 +405,8 @@ Definition of done:
 
 ## Ближайшие шаги
 
-1. Добить parity для `SettingsLanguage`, чтобы закрыть ближайший остаток settings-кластера
-2. После этого расширить тот же подход на следующий manifest-driven page gap из того же семейства экранов
+1. Перенести тот же подход на следующий manifest-driven page gap из project/debug семейства экранов
+2. После этого добивать layout/shell parity вокруг уже закрытых страниц, а не только сами leaf-pages
 3. Вынести следующий слой reference-only runtime/UI контрактов, которые ещё мешают parity (`types/flow`, `persist-route`, `apply-theme`, wrapper-компоненты)
 4. Обновлять parity baseline после каждого замкнутого шага, а не после больших пачек изменений
 

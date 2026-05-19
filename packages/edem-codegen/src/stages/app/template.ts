@@ -84,7 +84,7 @@ export function renderNode(
       const tagProps = props ? ` ${toAttr}${props}` : ` ${toAttr}`
       if (typeof node.children === "string") {
         return {
-          template: `${indent}<RouterLink${tagProps}${ifAttr}${events}>${node.children}</RouterLink>`,
+          template: `${indent}<RouterLink${ifAttr}${tagProps}${events}>${node.children}</RouterLink>`,
           handlers,
         }
       }
@@ -97,12 +97,12 @@ export function renderNode(
         }
         const children = childResults.map((r) => r.template).join("\n")
         return {
-          template: `${indent}<RouterLink${tagProps}${ifAttr}${events}>\n${children}\n${indent}</RouterLink>`,
+          template: `${indent}<RouterLink${ifAttr}${tagProps}${events}>\n${children}\n${indent}</RouterLink>`,
           handlers,
         }
       }
       return {
-        template: `${indent}<RouterLink${tagProps}${ifAttr}${events} />`,
+        template: `${indent}<RouterLink${ifAttr}${tagProps}${events} />`,
         handlers,
       }
     }
@@ -189,7 +189,7 @@ export function renderNode(
       }
       const children = childResults.map((r) => r.template).join("\n")
       return {
-        template: `${indent}<${tag}${props}${ifAttr}${events}>\n${children}\n${indent}</${tag}>`,
+        template: `${indent}<${tag}${ifAttr}${props}${events}>\n${children}\n${indent}</${tag}>`,
         handlers,
       }
     }
@@ -204,7 +204,7 @@ export function renderNode(
       return `${indent}  <template #${name}>\n${slotContent.map((r) => r.template).join("\n")}\n${indent}  </template>`
     })
     return {
-      template: `${indent}<${tag}${props}${ifAttr}${events}>\n${slotParts.join("\n")}\n${indent}</${tag}>`,
+      template: `${indent}<${tag}${ifAttr}${props}${events}>\n${slotParts.join("\n")}\n${indent}</${tag}>`,
       handlers,
     }
   }
@@ -235,10 +235,14 @@ export function renderNode(
           const loopValue = keyExpr.includes("idx") ? `(${alias}, idx)` : alias
           vfor = ` v-for="${loopValue} in ${varName}" :key="${keyExpr}"`
         } else {
-          const quoted = items.map((v) => (typeof v === "string" ? `'${v}'` : JSON.stringify(v)))
           const keyExpr = node.bind.key ? extractExpr(node.bind.key) : "idx"
           const loopValue = keyExpr.includes("idx") ? `(${alias}, idx)` : alias
-          vfor = ` v-for="${loopValue} in [${quoted.join(", ")}]" :key="${keyExpr}"`
+          if (isSequentialIndexArray(items)) {
+            vfor = ` v-for="${loopValue} in ${items.length}" :key="${keyExpr}"`
+          } else {
+            const quoted = items.map((v) => (typeof v === "string" ? `'${v}'` : JSON.stringify(v)))
+            vfor = ` v-for="${loopValue} in [${quoted.join(", ")}]" :key="${keyExpr}"`
+          }
         }
       } else {
         const keyExpr = node.bind.key ? extractExpr(node.bind.key) : "idx"
@@ -249,14 +253,21 @@ export function renderNode(
 
     if (node.bind.target === "item") {
       const repeatedItem = injectOpeningTagAttrs(itemResult.template, vfor)
+      if (tag === "template") {
+        return {
+          template: repeatedItem,
+          handlers,
+        }
+      }
+
       return {
-        template: `${indent}<${tag}${props}${ifAttr}${events}>\n${repeatedItem}\n${indent}</${tag}>`,
+        template: `${indent}<${tag}${ifAttr}${props}${events}>\n${repeatedItem}\n${indent}</${tag}>`,
         handlers,
       }
     }
 
     return {
-      template: `${indent}<${tag}${props}${vfor}${ifAttr}${events}>\n${itemResult.template}\n${indent}</${tag}>`,
+      template: `${indent}<${tag}${vfor}${ifAttr}${props}${events}>\n${itemResult.template}\n${indent}</${tag}>`,
       handlers,
     }
   }
@@ -265,7 +276,7 @@ export function renderNode(
   if (typeof node.children === "string") {
     const content = resolveVueExpression(node.children, exprCtx)
     return {
-      template: `${indent}<${tag}${props}${ifAttr}${events}>${content}</${tag}>`,
+      template: `${indent}<${tag}${ifAttr}${props}${events}>${content}</${tag}>`,
       handlers,
     }
   }
@@ -278,7 +289,7 @@ export function renderNode(
   ) {
     const content = renderT(node.children)
     return {
-      template: `${indent}<${tag}${props}${ifAttr}${events}>{{ ${content} }}</${tag}>`,
+      template: `${indent}<${tag}${ifAttr}${props}${events}>{{ ${content} }}</${tag}>`,
       handlers,
     }
   }
@@ -303,14 +314,14 @@ export function renderNode(
     }
     const children = childResults.map((r) => r.template).join("\n")
     return {
-      template: `${indent}<${tag}${props}${ifAttr}${events}>\n${children}\n${indent}</${tag}>`,
+      template: `${indent}<${tag}${ifAttr}${props}${events}>\n${children}\n${indent}</${tag}>`,
       handlers,
     }
   }
 
   // ── Self-closing ─────────────────────────────────────────────────────────
   return {
-    template: `${indent}<${tag}${props}${ifAttr}${events} />`,
+    template: `${indent}<${tag}${ifAttr}${props}${events} />`,
     handlers,
   }
 }
@@ -515,4 +526,8 @@ function splitStaticClassBinding(expression: string): string | null {
   }
 
   return parts.join("")
+}
+
+function isSequentialIndexArray(items: unknown[]): items is number[] {
+  return items.every((value, index) => typeof value === "number" && value === index + 1)
 }

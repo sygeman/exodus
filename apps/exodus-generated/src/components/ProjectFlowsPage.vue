@@ -84,7 +84,7 @@ async function handleDelete(e: Event, flowId: string) {
         t({ en: "Create flow", ru: "Создать поток" })
       }}</UButton>
     </div>
-    <div class="flex flex-col gap-2" v-for="item in flows" :key="item.id">
+    <div v-for="item in flows" :key="item.id" class="flex flex-col gap-2">
       <button
         class="border-default hover:bg-elevated flex items-center gap-4 rounded-lg border p-4 text-left transition-colors"
       >

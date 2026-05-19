@@ -139,7 +139,7 @@ const sourceOptions = computed(() => [
         class="min-w-0 flex-1"
       />
     </div>
-    <UScrollArea class="min-h-0 flex-1" v-for="item in logs" :key="item.id">
+    <UScrollArea v-for="item in logs" :key="item.id" class="min-h-0 flex-1">
       <div
         class="group border-default hover:bg-elevated border-b px-4 py-2 text-xs leading-relaxed"
       >

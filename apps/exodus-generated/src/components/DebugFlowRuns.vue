@@ -231,7 +231,7 @@ function triggerTypeLabel(type: string) {
       >
     </div>
     <UScrollArea class="min-h-0 flex-1">
-      <div class="flex flex-col gap-1 p-4" v-for="(item, idx) in filteredRuns" :key="idx">
+      <div v-for="(item, idx) in filteredRuns" :key="idx" class="flex flex-col gap-1 p-4">
         <button
           class="border-default hover:bg-elevated flex w-full items-center gap-3 rounded-lg border p-3 text-left transition-colors"
         >

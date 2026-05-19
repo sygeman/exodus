@@ -59,7 +59,7 @@ function ideaLink(id: string) {
         {{ t({ en: "New Idea", ru: "Новая идея" }) }}
       </UButton>
     </div>
-    <div class="flex flex-col gap-2" v-for="item in ideas" :key="item.id">
+    <div v-for="item in ideas" :key="item.id" class="flex flex-col gap-2">
       <RouterLink
         class="border-default hover:bg-elevated flex items-center gap-3 rounded-lg border p-4 transition-colors"
       >

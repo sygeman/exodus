@@ -45,4 +45,46 @@ describe("renderNode", () => {
     )
     expect(template).not.toContain("(l, idx)")
   })
+
+  it("omits template wrappers for target item loops", () => {
+    const node: ExtendedComponentNode = {
+      component: "template",
+      bind: {
+        items: "data",
+        alias: "project",
+        key: "{{ project.id }}",
+        target: "item",
+        item: {
+          component: "RouterLink",
+          props: { to: "/project/{{ project.id }}/overview" },
+          children: "{{ project.data.name }}",
+        },
+      },
+    }
+
+    const { template } = renderNode(node, "  ", ir, "ProjectsListPage")
+
+    expect(template).toContain('<RouterLink v-for="project in data" :key="project.id"')
+    expect(template).not.toContain("<template")
+  })
+
+  it("compresses sequential numeric arrays into count-based loops", () => {
+    const node: ExtendedComponentNode = {
+      component: "template",
+      bind: {
+        items: [1, 2, 3, 4, 5],
+        alias: "i",
+        key: "{{ i }}",
+        target: "item",
+        item: {
+          component: "div",
+          children: "{{ i }}",
+        },
+      },
+    }
+
+    const { template } = renderNode(node, "  ", ir, "ProjectsListPage")
+
+    expect(template).toContain('<div v-for="i in 5" :key="i">{{ i }}</div>')
+  })
 })

@@ -162,14 +162,16 @@ function isTextParityFile(file: string): boolean {
 }
 
 function normalizeTextForParity(content: Uint8Array): string {
-  return normalizeImportOrder(
-    Buffer.from(content)
-      .toString("utf8")
-      .replaceAll("\r\n", "\n")
-      .split("\n")
-      .map((line) => line.trimEnd())
-      .filter((line) => line.length > 0)
-      .join("\n"),
+  return normalizeVueTagAttributeOrder(
+    normalizeImportOrder(
+      Buffer.from(content)
+        .toString("utf8")
+        .replaceAll("\r\n", "\n")
+        .split("\n")
+        .map((line) => line.trimEnd())
+        .filter((line) => line.length > 0)
+        .join("\n"),
+    ),
   )
 }
 
@@ -194,4 +196,22 @@ function normalizeVueInterpolations(content: string): string {
     .replace(/\{\{([\s\S]*?)\}\}/g, (_match, expression: string) => {
       return `{{ ${expression.replace(/\s+/g, " ").trim()} }}`
     })
+}
+
+function normalizeVueTagAttributeOrder(content: string): string {
+  return content.replace(
+    /<([A-Za-z][^\s/>]*)([^<>]*?)(\s*\/?)>/g,
+    (_match, tag, rawAttrs, close) => {
+      const attrs = [...rawAttrs.matchAll(/\s+[^\s=/>]+(?:=(?:"[^"]*"|'[^']*'|`[^`]*`))?/g)].map(
+        (entry) => entry[0].trim(),
+      )
+
+      if (attrs.length < 2) {
+        return `<${tag}${rawAttrs}${close}>`
+      }
+
+      const sortedAttrs = attrs.toSorted((a, b) => a.localeCompare(b))
+      return `<${tag} ${sortedAttrs.join(" ")}${close}>`
+    },
+  )
 }

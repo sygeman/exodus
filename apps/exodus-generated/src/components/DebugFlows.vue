@@ -48,7 +48,7 @@ function getScheduleLabel(flow: {
       <h1 class="text-xl font-bold">{{ t({ en: "Flows", ru: "Флоу" }) }}</h1>
     </div>
     <UScrollArea class="min-h-0 flex-1">
-      <div class="flex flex-col gap-2 p-4" v-for="item in flows" :key="item.id">
+      <div v-for="item in flows" :key="item.id" class="flex flex-col gap-2 p-4">
         <button
           class="border-default hover:bg-elevated flex items-center gap-4 rounded-lg border p-4 text-left transition-colors"
         >

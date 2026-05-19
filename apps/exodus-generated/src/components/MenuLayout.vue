@@ -22,7 +22,7 @@ const route = useRoute()
       <div>
         <h2 class="px-2 text-xl font-bold">{{ props.title }}</h2>
       </div>
-      <nav class="flex flex-col gap-0.5" v-for="(item, idx) in props.items" :key="idx">
+      <nav v-for="(item, idx) in props.items" :key="idx" class="flex flex-col gap-0.5">
         <RouterLink
           :to="item.to"
           :class="

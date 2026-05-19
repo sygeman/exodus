@@ -161,6 +161,17 @@ describe("helpers", () => {
     expect(contentsMatchForParity("src/example.vue", reference, generated)).toBe(true)
   })
 
+  it("treats reordered vue tag attributes as parity matches", () => {
+    const reference = Buffer.from(
+      '<SettingsLayout v-if="project" :title="title" :items="items" class="flex" />\n',
+    )
+    const generated = Buffer.from(
+      '<SettingsLayout class="flex" :items="items" :title="title" v-if="project" />\n',
+    )
+
+    expect(contentsMatchForParity("src/example.vue", reference, generated)).toBe(true)
+  })
+
   it("keeps meaningful text diffs as mismatches", () => {
     const reference = Buffer.from("const a = 1\n")
     const generated = Buffer.from("const a = 2\n")

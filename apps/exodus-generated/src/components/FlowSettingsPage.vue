@@ -69,10 +69,10 @@ const statusItems = [
 <template>
   <div class="flex h-full">
     <SettingsLayout
+      v-if="flow"
       :title="t({ en: 'Settings', ru: 'Настройки' })"
       :items="navItems"
       :page-title="t({ en: 'Flow Settings', ru: 'Настройки флоу' })"
-      v-if="flow"
     >
       <section class="flex flex-col gap-8">
         <div class="border-default flex flex-col gap-4 border-b pb-8">

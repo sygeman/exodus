@@ -50,10 +50,10 @@ function confirmDelete(_event?: Event) {
 <template>
   <div class="flex h-full">
     <SettingsLayout
+      v-if="project"
       :title="t({ en: 'Settings', ru: 'Настройки' })"
       :items="navItems"
       :page-title="t({ en: 'Project Settings', ru: 'Настройки проекта' })"
-      v-if="project"
     >
       <section class="flex flex-col gap-8">
         <div class="border-default flex flex-col gap-4 border-b pb-8">
@@ -116,8 +116,8 @@ function confirmDelete(_event?: Event) {
       </UModal>
     </SettingsLayout>
     <div
-      class="text-muted flex h-full flex-col items-center justify-center gap-2"
       v-else-if="!loading"
+      class="text-muted flex h-full flex-col items-center justify-center gap-2"
     >
       <UIcon name="i-lucide-folder-x" class="h-10 w-10" />
       <p>{{ t({ en: "Project not found", ru: "Проект не найден" }) }}</p>

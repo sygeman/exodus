@@ -6,26 +6,98 @@
   "children": [
     {
       "component": "div",
+      "if": "{{ loading && showSkeleton }}",
       "props": {
-        "class": "mb-4 flex items-center justify-between"
+        "class": "flex flex-1 flex-col gap-4"
       },
       "children": [
         {
-          "component": "h1",
+          "component": "div",
           "props": {
-            "class": "text-2xl font-bold"
+            "class": "mb-4 flex items-center justify-between"
+          },
+          "children": [
+            {
+              "component": "USkeleton",
+              "props": {
+                "class": "h-8 w-40"
+              }
+            },
+            {
+              "component": "USkeleton",
+              "props": {
+                "class": "h-9 w-32"
+              }
+            }
+          ]
+        },
+        {
+          "component": "template",
+          "bind": {
+            "items": [
+              1,
+              2,
+              3,
+              4,
+              5
+            ],
+            "alias": "i",
+            "key": "{{ i }}",
+            "target": "item",
+            "item": {
+              "component": "div",
+              "props": {
+                "class": "border-default flex items-center gap-4 rounded-lg border p-4"
+              },
+              "children": [
+                {
+                  "component": "USkeleton",
+                  "props": {
+                    "class": "h-10 w-10 shrink-0 rounded-lg"
+                  }
+                },
+                {
+                  "component": "USkeleton",
+                  "props": {
+                    "class": "h-5 w-48"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "component": "div",
+      "elseIf": "{{ !loading && data.length === 0 }}",
+      "props": {
+        "class": "flex flex-1 flex-col items-center justify-center gap-4"
+      },
+      "children": [
+        {
+          "component": "UIcon",
+          "props": {
+            "name": "i-lucide-folder-open",
+            "class": "text-muted h-12 w-12"
+          }
+        },
+        {
+          "component": "p",
+          "props": {
+            "class": "text-muted text-lg"
           },
           "children": {
             "$type": "translation",
-            "en": "Projects",
-            "ru": "Проекты"
+            "en": "No projects yet",
+            "ru": "Пока нет проектов"
           }
         },
         {
           "component": "UButton",
           "events": {
             "click": {
-              "action": "handleCreate"
+              "expression": "handleCreate"
             }
           },
           "children": {
@@ -38,38 +110,77 @@
     },
     {
       "component": "div",
+      "else": true,
       "props": {
         "class": "flex flex-col gap-2"
       },
-      "bind": {
-        "collection": "projects",
-        "sort": [
-          "sort_order"
-        ],
-        "item": {
-          "component": "RouterLink",
+      "children": [
+        {
+          "component": "div",
           "props": {
-            "class": "hover:border-primary border-default flex items-center gap-4 rounded-lg border p-4 transition-colors"
+            "class": "mb-4 flex items-center justify-between"
           },
           "children": [
             {
-              "component": "div",
+              "component": "h1",
               "props": {
-                "class": "bg-elevated flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-2 border-transparent font-semibold transition-colors"
+                "class": "text-2xl font-bold"
               },
-              "children": "{{ getInitials(item.data.name) }}"
+              "children": {
+                "$type": "translation",
+                "en": "Projects",
+                "ru": "Проекты"
+              }
             },
             {
-              "component": "span",
-              "props": {
-                "class": "font-medium"
+              "component": "UButton",
+              "events": {
+                "click": {
+                  "expression": "handleCreate"
+                }
               },
-              "children": "{{ item.data.name }}"
+              "children": {
+                "$type": "translation",
+                "en": "Create project",
+                "ru": "Создать проект"
+              }
             }
           ]
+        },
+        {
+          "component": "template",
+          "bind": {
+            "items": "data",
+            "alias": "project",
+            "key": "{{ project.id }}",
+            "target": "item",
+            "item": {
+              "component": "RouterLink",
+              "props": {
+                "to": "/project/{{ project.id }}/overview",
+                "class": "hover:border-primary border-default flex items-center gap-4 rounded-lg border p-4 transition-colors"
+              },
+              "children": [
+                {
+                  "component": "div",
+                  "props": {
+                    "class": "bg-elevated flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-2 border-transparent font-semibold transition-colors"
+                  },
+                  "children": "{{ getInitials(project.data.name) }}"
+                },
+                {
+                  "component": "span",
+                  "props": {
+                    "class": "font-medium"
+                  },
+                  "children": "{{ project.data.name }}"
+                }
+              ]
+            }
+          }
         }
-      }
+      ]
     }
   ],
-  "rawScript": "import { useRouter } from 'vue-router'\nimport { ref, watch } from 'vue'\nimport { useProjects, useCreateItem } from '@/hooks'\n\nconst router = useRouter()\nconst { items: data, loading } = useProjects()\nconst [createItem] = useCreateItem()\n\nconst showSkeleton = ref(false)\nlet skeletonTimeout: ReturnType<typeof setTimeout> | null = null\n\nwatch(\n  loading,\n  (isLoading) => {\n    if (isLoading) {\n      skeletonTimeout = setTimeout(() => {\n        showSkeleton.value = true\n      }, 150)\n    } else {\n      if (skeletonTimeout) {\n        clearTimeout(skeletonTimeout)\n        skeletonTimeout = null\n      }\n      showSkeleton.value = false\n    }\n  },\n  { immediate: true },\n)\n\nasync function handleCreate() {\n  const name = 'Untitled'\n  const slug = `${name.toLowerCase().replace(/\\s+/g, '-')}-${crypto.randomUUID().slice(0, 8)}`\n  const id = await createItem('projects', {\n    name,\n    slug,\n    type: 'desktop',\n    sort_order: 0,\n  })\n  router.push(`/project/${id}/overview`)\n}\n\nfunction getInitials(name: string): string {\n  return name.slice(0, 2).toUpperCase()\n}"
+  "rawScript": "import { useRouter } from 'vue-router'\nimport { ref, watch } from 'vue'\nimport { useCollectionQuery, useCreateItem } from '@/hooks'\n\nconst { data, loading } = useCollectionQuery('projects')\nconst [createItem] = useCreateItem()\nconst router = useRouter()\n\nconst showSkeleton = ref(false)\n\nlet skeletonTimeout: ReturnType<typeof setTimeout> | null = null\n\nwatch(\n  loading,\n  (isLoading) => {\n    if (isLoading) {\n      skeletonTimeout = setTimeout(() => {\n        showSkeleton.value = true\n      }, 150)\n    } else {\n      if (skeletonTimeout) {\n        clearTimeout(skeletonTimeout)\n        skeletonTimeout = null\n      }\n      showSkeleton.value = false\n    }\n  },\n  { immediate: true },\n)\n\nasync function handleCreate() {\n  const name = 'Untitled'\n  const slug = `${name.toLowerCase().replace(/\\s+/g, '-')}-${crypto.randomUUID().slice(0, 8)}`\n  const id = await createItem('projects', {\n    name,\n    slug,\n    type: 'desktop',\n    sort_order: 0,\n  })\n  router.push(`/project/${id}/overview`)\n}\n\nfunction getInitials(name: string): string {\n  return name.slice(0, 2).toUpperCase()\n}"
 }

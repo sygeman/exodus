@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { useRoute, useRouter } from "vue-router"
 import { computed } from "vue"
-import { useIdeas } from "@/hooks"
+import { useCollectionQuery } from "@/hooks"
 import { useT } from "@exodus/edem-vue"
 
 const t = useT()
@@ -10,10 +10,10 @@ const route = useRoute()
 const router = useRouter()
 const projectId = computed(() => route.params.id as string)
 
-const { items: ideas } = useIdeas({
+const { data: ideas } = useCollectionQuery("ideas", () => ({
   filter: { project_id: { _eq: projectId.value } },
   sort: ["-created_at"],
-})
+}))
 
 function goToIdeas() {
   router.push(`/project/${projectId.value}/ideas`)
@@ -25,6 +25,7 @@ function goToIdeas() {
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <button
         class="border-default bg-elevated hover:bg-elevated/80 hover:border-primary flex flex-col gap-2 rounded-lg border p-5 text-left transition-colors"
+        @click="goToIdeas"
       >
         <div class="text-muted flex items-center gap-2">
           <UIcon name="i-lucide-lightbulb" class="h-4 w-4" />
@@ -33,24 +34,31 @@ function goToIdeas() {
         <span class="text-3xl font-bold">{{ ideas.length }}</span>
       </button>
     </div>
-    <div class="mt-8">
+    <div v-if="ideas.length > 0" class="mt-8">
       <h3 class="text-muted mb-3 text-sm font-medium">
         {{ t({ en: "Recent ideas", ru: "Последние идеи" }) }}
       </h3>
-      <div class="flex flex-col gap-2" v-for="(item, idx) in ideas.slice(0, 5)" :key="idx">
+      <template v-for="idea in ideas.slice(0, 5)" :key="idea.id">
         <RouterLink
+          :to="`/project/${route.params.projectId}/ideas/${idea.id}`"
           class="border-default hover:bg-elevated flex items-center gap-3 rounded-lg border p-4 transition-colors"
         >
           <div
             class="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded text-xs font-bold"
           >
-            {{ item.data.level ?? "?" }}
+            {{ idea.data.level ?? "?" }}
           </div>
           <div class="flex flex-col">
-            <span class="font-medium">{{ item.data.title }}</span>
+            <span class="font-medium">{{ idea.data.title }}</span>
+            <span v-if="idea.data.type" class="text-muted text-xs">{{ idea.data.type }}</span>
           </div>
+          <span
+            v-if="idea.data.status === 'stabilized'"
+            class="ml-auto inline-flex h-5 items-center rounded bg-green-500/10 px-1.5 text-xs text-green-500"
+            >{{ t({ en: "Stabilized", ru: "Стабилизирована" }) }}</span
+          >
         </RouterLink>
-      </div>
+      </template>
     </div>
   </div>
 </template>

@@ -11,6 +11,7 @@
           "props": {
             "class": "border-default bg-elevated hover:bg-elevated/80 hover:border-primary flex flex-col gap-2 rounded-lg border p-5 text-left transition-colors"
           },
+          "events": { "click": { "expression": "goToIdeas" } },
           "children": [
             {
               "component": "div",
@@ -31,6 +32,7 @@
     },
     {
       "component": "div",
+      "if": "{{ ideas.length > 0 }}",
       "props": { "class": "mt-8" },
       "children": [
         {
@@ -39,13 +41,15 @@
           "children": { "$type": "translation", "en": "Recent ideas", "ru": "Последние идеи" }
         },
         {
-          "component": "div",
-          "props": { "class": "flex flex-col gap-2" },
+          "component": "template",
           "bind": {
             "items": "ideas.slice(0, 5)",
+            "alias": "idea",
+            "key": "{{ idea.id }}",
             "item": {
               "component": "RouterLink",
               "props": {
+                "to": "/project/{{ projectId }}/ideas/{{ idea.id }}",
                 "class": "border-default hover:bg-elevated flex items-center gap-3 rounded-lg border p-4 transition-colors"
               },
               "children": [
@@ -54,14 +58,28 @@
                   "props": {
                     "class": "bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded text-xs font-bold"
                   },
-                  "children": "{{ item.data.level ?? '?' }}"
+                  "children": "{{ idea.data.level ?? '?' }}"
                 },
                 {
                   "component": "div",
                   "props": { "class": "flex flex-col" },
                   "children": [
-                    { "component": "span", "props": { "class": "font-medium" }, "children": "{{ item.data.title }}" }
+                    { "component": "span", "props": { "class": "font-medium" }, "children": "{{ idea.data.title }}" },
+                    {
+                      "component": "span",
+                      "if": "{{ idea.data.type }}",
+                      "props": { "class": "text-muted text-xs" },
+                      "children": "{{ idea.data.type }}"
+                    }
                   ]
+                },
+                {
+                  "component": "span",
+                  "if": "{{ idea.data.status === 'stabilized' }}",
+                  "props": {
+                    "class": "ml-auto inline-flex h-5 items-center rounded bg-green-500/10 px-1.5 text-xs text-green-500"
+                  },
+                  "children": { "$type": "translation", "en": "Stabilized", "ru": "Стабилизирована" }
                 }
               ]
             }
@@ -70,5 +88,5 @@
       ]
     }
   ],
-  "rawScript": "import { useRoute, useRouter } from 'vue-router'\nimport { computed } from 'vue'\nimport { useIdeas } from '@/hooks'\n\nconst route = useRoute()\nconst router = useRouter()\nconst projectId = computed(() => route.params.id as string)\n\nconst { items: ideas } = useIdeas({ filter: { project_id: { _eq: projectId.value } }, sort: ['-created_at'] })\n\nfunction goToIdeas() {\n  router.push(`/project/${projectId.value}/ideas`)\n}"
+  "rawScript": "import { useRoute, useRouter } from 'vue-router'\nimport { computed } from 'vue'\nimport { useCollectionQuery } from '@/hooks'\n\nconst route = useRoute()\nconst router = useRouter()\nconst projectId = computed(() => route.params.id as string)\n\nconst { data: ideas } = useCollectionQuery('ideas', () => ({\n  filter: { project_id: { _eq: projectId.value } },\n  sort: ['-created_at'],\n}))\n\nfunction goToIdeas() {\n  router.push(`/project/${projectId.value}/ideas`)\n}"
 }
