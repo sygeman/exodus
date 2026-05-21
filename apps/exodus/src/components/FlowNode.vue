@@ -19,7 +19,6 @@ const sourceHandles = computed<HandleDef[]>(() => {
   return buildHandleLayout({
     nodeType: props.data.nodeType,
     config: props.data.config,
-    actionType: props.data.actionType,
   }).filter((h) => h.type === "source")
 })
 
@@ -30,7 +29,6 @@ const targetHandles = computed<HandleDef[]>(() => {
   return buildHandleLayout({
     nodeType: props.data.nodeType,
     config: props.data.config,
-    actionType: props.data.actionType,
   }).filter((h) => h.type === "target")
 })
 
@@ -48,7 +46,7 @@ const hideTarget = computed(
 )
 const hideSource = computed(() => HIDE_SOURCE[props.data.nodeType] === true)
 
-const icon = computed(() => getNodeIcon(props.data.nodeType, props.data.actionType))
+const icon = computed(() => getNodeIcon(props.data.nodeType))
 
 const HANDLE_ICON_MAP: Record<string, string> = {
   check: "i-lucide-check",

@@ -2,7 +2,7 @@
   "component": "div",
   "queries": {
     "flows": {
-      "collection": "flows",
+      "collection": "project_flows",
       "filter": {
         "project_id": { "_eq": "{{ route.params.id }}" }
       }
@@ -37,7 +37,7 @@
         { "type": "guard", "condition": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value).trim() !== flow.value.name }}" },
         {
           "type": "update-item",
-          "collection": "flows",
+          "collection": "project_flows",
           "id": "{{ flow.value.id }}",
           "data": {
             "name": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value).trim() }}"
@@ -51,7 +51,7 @@
         { "type": "guard", "condition": "{{ $event !== flow.value.status }}" },
         {
           "type": "update-item",
-          "collection": "flows",
+          "collection": "project_flows",
           "id": "{{ flow.value.id }}",
           "data": {
             "status": "{{ $event }}"
@@ -72,7 +72,7 @@
     "confirmDelete": {
       "steps": [
         { "type": "guard", "condition": "{{ flow.value }}" },
-        { "type": "delete-item", "collection": "flows", "id": "{{ flow.value.id }}" },
+        { "type": "delete-item", "collection": "project_flows", "id": "{{ flow.value.id }}" },
         { "type": "set-state", "state": "deleteModalOpen", "value": false },
         { "type": "navigate", "to": "/project/{{ route.params.id }}/flows" }
       ]

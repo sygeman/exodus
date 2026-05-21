@@ -13,12 +13,56 @@
       ]
     }
   },
-  "actions": {
+  "flows": {
     "goToIdeas": {
-      "steps": [
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": {
+        "type": "ui-event",
+        "event": "click"
+      },
+      "nodes": [
         {
-          "type": "navigate",
-          "to": "/project/{{ route.params.id }}/ideas"
+          "id": "trigger",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "navigateToIdeas",
+          "type": "ui:navigate",
+          "position": {
+            "x": 220,
+            "y": 0
+          },
+          "data": {
+            "to": "/project/{{ route.params.id }}/ideas"
+          }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": {
+            "x": 440,
+            "y": 0
+          },
+          "data": {
+            "value": "/project/{{ route.params.id }}/ideas"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-project-page-1",
+          "source": "trigger",
+          "target": "navigateToIdeas"
+        },
+        {
+          "id": "e-project-page-2",
+          "source": "navigateToIdeas",
+          "target": "output"
         }
       ]
     }
@@ -40,7 +84,7 @@
           },
           "events": {
             "click": {
-              "action": "goToIdeas"
+              "flow": "goToIdeas"
             }
           },
           "children": [

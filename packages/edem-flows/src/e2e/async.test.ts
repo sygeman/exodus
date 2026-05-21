@@ -1,22 +1,19 @@
 import { describe, it, expect } from "bun:test"
 import { reg } from "../test-actions"
+import { callNode } from "../test-flow"
 import { getEdem, setupTests } from "./setup"
 
 describe("async control flow", () => {
   setupTests()
   it("handleNodeCompleted resumes waiting run", async () => {
     const edem = getEdem()
+    reg("e2e_resume_action", async () => ({ status: "pending" }))
     const { flow_id } = await edem.flows.createFlow({
       name: "Resume",
       trigger: { type: "manual" },
       nodes: [
         { id: "t", type: "trigger", position: { x: 0, y: 0 } },
-        {
-          id: "wait",
-          type: "action",
-          position: { x: 100, y: 0 },
-          data: { module: "test", proc: "e2e_resume_action" },
-        },
+        callNode({ id: "wait", module: "test", procedure: "e2e_resume_action" }),
         {
           id: "after",
           type: "transform",
@@ -52,17 +49,13 @@ describe("async control flow", () => {
 
   it("handleNodeCompleted throws for wrong node_id", async () => {
     const edem = getEdem()
+    reg("e2e_wrong_node_action", async () => ({ status: "pending" }))
     const { flow_id } = await edem.flows.createFlow({
       name: "Wrong Node",
       trigger: { type: "manual" },
       nodes: [
         { id: "t", type: "trigger", position: { x: 0, y: 0 } },
-        {
-          id: "wait",
-          type: "action",
-          position: { x: 100, y: 0 },
-          data: { module: "test", proc: "e2e_wrong_node_action" },
-        },
+        callNode({ id: "wait", module: "test", procedure: "e2e_wrong_node_action" }),
       ],
       edges: [{ id: "e1", source: "t", target: "wait" }],
     })
@@ -77,17 +70,13 @@ describe("async control flow", () => {
 
   it("handleNodeFailed fails waiting run", async () => {
     const edem = getEdem()
+    reg("e2e_fail_action", async () => ({ status: "pending" }))
     const { flow_id } = await edem.flows.createFlow({
       name: "Fail",
       trigger: { type: "manual" },
       nodes: [
         { id: "t", type: "trigger", position: { x: 0, y: 0 } },
-        {
-          id: "wait",
-          type: "action",
-          position: { x: 100, y: 0 },
-          data: { module: "test", proc: "e2e_fail_action" },
-        },
+        callNode({ id: "wait", module: "test", procedure: "e2e_fail_action" }),
       ],
       edges: [{ id: "e1", source: "t", target: "wait" }],
     })
@@ -109,17 +98,13 @@ describe("async control flow", () => {
 
   it("cancelRun cancels waiting run", async () => {
     const edem = getEdem()
+    reg("e2e_cancel_action", async () => ({ status: "pending" }))
     const { flow_id } = await edem.flows.createFlow({
       name: "Cancel",
       trigger: { type: "manual" },
       nodes: [
         { id: "t", type: "trigger", position: { x: 0, y: 0 } },
-        {
-          id: "wait",
-          type: "action",
-          position: { x: 100, y: 0 },
-          data: { module: "test", proc: "e2e_cancel_action" },
-        },
+        callNode({ id: "wait", module: "test", procedure: "e2e_cancel_action" }),
       ],
       edges: [{ id: "e1", source: "t", target: "wait" }],
     })
@@ -150,17 +135,13 @@ describe("async control flow", () => {
 
   it("run state transitions: pending → waiting → running → completed", async () => {
     const edem = getEdem()
+    reg("e2e_transitions_action", async () => ({ status: "pending" }))
     const { flow_id } = await edem.flows.createFlow({
       name: "Transitions",
       trigger: { type: "manual" },
       nodes: [
         { id: "t", type: "trigger", position: { x: 0, y: 0 } },
-        {
-          id: "act",
-          type: "action",
-          position: { x: 100, y: 0 },
-          data: { module: "test", proc: "e2e_transitions_action" },
-        },
+        callNode({ id: "act", module: "test", procedure: "e2e_transitions_action" }),
         {
           id: "after",
           type: "transform",

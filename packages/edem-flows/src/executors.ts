@@ -25,6 +25,11 @@ export type NodeExecutor = (
   nodeId?: string,
 ) => Promise<NodeExecutorResult>
 
+export interface ProcedureReference {
+  module: string
+  procedure: string
+}
+
 export const executors: Record<string, NodeExecutor> = {
   trigger: executeTrigger,
   condition: executeCondition,
@@ -33,11 +38,74 @@ export const executors: Record<string, NodeExecutor> = {
   delay: executeDelay,
   input: executeInput,
   output: executeOutput,
-  action: executeAction,
   loop: executeLoop,
   fork: executeFork,
   join: executeJoin,
   subflow: executeSubflow,
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return !!value && typeof value === "object" && !Array.isArray(value)
+}
+
+export function getProcedureReference(
+  nodeType: string,
+  config?: Record<string, unknown>,
+): ProcedureReference | null {
+  if (nodeType !== "call") {
+    return null
+  }
+
+  const moduleName = config?.module
+  const procedureName = config?.procedure
+
+  return typeof moduleName === "string" && typeof procedureName === "string"
+    ? { module: moduleName, procedure: procedureName }
+    : null
+}
+
+async function executeProcedureReference(
+  reference: ProcedureReference,
+  input: Record<string, unknown>,
+): Promise<NodeExecutorResult> {
+  const moduleProxy = edemModules?.[reference.module] as
+    | Record<string, (procInput: unknown) => Promise<unknown>>
+    | undefined
+  const proc = moduleProxy?.[reference.procedure]
+
+  if (!proc) {
+    throw new Error(`Procedure "${reference.module}.${reference.procedure}" not found`)
+  }
+
+  const result = await proc(input)
+  if (!isRecord(result)) {
+    throw new Error(
+      `Procedure "${reference.module}.${reference.procedure}" must return an object to be used as a flow node`,
+    )
+  }
+
+  if (result.status === "pending") {
+    return { output: result, status: "async" }
+  }
+
+  return { output: result }
+}
+
+export function resolveNodeExecutor(
+  nodeType: string,
+  config?: Record<string, unknown>,
+): NodeExecutor | null {
+  const builtinExecutor = executors[nodeType]
+  if (builtinExecutor) {
+    return builtinExecutor
+  }
+
+  const reference = getProcedureReference(nodeType, config)
+  if (!reference) {
+    return null
+  }
+
+  return async (_config, input) => executeProcedureReference(reference, input)
 }
 
 async function executeTrigger(
@@ -224,39 +292,6 @@ async function executeOutput(
   }
 }
 
-async function executeAction(
-  config: Record<string, unknown> | undefined,
-  input: Record<string, unknown>,
-  context: FlowContext,
-): Promise<NodeExecutorResult> {
-  const resolved = resolveNodeInput(config, context)
-  const moduleName = resolved.module as string | undefined
-  const procName =
-    (resolved.proc as string) ?? (resolved.action as string) ?? (resolved.type as string)
-
-  if (moduleName && procName && edemModules?.[moduleName]) {
-    const moduleProxy = edemModules[moduleName] as Record<
-      string,
-      (input: unknown) => Promise<unknown>
-    >
-    const proc = moduleProxy[procName]
-    if (proc) {
-      const result = await proc(input)
-      return { output: result as Record<string, unknown> }
-    }
-  }
-
-  return {
-    output: {
-      status: "pending",
-      action: procName,
-      module: moduleName,
-      input,
-    },
-    status: "async",
-  }
-}
-
 async function executeLoop(
   config: Record<string, unknown> | undefined,
   input: Record<string, unknown>,
@@ -266,15 +301,14 @@ async function executeLoop(
   const resolved = resolveNodeInput(config, context)
   const maxIterations = Number(resolved.maxIterations ?? 1)
   const moduleName = resolved.module as string | undefined
-  const actionName =
-    (resolved.action as string | undefined) ?? (resolved.proc as string | undefined)
+  const procedureName = resolved.procedure as string | undefined
   const autoIterate = resolved.autoIterate === true
 
   const iterationKey = nodeId ? `nodes.${nodeId}.currentIteration` : "loop.currentIteration"
   const resultsKey = nodeId ? `nodes.${nodeId}.results` : "loop.results"
   const currentIteration = (context.flow_variables[iterationKey] as number) ?? 0
 
-  if (autoIterate && actionName) {
+  if (autoIterate && procedureName) {
     let handler:
       | ((input: Record<string, unknown>, context: FlowContext) => Promise<Record<string, unknown>>)
       | undefined
@@ -284,7 +318,7 @@ async function executeLoop(
         string,
         (input: unknown) => Promise<unknown>
       >
-      const proc = moduleProxy[actionName]
+      const proc = moduleProxy[procedureName]
       if (proc) {
         handler = async (iterInput: Record<string, unknown>, _context: FlowContext) => {
           const result = await proc(iterInput)
@@ -335,7 +369,7 @@ async function executeLoop(
     output: {
       status: "pending",
       iteration: nextIteration,
-      action: actionName,
+      procedure: procedureName,
       input,
     },
     status: "async",

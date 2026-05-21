@@ -1,21 +1,12 @@
-import type { VueFlowNodeData } from "@/types/flow"
-
-const ACTION_LABELS: Record<string, string> = {
-  download: "Download",
-  convert: "Convert",
-  extract: "Extract",
-  find_files: "Find Files",
-  install: "Install",
-  delete: "Delete",
-  copy: "Copy",
-  move: "Move",
-  notify: "Notify",
-  http: "HTTP",
-  script: "Script",
-}
+import {
+  DEFAULT_FLOW_TRIGGER,
+  getTriggerSourceFromNodeData,
+  type VueFlowNodeData,
+} from "@/types/flow"
 
 const TRIGGER_LABELS: Record<string, string> = {
   manual: "Manual",
+  schedule: "Schedule",
   scheduled: "Schedule",
   event: "Event",
 }
@@ -33,14 +24,19 @@ const INTERVAL_LABELS: Record<number, string> = {
 
 export function generateNodeLabel(data: VueFlowNodeData): string {
   const config = data.config || {}
+  const raw = data as unknown as Record<string, unknown>
 
   switch (data.nodeType) {
     case "trigger": {
-      const triggerType = config.trigger_type as string
-      return TRIGGER_LABELS[triggerType] || "Trigger"
+      const trigger = getTriggerSourceFromNodeData(raw) ?? DEFAULT_FLOW_TRIGGER
+      return TRIGGER_LABELS[trigger.type] ?? "Trigger"
     }
-    case "action":
-      return ACTION_LABELS[data.actionType || ""] || "Action"
+    case "call": {
+      const moduleName = (raw.module as string | undefined) ?? (config.module as string | undefined)
+      const procedureName =
+        (raw.procedure as string | undefined) ?? (config.procedure as string | undefined)
+      return moduleName && procedureName ? `${moduleName}.${procedureName}` : "Call"
+    }
     case "condition":
       return "Condition"
     case "switch":
@@ -66,31 +62,24 @@ export function generateNodeLabel(data: VueFlowNodeData): string {
 
 export function generateNodeParams(data: VueFlowNodeData): string | null {
   const config = data.config || {}
+  const raw = data as unknown as Record<string, unknown>
 
   switch (data.nodeType) {
     case "trigger": {
-      const triggerType = config.trigger_type as string
-      if (triggerType === "scheduled") {
-        const interval = config.interval_secs as number
-        return INTERVAL_LABELS[interval] || null
+      const trigger = getTriggerSourceFromNodeData(raw) ?? DEFAULT_FLOW_TRIGGER
+      if (trigger.type === "schedule") {
+        if (trigger.every) return trigger.every
+
+        const interval = config.interval_secs as number | undefined
+        return interval ? INTERVAL_LABELS[interval] || null : null
       }
-      if (triggerType === "event") {
-        const event = config.event as string
-        return event ? truncate(event, 15) : null
-      }
-      return null
-    }
-    case "action": {
-      if (data.actionType === "http") {
-        return (config.method as string) || null
-      }
-      if (data.actionType === "convert") {
-        const format = config.format as string
-        if (!format || format.includes("{{")) return null
-        return format.toUpperCase()
+      if (trigger.type === "event") {
+        return trigger.event ? truncate(trigger.event, 15) : null
       }
       return null
     }
+    case "call":
+      return null
     case "condition": {
       const expression = config.expression as string
       if (!expression || expression.includes("{{")) return null

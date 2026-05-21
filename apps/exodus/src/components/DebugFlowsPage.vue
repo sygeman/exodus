@@ -2,12 +2,13 @@
 import { useRouter } from "vue-router"
 import { useT } from "@exodus/edem-vue"
 import { useCollectionQuery } from "@/hooks"
+import { RUNTIME_FLOWS_COLLECTION } from "@/flow-collections"
+import { deriveTriggerFromNodes, getFlowKind, type StoredFlowNode } from "@/types/flow"
 
 const t = useT()
 const router = useRouter()
 
-const { data: flows, loading } = useCollectionQuery("flows", () => ({
-  filter: { project_id: { _eq: null } },
+const { data: flows, loading } = useCollectionQuery(RUNTIME_FLOWS_COLLECTION, () => ({
   sort: ["name"],
 }))
 
@@ -22,7 +23,6 @@ type DebugFlow = {
   data: {
     name?: unknown
     status?: unknown
-    trigger?: unknown
     nodes?: unknown
   }
 }
@@ -43,30 +43,24 @@ function getNodeCount(flow: DebugFlow): number {
 }
 
 function getTriggerType(flow: DebugFlow): string {
-  const trigger = flow.data.trigger
-  if (typeof trigger !== "object" || trigger === null || !("type" in trigger)) {
-    return ""
-  }
-  const triggerRecord = trigger as Record<string, unknown>
-  return typeof triggerRecord.type === "string" ? triggerRecord.type : ""
+  const nodes = Array.isArray(flow.data.nodes) ? (flow.data.nodes as StoredFlowNode[]) : []
+  return (
+    deriveTriggerFromNodes(getFlowKind((flow.data as { kind?: unknown }).kind), nodes)?.type || ""
+  )
 }
 
 function getScheduleLabel(flow: DebugFlow): string {
-  const trigger = flow.data.trigger
-  if (typeof trigger !== "object" || trigger === null) {
+  const nodes = Array.isArray(flow.data.nodes) ? (flow.data.nodes as StoredFlowNode[]) : []
+  const trigger = deriveTriggerFromNodes(getFlowKind((flow.data as { kind?: unknown }).kind), nodes)
+  if (!trigger || trigger.type !== "schedule") {
     return ""
   }
 
-  const triggerRecord = trigger as Record<string, unknown>
-  if (triggerRecord.type !== "schedule") return ""
-
   const parts: string[] = []
-  if (typeof triggerRecord.every === "string") parts.push(triggerRecord.every)
-  if (typeof triggerRecord.at === "string") parts.push(`at ${triggerRecord.at}`)
-  if (Array.isArray(triggerRecord.days)) {
-    parts.push(
-      triggerRecord.days.filter((day): day is string => typeof day === "string").join(", "),
-    )
+  parts.push(trigger.every)
+  if (trigger.at) parts.push(`at ${trigger.at}`)
+  if (trigger.days?.length) {
+    parts.push(trigger.days.join(", "))
   }
 
   return parts.join(" ") || "schedule"

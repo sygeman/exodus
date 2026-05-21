@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useRoute } from "vue-router"
 import { useIdeas } from "@/composables/useIdeas"
+import { useEdem } from "@/edem"
 import { useT } from "@exodus/edem-vue"
 
 const route = useRoute()
@@ -11,10 +12,11 @@ const {
   update: updateIdeas,
   remove: removeIdeas,
 } = useIdeas({ filter: { project_id: { _eq: route.params.id } }, sort: ["-created_at"] })
+const edem = useEdem()
 const t = useT()
 
-async function goToIdeas($event?: Event, item?: Record<string, unknown>) {
-  await router.push(`/project/${route.params.id}/ideas`)
+function handleGoToIdeas() {
+  edem.flows.runFlow({ flow_id: "goToIdeas" })
 }
 </script>
 
@@ -23,7 +25,7 @@ async function goToIdeas($event?: Event, item?: Record<string, unknown>) {
     <div class="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       <button
         class="border-default bg-elevated hover:bg-elevated/80 hover:border-primary flex flex-col gap-2 rounded-lg border p-5 text-left transition-colors"
-        @click="goToIdeas($event)"
+        @click="handleGoToIdeas()"
       >
         <div class="text-muted flex items-center gap-2">
           <UIcon name="i-lucide-lightbulb" class="h-4 w-4" />

@@ -1,4 +1,6 @@
 import { describe, it, expect } from "bun:test"
+import { reg } from "../test-actions"
+import { callNode } from "../test-flow"
 import { getEdem, setupTests } from "./setup"
 
 describe("backpressure", () => {
@@ -6,17 +8,13 @@ describe("backpressure", () => {
 
   it("maxConcurrent limits running+waiting runs", async () => {
     const edem = getEdem()
+    reg("e2e_bp_action", async () => ({ status: "pending" }))
     const { flow_id } = await edem.flows.createFlow({
       name: "BP Concurrent",
       trigger: { type: "manual" },
       nodes: [
         { id: "t", type: "trigger", position: { x: 0, y: 0 } },
-        {
-          id: "wait",
-          type: "action",
-          position: { x: 100, y: 0 },
-          data: { action: "e2e_bp_action" },
-        },
+        callNode({ id: "wait", module: "test", procedure: "e2e_bp_action" }),
       ],
       edges: [{ id: "e1", source: "t", target: "wait" }],
       backpressure: { maxConcurrent: 1 },
@@ -33,17 +31,13 @@ describe("backpressure", () => {
 
   it("maxPending limits waiting runs", async () => {
     const edem = getEdem()
+    reg("e2e_bp_pending_action", async () => ({ status: "pending" }))
     const { flow_id } = await edem.flows.createFlow({
       name: "BP Pending",
       trigger: { type: "manual" },
       nodes: [
         { id: "t", type: "trigger", position: { x: 0, y: 0 } },
-        {
-          id: "wait",
-          type: "action",
-          position: { x: 100, y: 0 },
-          data: { action: "e2e_bp_pending_action" },
-        },
+        callNode({ id: "wait", module: "test", procedure: "e2e_bp_pending_action" }),
       ],
       edges: [{ id: "e1", source: "t", target: "wait" }],
       backpressure: { maxPending: 1 },
@@ -60,17 +54,13 @@ describe("backpressure", () => {
 
   it("updateFlow can add backpressure", async () => {
     const edem = getEdem()
+    reg("e2e_bp_update_action", async () => ({ status: "pending" }))
     const { flow_id } = await edem.flows.createFlow({
       name: "No BP",
       trigger: { type: "manual" },
       nodes: [
         { id: "t", type: "trigger", position: { x: 0, y: 0 } },
-        {
-          id: "wait",
-          type: "action",
-          position: { x: 100, y: 0 },
-          data: { action: "e2e_bp_update_action" },
-        },
+        callNode({ id: "wait", module: "test", procedure: "e2e_bp_update_action" }),
       ],
       edges: [{ id: "e1", source: "t", target: "wait" }],
     })
@@ -88,17 +78,13 @@ describe("backpressure", () => {
 
   it("updateFlow can change backpressure limits", async () => {
     const edem = getEdem()
+    reg("e2e_bp_change_action", async () => ({ status: "pending" }))
     const { flow_id } = await edem.flows.createFlow({
       name: "BP Change",
       trigger: { type: "manual" },
       nodes: [
         { id: "t", type: "trigger", position: { x: 0, y: 0 } },
-        {
-          id: "wait",
-          type: "action",
-          position: { x: 100, y: 0 },
-          data: { action: "e2e_bp_change_action" },
-        },
+        callNode({ id: "wait", module: "test", procedure: "e2e_bp_change_action" }),
       ],
       edges: [{ id: "e1", source: "t", target: "wait" }],
       backpressure: { maxConcurrent: 2 },
@@ -135,17 +121,13 @@ describe("backpressure", () => {
 
   it("concurrent runs with maxConcurrent=2", async () => {
     const edem = getEdem()
+    reg("e2e_bp_concurrent_action", async () => ({ status: "pending" }))
     const { flow_id } = await edem.flows.createFlow({
       name: "BP Concurrent 2",
       trigger: { type: "manual" },
       nodes: [
         { id: "t", type: "trigger", position: { x: 0, y: 0 } },
-        {
-          id: "wait",
-          type: "action",
-          position: { x: 100, y: 0 },
-          data: { action: "e2e_bp_concurrent_action" },
-        },
+        callNode({ id: "wait", module: "test", procedure: "e2e_bp_concurrent_action" }),
       ],
       edges: [{ id: "e1", source: "t", target: "wait" }],
       backpressure: { maxConcurrent: 2 },
@@ -162,17 +144,13 @@ describe("backpressure", () => {
 
   it("error run frees backpressure slot", async () => {
     const edem = getEdem()
+    reg("e2e_bp_error_action", async () => ({ status: "pending" }))
     const { flow_id } = await edem.flows.createFlow({
       name: "BP Error Free",
       trigger: { type: "manual" },
       nodes: [
         { id: "t", type: "trigger", position: { x: 0, y: 0 } },
-        {
-          id: "wait",
-          type: "action",
-          position: { x: 100, y: 0 },
-          data: { action: "e2e_bp_error_action" },
-        },
+        callNode({ id: "wait", module: "test", procedure: "e2e_bp_error_action" }),
       ],
       edges: [{ id: "e1", source: "t", target: "wait" }],
       backpressure: { maxConcurrent: 1 },

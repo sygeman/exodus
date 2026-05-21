@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test"
-import { executors } from "./executors"
+import { executors, resolveNodeExecutor } from "./executors"
 import { createContext, setNodeOutput } from "./context"
 import { reg } from "./test-actions"
 
@@ -208,24 +208,37 @@ describe("Node Executors", () => {
     })
   })
 
-  describe("action", () => {
-    it("should return async status", async () => {
+  describe("call", () => {
+    it("should return async status when procedure returns pending", async () => {
       const ctx = createContext()
-      const result = await executors.action(
-        { action: "send_email", to: "test@example.com" },
+      reg("send_email", async () => ({ status: "pending" }))
+
+      const executor = resolveNodeExecutor("call", {
+        module: "test",
+        procedure: "send_email",
+      })
+
+      const result = await executor!(
+        { module: "test", procedure: "send_email" },
         { message: "Hello" },
         ctx,
       )
       expect(result.status).toBe("async")
       expect(result.output.status).toBe("pending")
-      expect(result.output.action).toBe("send_email")
     })
 
-    it("should pass input to output", async () => {
+    it("should pass object output through call executor", async () => {
       const ctx = createContext()
       const input = { message: "Hello", count: 5 }
-      const result = await executors.action({ action: "test" }, input, ctx)
-      expect(result.output.input).toEqual(input)
+      reg("test", async (payload) => ({ echoed: payload }))
+
+      const executor = resolveNodeExecutor("call", {
+        module: "test",
+        procedure: "test",
+      })
+
+      const result = await executor!({ module: "test", procedure: "test" }, input, ctx)
+      expect(result.output.echoed).toEqual(input)
     })
   })
 
@@ -233,7 +246,7 @@ describe("Node Executors", () => {
     it("should track iteration count", async () => {
       const ctx = createContext()
       const result = await executors.loop(
-        { maxIterations: 3, action: "process" },
+        { maxIterations: 3, procedure: "process" },
         { item: "test" },
         ctx,
         "loop1",
@@ -249,7 +262,7 @@ describe("Node Executors", () => {
       ctx.flow_variables["nodes.loop1.currentIteration"] = 3
 
       const result = await executors.loop(
-        { maxIterations: 3, action: "process" },
+        { maxIterations: 3, procedure: "process" },
         { item: "test" },
         ctx,
         "loop1",
@@ -285,7 +298,7 @@ describe("Node Executors", () => {
       })
 
       const result = await executors.loop(
-        { maxIterations: 3, module: "test", proc: "auto_process", autoIterate: true },
+        { maxIterations: 3, module: "test", procedure: "auto_process", autoIterate: true },
         { item: "test" },
         ctx,
         "loop1",
@@ -308,7 +321,7 @@ describe("Node Executors", () => {
       const ctx = createContext()
 
       const result = await executors.loop(
-        { maxIterations: 3, action: "nonexistent_action", autoIterate: true },
+        { maxIterations: 3, procedure: "nonexistent_action", autoIterate: true },
         { item: "test" },
         ctx,
         "loop1",

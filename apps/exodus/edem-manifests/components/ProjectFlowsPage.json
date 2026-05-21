@@ -2,7 +2,7 @@
   "component": "div",
   "queries": {
     "flows": {
-      "collection": "flows",
+      "collection": "project_flows",
       "filter": {
         "project_id": { "_eq": "{{ route.params.id }}" }
       },
@@ -33,7 +33,7 @@
           "type": "data:create-item",
           "position": { "x": 220, "y": 0 },
           "data": {
-            "collection": "flows",
+            "collection": "project_flows",
             "assignTo": "createdId",
             "data": {
               "project_id": "{{ route.params.id }}",
@@ -112,7 +112,7 @@
           "id": "deleteFlow",
           "type": "data:delete-item",
           "position": { "x": 380, "y": 0 },
-          "data": { "collection": "flows", "id": "{{ trigger.item.id }}" }
+          "data": { "collection": "project_flows", "id": "{{ trigger.item.id }}" }
         },
         {
           "id": "output",

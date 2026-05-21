@@ -14,7 +14,7 @@ describe("dispatcher", () => {
     const edem = getEdem()
     await edem.flows.createFlow({
       name: "Event Flow",
-      trigger: { type: "event", event: "item:created:tasks" },
+      trigger: { type: "event", event: "data.itemCreated" },
       nodes: [
         { id: "t", type: "trigger", position: { x: 0, y: 0 } },
         {
@@ -28,7 +28,7 @@ describe("dispatcher", () => {
     })
 
     const { emit } = await startDispatcher(edem.flows as any, edem.data as any)
-    emit("item:created:tasks", { item: { id: "item-1", collection_id: "tasks", data: {} } })
+    emit("data.itemCreated", { id: "item-1", collection_id: "tasks", data: {} })
 
     await new Promise((r) => setTimeout(r, 50))
 
@@ -40,11 +40,11 @@ describe("dispatcher", () => {
     const edem = getEdem()
     await edem.flows.createFlow({
       name: "Event Flow",
-      trigger: { type: "event", event: "item:created:tasks" },
+      trigger: { type: "event", event: "data.itemCreated" },
     })
 
     const { emit } = await startDispatcher(edem.flows as any, edem.data as any)
-    emit("item:created:projects", { item: { id: "item-1", collection_id: "projects", data: {} } })
+    emit("data.itemUpdated", { id: "item-1", collection_id: "projects", data: {} })
 
     await new Promise((r) => setTimeout(r, 50))
 
@@ -56,11 +56,11 @@ describe("dispatcher", () => {
     const edem = getEdem()
     await edem.flows.createFlow({
       name: "Filtered Event",
-      trigger: { type: "event", event: "item:created:tasks", filter: { status: "urgent" } },
+      trigger: { type: "event", event: "data.itemCreated", filter: { status: "urgent" } },
     })
 
     const { emit } = await startDispatcher(edem.flows as any, edem.data as any)
-    emit("item:created:tasks", { status: "normal" })
+    emit("data.itemCreated", { status: "normal" })
 
     await new Promise((r) => setTimeout(r, 50))
 
@@ -72,15 +72,15 @@ describe("dispatcher", () => {
     const edem = getEdem()
     await edem.flows.createFlow({
       name: "Flow A",
-      trigger: { type: "event", event: "item:created:tasks" },
+      trigger: { type: "event", event: "data.itemCreated" },
     })
     await edem.flows.createFlow({
       name: "Flow B",
-      trigger: { type: "event", event: "item:created:tasks" },
+      trigger: { type: "event", event: "data.itemCreated" },
     })
 
     const { emit } = await startDispatcher(edem.flows as any, edem.data as any)
-    emit("item:created:tasks", { item: { id: "item-1", collection_id: "tasks", data: {} } })
+    emit("data.itemCreated", { id: "item-1", collection_id: "tasks", data: {} })
 
     await new Promise((r) => setTimeout(r, 50))
 
@@ -92,11 +92,11 @@ describe("dispatcher", () => {
     const edem = getEdem()
     await edem.flows.createFlow({
       name: "Tasks Only",
-      trigger: { type: "event", event: "item:created:tasks", filter: { collection_id: "tasks" } },
+      trigger: { type: "event", event: "data.itemCreated", filter: { collection_id: "tasks" } },
     })
 
     const { emit } = await startDispatcher(edem.flows as any, edem.data as any)
-    emit("item:created:tasks", { item: { id: "item-1", collection_id: "projects", data: {} } })
+    emit("data.itemCreated", { id: "item-1", collection_id: "projects", data: {} })
 
     await new Promise((r) => setTimeout(r, 50))
 
@@ -108,11 +108,11 @@ describe("dispatcher", () => {
     const edem = getEdem()
     await edem.flows.createFlow({
       name: "Delete Flow",
-      trigger: { type: "event", event: "item:deleted:tasks" },
+      trigger: { type: "event", event: "data.itemDeleted" },
     })
 
     const { emit } = await startDispatcher(edem.flows as any, edem.data as any)
-    emit("item:deleted:tasks", { id: "item-1", collection_id: "tasks" })
+    emit("data.itemDeleted", { item_id: "item-1", collection_id: "tasks" })
 
     await new Promise((r) => setTimeout(r, 50))
 

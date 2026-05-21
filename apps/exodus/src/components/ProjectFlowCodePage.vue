@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { useT } from "@exodus/edem-vue"
 import { useCollectionQuery } from "@/hooks"
+import { PROJECT_FLOW_SOURCE_COLLECTION } from "@/flow-collections"
+import { toProjectFlowManifest, type ProjectFlowSourceItem } from "@/project-flow-source"
 import { useRoute } from "vue-router"
 import { computed, ref, watch } from "vue"
 
@@ -9,15 +11,17 @@ const route = useRoute()
 const flowId = computed(() => route.params.flowId as string)
 const projectId = computed(() => route.params.id as string)
 
-const { data: flows, loading } = useCollectionQuery("flows", () => ({
+const { data: flows, loading } = useCollectionQuery(PROJECT_FLOW_SOURCE_COLLECTION, () => ({
   filter: { project_id: { _eq: projectId.value } },
 }))
 
-const flow = computed(() => flows.value.find((f) => f.id === flowId.value))
+const flow = computed(
+  () => flows.value.find((f) => f.id === flowId.value) as ProjectFlowSourceItem | undefined,
+)
 
 const manifest = computed(() => {
   if (!flow.value) return ""
-  return JSON.stringify(flow.value.data, null, 2)
+  return JSON.stringify(toProjectFlowManifest(flow.value), null, 2)
 })
 
 const copied = ref(false)

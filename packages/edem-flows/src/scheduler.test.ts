@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test"
 import { parseEvery, matchesSchedule, type ScheduleTrigger } from "./manifest"
+import { canonicalFlowShape } from "./test-flow"
 
 function createMockFlows() {
   return {
@@ -142,7 +143,7 @@ describe("startScheduler", () => {
       {
         id: "flow-1",
         data: {
-          trigger: { type: "schedule", every: "1h" },
+          ...canonicalFlowShape({ trigger: { type: "schedule", every: "1h" } }),
         },
       },
     ])
@@ -170,7 +171,28 @@ describe("startScheduler", () => {
       {
         id: "flow-1",
         data: {
-          trigger: { type: "schedule", every: "1h" },
+          ...canonicalFlowShape({ trigger: { type: "schedule", every: "1h" } }),
+        },
+      },
+    ])
+
+    await startScheduler(flows as any, data as any)
+    expect(flows.runFlow).toHaveBeenCalledWith({ flow_id: "flow-1" })
+  })
+
+  it("should read schedule trigger from trigger node source", async () => {
+    const flows = createMockFlows()
+    const data = createMockData([
+      {
+        id: "flow-1",
+        data: {
+          nodes: [
+            {
+              id: "trigger",
+              type: "trigger",
+              data: { source: { type: "schedule", every: "1h" } },
+            },
+          ],
         },
       },
     ])
@@ -185,7 +207,7 @@ describe("startScheduler", () => {
       {
         id: "flow-1",
         data: {
-          trigger: { type: "schedule", every: "1h" },
+          ...canonicalFlowShape({ trigger: { type: "schedule", every: "1h" } }),
           last_run_at: Date.now() - 10 * 60 * 1000,
         },
       },
@@ -201,13 +223,13 @@ describe("startScheduler", () => {
       {
         id: "flow-1",
         data: {
-          trigger: { type: "manual" },
+          ...canonicalFlowShape({ trigger: { type: "manual" } }),
         },
       },
       {
         id: "flow-2",
         data: {
-          trigger: { type: "event", event: "test" },
+          ...canonicalFlowShape({ trigger: { type: "event", event: "test" } }),
         },
       },
     ])
@@ -237,7 +259,7 @@ describe("startScheduler", () => {
     createdHandler({
       event: {
         id: "new-flow",
-        trigger: { type: "schedule", every: "1h" },
+        ...canonicalFlowShape({ trigger: { type: "schedule", every: "1h" } }),
       },
     })
   })
@@ -252,7 +274,7 @@ describe("startScheduler", () => {
     updatedHandler({
       event: {
         id: "updated-flow",
-        trigger: { type: "schedule", every: "30m" },
+        ...canonicalFlowShape({ trigger: { type: "schedule", every: "30m" } }),
       },
     })
   })
@@ -267,7 +289,7 @@ describe("startScheduler", () => {
     updatedHandler({
       event: {
         id: "updated-flow",
-        trigger: { type: "manual" },
+        ...canonicalFlowShape({ trigger: { type: "manual" } }),
       },
     })
   })

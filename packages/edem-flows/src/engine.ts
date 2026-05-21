@@ -1,5 +1,5 @@
 import { createContext, setNodeOutput, setFlowVariable, type FlowContext } from "./context"
-import { executors, type NodeExecutorResult } from "./executors"
+import { resolveNodeExecutor, type NodeExecutorResult } from "./executors"
 
 export interface FlowNode {
   id: string
@@ -27,7 +27,6 @@ export interface Flow {
   kind?: "flow" | "subflow"
   nodes: FlowNode[]
   edges: FlowEdge[]
-  trigger?: Record<string, unknown>
   meta?: Record<string, unknown>
 }
 
@@ -61,7 +60,7 @@ export interface ExecutionResult {
  * Executes a flow graph starting from its trigger nodes.
  *
  * Walks the DAG, executing each node and following edges based on results.
- * Supports async nodes (action, loop, subflow) via waiting state, retries with
+ * Supports async nodes (loop, subflow) via waiting state, retries with
  * configurable delay, per-node timeouts, and AbortSignal cancellation.
  *
  * @param flow - The flow definition with nodes and edges
@@ -156,7 +155,7 @@ async function executeNodeOnly(
   const node = nodeMap.get(nodeId)
   if (!node) return { output: {} }
 
-  const executor = executors[node.type]
+  const executor = resolveNodeExecutor(node.type, node.data)
   if (!executor) return { output: {} }
 
   const started_at = Date.now()
@@ -217,7 +216,7 @@ async function executeNode(
   const node = nodeMap.get(nodeId)
   if (!node) return { status: "completed" }
 
-  const executor = executors[node.type]
+  const executor = resolveNodeExecutor(node.type, node.data)
   if (!executor) {
     return { status: "error", error: `Unknown node type: ${node.type}` }
   }

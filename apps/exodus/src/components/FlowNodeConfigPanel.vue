@@ -1,15 +1,31 @@
 <script setup lang="ts">
-import { computed, inject, type ComputedRef, type Ref } from "vue"
+import { computed, inject, ref, type ComputedRef, type Ref } from "vue"
 import { useT } from "@exodus/edem-vue"
-import { getAllowedNodeTypes, isProtectedNode, type FlowKind } from "@/types/flow"
+import { edem } from "@/edem"
+import {
+  listCallableModuleOptions,
+  listCallableProcedureOptions,
+  listSubscriptionProcedureOptions,
+  normalizeProcedureCatalog,
+  type ProcedureCatalogModule,
+  type SelectOption,
+} from "@/procedure-catalog"
+import {
+  DEFAULT_FLOW_TRIGGER,
+  getAllowedNodeTypes,
+  getTriggerNodeData,
+  getTriggerSourceFromNodeData,
+  isProtectedNode,
+  type FlowKind,
+  type FlowTrigger,
+  type ScheduleDay,
+} from "@/types/flow"
 
 type NodeData = {
   type?: string
   label?: string
-  triggerType?: string
   module?: string
-  proc?: string
-  action?: string
+  procedure?: string
   field?: string
   operator?: string
   value?: unknown
@@ -107,7 +123,7 @@ function deleteEdge(edgeId: string) {
 }
 
 const BASE_NODE_TYPE_OPTIONS = [
-  { label: "Action", value: "action" },
+  { label: "Call", value: "call" },
   { label: "Condition", value: "condition" },
   { label: "Delay", value: "delay" },
   { label: "Fork", value: "fork" },
@@ -120,6 +136,7 @@ const BASE_NODE_TYPE_OPTIONS = [
 
 const LOCKED_NODE_TYPE_LABELS: Record<string, string> = {
   trigger: "Trigger",
+  call: "Call",
   input: "Input",
   output: "Output",
 }
@@ -155,6 +172,85 @@ const OPERATOR_OPTIONS = [
   { label: "contains", value: "contains" },
 ]
 
+const procedureCatalog = ref<ProcedureCatalogModule[]>([])
+const procedureCatalogLoading = ref(false)
+const procedureCatalogError = ref<string | null>(null)
+
+function prependCurrentOption(options: SelectOption[], currentValue: string): SelectOption[] {
+  if (!currentValue || options.some((option) => option.value === currentValue)) {
+    return options
+  }
+
+  return [{ label: currentValue, value: currentValue }, ...options]
+}
+
+const selectedProcedureModule = computed(() => {
+  const moduleName = node.value?.data.module
+  return typeof moduleName === "string" ? moduleName : ""
+})
+
+const selectedProcedureName = computed(() => {
+  const procedureName = node.value?.data.procedure
+  return typeof procedureName === "string" ? procedureName : ""
+})
+
+const selectedTriggerSource = computed<FlowTrigger>(
+  () => getTriggerSourceFromNodeData(node.value?.data) ?? DEFAULT_FLOW_TRIGGER,
+)
+
+const selectedTriggerType = computed(() => selectedTriggerSource.value.type)
+
+const selectedTriggerEvent = computed(() =>
+  selectedTriggerSource.value.type === "event" ? selectedTriggerSource.value.event : "",
+)
+
+const selectedTriggerDays = computed(() =>
+  selectedTriggerSource.value.type === "schedule"
+    ? (selectedTriggerSource.value.days ?? []).join(", ")
+    : "",
+)
+
+const triggerEventOptions = computed(() =>
+  prependCurrentOption(
+    listSubscriptionProcedureOptions(procedureCatalog.value),
+    selectedTriggerEvent.value,
+  ),
+)
+
+const availableProcedureModuleOptions = computed(() =>
+  listCallableModuleOptions(procedureCatalog.value),
+)
+
+const procedureModuleOptions = computed(() =>
+  prependCurrentOption(availableProcedureModuleOptions.value, selectedProcedureModule.value),
+)
+
+const availableProcedureOptions = computed(() =>
+  listCallableProcedureOptions(procedureCatalog.value, selectedProcedureModule.value),
+)
+
+const procedureOptions = computed(() =>
+  prependCurrentOption(availableProcedureOptions.value, selectedProcedureName.value),
+)
+
+async function loadProcedureCatalog() {
+  if (procedureCatalogLoading.value || procedureCatalog.value.length > 0) return
+
+  procedureCatalogLoading.value = true
+  procedureCatalogError.value = null
+
+  try {
+    const result = await edem.flows.getProcedureCatalog(undefined)
+    procedureCatalog.value = normalizeProcedureCatalog(result.modules)
+  } catch (error) {
+    procedureCatalogError.value = error instanceof Error ? error.message : String(error)
+  } finally {
+    procedureCatalogLoading.value = false
+  }
+}
+
+void loadProcedureCatalog()
+
 function getSelectStringValue(value: unknown): string | null {
   if (typeof value === "string") return value
   if (Array.isArray(value)) return getSelectStringValue(value[0])
@@ -163,6 +259,159 @@ function getSelectStringValue(value: unknown): string | null {
     return typeof next === "string" ? next : null
   }
   return null
+}
+
+function updateTriggerNodeSource(source: FlowTrigger) {
+  if (!node.value) return
+
+  const updatedNodes = nodes.value.map((n) => {
+    if (n.id !== selectedNodeId.value) return n
+
+    return {
+      ...n,
+      data: {
+        ...n.data,
+        ...getTriggerNodeData(source),
+      },
+    }
+  })
+
+  graphNodesRef.value = updatedNodes
+  saveGraph()
+}
+
+function updateTriggerType(value: unknown) {
+  const triggerType = getSelectStringValue(value)
+  if (!triggerType) return
+
+  const current = selectedTriggerSource.value
+
+  switch (triggerType) {
+    case "event":
+      updateTriggerNodeSource(
+        current.type === "event" ? current : { type: "event", event: "", filter: undefined },
+      )
+      return
+    case "schedule":
+      updateTriggerNodeSource(
+        current.type === "schedule"
+          ? current
+          : { type: "schedule", every: "1h", at: undefined, days: undefined },
+      )
+      return
+    case "manual":
+    default:
+      updateTriggerNodeSource({ type: "manual" })
+  }
+}
+
+function updateTriggerEvent(value: unknown) {
+  const event = typeof value === "string" ? value : ""
+  const current = selectedTriggerSource.value
+
+  updateTriggerNodeSource({
+    type: "event",
+    event,
+    filter: current.type === "event" ? current.filter : undefined,
+  })
+}
+
+function updateTriggerScheduleEvery(value: unknown) {
+  const every = typeof value === "string" ? value : ""
+  const current = selectedTriggerSource.value
+
+  updateTriggerNodeSource({
+    type: "schedule",
+    every,
+    at: current.type === "schedule" ? current.at : undefined,
+    days: current.type === "schedule" ? current.days : undefined,
+  })
+}
+
+function updateTriggerScheduleAt(value: unknown) {
+  const at = typeof value === "string" ? value.trim() : ""
+  const current = selectedTriggerSource.value
+
+  updateTriggerNodeSource({
+    type: "schedule",
+    every: current.type === "schedule" ? current.every : "1h",
+    at: at === "" ? undefined : at,
+    days: current.type === "schedule" ? current.days : undefined,
+  })
+}
+
+function updateTriggerScheduleDays(value: unknown) {
+  const daysInput = typeof value === "string" ? value : ""
+  const days = daysInput
+    .split(",")
+    .map((day) => day.trim().toLowerCase())
+    .filter(
+      (day): day is ScheduleDay =>
+        day === "mon" ||
+        day === "tue" ||
+        day === "wed" ||
+        day === "thu" ||
+        day === "fri" ||
+        day === "sat" ||
+        day === "sun",
+    )
+  const current = selectedTriggerSource.value
+
+  updateTriggerNodeSource({
+    type: "schedule",
+    every: current.type === "schedule" ? current.every : "1h",
+    at: current.type === "schedule" ? current.at : undefined,
+    days: days.length > 0 ? days : undefined,
+  })
+}
+
+function updateProcedureModule(value: unknown) {
+  if (!node.value) return
+
+  const moduleName = getSelectStringValue(value) ?? ""
+  const allowedProcedureNames = new Set(
+    listCallableProcedureOptions(procedureCatalog.value, moduleName).map((option) => option.value),
+  )
+  const currentProcedureName = selectedProcedureName.value
+  const nextProcedureName = allowedProcedureNames.has(currentProcedureName)
+    ? currentProcedureName
+    : ""
+
+  const updatedNodes = nodes.value.map((n) => {
+    if (n.id !== selectedNodeId.value) return n
+
+    return {
+      ...n,
+      data: {
+        ...n.data,
+        module: moduleName,
+        procedure: nextProcedureName || undefined,
+      },
+    }
+  })
+
+  graphNodesRef.value = updatedNodes
+  saveGraph()
+}
+
+function updateProcedureName(value: unknown) {
+  if (!node.value) return
+
+  const procedureName = getSelectStringValue(value) ?? ""
+  const updatedNodes = nodes.value.map((n) => {
+    if (n.id !== selectedNodeId.value) return n
+
+    return {
+      ...n,
+      data: {
+        ...n.data,
+        procedure: procedureName || undefined,
+      },
+    }
+  })
+
+  graphNodesRef.value = updatedNodes
+  saveGraph()
 }
 
 function changeNodeType(newType: unknown) {
@@ -243,51 +492,93 @@ function getNodeLabel(nodeId: string): string {
                   t({ en: "Trigger type", ru: "Тип триггера" })
                 }}</label>
                 <USelect
-                  :model-value="node.data.triggerType || 'manual'"
+                  :model-value="selectedTriggerType"
                   :items="TRIGGER_TYPE_OPTIONS"
                   value-key="value"
                   label-key="label"
                   size="sm"
-                  @update:model-value="updateField('triggerType', $event)"
+                  @update:model-value="updateTriggerType"
                 />
               </div>
-              <div v-if="node.data.triggerType === 'schedule'" class="flex flex-col gap-1.5">
+              <div v-if="selectedTriggerType === 'schedule'" class="flex flex-col gap-1.5">
                 <label class="text-muted text-xs font-medium">{{
                   t({ en: "Interval", ru: "Интервал" })
                 }}</label>
                 <UInput
                   :model-value="
-                    ((node.data.config as Record<string, unknown>)?.every as string) || ''
+                    selectedTriggerSource.type === 'schedule' ? selectedTriggerSource.every : ''
                   "
                   size="sm"
                   placeholder="15m"
-                  @update:model-value="
-                    updateField('config', { ...(node.data.config as object), every: $event })
-                  "
+                  @update:model-value="updateTriggerScheduleEvery"
                 />
               </div>
-              <div v-if="node.data.triggerType === 'event'" class="flex flex-col gap-1.5">
+              <div v-if="selectedTriggerType === 'schedule'" class="flex flex-col gap-1.5">
                 <label class="text-muted text-xs font-medium">{{
-                  t({ en: "Event name", ru: "Имя события" })
+                  t({ en: "At time", ru: "Время" })
                 }}</label>
                 <UInput
                   :model-value="
-                    ((node.data.config as Record<string, unknown>)?.event as string) || ''
+                    selectedTriggerSource.type === 'schedule' ? selectedTriggerSource.at || '' : ''
                   "
                   size="sm"
-                  placeholder="item.created"
-                  @update:model-value="
-                    updateField('config', { ...(node.data.config as object), event: $event })
+                  placeholder="09:00"
+                  @update:model-value="updateTriggerScheduleAt"
+                />
+              </div>
+              <div v-if="selectedTriggerType === 'schedule'" class="flex flex-col gap-1.5">
+                <label class="text-muted text-xs font-medium">{{
+                  t({ en: "Days", ru: "Дни" })
+                }}</label>
+                <UInput
+                  :model-value="selectedTriggerDays"
+                  size="sm"
+                  placeholder="mon, tue, wed"
+                  @update:model-value="updateTriggerScheduleDays"
+                />
+              </div>
+              <div v-if="selectedTriggerType === 'event'" class="flex flex-col gap-1.5">
+                <label class="text-muted text-xs font-medium">{{
+                  t({ en: "Event name", ru: "Имя события" })
+                }}</label>
+                <USelect
+                  v-if="triggerEventOptions.length > 0"
+                  :model-value="selectedTriggerEvent || undefined"
+                  :items="triggerEventOptions"
+                  value-key="value"
+                  label-key="label"
+                  size="sm"
+                  :loading="procedureCatalogLoading"
+                  @update:model-value="updateTriggerEvent"
+                />
+                <UInput
+                  v-else
+                  :model-value="
+                    selectedTriggerSource.type === 'event' ? selectedTriggerSource.event : ''
                   "
+                  size="sm"
+                  placeholder="data.itemCreated"
+                  @update:model-value="updateTriggerEvent"
                 />
               </div>
             </template>
 
-            <!-- Action config -->
-            <template v-if="node.data.type === 'action' || node.type === 'action'">
+            <!-- Procedure call config -->
+            <template v-if="node.data.type === 'call' || node.type === 'call'">
               <div class="flex flex-col gap-1.5">
                 <label class="text-muted text-xs font-medium">Module</label>
+                <USelect
+                  v-if="procedureModuleOptions.length > 0"
+                  :model-value="selectedProcedureModule || undefined"
+                  :items="procedureModuleOptions"
+                  value-key="value"
+                  label-key="label"
+                  size="sm"
+                  :loading="procedureCatalogLoading"
+                  @update:model-value="updateProcedureModule"
+                />
                 <UInput
+                  v-else
                   :model-value="node.data.module || ''"
                   size="sm"
                   placeholder="data"
@@ -295,14 +586,55 @@ function getNodeLabel(nodeId: string): string {
                 />
               </div>
               <div class="flex flex-col gap-1.5">
-                <label class="text-muted text-xs font-medium">Proc</label>
+                <label class="text-muted text-xs font-medium">Procedure</label>
+                <USelect
+                  v-if="procedureOptions.length > 0"
+                  :model-value="selectedProcedureName || undefined"
+                  :items="procedureOptions"
+                  value-key="value"
+                  label-key="label"
+                  size="sm"
+                  :disabled="!selectedProcedureModule"
+                  :loading="procedureCatalogLoading"
+                  @update:model-value="updateProcedureName"
+                />
                 <UInput
-                  :model-value="node.data.proc || node.data.action || ''"
+                  v-else
+                  :model-value="selectedProcedureName"
                   size="sm"
                   placeholder="createItem"
-                  @update:model-value="updateField('proc', $event)"
+                  @update:model-value="updateProcedureName"
                 />
               </div>
+              <p v-if="procedureCatalogError" class="text-error text-xs">
+                {{ procedureCatalogError }}
+              </p>
+              <p
+                v-else-if="
+                  selectedProcedureModule &&
+                  availableProcedureOptions.length === 0 &&
+                  procedureCatalog.length > 0
+                "
+                class="text-muted text-xs"
+              >
+                {{
+                  t({
+                    en: "Only query and mutation procedures are available for call nodes.",
+                    ru: "Для call-нод доступны только query и mutation процедуры.",
+                  })
+                }}
+              </p>
+              <p v-else-if="procedureCatalog.length > 0" class="text-muted text-xs">
+                {{
+                  t({
+                    en: "Procedure catalog comes from the installed Edem modules.",
+                    ru: "Каталог процедур берётся из установленных Edem-модулей.",
+                  })
+                }}
+              </p>
+              <p v-else-if="procedureCatalogLoading" class="text-muted text-xs">
+                {{ t({ en: "Loading procedure catalog…", ru: "Загружаю каталог процедур…" }) }}
+              </p>
             </template>
 
             <!-- Condition config -->

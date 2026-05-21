@@ -2,7 +2,7 @@
 
 Единая модель поведения для Edem. Flow описывает не только domain automation, но и экранное поведение, если оно относится к orchestration-уровню и не требует собственного imperative widget runtime.
 
-← [Edem](./edem.md) · Реализация: [edem-flows](../packages/edem-flows/README.md)
+← [Edem](./edem.md) · Реализация: [edem-flows](../packages/edem-flows/README.md) · План перехода: [flows-procedure-plan.md](./flows-procedure-plan.md)
 
 ## Роль слоя
 
@@ -19,6 +19,20 @@ Flow-слой отвечает за:
 ```text
 UI event -> ui-action flow -> domain/system calls -> UI effects
 ```
+
+## Source И Runtime
+
+Flow существует в двух разных формах:
+
+- **Source flow** — проектный артефакт, который редактируется в IDE или хранится в manifest/project data
+- **Installed flow** — runtime-артефакт, который уже установлен в приложение и может исполняться движком
+
+Следствия:
+
+- editor не должен считать runtime-коллекцию flow источником истины для authoring
+- `edem-flows` является runtime установленной модели, а не primary API редактирования flow
+- между authoring и execution должна быть явная граница установки, например через manifest apply/install step
+- эмуляция в IDE допустима, но она не должна подменять реальный runtime-контракт
 
 ## Профили flow
 
@@ -67,14 +81,40 @@ Flow должен иметь явные boundary-точки.
 
 Нода — единица вычисления или эффекта.
 
-Категории нод:
+## Procedure-backed Nodes
 
-- **Logic** — `condition`, `switch`, `loop`, `delay`
-- **Data** — `input`, `output`, `data:create-item`, `data:update-item`, `data:delete-item`, `data:update-singleton`
-- **Transform** — `transform`
-- **UI Effects** — `ui:set-state`, `ui:set-timeout-state`, `ui:navigate`, `ui:clipboard-write`, `ui:event`
-- **External / Domain** — `action`, `domain:invoke`, `subflow`
-- **Flow** — `fork`, `join`
+Целевая модель для Edem Flow Runtime:
+
+- любая `query` из любого Edem-модуля автоматически доступна как callable-нода
+- любая `mutation` из любого Edem-модуля автоматически доступна как callable-нода
+- `action` не является отдельным special-case в целевой модели
+- логические helper-ноды, которые не завязаны на topology графа, должны поставляться тем же способом, обычно самим `flows`-модулем
+
+Нода вызова должна ссылаться на модульную процедуру, а не нести отдельную DSL-модель действий.
+
+Пример:
+
+```text
+flow node -> module.procedure(input) -> output
+```
+
+Разделение ответственности:
+
+- модульная процедура предоставляет только контракт `input -> output`
+- конкретный flow задаёт `input/output wiring`, routing, timeout, retry и другие execution policy
+- engine отвечает за orchestration, persistence run state, retries, timeouts и обход графа
+
+Это означает, что flow-specific policy не должна экспортироваться модулем как часть логики ноды. Она задаётся только в дизайне конкретного flow.
+
+Категории нод в целевой модели:
+
+- **Boundary / Graph Runtime** — `trigger`, `input`, `output`, `fork`, `join`, `subflow`
+- **Procedure-backed Logic** — например `flows.condition`, `flows.switch`, `flows.transform`
+- **Procedure-backed Data / UI / Platform / Domain** — любая `query` или `mutation` соответствующего модуля
+
+То есть список callable-нод не должен быть захардкоженным DSL-словарём внутри flow-движка. Он должен строиться из процедур модулей Edem.
+
+Topology-dependent execution primitives не обязаны быть обычными module procedures, если их смысл определяется самим графом, а не только вызовом `input -> output`.
 
 ## Node capabilities
 
@@ -87,6 +127,8 @@ Flow должен иметь явные boundary-точки.
 
 Это позволяет валидировать граф до исполнения.
 
+Важно: это статическая metadata уровня типа ноды или runtime-контракта. Она не должна подменять execution policy конкретного node instance. Такие вещи как `timeout`, `retry`, routing и другие flow-instance policy задаются в самом дизайне flow.
+
 ## Триггеры
 
 Что инициирует выполнение:
@@ -95,7 +137,19 @@ Flow должен иметь явные boundary-точки.
 - **Event** — системные/data события
 - **Schedule** — выполнение по расписанию
 - **Manual** — ручной запуск
-- **Webhook** — HTTP callback
+
+Целевая модель trigger sources:
+
+- `event` по сути является ссылкой на `subscription` Edem-модуля
+- любая `subscription` автоматически доступна как event-trigger source
+- `manual` и `schedule` являются встроенными trigger sources того же уровня
+- trigger должен быть first-class boundary node графа, а не отдельным параллельным механизмом описания логики
+
+Следствие:
+
+- callable nodes строятся из `query/mutation`
+- event triggers строятся из `subscription`
+- UI runtime может предоставлять экранные события как subscription-based источники для `ui-action` flow
 
 Не все trigger types разрешены для всех профилей.
 

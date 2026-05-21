@@ -2,14 +2,17 @@ import { describe, it, expect, beforeEach } from "bun:test"
 import { createEdem } from "@exodus/edem-core"
 import { dataModule, resetDataEngine } from "@exodus/edem-data"
 import flowsModule from "./index"
-import { reg } from "./test-actions"
+import { reg, testModule } from "./test-actions"
+import { callNode } from "./test-flow"
 
 describe("edem-flows", () => {
-  let edem: ReturnType<typeof createEdem<[typeof dataModule, typeof flowsModule]>>
+  let edem: ReturnType<
+    typeof createEdem<[typeof dataModule, typeof flowsModule, typeof testModule]>
+  >
 
   beforeEach(async () => {
     resetDataEngine()
-    edem = createEdem([dataModule, flowsModule])
+    edem = createEdem([dataModule, flowsModule, testModule])
   })
 
   describe("createFlow", () => {
@@ -25,12 +28,13 @@ describe("edem-flows", () => {
       expect(flow?.valid).toBe(true)
       expect(flow?.nodes).toHaveLength(1)
       expect(flow?.nodes[0]?.type).toBe("trigger")
+      expect(flow?.nodes[0]?.data?.source).toEqual({ type: "manual" })
     })
 
     it("should create flow with nodes and edges", async () => {
       const result = await edem.flows.createFlow({
         name: "Complex Flow",
-        trigger: { type: "event", event: "data:item_created" },
+        trigger: { type: "event", event: "data.itemCreated" },
         nodes: [
           { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
           { id: "n2", type: "update", position: { x: 100, y: 0 }, data: {} },
@@ -69,6 +73,164 @@ describe("edem-flows", () => {
       const { items } = await edem.data.queryItems({ collection_id: "flows" })
       expect(items).toHaveLength(1)
       expect(items[0].data.name).toBe("Persisted Flow")
+      expect(items[0].data.trigger).toBeUndefined()
+    })
+
+    it("should accept direct procedure node types for query and mutation procedures", async () => {
+      const result = await edem.flows.createFlow({
+        name: "Procedure Node",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "trigger", type: "trigger", position: { x: 0, y: 0 } },
+          callNode({ id: "list", module: "data", procedure: "listCollections" }),
+        ],
+        edges: [{ id: "e1", source: "trigger", target: "list" }],
+      })
+
+      const { flow } = await edem.flows.getFlow({ flow_id: result.flow_id })
+      expect(flow?.valid).toBe(true)
+      expect(flow?.validation_errors).toEqual([])
+    })
+
+    it("should mark flow invalid when call node references a subscription", async () => {
+      const result = await edem.flows.createFlow({
+        name: "Bad Procedure Node",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "trigger", type: "trigger", position: { x: 0, y: 0 } },
+          callNode({ id: "event", module: "data", procedure: "itemCreated" }),
+        ],
+        edges: [{ id: "e1", source: "trigger", target: "event" }],
+      })
+
+      const { flow } = await edem.flows.getFlow({ flow_id: result.flow_id })
+      expect(flow?.valid).toBe(false)
+      expect(flow?.validation_errors).toContain(
+        'Node "event" references subscription "data.itemCreated"; use query or mutation',
+      )
+    })
+
+    it("should mark flow invalid when call node references an unknown procedure", async () => {
+      const result = await edem.flows.createFlow({
+        name: "Unknown Procedure Node",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "trigger", type: "trigger", position: { x: 0, y: 0 } },
+          callNode({ id: "missing", module: "data", procedure: "missingProcedure" }),
+        ],
+        edges: [{ id: "e1", source: "trigger", target: "missing" }],
+      })
+
+      const { flow } = await edem.flows.getFlow({ flow_id: result.flow_id })
+      expect(flow?.valid).toBe(false)
+      expect(flow?.validation_errors).toContain(
+        'Node "missing" references unknown procedure "data.missingProcedure"',
+      )
+    })
+
+    it("should mark flow invalid when schedule trigger config is malformed", async () => {
+      const result = await edem.flows.createFlow({
+        name: "Bad Schedule Trigger",
+        trigger: { type: "schedule", every: "daily", at: "25:00" },
+      })
+
+      const { flow } = await edem.flows.getFlow({ flow_id: result.flow_id })
+      expect(flow?.valid).toBe(false)
+      expect(flow?.validation_errors).toContain('Schedule trigger has invalid every value "daily"')
+      expect(flow?.validation_errors).toContain('Schedule trigger has invalid at value "25:00"')
+    })
+
+    it("should mark flow invalid when event trigger source is empty", async () => {
+      const result = await edem.flows.createFlow({
+        name: "Bad Event Trigger",
+        trigger: { type: "event", event: "" },
+      })
+
+      const { flow } = await edem.flows.getFlow({ flow_id: result.flow_id })
+      expect(flow?.valid).toBe(false)
+      expect(flow?.validation_errors).toContain("Trigger event source must not be empty")
+    })
+
+    it("should mark flow invalid when dotted event source references a non-subscription", async () => {
+      const result = await edem.flows.createFlow({
+        name: "Bad Subscription Trigger",
+        trigger: { type: "event", event: "data.listCollections" },
+      })
+
+      const { flow } = await edem.flows.getFlow({ flow_id: result.flow_id })
+      expect(flow?.valid).toBe(false)
+      expect(flow?.validation_errors).toContain(
+        'Trigger event source "data.listCollections" must reference a subscription',
+      )
+    })
+
+    it("should keep canonical call nodes", async () => {
+      const result = await edem.flows.createFlow({
+        name: "Legacy Procedure Action",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "trigger", type: "trigger", position: { x: 0, y: 0 } },
+          callNode({
+            id: "call",
+            module: "data",
+            procedure: "listCollections",
+            position: { x: 120, y: 0 },
+          }),
+        ],
+        edges: [{ id: "e1", source: "trigger", target: "call" }],
+      })
+
+      const { flow } = await edem.flows.getFlow({ flow_id: result.flow_id })
+      expect(flow?.nodes.find((node) => node.id === "call")?.type).toBe("call")
+      expect(flow?.nodes.find((node) => node.id === "call")?.data?.procedure).toBe(
+        "listCollections",
+      )
+    })
+
+    it("should mark flow invalid when call references a subscription", async () => {
+      const result = await edem.flows.createFlow({
+        name: "Legacy Subscription Action",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "trigger", type: "trigger", position: { x: 0, y: 0 } },
+          callNode({
+            id: "legacy",
+            module: "data",
+            procedure: "itemCreated",
+            position: { x: 120, y: 0 },
+          }),
+        ],
+        edges: [{ id: "e1", source: "trigger", target: "legacy" }],
+      })
+
+      const { flow } = await edem.flows.getFlow({ flow_id: result.flow_id })
+      expect(flow?.valid).toBe(false)
+      expect(flow?.validation_errors).toContain(
+        'Node "legacy" references subscription "data.itemCreated"; use query or mutation',
+      )
+    })
+
+    it("should mark flow invalid when call references an unknown procedure", async () => {
+      const result = await edem.flows.createFlow({
+        name: "Legacy Unknown Action",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "trigger", type: "trigger", position: { x: 0, y: 0 } },
+          callNode({
+            id: "legacy",
+            module: "data",
+            procedure: "missingProcedure",
+            position: { x: 120, y: 0 },
+          }),
+        ],
+        edges: [{ id: "e1", source: "trigger", target: "legacy" }],
+      })
+
+      const { flow } = await edem.flows.getFlow({ flow_id: result.flow_id })
+      expect(flow?.valid).toBe(false)
+      expect(flow?.validation_errors).toContain(
+        'Node "legacy" references unknown procedure "data.missingProcedure"',
+      )
     })
   })
 
@@ -164,7 +326,7 @@ describe("edem-flows", () => {
     it("should return full flow structure", async () => {
       const { flow_id } = await edem.flows.createFlow({
         name: "Full Flow",
-        trigger: { type: "event", event: "item:created", filter: { collection: "tasks" } },
+        trigger: { type: "event", event: "data.itemCreated", filter: { collection_id: "tasks" } },
         nodes: [
           { id: "n1", type: "condition", position: { x: 0, y: 0 }, data: { field: "status" } },
         ],
@@ -175,7 +337,8 @@ describe("edem-flows", () => {
       const { flow } = await edem.flows.getFlow({ flow_id })
       expect(flow?.name).toBe("Full Flow")
       expect(flow?.trigger?.type).toBe("event")
-      expect(flow?.nodes[0].data?.field).toBe("status")
+      expect(flow?.nodes.some((node) => node.type === "trigger")).toBe(true)
+      expect(flow?.nodes.find((node) => node.id === "n1")?.data?.field).toBe("status")
       expect(flow?.meta?.version).toBe(1)
     })
   })
@@ -192,6 +355,25 @@ describe("edem-flows", () => {
 
       const { flows } = await edem.flows.listFlows({})
       expect(flows).toHaveLength(2)
+    })
+  })
+
+  describe("getProcedureCatalog", () => {
+    it("should expose serializable procedure metadata for editor usage", async () => {
+      const { modules } = await edem.flows.getProcedureCatalog()
+
+      expect(modules.find((entry) => entry.module === "data")?.procedures).toContainEqual({
+        name: "listCollections",
+        kind: "query",
+      })
+      expect(modules.find((entry) => entry.module === "data")?.procedures).toContainEqual({
+        name: "itemCreated",
+        kind: "subscription",
+      })
+      expect(modules.find((entry) => entry.module === "flows")?.procedures).toContainEqual({
+        name: "runFlow",
+        kind: "mutation",
+      })
     })
   })
 
@@ -229,20 +411,56 @@ describe("edem-flows", () => {
     it("should throw on non-existent flow", async () => {
       await expect(edem.flows.runFlow({ flow_id: "non-existent" })).rejects.toThrow("not found")
     })
+
+    it("should execute call nodes backed by procedures", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Direct Procedure Run",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "trigger", type: "trigger", position: { x: 0, y: 0 } },
+          callNode({ id: "list", module: "data", procedure: "listCollections" }),
+        ],
+        edges: [{ id: "e1", source: "trigger", target: "list" }],
+      })
+
+      const result = await edem.flows.runFlow({ flow_id })
+      expect(result.status).toBe("completed")
+
+      const { run } = await edem.flows.getRun({ run_id: result.run_id })
+      const listOutput = run?.output?.list as { collections?: Array<{ id: string }> } | undefined
+      expect(Array.isArray(listOutput?.collections)).toBe(true)
+      expect(listOutput?.collections?.some((collection) => collection.id === "flows")).toBe(true)
+    })
+
+    it("should reject running flow with invalid call nodes", async () => {
+      const { flow_id } = await edem.flows.createFlow({
+        name: "Invalid Direct Procedure Run",
+        trigger: { type: "manual" },
+        nodes: [
+          { id: "trigger", type: "trigger", position: { x: 0, y: 0 } },
+          callNode({ id: "event", module: "data", procedure: "itemCreated" }),
+        ],
+        edges: [{ id: "e1", source: "trigger", target: "event" }],
+      })
+
+      await expect(edem.flows.runFlow({ flow_id })).rejects.toThrow(
+        'Node "event" references subscription "data.itemCreated"; use query or mutation',
+      )
+    })
   })
 
   describe("trigger types", () => {
     it("should support event trigger", async () => {
       const { flow_id } = await edem.flows.createFlow({
         name: "Event Flow",
-        trigger: { type: "event", event: "data:item_created", filter: { collection: "tasks" } },
+        trigger: { type: "event", event: "data.itemCreated", filter: { collection_id: "tasks" } },
       })
 
       const { flow } = await edem.flows.getFlow({ flow_id })
       expect(flow?.trigger?.type).toBe("event")
       if (flow?.trigger?.type === "event") {
-        expect(flow.trigger.event).toBe("data:item_created")
-        expect(flow.trigger.filter?.collection).toBe("tasks")
+        expect(flow.trigger.event).toBe("data.itemCreated")
+        expect(flow.trigger.filter?.collection_id).toBe("tasks")
       }
     })
 
@@ -378,17 +596,14 @@ describe("edem-flows", () => {
 
   describe("cancelRun", () => {
     it("should cancel a waiting run", async () => {
+      reg("send_email", async () => ({ status: "pending" }))
+
       const { flow_id } = await edem.flows.createFlow({
         name: "Cancel Test",
         trigger: { type: "manual" },
         nodes: [
           { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
-          {
-            id: "n2",
-            type: "action",
-            position: { x: 100, y: 0 },
-            data: { module: "test", proc: "send_email" },
-          },
+          callNode({ id: "n2", module: "test", procedure: "send_email" }),
         ],
         edges: [{ id: "e1", source: "n1", target: "n2" }],
       })
@@ -423,17 +638,14 @@ describe("edem-flows", () => {
 
   describe("resumeRun", () => {
     it("should resume a waiting run", async () => {
+      reg("resume_test_action", async () => ({ status: "pending" }))
+
       const { flow_id } = await edem.flows.createFlow({
         name: "Resume Test",
         trigger: { type: "manual" },
         nodes: [
           { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
-          {
-            id: "n2",
-            type: "action",
-            position: { x: 100, y: 0 },
-            data: { module: "test", proc: "resume_test_action" },
-          },
+          callNode({ id: "n2", module: "test", procedure: "resume_test_action" }),
           {
             id: "n3",
             type: "transform",
@@ -477,17 +689,14 @@ describe("edem-flows", () => {
 
   describe("handleNodeCompleted", () => {
     it("should resume a waiting run", async () => {
+      reg("approve", async () => ({ status: "pending" }))
+
       const { flow_id } = await edem.flows.createFlow({
         name: "Resume Test",
         trigger: { type: "manual" },
         nodes: [
           { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
-          {
-            id: "n2",
-            type: "action",
-            position: { x: 100, y: 0 },
-            data: { module: "test", proc: "approve" },
-          },
+          callNode({ id: "n2", module: "test", procedure: "approve" }),
           {
             id: "n3",
             type: "transform",
@@ -548,17 +757,14 @@ describe("edem-flows", () => {
     })
 
     it("should throw when node_id does not match", async () => {
+      reg("wait", async () => ({ status: "pending" }))
+
       const { flow_id } = await edem.flows.createFlow({
         name: "Wrong Node",
         trigger: { type: "manual" },
         nodes: [
           { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
-          {
-            id: "n2",
-            type: "action",
-            position: { x: 100, y: 0 },
-            data: { module: "test", proc: "wait" },
-          },
+          callNode({ id: "n2", module: "test", procedure: "wait" }),
         ],
         edges: [{ id: "e1", source: "n1", target: "n2" }],
       })
@@ -577,17 +783,14 @@ describe("edem-flows", () => {
 
   describe("handleNodeFailed", () => {
     it("should fail a waiting run", async () => {
+      reg("risky", async () => ({ status: "pending" }))
+
       const { flow_id } = await edem.flows.createFlow({
         name: "Fail Test",
         trigger: { type: "manual" },
         nodes: [
           { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
-          {
-            id: "n2",
-            type: "action",
-            position: { x: 100, y: 0 },
-            data: { module: "test", proc: "risky" },
-          },
+          callNode({ id: "n2", module: "test", procedure: "risky" }),
         ],
         edges: [{ id: "e1", source: "n1", target: "n2" }],
       })
@@ -670,17 +873,14 @@ describe("edem-flows", () => {
 
   describe("backpressure", () => {
     it("should throw when maxConcurrent exceeded", async () => {
+      reg("slow_action", async () => ({ status: "pending" }))
+
       const { flow_id } = await edem.flows.createFlow({
         name: "BP Flow",
         trigger: { type: "manual" },
         nodes: [
           { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
-          {
-            id: "n2",
-            type: "action",
-            position: { x: 100, y: 0 },
-            data: { module: "test", proc: "slow_action" },
-          },
+          callNode({ id: "n2", module: "test", procedure: "slow_action" }),
         ],
         edges: [{ id: "e1", source: "n1", target: "n2" }],
         backpressure: { maxConcurrent: 1 },
@@ -691,17 +891,14 @@ describe("edem-flows", () => {
     })
 
     it("should throw when maxPending exceeded", async () => {
+      reg("pending_action", async () => ({ status: "pending" }))
+
       const { flow_id } = await edem.flows.createFlow({
         name: "BP Pending",
         trigger: { type: "manual" },
         nodes: [
           { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
-          {
-            id: "n2",
-            type: "action",
-            position: { x: 100, y: 0 },
-            data: { module: "test", proc: "pending_action" },
-          },
+          callNode({ id: "n2", module: "test", procedure: "pending_action" }),
         ],
         edges: [{ id: "e1", source: "n1", target: "n2" }],
         backpressure: { maxPending: 1 },

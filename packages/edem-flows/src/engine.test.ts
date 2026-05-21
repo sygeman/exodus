@@ -192,6 +192,8 @@ describe("executeFlow", () => {
   })
 
   it("should pause on async action node", async () => {
+    reg("send_email", async () => ({ status: "pending" }))
+
     const flow: Flow = {
       id: "test",
       name: "Test Flow",
@@ -199,9 +201,9 @@ describe("executeFlow", () => {
         { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
         {
           id: "n2",
-          type: "action",
+          type: "call",
           position: { x: 100, y: 0 },
-          data: { module: "test", proc: "send_email" },
+          data: { module: "test", procedure: "send_email" },
         },
         {
           id: "n3",
@@ -232,7 +234,7 @@ describe("executeFlow", () => {
           id: "n2",
           type: "loop",
           position: { x: 100, y: 0 },
-          data: { maxIterations: 3, action: "process" },
+          data: { maxIterations: 3, procedure: "process" },
         },
       ],
       edges: [{ id: "e1", source: "n1", target: "n2" }],
@@ -342,9 +344,9 @@ describe("node retry", () => {
         { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
         {
           id: "n2",
-          type: "action",
+          type: "call",
           position: { x: 100, y: 0 },
-          data: { module: "test", proc: "flaky_action" },
+          data: { module: "test", procedure: "flaky_action" },
           retry_max: 3,
           retry_delay: 10,
         },
@@ -371,9 +373,9 @@ describe("node retry", () => {
         { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
         {
           id: "n2",
-          type: "action",
+          type: "call",
           position: { x: 100, y: 0 },
-          data: { module: "test", proc: "always_fail" },
+          data: { module: "test", procedure: "always_fail" },
           retry_max: 2,
           retry_delay: 10,
         },
@@ -406,9 +408,9 @@ describe("node retry", () => {
         { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
         {
           id: "n2",
-          type: "action",
+          type: "call",
           position: { x: 100, y: 0 },
-          data: { module: "test", proc: "fail_after_retry" },
+          data: { module: "test", procedure: "fail_after_retry" },
           retry_max: 1,
           retry_delay: 10,
         },
@@ -454,7 +456,6 @@ describe("validateFlow", () => {
       id: "flow",
       name: "Flow",
       kind: "flow",
-      trigger: { type: "manual" },
       nodes: [{ id: "trigger", type: "trigger", position: { x: 0, y: 0 } }],
       edges: [],
     })

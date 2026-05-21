@@ -2,8 +2,11 @@ import { beforeEach, afterEach, mock } from "bun:test"
 import { createEdem } from "@exodus/edem-core"
 import { dataModule, resetDataEngine } from "@exodus/edem-data"
 import { flowsModule } from "../index"
+import { testModule } from "../test-actions"
 
-export type Edem = ReturnType<typeof createEdem<[typeof dataModule, typeof flowsModule]>>
+export type Edem = ReturnType<
+  typeof createEdem<[typeof dataModule, typeof flowsModule, typeof testModule]>
+>
 
 let edem: Edem
 let originalLog: typeof console.log
@@ -16,7 +19,7 @@ export function getEdem(): Edem {
 export function setupTests() {
   beforeEach(async () => {
     resetDataEngine()
-    edem = createEdem([dataModule, flowsModule])
+    edem = createEdem([dataModule, flowsModule, testModule])
     originalLog = console.log
     originalError = console.error
     console.log = mock(() => {})

@@ -23,6 +23,7 @@ export const triggerSchema = z.discriminatedUnion("type", [
 
 export type ScheduleTrigger = z.infer<typeof triggerSchema> & { type: "schedule" }
 export type DayOfWeek = z.infer<typeof dayEnum>
+export type Trigger = z.infer<typeof triggerSchema>
 
 const EVERY_RE = /^(\d+)(m|h|d|w)$/
 
@@ -85,6 +86,8 @@ export const nodeSchema = z.object({
   timeout: z.number().optional(),
 })
 
+export type FlowNodeRecord = z.infer<typeof nodeSchema>
+
 export const edgeSchema = z.object({
   id: z.string(),
   source: z.string(),
@@ -95,11 +98,12 @@ export const edgeSchema = z.object({
   label: z.string().optional(),
 })
 
+export type FlowEdgeRecord = z.infer<typeof edgeSchema>
+
 export const flowManifestSchema = z.object({
   id: z.string(),
   name: z.string(),
   kind: flowKindSchema.optional(),
-  trigger: triggerSchema.optional(),
   nodes: z.array(nodeSchema),
   edges: z.array(edgeSchema),
   meta: z.record(z.string(), z.unknown()).optional(),
@@ -117,3 +121,59 @@ export const flowsManifestSchema = z.object({
 
 export type FlowManifest = z.infer<typeof flowManifestSchema>
 export type FlowsManifest = z.infer<typeof flowsManifestSchema>
+
+function parseTriggerValue(value: unknown): Trigger | undefined {
+  const parsed = triggerSchema.safeParse(value)
+  return parsed.success ? parsed.data : undefined
+}
+
+export function getTriggerSourceFromNodes(nodes: unknown): Trigger | undefined {
+  if (!Array.isArray(nodes)) return undefined
+
+  for (const node of nodes) {
+    if (!node || typeof node !== "object") continue
+
+    const record = node as { type?: unknown; data?: unknown }
+    if (record.type !== "trigger" || !record.data || typeof record.data !== "object") {
+      continue
+    }
+
+    const source = (record.data as Record<string, unknown>).source
+    const parsed = parseTriggerValue(source)
+    if (parsed) {
+      return parsed
+    }
+  }
+
+  return undefined
+}
+
+export function getFlowTriggerSource(flow: {
+  kind?: string | undefined
+  nodes?: unknown
+}): Trigger | undefined {
+  if (flow.kind === "subflow") {
+    return undefined
+  }
+
+  return getTriggerSourceFromNodes(flow.nodes)
+}
+
+export function syncTriggerSourceToNodes(
+  nodes: FlowNodeRecord[],
+  trigger: Trigger,
+): FlowNodeRecord[] {
+  return nodes.map((node) => {
+    if (node.type !== "trigger") {
+      return node
+    }
+
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        source: trigger,
+      },
+    }
+  })
+}

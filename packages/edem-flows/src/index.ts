@@ -1,5 +1,11 @@
 import { z } from "zod"
-import { createEdemModule, type InferModuleAPI } from "@exodus/edem-core"
+import {
+  createEdemModule,
+  getEdemProcedureCatalog,
+  type InferModuleAPI,
+  type ModuleProcedureCatalog,
+  type ProcedureMetadata,
+} from "@exodus/edem-core"
 import type { dataModule } from "@exodus/edem-data"
 import {
   executeFlow,
@@ -8,15 +14,19 @@ import {
   type NodeLifecycle,
   type NodeLifecycleEvent,
 } from "./engine"
-import { setEdemModules } from "./executors"
+import { getProcedureReference, setEdemModules } from "./executors"
 import {
   flowKindSchema,
+  getFlowTriggerSource,
+  parseEvery,
   triggerSchema,
   nodeSchema,
   edgeSchema,
   flowsManifestSchema,
+  syncTriggerSourceToNodes,
   type FlowsManifest,
   type FlowManifest,
+  type Trigger,
 } from "./manifest"
 
 export type { FlowsManifest, FlowManifest }
@@ -28,6 +38,7 @@ const RUNS_COLLECTION = "flow_runs"
 const RUN_NODES_COLLECTION = "flow_run_nodes"
 
 let dataRef: EdemData | null = null
+let procedureCatalogRef: ModuleProcedureCatalog[] | null = null
 
 class AsyncMutex {
   private locks = new Map<string, Promise<void>>()
@@ -53,6 +64,22 @@ const bpMutex = new AsyncMutex()
 const backpressureSchema = z.object({
   maxPending: z.number().optional(),
   maxConcurrent: z.number().optional(),
+})
+
+const procedureKindSchema = z.enum(["query", "mutation", "subscription"])
+
+const procedureCatalogSchema = z.object({
+  modules: z.array(
+    z.object({
+      module: z.string(),
+      procedures: z.array(
+        z.object({
+          name: z.string(),
+          kind: procedureKindSchema,
+        }),
+      ),
+    }),
+  ),
 })
 
 const flowSchema = z.object({
@@ -106,7 +133,6 @@ const flowRunNodeSchema = z.object({
 type FlowRecord = z.infer<typeof flowSchema>
 type FlowKind = FlowRecord["kind"]
 type FlowStatus = FlowRecord["status"]
-type Trigger = z.infer<typeof triggerSchema>
 type FlowNodeRecord = z.infer<typeof nodeSchema>
 type FlowEdgeRecord = z.infer<typeof edgeSchema>
 
@@ -115,10 +141,209 @@ function getData(): EdemData {
   return dataRef
 }
 
+function findProcedure(
+  catalog: ModuleProcedureCatalog[],
+  moduleName: string,
+  procedureName: string,
+): ProcedureMetadata | null {
+  const moduleEntry = catalog.find((entry) => entry.module === moduleName)
+  return moduleEntry?.procedures.find((proc) => proc.name === procedureName) ?? null
+}
+
+function validateProcedureReferences(
+  flow: Pick<FlowRecord, "nodes">,
+  catalog: ModuleProcedureCatalog[] | null,
+): string[] {
+  if (!catalog) return []
+
+  const errors: string[] = []
+
+  for (const node of flow.nodes) {
+    const reference = getProcedureReference(node.type, node.data)
+
+    if (node.type === "call" && !reference) {
+      errors.push(`Call node "${node.id}" must specify module and procedure`)
+      continue
+    }
+
+    if (!reference) continue
+
+    const procedure = findProcedure(catalog, reference.module, reference.procedure)
+    if (!procedure) {
+      errors.push(
+        `Node "${node.id}" references unknown procedure "${reference.module}.${reference.procedure}"`,
+      )
+      continue
+    }
+
+    if (procedure.kind === "subscription") {
+      errors.push(
+        `Node "${node.id}" references subscription "${reference.module}.${reference.procedure}"; use query or mutation`,
+      )
+    }
+  }
+
+  return errors
+}
+
+function getFlowValidationState(
+  flow: Omit<FlowRecord, "valid" | "validation_errors">,
+  catalog: ModuleProcedureCatalog[] | null,
+): { valid: boolean; errors: string[] } {
+  const structural = validateFlow(flow)
+  const triggerErrors = validateTriggerConfiguration(flow, catalog)
+  const procedureErrors = validateProcedureReferences(flow, catalog)
+  const errors = [...structural.errors, ...triggerErrors, ...procedureErrors]
+
+  return {
+    valid: errors.length === 0,
+    errors,
+  }
+}
+
+function validateTriggerConfiguration(
+  flow: Pick<FlowRecord, "kind" | "nodes">,
+  catalog: ModuleProcedureCatalog[] | null,
+): string[] {
+  if (flow.kind !== "flow") {
+    return []
+  }
+
+  const trigger = getFlowTriggerSource(flow)
+  if (!trigger) {
+    return ["Trigger node must specify a valid source"]
+  }
+
+  switch (trigger.type) {
+    case "event": {
+      const errors = trigger.event.trim() === "" ? ["Trigger event source must not be empty"] : []
+
+      if (!catalog || !trigger.event.includes(".")) {
+        return errors
+      }
+
+      const separator = trigger.event.indexOf(".")
+      const moduleName = trigger.event.slice(0, separator)
+      const procedureName = trigger.event.slice(separator + 1)
+      const procedure = findProcedure(catalog, moduleName, procedureName)
+
+      if (!procedure) {
+        errors.push(`Trigger event source references unknown subscription "${trigger.event}"`)
+        return errors
+      }
+
+      if (procedure.kind !== "subscription") {
+        errors.push(`Trigger event source "${trigger.event}" must reference a subscription`)
+      }
+
+      return errors
+    }
+    case "schedule": {
+      const errors: string[] = []
+
+      try {
+        parseEvery(trigger.every)
+      } catch {
+        errors.push(`Schedule trigger has invalid every value "${trigger.every}"`)
+      }
+
+      if (trigger.at) {
+        const match = /^(\d{2}):(\d{2})$/.exec(trigger.at)
+        if (!match) {
+          errors.push(`Schedule trigger has invalid at value "${trigger.at}"`)
+        } else {
+          const hours = Number(match[1])
+          const minutes = Number(match[2])
+          if (hours > 23 || minutes > 59) {
+            errors.push(`Schedule trigger has invalid at value "${trigger.at}"`)
+          }
+        }
+      }
+
+      return errors
+    }
+    case "manual":
+    default:
+      return []
+  }
+}
+
+function serializeProcedureCatalog(
+  catalog: ModuleProcedureCatalog[] | null,
+): z.infer<typeof procedureCatalogSchema> {
+  return {
+    modules: (catalog ?? [])
+      .map((entry) => ({
+        module: entry.module,
+        procedures: entry.procedures
+          .map((procedure) => ({
+            name: procedure.name,
+            kind: procedure.kind,
+          }))
+          .toSorted((left, right) => left.name.localeCompare(right.name)),
+      }))
+      .toSorted((left, right) => left.module.localeCompare(right.module)),
+  }
+}
+
 const DEFAULT_TRIGGER: Trigger = { type: "manual" }
 
-function createDefaultFlowShape(kind: FlowKind): {
+function withTriggerNodes(input: {
+  kind: FlowKind
   trigger?: Trigger
+  nodes: FlowNodeRecord[]
+  edges: FlowEdgeRecord[]
+}): { trigger: Trigger | undefined; nodes: FlowNodeRecord[]; edges: FlowEdgeRecord[] } {
+  if (input.kind !== "flow") {
+    return {
+      trigger: undefined,
+      nodes: input.nodes,
+      edges: input.edges,
+    }
+  }
+
+  const trigger = input.trigger ?? getFlowTriggerSource({ kind: input.kind, nodes: input.nodes })
+
+  if (!trigger) {
+    return {
+      trigger: undefined,
+      nodes: input.nodes,
+      edges: input.edges,
+    }
+  }
+
+  const hasTriggerNode = input.nodes.some((node) => node.type === "trigger")
+  if (hasTriggerNode) {
+    return {
+      trigger,
+      nodes: syncTriggerSourceToNodes(input.nodes, trigger),
+      edges: input.edges,
+    }
+  }
+
+  const triggerId = input.nodes.some((node) => node.id === "trigger") ? "trigger_entry" : "trigger"
+  const triggerNode: FlowNodeRecord = {
+    id: triggerId,
+    type: "trigger",
+    position: { x: 0, y: 0 },
+    data: { source: trigger },
+  }
+  const targetNodeIds = new Set(input.edges.map((edge) => edge.target))
+  const rootNodes = input.nodes.filter((node) => !targetNodeIds.has(node.id))
+  const triggerEdges = rootNodes.map((node) => ({
+    id: `${triggerId}-${node.id}`,
+    source: triggerId,
+    target: node.id,
+  }))
+
+  return {
+    trigger,
+    nodes: [triggerNode, ...input.nodes],
+    edges: [...triggerEdges, ...input.edges],
+  }
+}
+
+function createDefaultFlowShape(kind: FlowKind): {
   nodes: FlowNodeRecord[]
   edges: FlowEdgeRecord[]
 } {
@@ -138,8 +363,14 @@ function createDefaultFlowShape(kind: FlowKind): {
   }
 
   return {
-    trigger: DEFAULT_TRIGGER,
-    nodes: [{ id: "trigger", type: "trigger", position: { x: 0, y: 0 } }],
+    nodes: [
+      {
+        id: "trigger",
+        type: "trigger",
+        position: { x: 0, y: 0 },
+        data: { source: DEFAULT_TRIGGER },
+      },
+    ],
     edges: [],
   }
 }
@@ -154,20 +385,28 @@ function createPersistedFlow(input: {
   edges: FlowEdgeRecord[]
   meta?: Record<string, unknown>
   backpressure?: { maxPending?: number; maxConcurrent?: number }
+  procedureCatalog?: ModuleProcedureCatalog[] | null
 }): FlowRecord {
+  const normalized = withTriggerNodes({
+    kind: input.kind,
+    trigger: input.trigger,
+    nodes: input.nodes,
+    edges: input.edges,
+  })
+
   const flow: Omit<FlowRecord, "valid" | "validation_errors"> = {
     id: input.id,
     name: input.name,
     status: input.status,
     kind: input.kind,
-    trigger: input.kind === "flow" ? (input.trigger ?? DEFAULT_TRIGGER) : undefined,
-    nodes: input.nodes,
-    edges: input.edges,
+    trigger: normalized.trigger,
+    nodes: normalized.nodes,
+    edges: normalized.edges,
     meta: input.meta,
     backpressure: input.backpressure,
   }
 
-  const validation = validateFlow(flow)
+  const validation = getFlowValidationState(flow, input.procedureCatalog ?? null)
   return {
     ...flow,
     valid: validation.valid,
@@ -179,6 +418,13 @@ function withoutId<T extends { id: string }>(value: T): Omit<T, "id"> {
   return Object.fromEntries(Object.entries(value).filter(([key]) => key !== "id")) as Omit<T, "id">
 }
 
+function toStoredFlowData(value: Omit<FlowRecord, "id">): Omit<FlowRecord, "id"> {
+  return {
+    ...value,
+    trigger: undefined as never,
+  }
+}
+
 function buildCreatedFlow(input: {
   name: string
   kind?: FlowKind
@@ -187,6 +433,7 @@ function buildCreatedFlow(input: {
   edges?: FlowEdgeRecord[]
   meta?: Record<string, unknown>
   backpressure?: { maxPending?: number; maxConcurrent?: number }
+  procedureCatalog?: ModuleProcedureCatalog[] | null
 }): Omit<FlowRecord, "id"> {
   const kind = input.kind ?? "flow"
   const defaults = createDefaultFlowShape(kind)
@@ -195,11 +442,12 @@ function buildCreatedFlow(input: {
     name: input.name,
     status: "draft",
     kind,
-    trigger: kind === "flow" ? (input.trigger ?? defaults.trigger) : undefined,
+    trigger: input.trigger,
     nodes: input.nodes ?? defaults.nodes,
     edges: input.edges ?? defaults.edges,
     meta: input.meta ?? {},
     backpressure: input.backpressure,
+    procedureCatalog: input.procedureCatalog,
   })
 
   return withoutId(flow)
@@ -215,6 +463,7 @@ function buildUpdatedFlow(
     edges?: FlowEdgeRecord[]
     meta?: Record<string, unknown>
     backpressure?: { maxPending?: number; maxConcurrent?: number }
+    procedureCatalog?: ModuleProcedureCatalog[] | null
   },
 ): Omit<FlowRecord, "id"> {
   const kind = input.kind ?? existing.kind
@@ -226,16 +475,12 @@ function buildUpdatedFlow(
     name: input.name ?? existing.name,
     status: existing.status,
     kind,
-    trigger:
-      kind === "flow"
-        ? kindChanged
-          ? (input.trigger ?? defaults.trigger)
-          : (input.trigger ?? existing.trigger ?? defaults.trigger)
-        : undefined,
+    trigger: input.trigger ?? existing.trigger,
     nodes: kindChanged ? defaults.nodes : (input.nodes ?? existing.nodes),
     edges: kindChanged ? defaults.edges : (input.edges ?? existing.edges),
     meta: input.meta ?? existing.meta,
     backpressure: input.backpressure ?? existing.backpressure,
+    procedureCatalog: input.procedureCatalog,
   })
 
   return withoutId(flow)
@@ -396,11 +641,14 @@ export const flowsModule = createEdemModule(
         output: z.object({ flow_id: z.string() }),
         resolve: async ({ input, emit }) => {
           const data = getData()
-          const flowData = buildCreatedFlow(input)
+          const flowData = buildCreatedFlow({
+            ...input,
+            procedureCatalog: procedureCatalogRef,
+          })
 
           const { id } = await data.createItem({
             collection_id: FLOWS_COLLECTION,
-            data: flowData,
+            data: toStoredFlowData(flowData),
           })
 
           const flow: FlowRecord = {
@@ -432,9 +680,12 @@ export const flowsModule = createEdemModule(
           if (!item) throw new Error(`Flow ${flow_id} not found`)
 
           const existing = parseFlow(item)
-          const flowData = buildUpdatedFlow(existing, updates)
+          const flowData = buildUpdatedFlow(existing, {
+            ...updates,
+            procedureCatalog: procedureCatalogRef,
+          })
 
-          await data.updateItem({ item_id: flow_id, data: flowData })
+          await data.updateItem({ item_id: flow_id, data: toStoredFlowData(flowData) })
 
           const { item: updated } = await data.getItem({ item_id: flow_id })
           if (updated) {
@@ -472,7 +723,7 @@ export const flowsModule = createEdemModule(
 
           const flow = parseFlow(item)
 
-          const validation = validateFlow(flow)
+          const validation = getFlowValidationState(flow, procedureCatalogRef)
           if (!validation.valid) {
             throw new Error(`Invalid flow: ${validation.errors.join("; ")}`)
           }
@@ -940,7 +1191,6 @@ export const flowsModule = createEdemModule(
                 existingData.name !== flowDef.name ||
                 existingData.project_id !== null ||
                 (existingData.kind as FlowKind | undefined) !== (flowDef.kind ?? "flow") ||
-                !deepEqual(existingData.trigger, flowDef.trigger) ||
                 !deepEqual(existingData.nodes, flowDef.nodes) ||
                 !deepEqual(existingData.edges, flowDef.edges) ||
                 !deepEqual(existingData.meta, flowDef.meta ?? {}) ||
@@ -953,13 +1203,13 @@ export const flowsModule = createEdemModule(
                   status: ((existing.data.status as FlowStatus | undefined) ??
                     "active") as FlowStatus,
                   kind: flowDef.kind ?? "flow",
-                  trigger: flowDef.trigger,
                   nodes: flowDef.nodes,
                   edges: flowDef.edges,
                   meta: flowDef.meta ?? {},
                   backpressure: flowDef.backpressure,
+                  procedureCatalog: procedureCatalogRef,
                 })
-                const flowData = withoutId(nextFlow)
+                const flowData = toStoredFlowData(withoutId(nextFlow))
 
                 await data.updateItem({
                   item_id: existing.id,
@@ -979,13 +1229,13 @@ export const flowsModule = createEdemModule(
                 name: flowDef.name,
                 status: "active",
                 kind: flowDef.kind ?? "flow",
-                trigger: flowDef.trigger,
                 nodes: flowDef.nodes,
                 edges: flowDef.edges,
                 meta: flowDef.meta ?? {},
                 backpressure: flowDef.backpressure,
+                procedureCatalog: procedureCatalogRef,
               })
-              const flowData = withoutId(nextFlow)
+              const flowData = toStoredFlowData(withoutId(nextFlow))
 
               const { id } = await data.createItem({
                 collection_id: FLOWS_COLLECTION,
@@ -1021,21 +1271,26 @@ export const flowsModule = createEdemModule(
             collection_id: FLOWS_COLLECTION,
           })
 
-          const flows = items.map((item) => ({
-            id: (item.data.manifest_id as string) ?? item.id,
-            name: item.data.name as string,
-            kind: ((item.data.kind as FlowKind | undefined) ?? "flow") as FlowKind,
-            trigger: item.data.trigger as z.infer<typeof triggerSchema> | undefined,
-            nodes: (item.data.nodes as z.infer<typeof nodeSchema>[]) ?? [],
-            edges: (item.data.edges as z.infer<typeof edgeSchema>[]) ?? [],
-            meta: item.data.meta as Record<string, unknown> | undefined,
-            backpressure: item.data.backpressure as
-              | { maxPending?: number; maxConcurrent?: number }
-              | undefined,
-          }))
+          const flows = items.map((item) => {
+            const flow = parseFlow(item)
+            return {
+              id: (item.data.manifest_id as string) ?? item.id,
+              name: flow.name,
+              kind: flow.kind,
+              nodes: flow.nodes,
+              edges: flow.edges,
+              meta: flow.meta,
+              backpressure: flow.backpressure,
+            }
+          })
 
           return { flows }
         },
+      })
+      .query("getProcedureCatalog", {
+        input: z.void(),
+        output: procedureCatalogSchema,
+        resolve: async () => serializeProcedureCatalog(procedureCatalogRef),
       })
       .query("getFlow", {
         input: z.object({ flow_id: z.string() }),
@@ -1135,6 +1390,7 @@ export const flowsModule = createEdemModule(
   (edem) => {
     const modules = edem as Record<string, Record<string, unknown>>
     dataRef = modules.data as unknown as EdemData
+    procedureCatalogRef = getEdemProcedureCatalog(edem)
     setEdemModules(modules)
     ensureCollections(dataRef).catch(console.error)
   },
@@ -1166,6 +1422,11 @@ function parseFlow(item: {
 }): FlowRecord {
   const status = toStr(item.data.status, "draft")
   const kind = toStr(item.data.kind, "flow")
+  const nodes = (Array.isArray(item.data.nodes) ? item.data.nodes : []) as z.infer<
+    typeof nodeSchema
+  >[]
+  const trigger = getFlowTriggerSource({ kind, nodes })
+
   const flow: Omit<FlowRecord, "valid" | "validation_errors"> = {
     id: item.id,
     name: toStr(item.data.name, ""),
@@ -1173,8 +1434,8 @@ function parseFlow(item: {
       ? (status as FlowStatus)
       : "draft",
     kind: (VALID_FLOW_KINDS as readonly string[]).includes(kind) ? (kind as FlowKind) : "flow",
-    trigger: item.data.trigger as Trigger | undefined,
-    nodes: (Array.isArray(item.data.nodes) ? item.data.nodes : []) as z.infer<typeof nodeSchema>[],
+    trigger,
+    nodes,
     edges: (Array.isArray(item.data.edges) ? item.data.edges : []) as z.infer<typeof edgeSchema>[],
     meta: (item.data.meta && typeof item.data.meta === "object" ? item.data.meta : undefined) as
       | Record<string, unknown>
@@ -1184,11 +1445,17 @@ function parseFlow(item: {
       : undefined) as { maxPending?: number; maxConcurrent?: number } | undefined,
   }
 
-  const computed = validateFlow(flow)
-  const valid = typeof item.data.valid === "boolean" ? item.data.valid : computed.valid
-  const validation_errors = Array.isArray(item.data.validation_errors)
-    ? item.data.validation_errors.filter((error): error is string => typeof error === "string")
-    : computed.errors
+  const computed = getFlowValidationState(flow, procedureCatalogRef)
+  const valid = procedureCatalogRef
+    ? computed.valid
+    : typeof item.data.valid === "boolean"
+      ? item.data.valid
+      : computed.valid
+  const validation_errors = procedureCatalogRef
+    ? computed.errors
+    : Array.isArray(item.data.validation_errors)
+      ? item.data.validation_errors.filter((error): error is string => typeof error === "string")
+      : computed.errors
 
   return {
     ...flow,
@@ -1378,7 +1645,7 @@ async function handleSubflow(
     return completeParentRunWithError(`Subflow target ${childFlowId} must have kind "subflow"`)
   }
 
-  const childValidation = validateFlow(childFlow)
+  const childValidation = getFlowValidationState(childFlow, procedureCatalogRef)
   if (!childValidation.valid) {
     return completeParentRunWithError(
       `Invalid subflow ${childFlowId}: ${childValidation.errors.join("; ")}`,
@@ -1521,7 +1788,6 @@ async function ensureCollections(data: EdemData, retries = 3) {
         { name: "name", type: "string", required: true },
         { name: "status", type: "string" },
         { name: "kind", type: "string" },
-        { name: "trigger", type: "json" },
         { name: "nodes", type: "json" },
         { name: "edges", type: "json" },
         { name: "valid", type: "boolean" },

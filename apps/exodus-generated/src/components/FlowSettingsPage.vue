@@ -2,17 +2,17 @@
 import { computed, ref } from "vue"
 import { useRoute } from "vue-router"
 import SettingsLayout from "@/components/SettingsLayout.vue"
-import { useFlows } from "@/composables/useFlows"
+import { useProject_flows } from "@/composables/useProject_flows"
 import { useT } from "@exodus/edem-vue"
 
 const route = useRoute()
 const {
   items: flows,
   loading: flowsLoading,
-  create: createFlows,
-  update: updateFlows,
-  remove: removeFlows,
-} = useFlows({ filter: { project_id: { _eq: route.params.id } } })
+  create: createProject_flows,
+  update: updateProject_flows,
+  remove: removeProject_flows,
+} = useProject_flows({ filter: { project_id: { _eq: route.params.id } } })
 const deleteModalOpen = ref(false)
 const navItems = [
   {
@@ -41,7 +41,7 @@ async function updateName($event?: Event, item?: Record<string, unknown>) {
     )
   )
     return
-  await updateFlows(flow.value.id, {
+  await updateProject_flows(flow.value.id, {
     name: (($event as FocusEvent | KeyboardEvent).target as HTMLInputElement).value.trim(),
   })
 }
@@ -49,7 +49,7 @@ async function updateName($event?: Event, item?: Record<string, unknown>) {
 async function updateStatus($event?: Event, item?: Record<string, unknown>) {
   if (!flow.value) return
   if (!($event !== flow.value.status)) return
-  await updateFlows(flow.value.id, { status: $event })
+  await updateProject_flows(flow.value.id, { status: $event })
 }
 
 async function openDeleteModal($event?: Event, item?: Record<string, unknown>) {
@@ -62,7 +62,7 @@ async function closeDeleteModal($event?: Event, item?: Record<string, unknown>) 
 
 async function confirmDelete($event?: Event, item?: Record<string, unknown>) {
   if (!flow.value) return
-  await removeFlows(flow.value.id)
+  await removeProject_flows(flow.value.id)
   deleteModalOpen.value = false
   await router.push(`/project/${route.params.id}/flows`)
 }

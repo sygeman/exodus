@@ -2,6 +2,7 @@
 import { ref } from "vue"
 import { useRoute } from "vue-router"
 import { useIdeas } from "@/composables/useIdeas"
+import { useEdem } from "@/edem"
 import { useT } from "@exodus/edem-vue"
 
 const route = useRoute()
@@ -13,16 +14,11 @@ const {
   remove: removeIdeas,
 } = useIdeas({ filter: { project_id: { _eq: route.params.id } }, sort: ["-created_at"] })
 const showSkeleton = ref(false)
+const edem = useEdem()
 const t = useT()
 
-async function handleCreate($event?: Event, item?: Record<string, unknown>) {
-  const createdIdResult = await createIdeas({
-    project_id: route.params.id,
-    title: "Untitled",
-    status: "draft",
-  })
-  const createdId = typeof createdIdResult === "string" ? createdIdResult : createdIdResult.id
-  await router.push(`/project/${route.params.id}/ideas/${createdId}`)
+function handleCreate() {
+  edem.flows.runFlow({ flow_id: "create" })
 }
 </script>
 
@@ -30,7 +26,7 @@ async function handleCreate($event?: Event, item?: Record<string, unknown>) {
   <div class="flex h-full flex-col p-6">
     <div class="mb-4 flex items-center justify-between">
       <h2 class="text-lg font-semibold">{{ t({ en: "Ideas", ru: "Идеи" }) }}</h2>
-      <UButton size="sm" @click="handleCreate($event)">
+      <UButton size="sm" @click="handleCreate()">
         <UIcon name="i-lucide-plus" class="h-4 w-4" />
         {{ t({ en: "New Idea", ru: "Новая идея" }) }}
       </UButton>
@@ -51,7 +47,7 @@ async function handleCreate($event?: Event, item?: Record<string, unknown>) {
     >
       <UIcon name="i-lucide-lightbulb" class="h-12 w-12 opacity-20" />
       <p class="text-lg">{{ t({ en: "No ideas yet", ru: "Пока нет идей" }) }}</p>
-      <UButton size="sm" @click="handleCreate($event)">{{
+      <UButton size="sm" @click="handleCreate()">{{
         t({ en: "Create first idea", ru: "Создать первую идею" })
       }}</UButton>
     </div>

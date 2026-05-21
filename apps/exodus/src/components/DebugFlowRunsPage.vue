@@ -4,6 +4,7 @@ import { useT } from "@exodus/edem-vue"
 import { useFlow, useFlowRuns, useDeleteRuns, useRunFlow } from "@/hooks"
 import { edem } from "@/edem"
 import { parseEvery } from "@exodus/edem-flows"
+import { deriveTriggerFromNodes, getFlowKind, type StoredFlowNode } from "@/types/flow"
 
 const props = defineProps<{ flowId: string }>()
 
@@ -92,7 +93,6 @@ const NODE_TYPE_LABEL: Record<string, string> = {
   delay: t({ en: "Delay", ru: "Задержка" }),
   input: t({ en: "Input", ru: "Вход" }),
   output: t({ en: "Output", ru: "Выход" }),
-  action: t({ en: "Action", ru: "Действие" }),
   loop: t({ en: "Loop", ru: "Цикл" }),
   fork: t({ en: "Fork", ru: "Ветвление" }),
   join: t({ en: "Join", ru: "Соединение" }),
@@ -118,6 +118,11 @@ const flowNodeMap = computed(() => {
     map.set(n.id, n)
   }
   return map
+})
+
+const flowTrigger = computed(() => {
+  const nodes = Array.isArray(flow.value?.nodes) ? (flow.value.nodes as StoredFlowNode[]) : []
+  return deriveTriggerFromNodes(getFlowKind(flow.value?.kind), nodes)
 })
 
 const timelineItems = computed(() =>
@@ -159,10 +164,10 @@ async function forceRun() {
 
 // ── Countdown for schedule triggers ──────────────────────────────────────────
 
-const isScheduleTrigger = computed(() => flow.value?.trigger?.type === "schedule")
+const isScheduleTrigger = computed(() => flowTrigger.value?.type === "schedule")
 const scheduleEvery = computed(() => {
   if (!isScheduleTrigger.value) return null
-  const every = (flow.value?.trigger as { every?: string })?.every
+  const every = flowTrigger.value?.type === "schedule" ? flowTrigger.value.every : undefined
   if (!every) return null
   try {
     return parseEvery(every)
@@ -279,11 +284,11 @@ function triggerTypeLabel(type: string) {
       <div class="flex flex-1 flex-col">
         <h1 class="text-xl font-bold">{{ flow?.name ?? flowId }}</h1>
         <span v-if="flow" class="text-muted text-xs">
-          {{ triggerTypeLabel(flow.trigger?.type ?? "") }}
-          <template v-if="flow.trigger?.type === 'schedule'">
-            · {{ (flow.trigger as { every?: string })?.every }}
-            <template v-if="(flow.trigger as { at?: string })?.at">
-              {{ t({ en: "at", ru: "в" }) }} {{ (flow.trigger as { at?: string }).at }}</template
+          {{ triggerTypeLabel(flowTrigger?.type ?? "") }}
+          <template v-if="flowTrigger?.type === 'schedule'">
+            · {{ flowTrigger.every }}
+            <template v-if="flowTrigger.at">
+              {{ t({ en: "at", ru: "в" }) }} {{ flowTrigger.at }}</template
             >
           </template>
         </span>

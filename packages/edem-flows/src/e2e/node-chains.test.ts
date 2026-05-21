@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test"
 import { reg } from "../test-actions"
+import { callNode } from "../test-flow"
 import { getEdem, setupTests } from "./setup"
 
 describe("node chains", () => {
@@ -306,12 +307,7 @@ describe("node chains", () => {
       trigger: { type: "manual" },
       nodes: [
         { id: "t", type: "trigger", position: { x: 0, y: 0 } },
-        {
-          id: "act",
-          type: "action",
-          position: { x: 100, y: 0 },
-          data: { module: "test", proc: "e2e_sync_action" },
-        },
+        callNode({ id: "act", module: "test", procedure: "e2e_sync_action" }),
         {
           id: "out",
           type: "transform",
@@ -334,17 +330,13 @@ describe("node chains", () => {
 
   it("action without handler → waiting, register handler, handleNodeCompleted → completed", async () => {
     const edem = getEdem()
+    reg("e2e_later_action", async () => ({ status: "pending" }))
     const { flow_id } = await edem.flows.createFlow({
       name: "Action Async",
       trigger: { type: "manual" },
       nodes: [
         { id: "t", type: "trigger", position: { x: 0, y: 0 } },
-        {
-          id: "act",
-          type: "action",
-          position: { x: 100, y: 0 },
-          data: { module: "test", proc: "e2e_later_action" },
-        },
+        callNode({ id: "act", module: "test", procedure: "e2e_later_action" }),
         {
           id: "next",
           type: "transform",
@@ -389,7 +381,7 @@ describe("node chains", () => {
           id: "loop",
           type: "loop",
           position: { x: 100, y: 0 },
-          data: { maxIterations: 3, action: "e2e_loop_action" },
+          data: { maxIterations: 3, procedure: "e2e_loop_action" },
         },
       ],
       edges: [{ id: "e1", source: "t", target: "loop" }],
@@ -463,6 +455,8 @@ describe("node chains", () => {
 
   it("fork + join with async branches — join waits for all branches", async () => {
     const edem = getEdem()
+    reg("e2e_fork_action_a", async () => ({ status: "pending" }))
+    reg("e2e_fork_action_b", async () => ({ status: "pending" }))
     const { flow_id } = await edem.flows.createFlow({
       name: "Async ForkJoin",
       trigger: { type: "manual" },
@@ -474,18 +468,18 @@ describe("node chains", () => {
           position: { x: 100, y: 0 },
           data: { branches: [{ id: "branch_a" }, { id: "branch_b" }] },
         },
-        {
+        callNode({
           id: "action_a",
-          type: "action",
+          module: "test",
+          procedure: "e2e_fork_action_a",
           position: { x: 200, y: 0 },
-          data: { module: "test", proc: "e2e_fork_action_a" },
-        },
-        {
+        }),
+        callNode({
           id: "action_b",
-          type: "action",
+          module: "test",
+          procedure: "e2e_fork_action_b",
           position: { x: 200, y: 100 },
-          data: { module: "test", proc: "e2e_fork_action_b" },
-        },
+        }),
         { id: "join", type: "join", position: { x: 300, y: 50 }, data: { mode: "all" } },
       ],
       edges: [
@@ -531,7 +525,7 @@ describe("node chains", () => {
           id: "loop",
           type: "loop",
           position: { x: 100, y: 0 },
-          data: { maxIterations: 5, module: "test", proc: "e2e_auto_loop", autoIterate: true },
+          data: { maxIterations: 5, module: "test", procedure: "e2e_auto_loop", autoIterate: true },
         },
       ],
       edges: [{ id: "e1", source: "t", target: "loop" }],
@@ -568,18 +562,18 @@ describe("node chains", () => {
           position: { x: 100, y: 0 },
           data: { branches: [{ id: "branch_a" }, { id: "branch_b" }] },
         },
-        {
+        callNode({
           id: "action_a",
-          type: "action",
+          module: "test",
+          procedure: "e2e_fork_err_action_a",
           position: { x: 200, y: 0 },
-          data: { module: "test", proc: "e2e_fork_err_action_a" },
-        },
-        {
+        }),
+        callNode({
           id: "action_b",
-          type: "action",
+          module: "test",
+          procedure: "e2e_fork_err_action_b",
           position: { x: 200, y: 100 },
-          data: { module: "test", proc: "e2e_fork_err_action_b" },
-        },
+        }),
         { id: "join", type: "join", position: { x: 300, y: 50 }, data: { mode: "all" } },
       ],
       edges: [

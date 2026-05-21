@@ -1,6 +1,6 @@
 export const NodeType = {
   trigger: "trigger",
-  action: "action",
+  call: "call",
   condition: "condition",
   switch: "switch",
   loop: "loop",
@@ -22,10 +22,16 @@ export const FlowKind = {
 
 export type FlowKind = (typeof FlowKind)[keyof typeof FlowKind]
 
+export type ScheduleDay = "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun"
+
 export type FlowTrigger =
   | { type: "manual" }
   | { type: "event"; event: string; filter?: Record<string, unknown> }
-  | { type: "schedule"; every: string; at?: string; days?: string[] }
+  | { type: "schedule"; every: string; at?: string; days?: ScheduleDay[] }
+
+const SCHEDULE_EVERY_RE = /^(\d+)(m|h|d|w)$/
+const SCHEDULE_TIME_RE = /^(\d{2}):(\d{2})$/
+const SCHEDULE_DAYS = new Set<ScheduleDay>(["mon", "tue", "wed", "thu", "fri", "sat", "sun"])
 
 export type StoredFlowNode = {
   id: string
@@ -55,14 +61,11 @@ export function getFlowKind(value: unknown): FlowKind {
 }
 
 export function createDefaultFlowShape(kind: FlowKind): {
-  trigger: FlowTrigger | null
   nodes: StoredFlowNode[]
   edges: StoredFlowEdge[]
 } {
   if (kind === FlowKind.subflow) {
     return {
-      // Keep a storage-level manual trigger for app data schemas where the field is still required.
-      trigger: DEFAULT_FLOW_TRIGGER,
       nodes: [
         {
           id: "input",
@@ -82,13 +85,16 @@ export function createDefaultFlowShape(kind: FlowKind): {
   }
 
   return {
-    trigger: DEFAULT_FLOW_TRIGGER,
     nodes: [
       {
         id: "trigger",
         type: NodeType.trigger,
         position: { x: 160, y: 120 },
-        data: { nodeType: NodeType.trigger, label: "Trigger", triggerType: "manual", config: {} },
+        data: {
+          nodeType: NodeType.trigger,
+          label: "Trigger",
+          source: DEFAULT_FLOW_TRIGGER,
+        },
       },
     ],
     edges: [],
@@ -106,7 +112,7 @@ export function isProtectedNode(kind: FlowKind, node: { type: string }): boolean
 export function getAllowedNodeTypes(kind: FlowKind): NodeType[] {
   if (kind === FlowKind.subflow) {
     return [
-      NodeType.action,
+      NodeType.call,
       NodeType.condition,
       NodeType.switch,
       NodeType.loop,
@@ -119,7 +125,7 @@ export function getAllowedNodeTypes(kind: FlowKind): NodeType[] {
   }
 
   return [
-    NodeType.action,
+    NodeType.call,
     NodeType.condition,
     NodeType.switch,
     NodeType.loop,
@@ -135,69 +141,101 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
+function parseTriggerSource(value: unknown): FlowTrigger | null {
+  if (!isRecord(value) || typeof value.type !== "string") {
+    return null
+  }
+
+  switch (value.type) {
+    case "event":
+      return typeof value.event === "string"
+        ? {
+            type: "event",
+            event: value.event,
+            filter: isRecord(value.filter) ? value.filter : undefined,
+          }
+        : null
+    case "schedule":
+      return typeof value.every === "string"
+        ? {
+            type: "schedule",
+            every: value.every,
+            at: typeof value.at === "string" ? value.at : undefined,
+            days: Array.isArray(value.days)
+              ? value.days.filter(
+                  (day): day is ScheduleDay =>
+                    typeof day === "string" && SCHEDULE_DAYS.has(day as ScheduleDay),
+                )
+              : undefined,
+          }
+        : null
+    case "manual":
+      return { type: "manual" }
+    default:
+      return null
+  }
+}
+
+export function getTriggerSourceFromNodeData(value: unknown): FlowTrigger | null {
+  const data = isRecord(value) ? value : {}
+  return parseTriggerSource(data.source)
+}
+
 export function getTriggerNodeData(
   trigger: FlowTrigger | null | undefined,
 ): Record<string, unknown> {
   const nextTrigger = trigger ?? DEFAULT_FLOW_TRIGGER
-  switch (nextTrigger.type) {
-    case "event":
-      return {
-        nodeType: NodeType.trigger,
-        triggerType: nextTrigger.type,
-        config: { event: nextTrigger.event, filter: nextTrigger.filter ?? {} },
-      }
-    case "schedule":
-      return {
-        nodeType: NodeType.trigger,
-        triggerType: nextTrigger.type,
-        config: {
-          every: nextTrigger.every,
-          at: nextTrigger.at,
-          days: nextTrigger.days ?? [],
-        },
-      }
-    case "manual":
-    default:
-      return {
-        nodeType: NodeType.trigger,
-        triggerType: "manual",
-        config: {},
-      }
+  return {
+    nodeType: NodeType.trigger,
+    source: nextTrigger,
   }
 }
 
 export function deriveTriggerFromNodes(
   kind: FlowKind,
   nodes: StoredFlowNode[],
-  fallback?: FlowTrigger | null,
 ): FlowTrigger | null {
-  if (kind === FlowKind.subflow) return DEFAULT_FLOW_TRIGGER
+  if (kind === FlowKind.subflow) return null
 
   const triggerNode = nodes.find((node) => node.type === NodeType.trigger)
-  const data = isRecord(triggerNode?.data) ? triggerNode.data : {}
-  const config = isRecord(data.config) ? data.config : {}
-  const triggerType =
-    typeof data.triggerType === "string" ? data.triggerType : (fallback?.type ?? "manual")
+  return getTriggerSourceFromNodeData(triggerNode?.data)
+}
 
-  switch (triggerType) {
+export function validateTriggerSource(trigger: FlowTrigger | null | undefined): string[] {
+  const nextTrigger = trigger ?? DEFAULT_FLOW_TRIGGER
+
+  switch (nextTrigger.type) {
     case "event":
-      return {
-        type: "event",
-        event: typeof config.event === "string" ? config.event : "",
-        filter: isRecord(config.filter) ? config.filter : undefined,
+      return nextTrigger.event.trim() === "" ? ["Trigger event source must not be empty"] : []
+    case "schedule": {
+      const errors: string[] = []
+
+      if (!SCHEDULE_EVERY_RE.test(nextTrigger.every)) {
+        errors.push(`Schedule trigger has invalid every value "${nextTrigger.every}"`)
       }
-    case "schedule":
-      return {
-        type: "schedule",
-        every: typeof config.every === "string" ? config.every : "1h",
-        at: typeof config.at === "string" ? config.at : undefined,
-        days: Array.isArray(config.days)
-          ? config.days.filter((day): day is string => typeof day === "string")
-          : undefined,
+
+      if (nextTrigger.at) {
+        const match = SCHEDULE_TIME_RE.exec(nextTrigger.at)
+        if (!match) {
+          errors.push(`Schedule trigger has invalid at value "${nextTrigger.at}"`)
+        } else {
+          const hours = Number(match[1])
+          const minutes = Number(match[2])
+          if (hours > 23 || minutes > 59) {
+            errors.push(`Schedule trigger has invalid at value "${nextTrigger.at}"`)
+          }
+        }
       }
+
+      if (nextTrigger.days?.some((day) => !SCHEDULE_DAYS.has(day))) {
+        errors.push("Schedule trigger contains unsupported day values")
+      }
+
+      return errors
+    }
     case "manual":
     default:
-      return { type: "manual" }
+      return []
   }
 }
 
@@ -306,7 +344,6 @@ export type HandleDef = {
 
 export type VueFlowNodeData = {
   nodeType: NodeType
-  actionType?: string
   label?: string
   config?: Record<string, unknown>
   status?: string
@@ -318,7 +355,7 @@ export type VueFlowNodeData = {
 
 export const NODE_LABELS: Record<NodeType, { label: string; icon: string }> = {
   trigger: { label: "Trigger", icon: "i-lucide-play" },
-  action: { label: "Action", icon: "i-lucide-zap" },
+  call: { label: "Call", icon: "i-lucide-zap" },
   condition: { label: "Condition", icon: "i-lucide-git-branch" },
   switch: { label: "Switch", icon: "i-lucide-git-fork" },
   loop: { label: "Loop", icon: "i-lucide-repeat" },
@@ -331,24 +368,7 @@ export const NODE_LABELS: Record<NodeType, { label: string; icon: string }> = {
   output: { label: "Output", icon: "i-lucide-log-out" },
 }
 
-const ACTION_ICONS: Record<string, string> = {
-  download: "i-lucide-download",
-  convert: "i-lucide-file-video",
-  extract: "i-lucide-archive",
-  find_files: "i-lucide-file-search",
-  install: "i-lucide-package",
-  delete: "i-lucide-trash",
-  copy: "i-lucide-copy",
-  move: "i-lucide-folder-input",
-  notify: "i-lucide-bell",
-  http: "i-lucide-globe",
-  script: "i-lucide-terminal",
-}
-
-export function getNodeIcon(nodeType: NodeType, actionType?: string): string {
-  if (nodeType === "action" && actionType) {
-    return ACTION_ICONS[actionType] || NODE_LABELS[nodeType].icon
-  }
+export function getNodeIcon(nodeType: NodeType): string {
   if (nodeType === "loop") return "i-lucide-repeat"
   return NODE_LABELS[nodeType].icon
 }
@@ -356,7 +376,6 @@ export function getNodeIcon(nodeType: NodeType, actionType?: string): string {
 type HandleConfigInput = {
   nodeType: NodeType
   config?: Record<string, unknown>
-  actionType?: string
 }
 
 export function buildHandleLayout(input: HandleConfigInput): HandleDef[] {
@@ -378,7 +397,7 @@ export function buildHandleLayout(input: HandleConfigInput): HandleDef[] {
     case "transform":
       return [{ id: "output", type: "source", position: "right", top: "50%" }]
 
-    case "action":
+    case "call":
     case "subflow":
       return [
         {

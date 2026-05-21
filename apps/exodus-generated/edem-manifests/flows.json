@@ -3,10 +3,6 @@
     {
       "id": "system-updater",
       "name": "Auto Updater",
-      "trigger": {
-        "type": "schedule",
-        "every": "15m"
-      },
       "nodes": [
         {
           "id": "n1",
@@ -14,18 +10,24 @@
           "position": {
             "x": 0,
             "y": 0
+          },
+          "data": {
+            "source": {
+              "type": "schedule",
+              "every": "15m"
+            }
           }
         },
         {
           "id": "n2",
-          "type": "action",
+          "type": "call",
           "position": {
             "x": 100,
             "y": 0
           },
           "data": {
             "module": "electrobun",
-            "proc": "checkUpdate"
+            "procedure": "checkUpdate"
           }
         }
       ],

@@ -2,6 +2,7 @@
 import { computed, ref } from "vue"
 import { useRoute } from "vue-router"
 import { useIdeas } from "@/composables/useIdeas"
+import { useEdem } from "@/edem"
 import { useT } from "@exodus/edem-vue"
 
 const route = useRoute()
@@ -32,73 +33,31 @@ const statusItems = [
   { label: "draft", value: "draft" },
   { label: "stabilized", value: "stabilized" },
 ]
-const idea = computed(() => ideas.value.find((entry) => entry.id === route.params.ideaId) ?? null)
-const loading = computed(() => ideasLoading.value)
+const idea = computed(() => ideas.find((entry) => entry.id === route.params.ideaId) ?? null)
+const loading = computed(() => ideasLoading)
 const backLink = computed(() => `/project/${route.params.id}/ideas`)
 const ideaId = computed(() => route.params.ideaId)
+const edem = useEdem()
 const t = useT()
 
-async function openDeleteModal($event?: Event, item?: Record<string, unknown>) {
-  deleteModalOpen.value = true
+function handleOpenDeleteModal() {
+  edem.flows.runFlow({ flow_id: "openDeleteModal" })
 }
 
-async function closeDeleteModal($event?: Event, item?: Record<string, unknown>) {
-  deleteModalOpen.value = false
+function handleUpdateTitle() {
+  edem.flows.runFlow({ flow_id: "updateTitle" })
 }
 
-async function confirmDelete($event?: Event, item?: Record<string, unknown>) {
-  if (!idea.value) return
-  await removeIdeas(idea.value.id)
-  deleteModalOpen.value = false
-  await router.push(backLink.value)
+function handleUpdateDescription() {
+  edem.flows.runFlow({ flow_id: "updateDescription" })
 }
 
-async function updateTitle($event?: Event, item?: Record<string, unknown>) {
-  if (!idea.value) return
-  if (!((($event as FocusEvent | KeyboardEvent).target as HTMLInputElement).value.trim() !== ""))
-    return
-  if (
-    !(
-      (($event as FocusEvent | KeyboardEvent).target as HTMLInputElement).value.trim() !==
-      (idea.value.title ?? "")
-    )
-  )
-    return
-  await updateIdeas(idea.value.id, {
-    title: (($event as FocusEvent | KeyboardEvent).target as HTMLInputElement).value.trim(),
-  })
+function handleCloseDeleteModal() {
+  edem.flows.runFlow({ flow_id: "closeDeleteModal" })
 }
 
-async function updateDescription($event?: Event, item?: Record<string, unknown>) {
-  if (!idea.value) return
-  if (
-    !(
-      (($event as FocusEvent).target as HTMLTextAreaElement).value !==
-      (idea.value.description ?? "")
-    )
-  )
-    return
-  await updateIdeas(idea.value.id, {
-    description: (($event as FocusEvent).target as HTMLTextAreaElement).value || null,
-  })
-}
-
-async function updateLevel($event?: Event, item?: Record<string, unknown>) {
-  if (!idea.value) return
-  if (!($event !== idea.value.level)) return
-  await updateIdeas(idea.value.id, { level: $event })
-}
-
-async function updateType($event?: Event, item?: Record<string, unknown>) {
-  if (!idea.value) return
-  if (!($event !== idea.value.type)) return
-  await updateIdeas(idea.value.id, { type: $event })
-}
-
-async function updateStatus($event?: Event, item?: Record<string, unknown>) {
-  if (!idea.value) return
-  if (!($event !== idea.value.status)) return
-  await updateIdeas(idea.value.id, { status: $event })
+function handleConfirmDelete() {
+  edem.flows.runFlow({ flow_id: "confirmDelete" })
 }
 </script>
 
@@ -145,24 +104,22 @@ async function updateStatus($event?: Event, item?: Record<string, unknown>) {
           variant="ghost"
           size="sm"
           icon="i-lucide-trash-2"
-          @click="openDeleteModal($event)"
+          @click="handleOpenDeleteModal()"
           >{{ t({ en: "Delete", ru: "Удалить" }) }}</UButton
         >
       </div>
       <div class="flex flex-col gap-6 px-6 pb-6">
         <UInput
-          :model-value="idea.title ?? ''"
           size="lg"
           class="w-full"
-          @blur="updateTitle($event)"
-          @keyup.enter="updateTitle($event)"
+          @blur="handleUpdateTitle()"
+          @keyup.enter="handleUpdateTitle()"
         />
         <UTextarea
-          :model-value="idea.description ?? ''"
           :placeholder="t({ en: 'Idea description (optional)', ru: 'Описание идеи (опционально)' })"
           :rows="6"
           class="w-full"
-          @blur="updateDescription($event)"
+          @blur="handleUpdateDescription()"
         />
         <div class="grid grid-cols-3 gap-4">
           <div class="flex flex-col gap-1.5">
@@ -170,25 +127,21 @@ async function updateStatus($event?: Event, item?: Record<string, unknown>) {
               t({ en: "Level", ru: "Уровень" })
             }}</label>
             <USelect
-              :model-value="idea.level ?? null"
               :items="levelItems"
               value-key="value"
               label-key="label"
               size="sm"
               class="w-full"
-              @update:model-value="updateLevel($event)"
             />
           </div>
           <div class="flex flex-col gap-1.5">
             <label class="text-muted text-sm font-medium">{{ t({ en: "Type", ru: "Тип" }) }}</label>
             <USelect
-              :model-value="idea.type ?? null"
               :items="typeItems"
               value-key="value"
               label-key="label"
               size="sm"
               class="w-full"
-              @update:model-value="updateType($event)"
             />
           </div>
           <div class="flex flex-col gap-1.5">
@@ -196,13 +149,11 @@ async function updateStatus($event?: Event, item?: Record<string, unknown>) {
               t({ en: "Status", ru: "Статус" })
             }}</label>
             <USelect
-              :model-value="idea.status ?? 'draft'"
               :items="statusItems"
               value-key="value"
               label-key="label"
               size="sm"
               class="w-full"
-              @update:model-value="updateStatus($event)"
             />
           </div>
         </div>
@@ -219,10 +170,10 @@ async function updateStatus($event?: Event, item?: Record<string, unknown>) {
       >
         <template #footer>
           <div class="flex w-full justify-end gap-3">
-            <UButton variant="ghost" @click="closeDeleteModal($event)">{{
+            <UButton variant="ghost" @click="handleCloseDeleteModal()">{{
               t({ en: "Cancel", ru: "Отмена" })
             }}</UButton>
-            <UButton color="error" @click="confirmDelete($event)">{{
+            <UButton color="error" @click="handleConfirmDelete()">{{
               t({ en: "Delete", ru: "Удалить" })
             }}</UButton>
           </div>

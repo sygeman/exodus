@@ -1,31 +1,28 @@
 <script setup lang="ts">
 import { computed, ref } from "vue"
 import { useRoute } from "vue-router"
-import { useFlows } from "@/composables/useFlows"
+import { useProject_flows } from "@/composables/useProject_flows"
+import { useEdem } from "@/edem"
 import { useT } from "@exodus/edem-vue"
 
 const route = useRoute()
 const {
   items: flows,
   loading: flowsLoading,
-  create: createFlows,
-  update: updateFlows,
-  remove: removeFlows,
-} = useFlows({ filter: { project_id: { _eq: route.params.id } } })
+  create: createProject_flows,
+  update: updateProject_flows,
+  remove: removeProject_flows,
+} = useProject_flows({ filter: { project_id: { _eq: route.params.id } } })
 const copied = ref(false)
-const flow = computed(() => flows.value.find((entry) => entry.id === route.params.flowId) ?? null)
-const loading = computed(() => flowsLoading.value)
-const manifest = computed(() => (flow.value ? JSON.stringify(flow.value, null, 2) : ""))
+const loading = computed(() => flowsLoading)
+const flow = computed(() => flows.find((entry) => entry.id === route.params.flowId) ?? null)
+const manifest = computed(() => (flow ? JSON.stringify(flow.data, null, 2) : ""))
 const showSkeleton = ref(false)
+const edem = useEdem()
 const t = useT()
 
-async function copyToClipboard($event?: Event, item?: Record<string, unknown>) {
-  if (!manifest.value) return
-  await navigator.clipboard.writeText(manifest.value)
-  copied.value = true
-  setTimeout(() => {
-    copied.value = false
-  }, 2000)
+function handleCopyToClipboard() {
+  edem.flows.runFlow({ flow_id: "copyToClipboard" })
 }
 </script>
 
@@ -52,7 +49,7 @@ async function copyToClipboard($event?: Event, item?: Record<string, unknown>) {
           size="xs"
           :icon="copied ? 'i-lucide-check' : 'i-lucide-copy'"
           class="absolute top-3 right-3"
-          @click="copyToClipboard($event)"
+          @click="handleCopyToClipboard()"
         />
       </UTooltip>
     </div>

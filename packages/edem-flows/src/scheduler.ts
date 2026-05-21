@@ -1,4 +1,4 @@
-import { parseEvery, matchesSchedule, type ScheduleTrigger } from "./manifest"
+import { getFlowTriggerSource, parseEvery, matchesSchedule, type ScheduleTrigger } from "./manifest"
 import { withRetry } from "./retry"
 import type { FlowFilter } from "./dispatcher"
 
@@ -181,9 +181,12 @@ async function reloadSchedules(
   })
 
   for (const item of items) {
-    const trigger = item.data.trigger as Record<string, unknown> | undefined
+    const trigger = getFlowTriggerSource({
+      kind: item.data.kind as string | undefined,
+      nodes: item.data.nodes,
+    })
     if (trigger?.type === "schedule") {
-      setupSchedule(item.id, trigger as ScheduleTrigger, flows)
+      setupSchedule(item.id, trigger, flows)
     }
   }
 }

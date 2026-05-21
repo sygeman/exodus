@@ -4,6 +4,8 @@ import { z } from "zod"
 
 type AnyZod = z.ZodTypeAny
 
+const EDEM_METADATA = Symbol.for("@exodus/edem-core/metadata")
+
 // ── Procedure descriptors ─────────────────────────────────────────────────────
 
 type ProcDesc =
@@ -12,6 +14,20 @@ type ProcDesc =
   | { kind: "subscription"; output: AnyZod }
 
 type ProcMap = Record<string, ProcDesc>
+
+export type ProcedureKind = ProcDesc["kind"]
+
+export interface ProcedureMetadata {
+  name: string
+  kind: ProcedureKind
+  inputSchema: AnyZod | null
+  outputSchema: AnyZod
+}
+
+export interface ModuleProcedureCatalog {
+  module: string
+  procedures: ProcedureMetadata[]
+}
 
 // ── Public API types ──────────────────────────────────────────────────────────
 
@@ -89,6 +105,7 @@ type RuntimeHandler = (args: { event: unknown }) => Promise<void> | void
 
 interface RuntimeProc {
   kind: "query" | "mutation" | "subscription"
+  outputSchema: AnyZod
   inputSchema?: AnyZod
   resolve?: (args: {
     input: unknown
@@ -114,12 +131,57 @@ export interface EdemWorkerContext {
 
 export type EdemWorkerFactory = (ctx: EdemWorkerContext) => EdemWorker
 
+interface EdemMetadata {
+  procedureCatalog: ModuleProcedureCatalog[]
+}
+
+function buildProcedureMetadata(name: string, proc: RuntimeProc): ProcedureMetadata {
+  return {
+    name,
+    kind: proc.kind,
+    inputSchema: proc.inputSchema ?? null,
+    outputSchema: proc.outputSchema,
+  }
+}
+
+function buildModuleProcedureCatalog(
+  moduleName: string,
+  runtimeProcs: Map<string, RuntimeProc>,
+): ModuleProcedureCatalog {
+  return {
+    module: moduleName,
+    procedures: [...runtimeProcs.entries()].map(([name, proc]) =>
+      buildProcedureMetadata(name, proc),
+    ),
+  }
+}
+
+function inspectModule(
+  mod: EdemModuleFn<string, ProcMap>,
+  config?: EdemConfig,
+): ModuleProcedureCatalog {
+  const builder = new ModuleBuilderImpl()
+  builder.setConfig(config ?? {})
+  mod._register(builder)
+  return buildModuleProcedureCatalog(mod._name, builder.getRuntimeProcs())
+}
+
 export function createLocalEdemWorker(ctx: EdemWorkerContext): EdemWorker {
   const makeEmit = (): Record<string, (event: unknown) => Promise<void>> => {
     const emit: Record<string, (event: unknown) => Promise<void>> = {}
     for (const [subName, handlers] of ctx.subHandlers.entries()) {
+      const proc = ctx.procs.get(subName)
       emit[subName] = async (event: unknown) => {
-        for (const h of handlers) await h(event)
+        if (!proc || proc.kind !== "subscription") {
+          throw new Error(`[edem] Unknown subscription "${subName}" in module "${ctx.name}"`)
+        }
+
+        const result = proc.outputSchema.safeParse(event)
+        if (!result.success) {
+          throw new Error(`[edem] Invalid event output for ${subName}: ${result.error.message}`)
+        }
+
+        for (const h of handlers) await h(result.data)
       }
     }
     return emit
@@ -141,7 +203,12 @@ export function createLocalEdemWorker(ctx: EdemWorkerContext): EdemWorker {
       }
 
       const context = await ctx.getCtx()
-      return proc.resolve!({ input, ctx: context, emit: makeEmit() })
+      const result = await proc.resolve!({ input, ctx: context, emit: makeEmit() })
+      const parsed = proc.outputSchema.safeParse(result)
+      if (!parsed.success) {
+        throw new Error(`[edem] Invalid output for ${name}: ${parsed.error.message}`)
+      }
+      return parsed.data
     },
 
     async emit(name: string, event: unknown): Promise<void> {
@@ -195,7 +262,7 @@ class ModuleBuilderImpl {
   }
 
   subscription(name: string, _def: SubscriptionDef<AnyZod>): this {
-    this._runtimeProcs.set(name, { kind: "subscription" })
+    this._runtimeProcs.set(name, { kind: "subscription", outputSchema: _def.output })
     this._subHandlers.set(name, [])
     return this
   }
@@ -204,6 +271,7 @@ class ModuleBuilderImpl {
     this._runtimeProcs.set(name, {
       kind: "mutation",
       inputSchema: def.input,
+      outputSchema: def.output,
       resolve: def.resolve as RuntimeProc["resolve"],
     })
     return this
@@ -213,6 +281,7 @@ class ModuleBuilderImpl {
     this._runtimeProcs.set(name, {
       kind: "query",
       inputSchema: def.input,
+      outputSchema: def.output,
       resolve: def.resolve as RuntimeProc["resolve"],
     })
     return this
@@ -231,9 +300,29 @@ export interface EdemModuleFn<TName extends string, TProcs extends ProcMap> {
 // ── createEdemModule ──────────────────────────────────────────────────────────
 
 export function getModuleSubscriptions(mod: EdemModuleFn<string, ProcMap>): string[] {
-  return Object.entries(mod._procs)
-    .filter(([, desc]) => desc.kind === "subscription")
-    .map(([name]) => name)
+  return getModuleProcedures(mod)
+    .filter((proc) => proc.kind === "subscription")
+    .map((proc) => proc.name)
+}
+
+export function getModuleProcedures(
+  mod: EdemModuleFn<string, ProcMap>,
+  config?: EdemConfig,
+): ProcedureMetadata[] {
+  return inspectModule(mod, config).procedures
+}
+
+export function getProcedureCatalog<const TModules extends EdemModuleFn<string, ProcMap>[]>(
+  modules: [...TModules],
+  config?: EdemConfig,
+): ModuleProcedureCatalog[] {
+  return modules.map((mod) => inspectModule(mod, config))
+}
+
+export function getEdemProcedureCatalog(edem: unknown): ModuleProcedureCatalog[] | null {
+  if (!edem || typeof edem !== "object") return null
+  const metadata = (edem as Record<PropertyKey, unknown>)[EDEM_METADATA] as EdemMetadata | undefined
+  return metadata?.procedureCatalog ?? null
 }
 
 export function createEdemModule<
@@ -252,8 +341,9 @@ export function createEdemModule<
       const result = register(builder as unknown as ModuleBuilder<{}, {}>)
       const built = result as unknown as { _runtimeProcs?: Map<string, RuntimeProc> }
       if (built._runtimeProcs) {
+        const runtimeProcs = mod._procs as unknown as Record<string, RuntimeProc>
         for (const [key, val] of built._runtimeProcs) {
-          ;(mod._procs as Record<string, RuntimeProc>)[key] = val
+          runtimeProcs[key] = val
         }
       }
     },
@@ -335,17 +425,26 @@ export function createEdem<const TModules extends EdemModuleFn<string, ProcMap>[
   workerFactory: EdemWorkerFactory = createLocalEdemWorker,
 ): MergeModules<TModules> {
   const edem: Record<string, Record<string, unknown>> = {}
+  const procedureCatalog: ModuleProcedureCatalog[] = []
 
   for (const mod of modules) {
     try {
       const builder = new ModuleBuilderImpl()
       builder.setConfig(config ?? {})
       mod._register(builder)
+      procedureCatalog.push(buildModuleProcedureCatalog(mod._name, builder.getRuntimeProcs()))
       edem[mod._name] = buildProxy(mod._name, builder, workerFactory)
     } catch (cause) {
       throw new EdemError(`Failed to register module "${mod._name}"`, cause)
     }
   }
+
+  Object.defineProperty(edem, EDEM_METADATA, {
+    value: { procedureCatalog } satisfies EdemMetadata,
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  })
 
   for (const mod of modules) {
     if (mod._react) {

@@ -5,23 +5,79 @@
       "collection": "projects"
     }
   },
-  "actions": {
-    "handleCreate": {
-      "steps": [
+  "flows": {
+    "create": {
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": {
+        "type": "ui-event",
+        "event": "click"
+      },
+      "nodes": [
         {
-          "type": "create-item",
-          "collection": "projects",
-          "assignTo": "createdId",
-          "data": {
-            "name": "Untitled",
-            "slug": "{{ `untitled-${crypto.randomUUID().slice(0, 8)}` }}",
-            "type": "desktop",
-            "sort_order": 0
+          "id": "trigger",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
           }
         },
         {
-          "type": "navigate",
-          "to": "/project/{{ createdId }}/overview"
+          "id": "createProject",
+          "type": "data:create-item",
+          "position": {
+            "x": 220,
+            "y": 0
+          },
+          "data": {
+            "collection": "projects",
+            "assignTo": "createdId",
+            "data": {
+              "name": "Untitled",
+              "slug": "{{ `untitled-${crypto.randomUUID().slice(0, 8)}` }}",
+              "type": "desktop",
+              "sort_order": 0
+            }
+          }
+        },
+        {
+          "id": "navigateToProject",
+          "type": "ui:navigate",
+          "position": {
+            "x": 480,
+            "y": 0
+          },
+          "data": {
+            "to": "/project/{{ createdId }}/overview"
+          }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": {
+            "x": 720,
+            "y": 0
+          },
+          "data": {
+            "value": "{{ createdId }}"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-projects-create-1",
+          "source": "trigger",
+          "target": "createProject"
+        },
+        {
+          "id": "e-projects-create-2",
+          "source": "createProject",
+          "target": "navigateToProject"
+        },
+        {
+          "id": "e-projects-create-3",
+          "source": "navigateToProject",
+          "target": "output"
         }
       ]
     }
@@ -123,7 +179,7 @@
           "component": "UButton",
           "events": {
             "click": {
-              "action": "handleCreate"
+              "flow": "create"
             }
           },
           "children": {
@@ -162,7 +218,7 @@
               "component": "UButton",
               "events": {
                 "click": {
-                  "action": "handleCreate"
+                  "flow": "create"
                 }
               },
               "children": {

@@ -13,22 +13,78 @@
       ]
     }
   },
-  "actions": {
-    "handleCreate": {
-      "steps": [
+  "flows": {
+    "create": {
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": {
+        "type": "ui-event",
+        "event": "click"
+      },
+      "nodes": [
         {
-          "type": "create-item",
-          "collection": "ideas",
-          "assignTo": "createdId",
-          "data": {
-            "project_id": "{{ route.params.id }}",
-            "title": "Untitled",
-            "status": "draft"
+          "id": "trigger",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
           }
         },
         {
-          "type": "navigate",
-          "to": "/project/{{ route.params.id }}/ideas/{{ createdId }}"
+          "id": "createIdea",
+          "type": "data:create-item",
+          "position": {
+            "x": 220,
+            "y": 0
+          },
+          "data": {
+            "collection": "ideas",
+            "assignTo": "createdId",
+            "data": {
+              "project_id": "{{ route.params.id }}",
+              "title": "Untitled",
+              "status": "draft"
+            }
+          }
+        },
+        {
+          "id": "navigateToIdea",
+          "type": "ui:navigate",
+          "position": {
+            "x": 480,
+            "y": 0
+          },
+          "data": {
+            "to": "/project/{{ route.params.id }}/ideas/{{ createdId }}"
+          }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": {
+            "x": 720,
+            "y": 0
+          },
+          "data": {
+            "value": "{{ createdId }}"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-project-ideas-create-1",
+          "source": "trigger",
+          "target": "createIdea"
+        },
+        {
+          "id": "e-project-ideas-create-2",
+          "source": "createIdea",
+          "target": "navigateToIdea"
+        },
+        {
+          "id": "e-project-ideas-create-3",
+          "source": "navigateToIdea",
+          "target": "output"
         }
       ]
     }
@@ -61,7 +117,7 @@
           },
           "events": {
             "click": {
-              "action": "handleCreate"
+              "flow": "create"
             }
           },
           "children": [
@@ -155,7 +211,7 @@
           },
           "events": {
             "click": {
-              "action": "handleCreate"
+              "flow": "create"
             }
           },
           "children": {

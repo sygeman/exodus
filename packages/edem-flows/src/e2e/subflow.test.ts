@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test"
 import { reg } from "../test-actions"
+import { callNode } from "../test-flow"
 import { getEdem, setupTests } from "./setup"
 
 describe("subflow", () => {
@@ -158,17 +159,13 @@ describe("subflow", () => {
 
   it("subflow with async child (waiting) resumes parent after handleNodeCompleted on both", async () => {
     const edem = getEdem()
+    reg("e2e_subflow_async_action", async () => ({ status: "pending" }))
     const { flow_id: childId } = await edem.flows.createFlow({
       name: "Async Child",
       kind: "subflow",
       nodes: [
         { id: "c_in", type: "input", position: { x: 0, y: 0 } },
-        {
-          id: "c_wait",
-          type: "action",
-          position: { x: 100, y: 0 },
-          data: { module: "test", proc: "e2e_subflow_async_action" },
-        },
+        callNode({ id: "c_wait", module: "test", procedure: "e2e_subflow_async_action" }),
         {
           id: "c_out",
           type: "output",

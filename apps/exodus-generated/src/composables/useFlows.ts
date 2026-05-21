@@ -6,9 +6,11 @@ export interface FlowsItem {
   project_id: string | null
   name: string
   status: string | null
-  trigger: unknown
+  kind: string | null
   nodes: unknown | null
   edges: unknown | null
+  valid: boolean | null
+  validation_errors: unknown | null
   meta: unknown | null
   manifest_id: string | null
   backpressure: unknown | null

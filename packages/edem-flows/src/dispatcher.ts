@@ -1,3 +1,5 @@
+import { getFlowTriggerSource } from "./manifest"
+
 interface FlowItem {
   id: string
   data: Record<string, unknown>
@@ -29,15 +31,6 @@ interface DataAPI {
     collection_id: string
     filter?: Record<string, unknown>
   }) => Promise<{ items: FlowItem[] }>
-  itemCreated: (handler: (args: { event: unknown }) => void) => () => void
-  itemUpdated: (handler: (args: { event: unknown }) => void) => () => void
-  itemDeleted: (handler: (args: { event: unknown }) => void) => () => void
-}
-
-interface DataItemEvent {
-  id: string
-  collection_id: string
-  data: Record<string, unknown>
 }
 
 const eventFlows = new Map<string, EventFlowEntry[]>()
@@ -54,15 +47,18 @@ export type DispatcherOptions = {
 function rebuildIndex(items: FlowItem[]): void {
   eventFlows.clear()
   for (const item of items) {
-    const trigger = item.data.trigger as Record<string, unknown> | undefined
+    const trigger = getFlowTriggerSource({
+      kind: item.data.kind as string | undefined,
+      nodes: item.data.nodes,
+    })
     if (trigger?.type === "event") {
-      const eventName = trigger.event as string
+      const eventName = trigger.event
       const entry: EventFlowEntry = {
         flowId: item.id,
         trigger: {
           type: "event",
           event: eventName,
-          filter: trigger.filter as Record<string, unknown> | undefined,
+          filter: trigger.filter,
         },
       }
       const existing = eventFlows.get(eventName) ?? []
@@ -126,21 +122,6 @@ export async function startDispatcher(
   const unsubFlowUpdated = flows.flowUpdated(refresh)
   const unsubFlowDeleted = flows.flowDeleted(refresh)
 
-  const unsubItemCreated = data.itemCreated(({ event }) => {
-    const item = event as DataItemEvent
-    triggerFlows(`item:created:${item.collection_id}`, { item })
-  })
-
-  const unsubItemUpdated = data.itemUpdated(({ event }) => {
-    const item = event as DataItemEvent
-    triggerFlows(`item:updated:${item.collection_id}`, { item })
-  })
-
-  const unsubItemDeleted = data.itemDeleted(({ event }) => {
-    const item = event as { id: string; collection_id: string }
-    triggerFlows(`item:deleted:${item.collection_id}`, { item })
-  })
-
   console.log(`[flows:dispatcher] Watching ${eventFlows.size} event triggers`)
 
   return {
@@ -151,9 +132,6 @@ export async function startDispatcher(
       unsubFlowCreated()
       unsubFlowUpdated()
       unsubFlowDeleted()
-      unsubItemCreated()
-      unsubItemUpdated()
-      unsubItemDeleted()
       flowsRef = null
       eventFlows.clear()
       console.log("[flows:dispatcher] Stopped")

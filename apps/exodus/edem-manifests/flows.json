@@ -3,10 +3,19 @@
     {
       "id": "system-updater",
       "name": "Auto Updater",
-      "trigger": { "type": "schedule", "every": "15m" },
       "nodes": [
-        { "id": "n1", "type": "trigger", "position": { "x": 0, "y": 0 } },
-        { "id": "n2", "type": "action", "position": { "x": 100, "y": 0 }, "data": { "module": "electrobun", "proc": "checkUpdate" } }
+        {
+          "id": "n1",
+          "type": "trigger",
+          "position": { "x": 0, "y": 0 },
+          "data": { "source": { "type": "schedule", "every": "15m" } }
+        },
+        {
+          "id": "n2",
+          "type": "call",
+          "position": { "x": 100, "y": 0 },
+          "data": { "module": "electrobun", "procedure": "checkUpdate" }
+        }
       ],
       "edges": [{ "id": "e1", "source": "n1", "target": "n2" }],
       "meta": { "system": true, "description": "Checks for updates every 15 minutes" }

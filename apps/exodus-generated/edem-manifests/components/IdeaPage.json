@@ -13,6 +13,684 @@
   "state": {
     "deleteModalOpen": false
   },
+  "flows": {
+    "openDeleteModal": {
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": {
+        "type": "ui-event",
+        "event": "click"
+      },
+      "nodes": [
+        {
+          "id": "trigger",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "openModal",
+          "type": "ui:set-state",
+          "position": {
+            "x": 200,
+            "y": 0
+          },
+          "data": {
+            "state": "deleteModalOpen",
+            "value": true
+          }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": {
+            "x": 400,
+            "y": 0
+          },
+          "data": {
+            "value": true
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-idea-open-1",
+          "source": "trigger",
+          "target": "openModal"
+        },
+        {
+          "id": "e-idea-open-2",
+          "source": "openModal",
+          "target": "output"
+        }
+      ]
+    },
+    "closeDeleteModal": {
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": {
+        "type": "ui-event",
+        "event": "click"
+      },
+      "nodes": [
+        {
+          "id": "trigger",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "closeModal",
+          "type": "ui:set-state",
+          "position": {
+            "x": 200,
+            "y": 0
+          },
+          "data": {
+            "state": "deleteModalOpen",
+            "value": false
+          }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": {
+            "x": 400,
+            "y": 0
+          },
+          "data": {
+            "value": false
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-idea-close-1",
+          "source": "trigger",
+          "target": "closeModal"
+        },
+        {
+          "id": "e-idea-close-2",
+          "source": "closeModal",
+          "target": "output"
+        }
+      ]
+    },
+    "confirmDelete": {
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": {
+        "type": "ui-event",
+        "event": "click"
+      },
+      "nodes": [
+        {
+          "id": "trigger",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "guardIdea",
+          "type": "guard",
+          "position": {
+            "x": 180,
+            "y": 0
+          },
+          "data": {
+            "condition": "idea"
+          }
+        },
+        {
+          "id": "deleteIdea",
+          "type": "data:delete-item",
+          "position": {
+            "x": 360,
+            "y": 0
+          },
+          "data": {
+            "collection": "ideas",
+            "id": "{{ idea.id }}"
+          }
+        },
+        {
+          "id": "closeModal",
+          "type": "ui:set-state",
+          "position": {
+            "x": 560,
+            "y": 0
+          },
+          "data": {
+            "state": "deleteModalOpen",
+            "value": false
+          }
+        },
+        {
+          "id": "navigateBack",
+          "type": "ui:navigate",
+          "position": {
+            "x": 760,
+            "y": 0
+          },
+          "data": {
+            "to": "{{ backLink }}"
+          }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": {
+            "x": 960,
+            "y": 0
+          },
+          "data": {
+            "value": "{{ backLink }}"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-idea-delete-1",
+          "source": "trigger",
+          "target": "guardIdea"
+        },
+        {
+          "id": "e-idea-delete-2",
+          "source": "guardIdea",
+          "sourceHandle": "true",
+          "target": "deleteIdea"
+        },
+        {
+          "id": "e-idea-delete-3",
+          "source": "deleteIdea",
+          "target": "closeModal"
+        },
+        {
+          "id": "e-idea-delete-4",
+          "source": "closeModal",
+          "target": "navigateBack"
+        },
+        {
+          "id": "e-idea-delete-5",
+          "source": "navigateBack",
+          "target": "output"
+        }
+      ]
+    },
+    "updateTitle": {
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": {
+        "type": "ui-event",
+        "event": "blur"
+      },
+      "nodes": [
+        {
+          "id": "trigger",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "guardIdea",
+          "type": "guard",
+          "position": {
+            "x": 180,
+            "y": 0
+          },
+          "data": {
+            "condition": "idea"
+          }
+        },
+        {
+          "id": "guardNotEmpty",
+          "type": "guard",
+          "position": {
+            "x": 360,
+            "y": 0
+          },
+          "data": {
+            "condition": "String(trigger.event?.target?.value ?? '').trim() !== ''"
+          }
+        },
+        {
+          "id": "guardChanged",
+          "type": "guard",
+          "position": {
+            "x": 560,
+            "y": 0
+          },
+          "data": {
+            "condition": "String(trigger.event?.target?.value ?? '').trim() !== (idea.title ?? '')"
+          }
+        },
+        {
+          "id": "updateTitle",
+          "type": "data:update-item",
+          "position": {
+            "x": 780,
+            "y": 0
+          },
+          "data": {
+            "collection": "ideas",
+            "id": "{{ idea.id }}",
+            "data": {
+              "title": "{{ String(trigger.event?.target?.value ?? '').trim() }}"
+            }
+          }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": {
+            "x": 1000,
+            "y": 0
+          },
+          "data": {
+            "value": "{{ String(trigger.event?.target?.value ?? '').trim() }}"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-idea-title-1",
+          "source": "trigger",
+          "target": "guardIdea"
+        },
+        {
+          "id": "e-idea-title-2",
+          "source": "guardIdea",
+          "sourceHandle": "true",
+          "target": "guardNotEmpty"
+        },
+        {
+          "id": "e-idea-title-3",
+          "source": "guardNotEmpty",
+          "sourceHandle": "true",
+          "target": "guardChanged"
+        },
+        {
+          "id": "e-idea-title-4",
+          "source": "guardChanged",
+          "sourceHandle": "true",
+          "target": "updateTitle"
+        },
+        {
+          "id": "e-idea-title-5",
+          "source": "updateTitle",
+          "target": "output"
+        }
+      ]
+    },
+    "updateDescription": {
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": {
+        "type": "ui-event",
+        "event": "blur"
+      },
+      "nodes": [
+        {
+          "id": "trigger",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "guardIdea",
+          "type": "guard",
+          "position": {
+            "x": 180,
+            "y": 0
+          },
+          "data": {
+            "condition": "idea"
+          }
+        },
+        {
+          "id": "guardChanged",
+          "type": "guard",
+          "position": {
+            "x": 360,
+            "y": 0
+          },
+          "data": {
+            "condition": "String(trigger.event?.target?.value ?? '') !== (idea.description ?? '')"
+          }
+        },
+        {
+          "id": "updateDescription",
+          "type": "data:update-item",
+          "position": {
+            "x": 580,
+            "y": 0
+          },
+          "data": {
+            "collection": "ideas",
+            "id": "{{ idea.id }}",
+            "data": {
+              "description": "{{ String(trigger.event?.target?.value ?? '') || null }}"
+            }
+          }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": {
+            "x": 800,
+            "y": 0
+          },
+          "data": {
+            "value": "{{ String(trigger.event?.target?.value ?? '') || null }}"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-idea-desc-1",
+          "source": "trigger",
+          "target": "guardIdea"
+        },
+        {
+          "id": "e-idea-desc-2",
+          "source": "guardIdea",
+          "sourceHandle": "true",
+          "target": "guardChanged"
+        },
+        {
+          "id": "e-idea-desc-3",
+          "source": "guardChanged",
+          "sourceHandle": "true",
+          "target": "updateDescription"
+        },
+        {
+          "id": "e-idea-desc-4",
+          "source": "updateDescription",
+          "target": "output"
+        }
+      ]
+    },
+    "updateLevel": {
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": {
+        "type": "ui-event",
+        "event": "change"
+      },
+      "nodes": [
+        {
+          "id": "trigger",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "guardIdea",
+          "type": "guard",
+          "position": {
+            "x": 180,
+            "y": 0
+          },
+          "data": {
+            "condition": "idea"
+          }
+        },
+        {
+          "id": "guardChanged",
+          "type": "guard",
+          "position": {
+            "x": 360,
+            "y": 0
+          },
+          "data": {
+            "condition": "trigger.event !== idea.level"
+          }
+        },
+        {
+          "id": "updateLevel",
+          "type": "data:update-item",
+          "position": {
+            "x": 560,
+            "y": 0
+          },
+          "data": {
+            "collection": "ideas",
+            "id": "{{ idea.id }}",
+            "data": {
+              "level": "{{ trigger.event ?? null }}"
+            }
+          }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": {
+            "x": 760,
+            "y": 0
+          },
+          "data": {
+            "value": "{{ trigger.event ?? null }}"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-idea-level-1",
+          "source": "trigger",
+          "target": "guardIdea"
+        },
+        {
+          "id": "e-idea-level-2",
+          "source": "guardIdea",
+          "sourceHandle": "true",
+          "target": "guardChanged"
+        },
+        {
+          "id": "e-idea-level-3",
+          "source": "guardChanged",
+          "sourceHandle": "true",
+          "target": "updateLevel"
+        },
+        {
+          "id": "e-idea-level-4",
+          "source": "updateLevel",
+          "target": "output"
+        }
+      ]
+    },
+    "updateType": {
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": {
+        "type": "ui-event",
+        "event": "change"
+      },
+      "nodes": [
+        {
+          "id": "trigger",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "guardIdea",
+          "type": "guard",
+          "position": {
+            "x": 180,
+            "y": 0
+          },
+          "data": {
+            "condition": "idea"
+          }
+        },
+        {
+          "id": "guardChanged",
+          "type": "guard",
+          "position": {
+            "x": 360,
+            "y": 0
+          },
+          "data": {
+            "condition": "trigger.event !== idea.type"
+          }
+        },
+        {
+          "id": "updateType",
+          "type": "data:update-item",
+          "position": {
+            "x": 560,
+            "y": 0
+          },
+          "data": {
+            "collection": "ideas",
+            "id": "{{ idea.id }}",
+            "data": {
+              "type": "{{ trigger.event ?? null }}"
+            }
+          }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": {
+            "x": 760,
+            "y": 0
+          },
+          "data": {
+            "value": "{{ trigger.event ?? null }}"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-idea-type-1",
+          "source": "trigger",
+          "target": "guardIdea"
+        },
+        {
+          "id": "e-idea-type-2",
+          "source": "guardIdea",
+          "sourceHandle": "true",
+          "target": "guardChanged"
+        },
+        {
+          "id": "e-idea-type-3",
+          "source": "guardChanged",
+          "sourceHandle": "true",
+          "target": "updateType"
+        },
+        {
+          "id": "e-idea-type-4",
+          "source": "updateType",
+          "target": "output"
+        }
+      ]
+    },
+    "updateStatus": {
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": {
+        "type": "ui-event",
+        "event": "change"
+      },
+      "nodes": [
+        {
+          "id": "trigger",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "guardIdea",
+          "type": "guard",
+          "position": {
+            "x": 180,
+            "y": 0
+          },
+          "data": {
+            "condition": "idea"
+          }
+        },
+        {
+          "id": "guardChanged",
+          "type": "guard",
+          "position": {
+            "x": 360,
+            "y": 0
+          },
+          "data": {
+            "condition": "trigger.event !== idea.status"
+          }
+        },
+        {
+          "id": "updateStatus",
+          "type": "data:update-item",
+          "position": {
+            "x": 560,
+            "y": 0
+          },
+          "data": {
+            "collection": "ideas",
+            "id": "{{ idea.id }}",
+            "data": {
+              "status": "{{ trigger.event ?? 'draft' }}"
+            }
+          }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": {
+            "x": 760,
+            "y": 0
+          },
+          "data": {
+            "value": "{{ trigger.event ?? 'draft' }}"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-idea-status-1",
+          "source": "trigger",
+          "target": "guardIdea"
+        },
+        {
+          "id": "e-idea-status-2",
+          "source": "guardIdea",
+          "sourceHandle": "true",
+          "target": "guardChanged"
+        },
+        {
+          "id": "e-idea-status-3",
+          "source": "guardChanged",
+          "sourceHandle": "true",
+          "target": "updateStatus"
+        },
+        {
+          "id": "e-idea-status-4",
+          "source": "updateStatus",
+          "target": "output"
+        }
+      ]
+    }
+  },
   "constants": {
     "levelItems": [
       {
@@ -74,155 +752,9 @@
     ]
   },
   "computed": {
-    "idea": "{{ ideas.value.find((entry) => entry.id === route.params.ideaId) ?? null }}",
-    "loading": "{{ ideasLoading.value }}",
+    "idea": "{{ ideas.find((entry) => entry.id === route.params.ideaId) ?? null }}",
+    "loading": "{{ ideasLoading }}",
     "backLink": "{{ `/project/${route.params.id}/ideas` }}"
-  },
-  "actions": {
-    "openDeleteModal": {
-      "steps": [
-        {
-          "type": "set-state",
-          "state": "deleteModalOpen",
-          "value": true
-        }
-      ]
-    },
-    "closeDeleteModal": {
-      "steps": [
-        {
-          "type": "set-state",
-          "state": "deleteModalOpen",
-          "value": false
-        }
-      ]
-    },
-    "confirmDelete": {
-      "steps": [
-        {
-          "type": "guard",
-          "condition": "{{ idea.value }}"
-        },
-        {
-          "type": "delete-item",
-          "collection": "ideas",
-          "id": "{{ idea.value.id }}"
-        },
-        {
-          "type": "set-state",
-          "state": "deleteModalOpen",
-          "value": false
-        },
-        {
-          "type": "navigate",
-          "to": "{{ backLink.value }}"
-        }
-      ]
-    },
-    "updateTitle": {
-      "steps": [
-        {
-          "type": "guard",
-          "condition": "{{ idea.value }}"
-        },
-        {
-          "type": "guard",
-          "condition": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value).trim() !== '' }}"
-        },
-        {
-          "type": "guard",
-          "condition": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value).trim() !== (idea.value.title ?? '') }}"
-        },
-        {
-          "type": "update-item",
-          "collection": "ideas",
-          "id": "{{ idea.value.id }}",
-          "data": {
-            "title": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value).trim() }}"
-          }
-        }
-      ]
-    },
-    "updateDescription": {
-      "steps": [
-        {
-          "type": "guard",
-          "condition": "{{ idea.value }}"
-        },
-        {
-          "type": "guard",
-          "condition": "{{ (((($event as FocusEvent).target) as HTMLTextAreaElement).value) !== (idea.value.description ?? '') }}"
-        },
-        {
-          "type": "update-item",
-          "collection": "ideas",
-          "id": "{{ idea.value.id }}",
-          "data": {
-            "description": "{{ (((($event as FocusEvent).target) as HTMLTextAreaElement).value) || null }}"
-          }
-        }
-      ]
-    },
-    "updateLevel": {
-      "steps": [
-        {
-          "type": "guard",
-          "condition": "{{ idea.value }}"
-        },
-        {
-          "type": "guard",
-          "condition": "{{ $event !== idea.value.level }}"
-        },
-        {
-          "type": "update-item",
-          "collection": "ideas",
-          "id": "{{ idea.value.id }}",
-          "data": {
-            "level": "{{ $event }}"
-          }
-        }
-      ]
-    },
-    "updateType": {
-      "steps": [
-        {
-          "type": "guard",
-          "condition": "{{ idea.value }}"
-        },
-        {
-          "type": "guard",
-          "condition": "{{ $event !== idea.value.type }}"
-        },
-        {
-          "type": "update-item",
-          "collection": "ideas",
-          "id": "{{ idea.value.id }}",
-          "data": {
-            "type": "{{ $event }}"
-          }
-        }
-      ]
-    },
-    "updateStatus": {
-      "steps": [
-        {
-          "type": "guard",
-          "condition": "{{ idea.value }}"
-        },
-        {
-          "type": "guard",
-          "condition": "{{ $event !== idea.value.status }}"
-        },
-        {
-          "type": "update-item",
-          "collection": "ideas",
-          "id": "{{ idea.value.id }}",
-          "data": {
-            "status": "{{ $event }}"
-          }
-        }
-      ]
-    }
   },
   "props": {
     "class": "flex h-full flex-col"
@@ -366,7 +898,7 @@
               },
               "events": {
                 "click": {
-                  "action": "openDeleteModal"
+                  "flow": "openDeleteModal"
                 }
               },
               "children": {
@@ -386,23 +918,27 @@
             {
               "component": "UInput",
               "props": {
-                "modelValue": "{{ idea.title ?? '' }}",
                 "size": "lg",
                 "class": "w-full"
               },
+              "model": {
+                "value": "{{ idea.title ?? '' }}"
+              },
               "events": {
                 "blur": {
-                  "action": "updateTitle"
+                  "flow": "updateTitle"
                 },
                 "keyup.enter": {
-                  "action": "updateTitle"
+                  "flow": "updateTitle"
                 }
               }
             },
             {
               "component": "UTextarea",
+              "model": {
+                "value": "{{ idea.description ?? '' }}"
+              },
               "props": {
-                "modelValue": "{{ idea.description ?? '' }}",
                 "placeholder": {
                   "$type": "translation",
                   "en": "Idea description (optional)",
@@ -413,7 +949,7 @@
               },
               "events": {
                 "blur": {
-                  "action": "updateDescription"
+                  "flow": "updateDescription"
                 }
               }
             },
@@ -442,18 +978,18 @@
                     },
                     {
                       "component": "USelect",
+                      "model": {
+                        "value": "{{ idea.level ?? null }}",
+                        "onChange": {
+                          "flow": "updateLevel"
+                        }
+                      },
                       "props": {
-                        "modelValue": "{{ idea.level ?? null }}",
                         "items": "{{ levelItems }}",
                         "valueKey": "value",
                         "labelKey": "label",
                         "size": "sm",
                         "class": "w-full"
-                      },
-                      "events": {
-                        "update:model-value": {
-                          "action": "updateLevel"
-                        }
                       }
                     }
                   ]
@@ -477,18 +1013,18 @@
                     },
                     {
                       "component": "USelect",
+                      "model": {
+                        "value": "{{ idea.type ?? null }}",
+                        "onChange": {
+                          "flow": "updateType"
+                        }
+                      },
                       "props": {
-                        "modelValue": "{{ idea.type ?? null }}",
                         "items": "{{ typeItems }}",
                         "valueKey": "value",
                         "labelKey": "label",
                         "size": "sm",
                         "class": "w-full"
-                      },
-                      "events": {
-                        "update:model-value": {
-                          "action": "updateType"
-                        }
                       }
                     }
                   ]
@@ -512,18 +1048,18 @@
                     },
                     {
                       "component": "USelect",
+                      "model": {
+                        "value": "{{ idea.status ?? 'draft' }}",
+                        "onChange": {
+                          "flow": "updateStatus"
+                        }
+                      },
                       "props": {
-                        "modelValue": "{{ idea.status ?? 'draft' }}",
                         "items": "{{ statusItems }}",
                         "valueKey": "value",
                         "labelKey": "label",
                         "size": "sm",
                         "class": "w-full"
-                      },
-                      "events": {
-                        "update:model-value": {
-                          "action": "updateStatus"
-                        }
                       }
                     }
                   ]
@@ -554,7 +1090,7 @@
                 },
                 "events": {
                   "click": {
-                    "action": "closeDeleteModal"
+                    "flow": "closeDeleteModal"
                   }
                 },
                 "children": {
@@ -570,7 +1106,7 @@
                 },
                 "events": {
                   "click": {
-                    "action": "confirmDelete"
+                    "flow": "confirmDelete"
                   }
                 },
                 "children": {

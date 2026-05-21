@@ -6,6 +6,47 @@ interface EdemModule {
   _procs: Record<string, { kind: string }>
 }
 
+export function subscribeBunModuleEvents(
+  edem: Record<string, Record<string, unknown>>,
+  modules: EdemModule[],
+  handler: (event: { module: string; name: string; event: unknown }) => void,
+): () => void {
+  const unsubs: Array<() => void> = []
+
+  for (const mod of modules) {
+    const moduleProxy = edem[mod._name] as Record<string, (arg: unknown) => unknown> | undefined
+    if (!moduleProxy) {
+      continue
+    }
+
+    for (const subscriptionName of getModuleSubscriptions(
+      mod as Parameters<typeof getModuleSubscriptions>[0],
+    )) {
+      const subscribe = moduleProxy[subscriptionName] as
+        | ((handler: (args: { event: unknown }) => void) => (() => void) | void)
+        | undefined
+
+      if (!subscribe) {
+        continue
+      }
+
+      const unsub = subscribe(({ event }) => {
+        handler({ module: mod._name, name: subscriptionName, event })
+      })
+
+      if (typeof unsub === "function") {
+        unsubs.push(unsub)
+      }
+    }
+  }
+
+  return () => {
+    for (const unsub of unsubs) {
+      unsub()
+    }
+  }
+}
+
 // ── Bun bridge ───────────────────────────────────────────────────────────────
 
 export function createBunEdemBridge(
@@ -15,21 +56,11 @@ export function createBunEdemBridge(
   const sendToWebview: ((msg: EdemMsg) => void)[] = []
   const onWebviewEventHandlers: ((name: string, payload: Record<string, unknown>) => void)[] = []
 
-  for (const mod of modules) {
-    const moduleProxy = edem[mod._name] as Record<string, (arg: unknown) => unknown>
-    const subscriptions = getModuleSubscriptions(
-      mod as Parameters<typeof getModuleSubscriptions>[0],
-    )
-
-    for (const subName of subscriptions) {
-      moduleProxy[subName]((event: unknown) => {
-        const payload = (event as { event: unknown }).event ?? event
-        for (const send of sendToWebview) {
-          send({ type: "event", module: mod._name, name: subName, payload })
-        }
-      })
+  subscribeBunModuleEvents(edem, modules, ({ module, name, event }) => {
+    for (const send of sendToWebview) {
+      send({ type: "event", module, name, payload: event })
     }
-  }
+  })
 
   return {
     handler: async (msg: EdemMsg) => {

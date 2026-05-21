@@ -1,5 +1,6 @@
 import { describe, it, expect } from "bun:test"
 import { reg } from "../test-actions"
+import { callNode } from "../test-flow"
 import { getEdem, setupTests } from "./setup"
 
 describe("error handling", () => {
@@ -38,10 +39,7 @@ describe("error handling", () => {
       nodes: [
         { id: "t", type: "trigger", position: { x: 0, y: 0 } },
         {
-          id: "retry",
-          type: "action",
-          position: { x: 100, y: 0 },
-          data: { module: "test", proc: "e2e_flaky" },
+          ...callNode({ id: "retry", module: "test", procedure: "e2e_flaky" }),
           retry_max: 2,
           retry_delay: 10,
         },

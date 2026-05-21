@@ -20,7 +20,7 @@ export interface Manifests {
   routes: RoutesManifest
   components: Record<string, ComponentNode>
   data: { collections: DataCollection[] }
-  flows: { flows: FlowManifest[] }
+  flows: FlowsManifest
   assets?: AssetsManifest
   platform?: PlatformManifest
 }
@@ -42,7 +42,7 @@ interface DataCollection {
 interface FlowManifest {
   id: string
   name: string
-  trigger: { type: string; event?: string; every?: string }
+  kind?: "flow" | "subflow"
   nodes: Array<{
     id: string
     type: string
@@ -55,6 +55,10 @@ interface FlowManifest {
     target: string
   }>
   meta?: Record<string, unknown>
+}
+
+interface FlowsManifest {
+  flows: FlowManifest[]
 }
 
 interface PlatformManifest {
@@ -243,11 +247,12 @@ function mapFieldType(type: string): string {
 
 // ── Flows ─────────────────────────────────────────────────────────────────────
 
-function parseFlows(flows: { flows: FlowManifest[] }): IRFlow[] {
+function parseFlows(flows: FlowsManifest): IRFlow[] {
   return flows.flows.map((flow) => ({
     id: flow.id,
     name: flow.name,
-    trigger: parseTrigger(flow.trigger),
+    kind: flow.kind,
+    trigger: getFlowTriggerSource(flow),
     nodes: flow.nodes.map((n) => ({
       id: n.id,
       type: n.type,
@@ -263,15 +268,64 @@ function parseFlows(flows: { flows: FlowManifest[] }): IRFlow[] {
   }))
 }
 
-function parseTrigger(trigger: { type: string; event?: string; every?: string }): IRFlowTrigger {
+function parseTriggerValue(value: unknown): IRFlowTrigger | undefined {
+  if (!value || typeof value !== "object") return undefined
+
+  const trigger = value as Record<string, unknown>
   switch (trigger.type) {
     case "event":
-      return { type: "event", event: trigger.event ?? "" }
+      return typeof trigger.event === "string"
+        ? {
+            type: "event",
+            event: trigger.event,
+            filter:
+              trigger.filter && typeof trigger.filter === "object" && !Array.isArray(trigger.filter)
+                ? (trigger.filter as Record<string, unknown>)
+                : undefined,
+          }
+        : undefined
     case "schedule":
-      return { type: "schedule", every: trigger.every ?? "" }
-    default:
+      return typeof trigger.every === "string"
+        ? {
+            type: "schedule",
+            every: trigger.every,
+            at: typeof trigger.at === "string" ? trigger.at : undefined,
+            days: Array.isArray(trigger.days)
+              ? trigger.days.filter(
+                  (day): day is "mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun" =>
+                    typeof day === "string" &&
+                    ["mon", "tue", "wed", "thu", "fri", "sat", "sun"].includes(day),
+                )
+              : undefined,
+          }
+        : undefined
+    case "manual":
       return { type: "manual" }
+    default:
+      return undefined
   }
+}
+
+function getFlowTriggerSource(flow: {
+  kind?: string | undefined
+  nodes?: Array<{ type: string; data?: Record<string, unknown> }>
+}): IRFlowTrigger | undefined {
+  if (flow.kind === "subflow") {
+    return undefined
+  }
+
+  for (const node of flow.nodes ?? []) {
+    if (node.type !== "trigger") {
+      continue
+    }
+
+    const parsed = parseTriggerValue(node.data?.source)
+    if (parsed) {
+      return parsed
+    }
+  }
+
+  return undefined
 }
 
 // ── Assets ────────────────────────────────────────────────────────────────────

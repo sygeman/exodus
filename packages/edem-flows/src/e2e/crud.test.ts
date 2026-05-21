@@ -1,6 +1,7 @@
 import { describe, it, expect } from "bun:test"
 import type { FlowsManifest } from "../manifest"
 import { getEdem, setupTests } from "./setup"
+import { canonicalFlowShape, canonicalManifestFlow } from "../test-flow"
 
 describe("CRUD", () => {
   setupTests()
@@ -8,17 +9,19 @@ describe("CRUD", () => {
     const edem = getEdem()
     const { flow_id } = await edem.flows.createFlow({
       name: "Full Flow",
-      trigger: { type: "event", event: "data:item_created", filter: { collection: "tasks" } },
-      nodes: [
-        { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
-        {
-          id: "n2",
-          type: "transform",
-          position: { x: 100, y: 0 },
-          data: { field: "x", operation: "set", value: 1 },
-        },
-      ],
-      edges: [{ id: "e1", source: "n1", target: "n2" }],
+      ...canonicalFlowShape({
+        trigger: { type: "event", event: "data.itemCreated", filter: { collection_id: "tasks" } },
+        nodes: [
+          { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+          {
+            id: "n2",
+            type: "transform",
+            position: { x: 100, y: 0 },
+            data: { field: "x", operation: "set", value: 1 },
+          },
+        ],
+        edges: [{ id: "e1", source: "n1", target: "n2" }],
+      }),
       meta: { version: 1 },
     })
 
@@ -39,8 +42,10 @@ describe("CRUD", () => {
     const edem = getEdem()
     const { flow_id } = await edem.flows.createFlow({
       name: "Old Name",
-      trigger: { type: "manual" },
-      nodes: [{ id: "n1", type: "trigger", position: { x: 0, y: 0 } }],
+      ...canonicalFlowShape({
+        trigger: { type: "manual" },
+        nodes: [{ id: "n1", type: "trigger", position: { x: 0, y: 0 } }],
+      }),
     })
 
     await edem.flows.updateFlow({
@@ -66,10 +71,7 @@ describe("CRUD", () => {
 
   it("delete flow (soft delete)", async () => {
     const edem = getEdem()
-    const { flow_id } = await edem.flows.createFlow({
-      name: "To Delete",
-      trigger: { type: "manual" },
-    })
+    const { flow_id } = await edem.flows.createFlow({ name: "To Delete" })
 
     await edem.flows.deleteFlow({ flow_id })
 
@@ -81,8 +83,8 @@ describe("CRUD", () => {
     const edem = getEdem()
     const manifest: FlowsManifest = {
       flows: [
-        { id: "m1", name: "Manifest Flow 1", trigger: { type: "manual" }, nodes: [], edges: [] },
-        { id: "m2", name: "Manifest Flow 2", trigger: { type: "manual" }, nodes: [], edges: [] },
+        canonicalManifestFlow({ id: "m1", name: "Manifest Flow 1", trigger: { type: "manual" } }),
+        canonicalManifestFlow({ id: "m2", name: "Manifest Flow 2", trigger: { type: "manual" } }),
       ],
     }
 
@@ -97,8 +99,8 @@ describe("CRUD", () => {
 
     const updated: FlowsManifest = {
       flows: [
-        { id: "m1", name: "Updated M1", trigger: { type: "manual" }, nodes: [], edges: [] },
-        { id: "m2", name: "Manifest Flow 2", trigger: { type: "manual" }, nodes: [], edges: [] },
+        canonicalManifestFlow({ id: "m1", name: "Updated M1", trigger: { type: "manual" } }),
+        canonicalManifestFlow({ id: "m2", name: "Manifest Flow 2", trigger: { type: "manual" } }),
       ],
     }
     const r3 = await edem.flows.applyManifest({ manifest: updated })
@@ -114,15 +116,15 @@ describe("CRUD", () => {
     const edem = getEdem()
     const manifest1: FlowsManifest = {
       flows: [
-        { id: "s1", name: "System 1", trigger: { type: "manual" }, nodes: [], edges: [] },
-        { id: "s2", name: "System 2", trigger: { type: "manual" }, nodes: [], edges: [] },
+        canonicalManifestFlow({ id: "s1", name: "System 1", trigger: { type: "manual" } }),
+        canonicalManifestFlow({ id: "s2", name: "System 2", trigger: { type: "manual" } }),
       ],
     }
 
     await edem.flows.applyManifest({ manifest: manifest1 })
 
     const manifest2: FlowsManifest = {
-      flows: [{ id: "s1", name: "System 1", trigger: { type: "manual" }, nodes: [], edges: [] }],
+      flows: [canonicalManifestFlow({ id: "s1", name: "System 1", trigger: { type: "manual" } })],
     }
 
     const result = await edem.flows.applyManifest({ manifest: manifest2 })
@@ -138,13 +140,11 @@ describe("CRUD", () => {
 
     await edem.flows.createFlow({
       name: "User Flow",
-      trigger: { type: "manual" },
-      nodes: [],
-      edges: [],
+      ...canonicalFlowShape({ trigger: { type: "manual" }, nodes: [], edges: [] }),
     })
 
     const manifest: FlowsManifest = {
-      flows: [{ id: "sys1", name: "System", trigger: { type: "manual" }, nodes: [], edges: [] }],
+      flows: [canonicalManifestFlow({ id: "sys1", name: "System", trigger: { type: "manual" } })],
     }
 
     const result = await edem.flows.applyManifest({ manifest })

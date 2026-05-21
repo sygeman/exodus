@@ -1,16 +1,16 @@
 generated app reused
-total differences: 86
+total differences: 110
 
 by area:
 - shell: 8
 - layouts: 7
-- pages: 14
+- pages: 15
 - assets: 8
-- other: 49
+- other: 72
 
 by reason:
-- schema gap: 38
-- generator gap: 37
+- schema gap: 63
+- generator gap: 36
 - migration gap: 11
 
 shell:
@@ -27,26 +27,27 @@ layouts:
 - [different] src/components/AppSidebar.vue -> generator gap
 - [only_in_reference] src/components/AppTopMenu.vue -> migration gap
 - [only_in_reference] src/components/DebugLayout.vue -> migration gap
-- [only_in_reference] src/components/FlowEditorLayout.vue -> migration gap
 - [different] src/components/MenuLayout.vue -> generator gap
+- [only_in_reference] src/components/ProjectFlowLayout.vue -> migration gap
 - [only_in_reference] src/components/ProjectLayout.vue -> migration gap
 - [different] src/components/SettingsLayout.vue -> generator gap
 
 pages:
-- [only_in_generated] src/components/DebugFlowRunsPage.vue -> generator gap
-- [different] src/components/DebugFlows.vue -> generator gap
-- [only_in_generated] src/components/DebugLogsPage.vue -> generator gap
-- [different] src/components/FlowCodePage.vue -> generator gap
+- [different] src/components/DebugFlowRunsPage.vue -> generator gap
+- [only_in_generated] src/components/DebugFlows.vue -> generator gap
+- [different] src/components/DebugLogsPage.vue -> generator gap
+- [only_in_generated] src/components/FlowCodePage.vue -> generator gap
 - [only_in_generated] src/components/FlowEditorGraphPage.vue -> generator gap
-- [different] src/components/FlowSettingsPage.vue -> generator gap
-- [different] src/components/IdeaPage.vue -> generator gap
+- [only_in_generated] src/components/FlowSettingsPage.vue -> generator gap
+- [only_in_generated] src/components/IdeaPage.vue -> generator gap
+- [only_in_generated] src/components/NotFound.vue -> generator gap
 - [different] src/components/ProjectFlowsPage.vue -> generator gap
 - [different] src/components/ProjectIdeasPage.vue -> generator gap
-- [different] src/components/ProjectPage.vue -> generator gap
+- [only_in_generated] src/components/ProjectPage.vue -> generator gap
 - [different] src/components/ProjectSettingsPage.vue -> generator gap
 - [different] src/components/ProjectsListPage.vue -> generator gap
-- [different] src/components/SettingsAppearance.vue -> generator gap
-- [different] src/components/SettingsLanguage.vue -> generator gap
+- [only_in_generated] src/components/SettingsAppearance.vue -> generator gap
+- [only_in_generated] src/components/SettingsLanguage.vue -> generator gap
 
 assets:
 - [only_in_generated] assets/icon.ico -> generator gap
@@ -64,14 +65,8 @@ other:
 - [only_in_generated] bunfig.toml -> generator gap
 - [different] edem-manifests/assets.json -> schema gap
 - [different] edem-manifests/components/AppSidebar.json -> schema gap
-- [only_in_reference] edem-manifests/components/DebugFlowRuns.json -> schema gap
-- [only_in_generated] edem-manifests/components/DebugFlowRunsPage.json -> generator gap
 - [different] edem-manifests/components/DebugFlows.json -> schema gap
-- [only_in_reference] edem-manifests/components/DebugLogs.json -> schema gap
-- [only_in_generated] edem-manifests/components/DebugLogsPage.json -> generator gap
 - [different] edem-manifests/components/FlowCodePage.json -> schema gap
-- [only_in_generated] edem-manifests/components/FlowEditorGraphPage.json -> generator gap
-- [only_in_reference] edem-manifests/components/FlowEditorPage.json -> schema gap
 - [different] edem-manifests/components/FlowSettingsPage.json -> schema gap
 - [different] edem-manifests/components/IdeaPage.json -> schema gap
 - [different] edem-manifests/components/MenuLayout.json -> schema gap
@@ -93,18 +88,47 @@ other:
 - [different] scripts/generate-icons.sh -> schema gap
 - [different] scripts/install-linux.sh -> schema gap
 - [different] src/bun/index.ts -> schema gap
-- [only_in_reference] src/components/SettingsLayoutPage.vue -> schema gap
+- [only_in_reference] src/components/DebugFlowsPage.vue -> schema gap
+- [only_in_reference] src/components/DeletableEdge.vue -> schema gap
+- [only_in_reference] src/components/FlowNode.vue -> schema gap
+- [only_in_reference] src/components/FlowNodeConfigPanel.vue -> schema gap
+- [only_in_reference] src/components/FlowNodeWrapper.vue -> schema gap
+- [only_in_reference] src/components/NotFoundPage.vue -> schema gap
+- [only_in_reference] src/components/ProjectFlowCodePage.vue -> schema gap
+- [only_in_reference] src/components/ProjectFlowGraphPage.vue -> schema gap
+- [only_in_reference] src/components/ProjectFlowSettingsPage.vue -> schema gap
+- [only_in_reference] src/components/ProjectIdeaPage.vue -> schema gap
+- [only_in_reference] src/components/ProjectOverviewPage.vue -> schema gap
+- [only_in_reference] src/components/SettingsAppearancePage.vue -> schema gap
+- [only_in_reference] src/components/SettingsLanguagePage.vue -> schema gap
+- [only_in_reference] src/components/SettingsPage.vue -> schema gap
 - [only_in_reference] src/components/UpdateOverlay.vue -> schema gap
 - [only_in_generated] src/components/registry.ts -> generator gap
 - [only_in_generated] src/composables/useApp_state.ts -> generator gap
+- [only_in_reference] src/composables/useFlowHighlighting.ts -> schema gap
 - [only_in_generated] src/composables/useFlows.ts -> generator gap
 - [only_in_generated] src/composables/useIdeas.ts -> generator gap
 - [only_in_generated] src/composables/useLogs.ts -> generator gap
+- [only_in_reference] src/composables/useNodeLabel.ts -> schema gap
+- [only_in_reference] src/composables/useNodeTestMode.ts -> schema gap
+- [only_in_generated] src/composables/useProject_flows.ts -> generator gap
 - [only_in_generated] src/composables/useProjects.ts -> generator gap
 - [different] src/data-manifest.ts -> schema gap
 - [different] src/edem-client.ts -> schema gap
 - [different] src/edem.ts -> schema gap
+- [only_in_reference] src/flow-collections.ts -> schema gap
 - [different] src/flows-bootstrap.ts -> schema gap
 - [different] src/hooks.ts -> schema gap
+- [only_in_reference] src/procedure-catalog.test.ts -> schema gap
+- [only_in_reference] src/procedure-catalog.ts -> schema gap
+- [only_in_reference] src/project-flow-normalization.test.ts -> schema gap
+- [only_in_reference] src/project-flow-normalization.ts -> schema gap
+- [only_in_reference] src/project-flow-preview.test.ts -> schema gap
+- [only_in_reference] src/project-flow-preview.ts -> schema gap
+- [only_in_reference] src/project-flow-source.test.ts -> schema gap
+- [only_in_reference] src/project-flow-source.ts -> schema gap
+- [only_in_reference] src/project-flow-validation.test.ts -> schema gap
+- [only_in_reference] src/project-flow-validation.ts -> schema gap
+- [only_in_reference] src/types/flow.ts -> schema gap
 - [only_in_reference] src/utils/apply-theme.ts -> schema gap
 - [only_in_reference] src/utils/persist-route.ts -> schema gap

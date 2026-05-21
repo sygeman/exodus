@@ -1,4 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, mock } from "bun:test"
+import { canonicalFlowShape } from "./test-flow"
 
 function createMockFlows() {
   return {
@@ -15,22 +16,8 @@ function createMockFlows() {
 }
 
 function createMockData(items: Array<{ id: string; data: Record<string, unknown> }> = []) {
-  const handlers: Record<string, Function> = {}
   return {
     queryItems: mock(() => Promise.resolve({ items })),
-    itemCreated: mock((handler: Function) => {
-      handlers.itemCreated = handler
-      return () => {}
-    }),
-    itemUpdated: mock((handler: Function) => {
-      handlers.itemUpdated = handler
-      return () => {}
-    }),
-    itemDeleted: mock((handler: Function) => {
-      handlers.itemDeleted = handler
-      return () => {}
-    }),
-    _handlers: handlers,
   }
 }
 
@@ -95,30 +82,19 @@ describe("startDispatcher", () => {
     expect(flows.flowDeleted).toHaveBeenCalled()
   })
 
-  it("should register data event handlers", async () => {
-    const flows = createMockFlows()
-    const data = createMockData([])
-
-    await startDispatcher(flows as any, data as any)
-
-    expect(data.itemCreated).toHaveBeenCalled()
-    expect(data.itemUpdated).toHaveBeenCalled()
-    expect(data.itemDeleted).toHaveBeenCalled()
-  })
-
   it("should build event index from flows", async () => {
     const flows = createMockFlows()
     const data = createMockData([
       {
         id: "flow-1",
         data: {
-          trigger: { type: "event", event: "item:created:tasks" },
+          ...canonicalFlowShape({ trigger: { type: "event", event: "data.itemCreated" } }),
         },
       },
       {
         id: "flow-2",
         data: {
-          trigger: { type: "event", event: "item:updated:tasks" },
+          ...canonicalFlowShape({ trigger: { type: "event", event: "data.itemUpdated" } }),
         },
       },
     ])
@@ -134,13 +110,13 @@ describe("startDispatcher", () => {
       {
         id: "flow-1",
         data: {
-          trigger: { type: "manual" },
+          ...canonicalFlowShape({ trigger: { type: "manual" } }),
         },
       },
       {
         id: "flow-2",
         data: {
-          trigger: { type: "schedule", every: "1h" },
+          ...canonicalFlowShape({ trigger: { type: "schedule", every: "1h" } }),
         },
       },
     ])
@@ -156,18 +132,45 @@ describe("startDispatcher", () => {
       {
         id: "flow-1",
         data: {
-          trigger: { type: "event", event: "item:created:tasks" },
+          ...canonicalFlowShape({ trigger: { type: "event", event: "data.itemCreated" } }),
         },
       },
     ])
 
     const { emit } = await startDispatcher(flows as any, data as any)
 
-    emit("item:created:tasks", { item: { id: "item-1", collection_id: "tasks", data: {} } })
+    emit("data.itemCreated", { id: "item-1", collection_id: "tasks", data: {} })
 
     expect(flows.runFlow).toHaveBeenCalledWith({
       flow_id: "flow-1",
-      trigger_data: { item: { id: "item-1", collection_id: "tasks", data: {} } },
+      trigger_data: { id: "item-1", collection_id: "tasks", data: {} },
+    })
+  })
+
+  it("should index event triggers from trigger node source", async () => {
+    const flows = createMockFlows()
+    const data = createMockData([
+      {
+        id: "flow-1",
+        data: {
+          nodes: [
+            {
+              id: "trigger",
+              type: "trigger",
+              data: { source: { type: "event", event: "data.itemCreated" } },
+            },
+          ],
+        },
+      },
+    ])
+
+    const { emit } = await startDispatcher(flows as any, data as any)
+
+    emit("data.itemCreated", { id: "item-1", collection_id: "tasks", data: {} })
+
+    expect(flows.runFlow).toHaveBeenCalledWith({
+      flow_id: "flow-1",
+      trigger_data: { id: "item-1", collection_id: "tasks", data: {} },
     })
   })
 
@@ -177,14 +180,14 @@ describe("startDispatcher", () => {
       {
         id: "flow-1",
         data: {
-          trigger: { type: "event", event: "item:created:tasks" },
+          ...canonicalFlowShape({ trigger: { type: "event", event: "data.itemCreated" } }),
         },
       },
     ])
 
     const { emit } = await startDispatcher(flows as any, data as any)
 
-    emit("item:created:projects", { item: { id: "item-1", collection_id: "projects", data: {} } })
+    emit("data.itemUpdated", { id: "item-1", collection_id: "projects", data: {} })
 
     expect(flows.runFlow).not.toHaveBeenCalled()
   })
@@ -195,21 +198,16 @@ describe("startDispatcher", () => {
       {
         id: "flow-1",
         data: {
-          trigger: {
-            type: "event",
-            event: "item:created:tasks",
-            filter: { status: "urgent" },
-          },
+          ...canonicalFlowShape({
+            trigger: { type: "event", event: "data.itemCreated", filter: { status: "urgent" } },
+          }),
         },
       },
     ])
 
     const { emit } = await startDispatcher(flows as any, data as any)
 
-    emit("item:created:tasks", {
-      item: { id: "item-1", collection_id: "tasks" },
-      status: "urgent",
-    })
+    emit("data.itemCreated", { id: "item-1", collection_id: "tasks", status: "urgent" })
 
     expect(flows.runFlow).toHaveBeenCalled()
   })
@@ -220,21 +218,16 @@ describe("startDispatcher", () => {
       {
         id: "flow-1",
         data: {
-          trigger: {
-            type: "event",
-            event: "item:created:tasks",
-            filter: { status: "urgent" },
-          },
+          ...canonicalFlowShape({
+            trigger: { type: "event", event: "data.itemCreated", filter: { status: "urgent" } },
+          }),
         },
       },
     ])
 
     const { emit } = await startDispatcher(flows as any, data as any)
 
-    emit("item:created:tasks", {
-      item: { id: "item-1", collection_id: "tasks" },
-      status: "normal",
-    })
+    emit("data.itemCreated", { id: "item-1", collection_id: "tasks", status: "normal" })
 
     expect(flows.runFlow).not.toHaveBeenCalled()
   })
@@ -245,20 +238,20 @@ describe("startDispatcher", () => {
       {
         id: "flow-1",
         data: {
-          trigger: { type: "event", event: "item:created:tasks" },
+          ...canonicalFlowShape({ trigger: { type: "event", event: "data.itemCreated" } }),
         },
       },
       {
         id: "flow-2",
         data: {
-          trigger: { type: "event", event: "item:created:tasks" },
+          ...canonicalFlowShape({ trigger: { type: "event", event: "data.itemCreated" } }),
         },
       },
     ])
 
     const { emit } = await startDispatcher(flows as any, data as any)
 
-    emit("item:created:tasks", { item: { id: "item-1", collection_id: "tasks", data: {} } })
+    emit("data.itemCreated", { id: "item-1", collection_id: "tasks", data: {} })
 
     expect(flows.runFlow).toHaveBeenCalledTimes(2)
   })

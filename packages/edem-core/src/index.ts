@@ -3,7 +3,10 @@ export {
   createEdemModule,
   createLocalEdemWorker,
   createEdemProxy,
+  getEdemProcedureCatalog,
+  getModuleProcedures,
   getModuleSubscriptions,
+  getProcedureCatalog,
 } from "./edem"
 export type {
   EdemWorker,
@@ -11,4 +14,7 @@ export type {
   EdemWorkerContext,
   InferModuleAPI,
   EdemModuleFn,
+  ModuleProcedureCatalog,
+  ProcedureKind,
+  ProcedureMetadata,
 } from "./edem"

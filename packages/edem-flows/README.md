@@ -87,7 +87,7 @@ type FlowEdge = {
 | **Data** | `input` | Входные данные (trigger inputs) |
 | | `output` | Выходные данные (template resolution) |
 | **Transform** | `transform` | Трансформация (set/add/multiply/append) |
-| **External** | `action` | Внешняя задача (sync или async callback) |
+| **External** | `call` | Вызов module procedure (`module.procedure`) |
 | | `subflow` | Вложенный flow |
 | **Flow** | `fork` | Параллельные ветки |
 | | `join` | Ожидание веток (all/any/n_of_m) |
@@ -102,9 +102,8 @@ type FlowEdge = {
 const { flow_id } = await edem.flows.createFlow({
   name: "My Flow",
   kind: "flow",
-  trigger: { type: "manual" },
   nodes: [
-    { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+    { id: "n1", type: "trigger", position: { x: 0, y: 0 }, data: { source: { type: "manual" } } },
     { id: "n2", type: "transform", position: { x: 100, y: 0 }, data: { field: "value", operation: "add", value: 10 } },
   ],
   edges: [
@@ -140,7 +139,7 @@ await edem.flows.deleteFlow({ flow_id: "..." })
 
 #### `runFlow`
 
-Запуск flow. Может вернуть `waiting` если flow содержит async nodes (action, loop, subflow).
+Запуск flow. Может вернуть `waiting`, если flow содержит async nodes (`call` с результатом `{ status: "pending" }`, `loop`, `subflow`).
 
 ```typescript
 const { run_id, status } = await edem.flows.runFlow({
@@ -166,7 +165,7 @@ await edem.flows.resumeRun({ run_id: "..." })
 
 #### `handleNodeCompleted`
 
-Resume после async node (action, loop, subflow).
+Resume после async node (`call`, `loop`, `subflow`).
 
 ```typescript
 await edem.flows.handleNodeCompleted({
@@ -612,7 +611,6 @@ await edem.flows.createFlow({
 ```typescript
 import {
   flowsModule,        // основной модуль
-  registerAction,     // регистрация action handlers
   startScheduler,     // запуск schedule триггеров
   startDispatcher,    // запуск event триггеров
   parseEvery,         // парсинг "15m" → миллисекунды
@@ -620,21 +618,9 @@ import {
   validateFlow,       // валидация структуры flow
   type FlowsManifest,
   type FlowManifest,
-  type ActionHandler,
   type ScheduleTrigger,
   type DayOfWeek,
 } from "@exodus/edem-flows"
-```
-
-### registerAction
-
-```typescript
-import { registerAction } from "@exodus/edem-flows"
-
-registerAction("checkUpdate", async (input, context) => {
-  // обработка
-  return { updated: true }
-})
 ```
 
 ### startScheduler
@@ -666,7 +652,8 @@ import { startDispatcher } from "@exodus/edem-flows"
 const { emit } = await startDispatcher(flowsAPI, dataAPI)
 ```
 
-Создаёт индексы event триггеров. Слушает события `itemCreated`/`itemUpdated`/`itemDeleted` от data модуля.
+Создаёт индексы event-триггеров и возвращает low-level `emit(name, payload)`.
+Хост-runtime сам решает, какие module subscriptions прокидывать в dispatcher.
 
 Как и scheduler, dispatcher можно ограничить подмножеством flows:
 
@@ -716,15 +703,9 @@ if (!result.valid) {
 ```typescript
 import { createEdem } from "@exodus/edem-core"
 import { dataModule } from "@exodus/edem-data"
-import { flowsModule, registerAction, startScheduler, startDispatcher } from "@exodus/edem-flows"
+import { flowsModule, startScheduler, startDispatcher } from "@exodus/edem-flows"
 
 const edem = createEdem([dataModule, flowsModule])
-
-// Регистрация action handlers
-registerAction("checkUpdate", async () => {
-  console.log("Checking for updates...")
-  return { updated: false }
-})
 
 // Запуск scheduler и dispatcher
 const scheduler = await startScheduler(edem.flows, edem.data)
@@ -733,9 +714,13 @@ const { emit } = await startDispatcher(edem.flows, edem.data)
 // Создание flow
 const { flow_id } = await edem.flows.createFlow({
   name: "Auto-tag Items",
-  trigger: { type: "event", event: "item:created:games" },
   nodes: [
-    { id: "n1", type: "trigger", position: { x: 0, y: 0 } },
+    {
+      id: "n1",
+      type: "trigger",
+      position: { x: 0, y: 0 },
+      data: { source: { type: "event", event: "data.itemCreated", filter: { collection_id: "games" } } },
+    },
     {
       id: "n2",
       type: "condition",
@@ -771,5 +756,5 @@ const { run_id, status } = await edem.flows.runFlow({
 console.log(status) // "completed"
 
 // Эмит события (триггерит flows с event триггером)
-emit("item:created:games", { id: "1", genre: "RPG", title: "Elden Ring" })
+emit("data.itemCreated", { id: "1", collection_id: "games", genre: "RPG", title: "Elden Ring" })
 ```

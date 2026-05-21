@@ -2,7 +2,7 @@
   "component": "div",
   "queries": {
     "flows": {
-      "collection": "flows",
+      "collection": "project_flows",
       "filter": {
         "project_id": { "_eq": "{{ route.params.id }}" }
       }

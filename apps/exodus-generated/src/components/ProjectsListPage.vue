@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from "vue"
 import { useProjects } from "@/composables/useProjects"
+import { useEdem } from "@/edem"
 import { useT } from "@exodus/edem-vue"
 
 const {
@@ -11,17 +12,11 @@ const {
   remove: removeProjects,
 } = useProjects({})
 const showSkeleton = ref(false)
+const edem = useEdem()
 const t = useT()
 
-async function handleCreate($event?: Event, item?: Record<string, unknown>) {
-  const createdIdResult = await createProjects({
-    name: "Untitled",
-    slug: `untitled-${crypto.randomUUID().slice(0, 8)}`,
-    type: "desktop",
-    sort_order: 0,
-  })
-  const createdId = typeof createdIdResult === "string" ? createdIdResult : createdIdResult.id
-  await router.push(`/project/${createdId}/overview`)
+function handleCreate() {
+  edem.flows.runFlow({ flow_id: "create" })
 }
 
 function getInitials(name: string): string {
@@ -51,14 +46,14 @@ function getInitials(name: string): string {
     >
       <UIcon name="i-lucide-folder-open" class="text-muted h-12 w-12" />
       <p class="text-muted text-lg">{{ t({ en: "No projects yet", ru: "Пока нет проектов" }) }}</p>
-      <UButton @click="handleCreate($event)">{{
+      <UButton @click="handleCreate()">{{
         t({ en: "Create project", ru: "Создать проект" })
       }}</UButton>
     </div>
     <div v-else class="flex flex-col gap-2">
       <div class="mb-4 flex items-center justify-between">
         <h1 class="text-2xl font-bold">{{ t({ en: "Projects", ru: "Проекты" }) }}</h1>
-        <UButton @click="handleCreate($event)">{{
+        <UButton @click="handleCreate()">{{
           t({ en: "Create project", ru: "Создать проект" })
         }}</UButton>
       </div>

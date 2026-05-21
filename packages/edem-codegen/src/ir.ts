@@ -119,15 +119,21 @@ export interface IRField {
 export interface IRFlow {
   id: string
   name: string
-  trigger: IRFlowTrigger
+  kind?: "flow" | "subflow"
+  trigger?: IRFlowTrigger
   nodes: IRFlowNode[]
   edges: IRFlowEdge[]
   meta?: Record<string, unknown>
 }
 
 export type IRFlowTrigger =
-  | { type: "event"; event: string }
-  | { type: "schedule"; every: string }
+  | { type: "event"; event: string; filter?: Record<string, unknown> }
+  | {
+      type: "schedule"
+      every: string
+      at?: string
+      days?: Array<"mon" | "tue" | "wed" | "thu" | "fri" | "sat" | "sun">
+    }
   | { type: "manual" }
 
 export interface IRFlowNode {

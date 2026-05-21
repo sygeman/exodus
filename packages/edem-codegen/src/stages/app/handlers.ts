@@ -42,14 +42,14 @@ export function collectHandlerCode(
         handlers.set(
           handlerName,
           `function ${handlerName}(${paramStr}) {
-  edem.flows.trigger({ flow_id: "${binding.flow}", ${inputEntries} })
+  edem.flows.runFlow({ flow_id: "${binding.flow}", trigger_data: { ${inputEntries} } })
 }`,
         )
       } else {
         handlers.set(
           handlerName,
           `function ${handlerName}() {
-  edem.flows.trigger({ flow_id: "${binding.flow}" })
+  edem.flows.runFlow({ flow_id: "${binding.flow}" })
 }`,
         )
       }

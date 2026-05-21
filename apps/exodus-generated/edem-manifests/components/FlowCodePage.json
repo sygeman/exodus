@@ -2,7 +2,7 @@
   "component": "div",
   "queries": {
     "flows": {
-      "collection": "flows",
+      "collection": "project_flows",
       "filter": {
         "project_id": {
           "_eq": "{{ route.params.id }}"
@@ -13,35 +13,116 @@
   "state": {
     "copied": false
   },
-  "computed": {
-    "flow": "{{ flows.value.find((entry) => entry.id === route.params.flowId) ?? null }}",
-    "loading": "{{ flowsLoading.value }}",
-    "manifest": "{{ flow.value ? JSON.stringify(flow.value, null, 2) : '' }}"
-  },
-  "actions": {
+  "flows": {
     "copyToClipboard": {
-      "steps": [
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": {
+        "type": "ui-event",
+        "event": "click"
+      },
+      "nodes": [
         {
+          "id": "trigger",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "guardManifest",
           "type": "guard",
-          "condition": "{{ manifest.value }}"
+          "position": {
+            "x": 180,
+            "y": 0
+          },
+          "data": {
+            "condition": "manifest"
+          }
         },
         {
-          "type": "clipboard-write",
-          "text": "{{ manifest.value }}"
+          "id": "copy",
+          "type": "ui:clipboard-write",
+          "position": {
+            "x": 360,
+            "y": 0
+          },
+          "data": {
+            "text": "{{ manifest }}"
+          }
         },
         {
-          "type": "set-state",
-          "state": "copied",
-          "value": true
+          "id": "setCopied",
+          "type": "ui:set-state",
+          "position": {
+            "x": 540,
+            "y": 0
+          },
+          "data": {
+            "state": "copied",
+            "value": true
+          }
         },
         {
-          "type": "set-timeout-state",
-          "state": "copied",
-          "value": false,
-          "delay": 2000
+          "id": "resetCopied",
+          "type": "ui:set-timeout-state",
+          "position": {
+            "x": 720,
+            "y": 0
+          },
+          "data": {
+            "state": "copied",
+            "value": false,
+            "delay": 2000
+          }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": {
+            "x": 900,
+            "y": 0
+          },
+          "data": {
+            "value": "{{ manifest }}"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e1",
+          "source": "trigger",
+          "target": "guardManifest"
+        },
+        {
+          "id": "e2",
+          "source": "guardManifest",
+          "sourceHandle": "true",
+          "target": "copy"
+        },
+        {
+          "id": "e3",
+          "source": "copy",
+          "target": "setCopied"
+        },
+        {
+          "id": "e4",
+          "source": "setCopied",
+          "target": "resetCopied"
+        },
+        {
+          "id": "e5",
+          "source": "resetCopied",
+          "target": "output"
         }
       ]
     }
+  },
+  "computed": {
+    "loading": "{{ flowsLoading }}",
+    "flow": "{{ flows.find((entry) => entry.id === route.params.flowId) ?? null }}",
+    "manifest": "{{ flow ? JSON.stringify(flow.data, null, 2) : '' }}"
   },
   "props": {
     "class": "flex min-h-0 flex-1 flex-col"
@@ -104,7 +185,7 @@
               },
               "events": {
                 "click": {
-                  "action": "copyToClipboard"
+                  "flow": "copyToClipboard"
                 }
               }
             }

@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { useT } from "@exodus/edem-vue"
 import { useCollectionQuery, useCreateItem, useDeleteItem } from "@/hooks"
-import { createDefaultFlowShape, FlowKind, getFlowKind } from "@/types/flow"
+import { PROJECT_FLOW_SOURCE_COLLECTION } from "@/flow-collections"
+import { createDefaultFlowShape, deriveTriggerFromNodes, FlowKind, getFlowKind } from "@/types/flow"
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref, watch } from "vue"
 
@@ -12,7 +13,7 @@ const projectId = computed(() => route.params.id as string)
 const [createItem] = useCreateItem()
 const [deleteItem] = useDeleteItem()
 
-const { data: flows, loading } = useCollectionQuery("flows", () => ({
+const { data: flows, loading } = useCollectionQuery(PROJECT_FLOW_SOURCE_COLLECTION, () => ({
   filter: { project_id: { _eq: projectId.value } },
   sort: ["-created_at"],
 }))
@@ -66,12 +67,11 @@ const KIND_LABELS: Record<string, string> = {
 
 async function handleCreate() {
   const defaults = createDefaultFlowShape(FlowKind.flow)
-  const id = await createItem("flows", {
+  const id = await createItem(PROJECT_FLOW_SOURCE_COLLECTION, {
     project_id: projectId.value,
     name: "New Flow",
     kind: FlowKind.flow,
     status: "draft",
-    trigger: defaults.trigger,
     nodes: defaults.nodes,
     edges: defaults.edges,
     valid: true,
@@ -85,9 +85,11 @@ function getNodeCount(flow: { data: { nodes?: unknown } }): number {
   return Array.isArray(flow.data.nodes) ? flow.data.nodes.length : 0
 }
 
-function getTriggerType(flow: { data: { trigger?: unknown } }): string {
-  const trigger = flow.data.trigger as Record<string, unknown> | undefined
-  return (trigger?.type as string) || ""
+function getTriggerType(flow: { data: { kind?: unknown; nodes?: unknown } }): string {
+  const nodes = Array.isArray(flow.data.nodes)
+    ? (flow.data.nodes as Parameters<typeof deriveTriggerFromNodes>[1])
+    : []
+  return deriveTriggerFromNodes(getFlowKind(flow.data.kind), nodes)?.type || ""
 }
 
 function getFlowKindLabel(flow: { data: { kind?: unknown } }): string {
@@ -95,7 +97,7 @@ function getFlowKindLabel(flow: { data: { kind?: unknown } }): string {
   return KIND_LABELS[kind]
 }
 
-function getFlowSummary(flow: { data: { kind?: unknown; trigger?: unknown } }): string {
+function getFlowSummary(flow: { data: { kind?: unknown; nodes?: unknown } }): string {
   return getFlowKind(flow.data.kind) === FlowKind.subflow
     ? "Input -> Output"
     : (TRIGGER_LABELS[getTriggerType(flow)] ?? "—")

@@ -2,7 +2,7 @@
   "component": "div",
   "queries": {
     "flows": {
-      "collection": "flows",
+      "collection": "project_flows",
       "filter": {
         "project_id": {
           "_eq": "{{ route.params.id }}"
@@ -31,72 +31,227 @@
     "TRIGGER_LABELS": {
       "event": "Event",
       "schedule": "Schedule",
-      "manual": "Manual",
-      "webhook": "Webhook"
+      "manual": "Manual"
     }
   },
-  "actions": {
-    "handleCreate": {
-      "steps": [
+  "flows": {
+    "create": {
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": {
+        "type": "ui-event",
+        "event": "click"
+      },
+      "nodes": [
         {
-          "type": "create-item",
-          "collection": "flows",
-          "assignTo": "createdId",
+          "id": "trigger",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "createFlow",
+          "type": "data:create-item",
+          "position": {
+            "x": 220,
+            "y": 0
+          },
           "data": {
-            "project_id": "{{ route.params.id }}",
-            "name": "New Flow",
-            "status": "draft",
-            "trigger": {
-              "type": "manual"
-            },
-            "nodes": [
-              {
-                "id": "{{ crypto.randomUUID() }}",
-                "type": "trigger",
-                "position": {
-                  "x": 250,
-                  "y": 50
-                },
-                "data": {
-                  "triggerType": "manual"
+            "collection": "project_flows",
+            "assignTo": "createdId",
+            "data": {
+              "project_id": "{{ route.params.id }}",
+              "name": "New Flow",
+              "status": "draft",
+              "trigger": {
+                "type": "manual"
+              },
+              "nodes": [
+                {
+                  "id": "{{ crypto.randomUUID() }}",
+                  "type": "trigger",
+                  "position": {
+                    "x": 250,
+                    "y": 50
+                  },
+                  "data": {
+                    "triggerType": "manual"
+                  }
                 }
-              }
-            ],
-            "edges": [],
-            "meta": {
-              "viewport": {
-                "x": 0,
-                "y": 0,
-                "zoom": 1
+              ],
+              "edges": [],
+              "meta": {
+                "viewport": {
+                  "x": 0,
+                  "y": 0,
+                  "zoom": 1
+                }
               }
             }
           }
         },
         {
-          "type": "navigate",
-          "to": "/project/{{ route.params.id }}/flows/{{ createdId }}"
+          "id": "navigateToFlow",
+          "type": "ui:navigate",
+          "position": {
+            "x": 480,
+            "y": 0
+          },
+          "data": {
+            "to": "/project/{{ route.params.id }}/flows/{{ createdId }}"
+          }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": {
+            "x": 720,
+            "y": 0
+          },
+          "data": {
+            "value": "{{ createdId }}"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-project-flows-create-1",
+          "source": "trigger",
+          "target": "createFlow"
+        },
+        {
+          "id": "e-project-flows-create-2",
+          "source": "createFlow",
+          "target": "navigateToFlow"
+        },
+        {
+          "id": "e-project-flows-create-3",
+          "source": "navigateToFlow",
+          "target": "output"
         }
       ]
     },
     "goToFlow": {
-      "steps": [
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": {
+        "type": "ui-event",
+        "event": "click"
+      },
+      "nodes": [
         {
-          "type": "navigate",
-          "to": "/project/{{ route.params.id }}/flows/{{ item.id }}"
+          "id": "trigger",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
+        },
+        {
+          "id": "navigateToFlow",
+          "type": "ui:navigate",
+          "position": {
+            "x": 220,
+            "y": 0
+          },
+          "data": {
+            "to": "/project/{{ route.params.id }}/flows/{{ trigger.item.id }}/graph"
+          }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": {
+            "x": 440,
+            "y": 0
+          },
+          "data": {
+            "value": "{{ trigger.item.id }}"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-project-flows-open-1",
+          "source": "trigger",
+          "target": "navigateToFlow"
+        },
+        {
+          "id": "e-project-flows-open-2",
+          "source": "navigateToFlow",
+          "target": "output"
         }
       ]
     },
-    "handleDelete": {
-      "steps": [
+    "delete": {
+      "profile": "ui-action",
+      "runtime": "client",
+      "trigger": {
+        "type": "ui-event",
+        "event": "click"
+      },
+      "nodes": [
         {
-          "type": "event",
-          "stopPropagation": true,
-          "preventDefault": true
+          "id": "trigger",
+          "type": "trigger",
+          "position": {
+            "x": 0,
+            "y": 0
+          }
         },
         {
-          "type": "delete-item",
-          "collection": "flows",
-          "id": "{{ item.id }}"
+          "id": "stopEvent",
+          "type": "ui:event",
+          "position": {
+            "x": 180,
+            "y": 0
+          },
+          "data": {
+            "stopPropagation": true,
+            "preventDefault": true
+          }
+        },
+        {
+          "id": "deleteFlow",
+          "type": "data:delete-item",
+          "position": {
+            "x": 380,
+            "y": 0
+          },
+          "data": {
+            "collection": "project_flows",
+            "id": "{{ trigger.item.id }}"
+          }
+        },
+        {
+          "id": "output",
+          "type": "output",
+          "position": {
+            "x": 580,
+            "y": 0
+          },
+          "data": {
+            "value": "{{ trigger.item.id }}"
+          }
+        }
+      ],
+      "edges": [
+        {
+          "id": "e-project-flows-delete-1",
+          "source": "trigger",
+          "target": "stopEvent"
+        },
+        {
+          "id": "e-project-flows-delete-2",
+          "source": "stopEvent",
+          "target": "deleteFlow"
+        },
+        {
+          "id": "e-project-flows-delete-3",
+          "source": "deleteFlow",
+          "target": "output"
         }
       ]
     }
@@ -196,7 +351,7 @@
           "component": "UButton",
           "events": {
             "click": {
-              "action": "handleCreate"
+              "flow": "create"
             }
           },
           "children": {
@@ -235,7 +390,7 @@
               "component": "UButton",
               "events": {
                 "click": {
-                  "action": "handleCreate"
+                  "flow": "create"
                 }
               },
               "children": {
@@ -260,7 +415,7 @@
               },
               "events": {
                 "click": {
-                  "action": "goToFlow"
+                  "flow": "goToFlow"
                 }
               },
               "children": [
@@ -331,7 +486,7 @@
                   },
                   "events": {
                     "click": {
-                      "action": "handleDelete"
+                      "flow": "delete"
                     }
                   }
                 }

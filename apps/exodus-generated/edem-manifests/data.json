@@ -124,6 +124,65 @@
       ]
     },
     {
+      "id": "project_flows",
+      "name": "Project Flows",
+      "labels": {
+        "en": "Project Flows",
+        "ru": "Проектные флоу"
+      },
+      "fields": [
+        {
+          "name": "project_id",
+          "type": "uuid",
+          "required": true
+        },
+        {
+          "name": "name",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "status",
+          "type": "string",
+          "default": "draft"
+        },
+        {
+          "name": "kind",
+          "type": "string",
+          "default": "flow"
+        },
+        {
+          "name": "nodes",
+          "type": "json"
+        },
+        {
+          "name": "edges",
+          "type": "json"
+        },
+        {
+          "name": "valid",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "name": "validation_errors",
+          "type": "json"
+        },
+        {
+          "name": "meta",
+          "type": "json"
+        },
+        {
+          "name": "manifest_id",
+          "type": "string"
+        },
+        {
+          "name": "backpressure",
+          "type": "json"
+        }
+      ]
+    },
+    {
       "id": "flows",
       "name": "Flows",
       "labels": {
@@ -146,9 +205,9 @@
           "default": "draft"
         },
         {
-          "name": "trigger",
-          "type": "json",
-          "required": true
+          "name": "kind",
+          "type": "string",
+          "default": "flow"
         },
         {
           "name": "nodes",
@@ -156,6 +215,15 @@
         },
         {
           "name": "edges",
+          "type": "json"
+        },
+        {
+          "name": "valid",
+          "type": "boolean",
+          "default": true
+        },
+        {
+          "name": "validation_errors",
           "type": "json"
         },
         {

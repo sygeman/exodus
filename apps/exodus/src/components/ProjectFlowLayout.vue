@@ -1,13 +1,9 @@
 <script setup lang="ts">
 import { useT } from "@exodus/edem-vue"
 import { useCollectionQuery, useUpdateItem } from "@/hooks"
-import {
-  createDefaultFlowShape,
-  FlowKind,
-  getFlowKind,
-  type FlowTrigger,
-  validateFlowGraph,
-} from "@/types/flow"
+import { PROJECT_FLOW_SOURCE_COLLECTION } from "@/flow-collections"
+import { createDefaultFlowShape, FlowKind, getFlowKind } from "@/types/flow"
+import { validateProjectFlow } from "@/project-flow-validation"
 import { useRoute, useRouter } from "vue-router"
 import { computed, ref } from "vue"
 
@@ -18,7 +14,7 @@ const projectId = computed(() => route.params.id as string)
 const flowId = computed(() => route.params.flowId as string)
 const [updateItem] = useUpdateItem()
 
-const { data: flows } = useCollectionQuery("flows", () => ({
+const { data: flows } = useCollectionQuery(PROJECT_FLOW_SOURCE_COLLECTION, () => ({
   filter: { project_id: { _eq: projectId.value } },
 }))
 
@@ -76,7 +72,7 @@ function confirmKindChange() {
   const kind = pendingKind.value
 
   const defaults = createDefaultFlowShape(kind)
-  const validation = validateFlowGraph({ kind, nodes: defaults.nodes, edges: defaults.edges })
+  const validation = validateProjectFlow({ kind, nodes: defaults.nodes, edges: defaults.edges })
   const currentMeta =
     typeof flow.value.data.meta === "object" && flow.value.data.meta !== null
       ? (flow.value.data.meta as Record<string, unknown>)
@@ -84,7 +80,6 @@ function confirmKindChange() {
 
   updateItem(flow.value.id, {
     kind,
-    trigger: defaults.trigger as FlowTrigger | null,
     nodes: defaults.nodes,
     edges: defaults.edges,
     valid: validation.valid,

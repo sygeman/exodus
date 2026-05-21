@@ -145,7 +145,7 @@ function generateBunIndex(ir: IR): string {
   const imports = [
     `import { BrowserWindow, BrowserView, Updater, ApplicationMenu } from "electrobun/bun"`,
     `import type { RPCSchema } from "electrobun"`,
-    `import { createBunEdemBridge } from "@exodus/edem-electrobun/bun"`,
+    `import { createBunEdemBridge, subscribeBunModuleEvents } from "@exodus/edem-electrobun/bun"`,
     `import type { EdemMsg } from "@exodus/edem-electrobun/types"`,
     `import { setElectrobunDeps } from "@exodus/edem-electrobun/module"`,
     `import { startScheduler, startDispatcher } from "@exodus/edem-flows"`,
@@ -206,6 +206,12 @@ const url = await getMainViewUrl()
 
 const edemBridge = createBunEdemBridge(edem, modules)
 
+function toFlowTriggerPayload(event: unknown): Record<string, unknown> {
+  return typeof event === "object" && event !== null && !Array.isArray(event)
+    ? (event as Record<string, unknown>)
+    : { value: event }
+}
+
 const rpc = BrowserView.defineRPC<{
   bun: RPCSchema<{
     messages: { edem: EdemMsg }
@@ -230,6 +236,10 @@ setElectrobunDeps({ Updater })
 
 await startScheduler(edem.flows, edem.data)
 const flowsDispatcher = await startDispatcher(edem.flows, edem.data)
+
+subscribeBunModuleEvents(edem, modules, ({ module, name, event }) => {
+  flowsDispatcher.emit(\`\${module}.\${name}\`, toFlowTriggerPayload(event))
+})
 
 edemBridge.onWebviewEvent((name, payload) => {
   flowsDispatcher.emit(name, payload)

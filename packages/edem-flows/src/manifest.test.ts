@@ -3,6 +3,7 @@ import { createEdem } from "@exodus/edem-core"
 import { dataModule, resetDataEngine } from "@exodus/edem-data"
 import { flowsModule } from "./index"
 import type { FlowsManifest } from "./manifest"
+import { canonicalFlowShape, canonicalManifestFlow } from "./test-flow"
 
 describe("flows manifest", () => {
   let edem: ReturnType<typeof createEdem<[typeof dataModule, typeof flowsModule]>>
@@ -16,20 +17,20 @@ describe("flows manifest", () => {
     it("should create flows from manifest", async () => {
       const manifest: FlowsManifest = {
         flows: [
-          {
+          canonicalManifestFlow({
             id: "test-flow-1",
             name: "Test Flow 1",
             trigger: { type: "manual" },
             nodes: [{ id: "n1", type: "trigger", position: { x: 0, y: 0 } }],
             edges: [],
-          },
-          {
+          }),
+          canonicalManifestFlow({
             id: "test-flow-2",
             name: "Test Flow 2",
             trigger: { type: "event", event: "test:event" },
             nodes: [{ id: "n1", type: "trigger", position: { x: 0, y: 0 } }],
             edges: [],
-          },
+          }),
         ],
       }
 
@@ -42,13 +43,13 @@ describe("flows manifest", () => {
     it("should skip unchanged flows", async () => {
       const manifest: FlowsManifest = {
         flows: [
-          {
+          canonicalManifestFlow({
             id: "test-flow",
             name: "Test Flow",
             trigger: { type: "manual" },
             nodes: [{ id: "n1", type: "trigger", position: { x: 0, y: 0 } }],
             edges: [],
-          },
+          }),
         ],
       }
 
@@ -63,13 +64,13 @@ describe("flows manifest", () => {
     it("should persist system manifest flows with null project_id", async () => {
       const manifest: FlowsManifest = {
         flows: [
-          {
+          canonicalManifestFlow({
             id: "system-flow",
             name: "System Flow",
             trigger: { type: "manual" },
             nodes: [{ id: "n1", type: "trigger", position: { x: 0, y: 0 } }],
             edges: [],
-          },
+          }),
         ],
       }
 
@@ -81,54 +82,16 @@ describe("flows manifest", () => {
       expect(flow?.data.project_id).toBeNull()
     })
 
-    it("should normalize legacy manifest flows without project_id", async () => {
-      const manifest: FlowsManifest = {
-        flows: [
-          {
-            id: "legacy-system-flow",
-            name: "Legacy System Flow",
-            trigger: { type: "manual" },
-            nodes: [{ id: "n1", type: "trigger", position: { x: 0, y: 0 } }],
-            edges: [],
-          },
-        ],
-      }
-
-      await edem.flows.applyManifest({ manifest })
-
-      const { items: createdItems } = await edem.data.queryItems({ collection_id: "flows" })
-      const createdFlow = createdItems.find(
-        (item) => item.data.manifest_id === "legacy-system-flow",
-      )
-
-      expect(createdFlow).toBeDefined()
-
-      await edem.data.updateItem({
-        item_id: createdFlow!.id,
-        data: { project_id: undefined },
-      })
-
-      const result = await edem.flows.applyManifest({ manifest })
-      expect(result.updated).toEqual(["legacy-system-flow"])
-
-      const { items: updatedItems } = await edem.data.queryItems({ collection_id: "flows" })
-      const updatedFlow = updatedItems.find(
-        (item) => item.data.manifest_id === "legacy-system-flow",
-      )
-
-      expect(updatedFlow?.data.project_id).toBeNull()
-    })
-
     it("should update changed flows", async () => {
       const manifest: FlowsManifest = {
         flows: [
-          {
+          canonicalManifestFlow({
             id: "test-flow",
             name: "Test Flow",
             trigger: { type: "manual" },
             nodes: [{ id: "n1", type: "trigger", position: { x: 0, y: 0 } }],
             edges: [],
-          },
+          }),
         ],
       }
 
@@ -136,7 +99,7 @@ describe("flows manifest", () => {
 
       const updatedManifest: FlowsManifest = {
         flows: [
-          {
+          canonicalManifestFlow({
             id: "test-flow",
             name: "Updated Flow",
             trigger: { type: "manual" },
@@ -145,7 +108,7 @@ describe("flows manifest", () => {
               { id: "n2", type: "transform", position: { x: 100, y: 0 } },
             ],
             edges: [{ id: "e1", source: "n1", target: "n2" }],
-          },
+          }),
         ],
       }
 
@@ -158,20 +121,20 @@ describe("flows manifest", () => {
     it("should delete stale flows not in manifest", async () => {
       const manifest1: FlowsManifest = {
         flows: [
-          {
+          canonicalManifestFlow({
             id: "flow-a",
             name: "Flow A",
             trigger: { type: "manual" },
             nodes: [],
             edges: [],
-          },
-          {
+          }),
+          canonicalManifestFlow({
             id: "flow-b",
             name: "Flow B",
             trigger: { type: "manual" },
             nodes: [],
             edges: [],
-          },
+          }),
         ],
       }
 
@@ -179,13 +142,13 @@ describe("flows manifest", () => {
 
       const manifest2: FlowsManifest = {
         flows: [
-          {
+          canonicalManifestFlow({
             id: "flow-a",
             name: "Flow A",
             trigger: { type: "manual" },
             nodes: [],
             edges: [],
-          },
+          }),
         ],
       }
 
@@ -203,13 +166,13 @@ describe("flows manifest", () => {
     it("should not delete user-created flows without manifest_id", async () => {
       const manifest: FlowsManifest = {
         flows: [
-          {
+          canonicalManifestFlow({
             id: "manifest-flow",
             name: "Manifest Flow",
             trigger: { type: "manual" },
             nodes: [],
             edges: [],
-          },
+          }),
         ],
       }
 
@@ -217,9 +180,7 @@ describe("flows manifest", () => {
 
       await edem.flows.createFlow({
         name: "User Flow",
-        trigger: { type: "manual" },
-        nodes: [],
-        edges: [],
+        ...canonicalFlowShape({ trigger: { type: "manual" }, nodes: [], edges: [] }),
       })
 
       const result = await edem.flows.applyManifest({ manifest })
@@ -232,14 +193,14 @@ describe("flows manifest", () => {
     it("should update flow when only meta changes", async () => {
       const manifest1: FlowsManifest = {
         flows: [
-          {
+          canonicalManifestFlow({
             id: "meta-flow",
             name: "Meta Flow",
             trigger: { type: "manual" },
             nodes: [],
             edges: [],
             meta: { key: "value" },
-          },
+          }),
         ],
       }
 
@@ -247,19 +208,56 @@ describe("flows manifest", () => {
 
       const manifest2: FlowsManifest = {
         flows: [
-          {
+          canonicalManifestFlow({
             id: "meta-flow",
             name: "Meta Flow",
             trigger: { type: "manual" },
             nodes: [],
             edges: [],
             meta: { key: "updated" },
-          },
+          }),
         ],
       }
 
       const result = await edem.flows.applyManifest({ manifest: manifest2 })
       expect(result.updated).toEqual(["meta-flow"])
+    })
+
+    it("should derive trigger from trigger node source when top-level trigger is omitted", async () => {
+      const manifest: FlowsManifest = {
+        flows: [
+          {
+            id: "node-source-flow",
+            name: "Node Source Flow",
+            nodes: [
+              {
+                id: "trigger",
+                type: "trigger",
+                position: { x: 0, y: 0 },
+                data: { source: { type: "event", event: "data.itemCreated" } },
+              },
+            ],
+            edges: [],
+          },
+        ],
+      }
+
+      await edem.flows.applyManifest({ manifest })
+
+      const exported = await edem.flows.getManifest()
+      expect(exported.flows[0]?.nodes[0]?.data?.source).toEqual({
+        type: "event",
+        event: "data.itemCreated",
+      })
+
+      const { flows } = await edem.flows.listFlows({})
+      expect(flows[0]?.nodes[0]?.data?.source).toEqual({
+        type: "event",
+        event: "data.itemCreated",
+      })
+
+      const { items } = await edem.data.queryItems({ collection_id: "flows" })
+      expect(items[0]?.data.trigger).toBeUndefined()
     })
   })
 
@@ -267,13 +265,13 @@ describe("flows manifest", () => {
     it("should export flows as manifest", async () => {
       const manifest: FlowsManifest = {
         flows: [
-          {
+          canonicalManifestFlow({
             id: "test-flow",
             name: "Test Flow",
             trigger: { type: "manual" },
             nodes: [{ id: "n1", type: "trigger", position: { x: 0, y: 0 } }],
             edges: [],
-          },
+          }),
         ],
       }
 
@@ -288,20 +286,20 @@ describe("flows manifest", () => {
     it("should export multiple flows", async () => {
       const manifest: FlowsManifest = {
         flows: [
-          {
+          canonicalManifestFlow({
             id: "flow-1",
             name: "Flow 1",
             trigger: { type: "manual" },
             nodes: [],
             edges: [],
-          },
-          {
+          }),
+          canonicalManifestFlow({
             id: "flow-2",
             name: "Flow 2",
             trigger: { type: "event", event: "test" },
             nodes: [],
             edges: [],
-          },
+          }),
         ],
       }
 

@@ -9,36 +9,38 @@ import {
   type EdgeChange,
 } from "@vue-flow/core"
 import { Background } from "@vue-flow/background"
-import { useCollectionQuery, useUpdateItem } from "@/hooks"
+import { edem } from "@/edem"
+import { useCollectionQuery } from "@/hooks"
+import { PROJECT_FLOW_SOURCE_COLLECTION } from "@/flow-collections"
 import { useFlowHighlighting } from "@/composables/useFlowHighlighting"
 import FlowNode from "@/components/FlowNode.vue"
 import DeletableEdge from "@/components/DeletableEdge.vue"
 import FlowNodeConfigPanel from "@/components/FlowNodeConfigPanel.vue"
+import { normalizeProjectFlowGraph } from "@/project-flow-normalization"
+import { normalizeProcedureCatalog, type ProcedureCatalogModule } from "@/procedure-catalog"
+import { validateProjectFlow } from "@/project-flow-validation"
 import {
-  deriveTriggerFromNodes,
   getFlowKind,
   getTriggerNodeData,
-  type FlowTrigger,
   type StoredFlowEdge,
   type StoredFlowNode,
-  validateFlowGraph,
 } from "@/types/flow"
 
 const route = useRoute()
 const projectId = computed(() => route.params.id as string)
 const flowId = computed(() => route.params.flowId as string)
-const [updateItem] = useUpdateItem()
+const graphUpdateSource = `project-flow-graph:${crypto.randomUUID()}`
 
-const { data: flows } = useCollectionQuery("flows", () => ({
+const { data: flows } = useCollectionQuery(PROJECT_FLOW_SOURCE_COLLECTION, () => ({
   filter: { project_id: { _eq: projectId.value } },
 }))
 
 type FlowItem = {
   id: string
+  source?: string | null
   data: {
     name?: string
     kind?: unknown
-    trigger?: FlowTrigger | null
     nodes?: unknown
     edges?: unknown
     meta?: unknown
@@ -55,6 +57,32 @@ const { viewport, setViewport, onMoveEnd, screenToFlowCoordinate } = useVueFlow(
 interface FlowMeta {
   viewport?: { x: number; y: number; zoom: number }
   selectedNodeId?: string
+}
+
+function normalizeNodeForStorage(node: StoredFlowNode): StoredFlowNode {
+  if (node.type === "call") {
+    return {
+      ...node,
+      data: {
+        ...node.data,
+        testMode: undefined,
+        status: undefined,
+        error: undefined,
+        progress: undefined,
+      },
+    }
+  }
+
+  return {
+    ...node,
+    data: {
+      ...node.data,
+      testMode: undefined,
+      status: undefined,
+      error: undefined,
+      progress: undefined,
+    },
+  }
 }
 
 type GraphNodeView = {
@@ -79,7 +107,7 @@ type GraphEdgeView = {
 
 const NODE_TYPE_MAP: Record<string, string> = {
   trigger: "trigger",
-  action: "action",
+  call: "call",
   transform: "transform",
   delay: "delay",
   condition: "condition",
@@ -94,7 +122,7 @@ const NODE_TYPE_MAP: Record<string, string> = {
 
 const REVERSE_TYPE_MAP: Record<string, string> = {
   trigger: "trigger",
-  action: "action",
+  call: "call",
   condition: "condition",
   switch: "switch",
   loop: "loop",
@@ -111,51 +139,159 @@ const vfNodes = ref<GraphNodeView[]>([])
 
 const vfEdges = ref<GraphEdgeView[]>([])
 
+const procedureCatalog = ref<ProcedureCatalogModule[]>([])
+
 const suppressAutoSave = ref(false)
+const hydratedFlowId = ref<string | null>(null)
+const restoringViewport = ref(false)
+let flowUpdateQueue: Promise<void> = Promise.resolve()
+
+function buildRawStoredNodes(): StoredFlowNode[] {
+  return vfNodes.value.map((node) =>
+    normalizeNodeForStorage({
+      id: node.id,
+      type:
+        ((node.data as Record<string, unknown>)?.nodeType as string) ||
+        REVERSE_TYPE_MAP[node.type] ||
+        "call",
+      position: node.position,
+      data: node.data,
+    } as StoredFlowNode),
+  )
+}
+
+function buildRawStoredEdges(): StoredFlowEdge[] {
+  return vfEdges.value.map((edge) => ({
+    id: edge.id,
+    source: edge.source,
+    target: edge.target,
+    sourceHandle: edge.sourceHandle,
+    targetHandle: edge.targetHandle,
+    label: edge.label,
+  })) as StoredFlowEdge[]
+}
+
+function buildNormalizedStoredGraph() {
+  return normalizeProjectFlowGraph({
+    kind: flowKind.value,
+    nodes: buildRawStoredNodes(),
+    edges: buildRawStoredEdges(),
+    procedureCatalog: procedureCatalog.value,
+  })
+}
+
+function getStoredGraphSignature(input: {
+  nodes: StoredFlowNode[]
+  edges: StoredFlowEdge[]
+}): string {
+  return JSON.stringify({ nodes: input.nodes, edges: input.edges })
+}
+
+function updateFlowItem(itemId: string, data: Record<string, unknown>) {
+  const run = flowUpdateQueue.then(async () => {
+    await edem.data.updateItem({
+      item_id: itemId,
+      data,
+      source: graphUpdateSource,
+    })
+  })
+
+  flowUpdateQueue = run.catch(() => {})
+  return run
+}
+
+async function loadProcedureCatalog() {
+  try {
+    const result = await edem.flows.getProcedureCatalog(undefined)
+    procedureCatalog.value = normalizeProcedureCatalog(result.modules)
+  } catch (error) {
+    console.error("[project-flows] Failed to load procedure catalog:", error)
+  }
+}
+
+void loadProcedureCatalog()
 
 watch(
-  flow,
-  (f) => {
+  [flow, procedureCatalog],
+  ([f, currentProcedureCatalog]) => {
     if (!f) return
+    const flowChanged = hydratedFlowId.value !== f.id
+
+    if (!flowChanged && f.source === graphUpdateSource) {
+      hydratedFlowId.value = f.id
+      return
+    }
+
     suppressAutoSave.value = true
     cancelPendingSave()
     const currentSelectedNodeId = selectedNodeId.value
-    const nodes = (f.data.nodes ?? []) as StoredFlowNode[]
-    const edges = (f.data.edges ?? []) as StoredFlowEdge[]
-    vfNodes.value = nodes.map((n) => ({
-      id: n.id,
-      type: NODE_TYPE_MAP[n.type] || "action",
-      position: n.position,
-      data:
-        n.type === "trigger"
-          ? {
-              ...n.data,
-              ...getTriggerNodeData((f.data.trigger as FlowTrigger | null | undefined) ?? null),
-              label: typeof n.data?.label === "string" ? n.data.label : "Trigger",
-              nodeType: n.type,
-            }
-          : { ...n.data, nodeType: n.type },
-    }))
-    vfEdges.value = edges.map((e) => ({
-      id: e.id,
-      source: e.source,
-      target: e.target,
-      sourceHandle: e.sourceHandle,
-      targetHandle: e.targetHandle,
-      label: e.label,
-      type: "deleteable",
-    }))
+    const rawNodes = (f.data.nodes ?? []) as StoredFlowNode[]
+    const rawEdges = (f.data.edges ?? []) as StoredFlowEdge[]
+    const normalized = normalizeProjectFlowGraph({
+      kind: getFlowKind(f.data.kind),
+      nodes: rawNodes,
+      edges: rawEdges,
+      procedureCatalog: currentProcedureCatalog,
+    })
+
+    const currentGraphSignature = getStoredGraphSignature(buildNormalizedStoredGraph())
+    const nextGraphSignature = getStoredGraphSignature({
+      nodes: normalized.nodes,
+      edges: normalized.edges,
+    })
+
+    if (flowChanged || currentGraphSignature !== nextGraphSignature) {
+      vfNodes.value = normalized.nodes.map((n) => ({
+        id: n.id,
+        type: NODE_TYPE_MAP[n.type] || "action",
+        position: n.position,
+        data:
+          n.type === "trigger"
+            ? {
+                ...n.data,
+                ...getTriggerNodeData(normalized.trigger),
+                label: typeof n.data?.label === "string" ? n.data.label : "Trigger",
+                nodeType: n.type,
+              }
+            : { ...n.data, nodeType: n.type },
+      }))
+      vfEdges.value = normalized.edges.map((e) => ({
+        id: e.id,
+        source: e.source,
+        target: e.target,
+        sourceHandle: e.sourceHandle,
+        targetHandle: e.targetHandle,
+        label: e.label,
+        type: "deleteable",
+      }))
+    }
 
     const meta = (f.data.meta ?? {}) as FlowMeta
     selectedNodeId.value =
-      currentSelectedNodeId && nodes.some((node) => node.id === currentSelectedNodeId)
+      currentSelectedNodeId && normalized.nodes.some((node) => node.id === currentSelectedNodeId)
         ? currentSelectedNodeId
         : null
-    if (meta.viewport) {
-      setViewport(meta.viewport)
+    if (flowChanged && meta.viewport) {
+      restoringViewport.value = true
+      void Promise.resolve(setViewport(meta.viewport)).finally(() => {
+        restoringViewport.value = false
+      })
     }
+    hydratedFlowId.value = f.id
     suppressAutoSave.value = false
     applyHighlighting()
+
+    if (
+      JSON.stringify(rawNodes) !== JSON.stringify(normalized.nodes) ||
+      JSON.stringify(rawEdges) !== JSON.stringify(normalized.edges)
+    ) {
+      void updateFlowItem(f.id, {
+        nodes: normalized.nodes,
+        edges: normalized.edges,
+      }).catch((error) => {
+        console.error("[project-flows] Failed to persist normalized source graph:", error)
+      })
+    }
   },
   { immediate: true },
 )
@@ -164,7 +300,7 @@ const FlowNodeRaw = markRaw(FlowNode)
 
 const nodeTypes = {
   trigger: FlowNodeRaw,
-  action: FlowNodeRaw,
+  call: FlowNodeRaw,
   condition: FlowNodeRaw,
   switch: FlowNodeRaw,
   loop: FlowNodeRaw,
@@ -184,14 +320,14 @@ const edgeTypes = {
 const selectedNodeId = ref<string | null>(null)
 
 const validationState = computed(() =>
-  validateFlowGraph({
+  validateProjectFlow({
     kind: flowKind.value,
     nodes: vfNodes.value.map((node) => ({
       id: node.id,
       type:
         ((node.data as Record<string, unknown>)?.nodeType as string) ||
         REVERSE_TYPE_MAP[node.type] ||
-        "action",
+        "call",
       position: node.position,
       data: node.data,
     })),
@@ -203,8 +339,42 @@ const validationState = computed(() =>
       targetHandle: edge.targetHandle,
       label: edge.label,
     })),
+    procedureCatalog: procedureCatalog.value,
   }),
 )
+
+watch([flow, procedureCatalog], ([currentFlow, currentProcedureCatalog]) => {
+  if (!currentFlow) return
+
+  const nodes = (currentFlow.data.nodes ?? []) as StoredFlowNode[]
+  const edges = (currentFlow.data.edges ?? []) as StoredFlowEdge[]
+  const validation = validateProjectFlow({
+    kind: getFlowKind(currentFlow.data.kind),
+    nodes,
+    edges,
+    procedureCatalog: currentProcedureCatalog,
+  })
+  const currentErrors = Array.isArray(currentFlow.data.validation_errors)
+    ? currentFlow.data.validation_errors.filter(
+        (error): error is string => typeof error === "string",
+      )
+    : []
+
+  if (
+    currentFlow.data.valid === validation.valid &&
+    currentErrors.length === validation.errors.length &&
+    currentErrors.every((error, index) => error === validation.errors[index])
+  ) {
+    return
+  }
+
+  void updateFlowItem(currentFlow.id, {
+    valid: validation.valid,
+    validation_errors: validation.errors,
+  }).catch((error) => {
+    console.error("[project-flows] Failed to sync validation state:", error)
+  })
+})
 
 const { highlightedNodeIds, applyEdgeHighlighting } = useFlowHighlighting(
   vfNodes,
@@ -341,9 +511,9 @@ function handleAddNodeFromEdge(
 
   const newNode = {
     id: newNodeId,
-    type: "action",
+    type: "call",
     position: { x: pos.x, y: pos.y },
-    data: { nodeType: "action" },
+    data: { nodeType: "call", type: "call" },
   }
 
   const newEdge = {
@@ -378,37 +548,15 @@ function cancelPendingSave() {
 
 function saveToDb() {
   cancelPendingSave()
-  if (!flow.value) return
-  const nodesForStorage = vfNodes.value.map((n) => ({
-    id: n.id,
-    type:
-      ((n.data as Record<string, unknown>)?.nodeType as string) ||
-      REVERSE_TYPE_MAP[n.type] ||
-      "action",
-    position: n.position,
-    data: n.data,
-  })) as StoredFlowNode[]
-  const edgesForStorage = vfEdges.value.map((e) => ({
-    id: e.id,
-    source: e.source,
-    target: e.target,
-    sourceHandle: e.sourceHandle,
-    targetHandle: e.targetHandle,
-    label: e.label,
-  })) as StoredFlowEdge[]
-  const nextTrigger = deriveTriggerFromNodes(
-    flowKind.value,
-    nodesForStorage,
-    (flow.value.data.trigger as FlowTrigger | null | undefined) ?? null,
-  )
+  if (!flow.value || suppressAutoSave.value || restoringViewport.value) return
+  const normalized = buildNormalizedStoredGraph()
   const meta: FlowMeta = {
     viewport: { x: viewport.value.x, y: viewport.value.y, zoom: viewport.value.zoom },
   }
-  updateItem(flow.value.id, {
+  void updateFlowItem(flow.value.id, {
     kind: flowKind.value,
-    trigger: nextTrigger,
-    nodes: nodesForStorage,
-    edges: edgesForStorage,
+    nodes: normalized.nodes,
+    edges: normalized.edges,
     valid: validationState.value.valid,
     validation_errors: validationState.value.errors,
     meta,

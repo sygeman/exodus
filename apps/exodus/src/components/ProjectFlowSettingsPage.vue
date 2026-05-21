@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import SettingsLayout from "@/components/SettingsLayout.vue"
 import { useT } from "@exodus/edem-vue"
+import { PROJECT_FLOW_SOURCE_COLLECTION } from "@/flow-collections"
 
 const t = useT()
 
@@ -13,7 +14,7 @@ const router = useRouter()
 const projectId = computed(() => route.params.id as string)
 const flowId = computed(() => route.params.flowId as string)
 
-const { data: flows } = useCollectionQuery("flows", () => ({
+const { data: flows } = useCollectionQuery(PROJECT_FLOW_SOURCE_COLLECTION, () => ({
   filter: { project_id: { _eq: projectId.value } },
 }))
 const [updateItem] = useUpdateItem()

@@ -1,6 +1,13 @@
 import { describe, expect, it } from "bun:test"
 import { z } from "zod"
-import { createEdem, createEdemModule, createLocalEdemWorker } from "./edem"
+import {
+  createEdem,
+  createEdemModule,
+  createLocalEdemWorker,
+  getEdemProcedureCatalog,
+  getModuleProcedures,
+  getProcedureCatalog,
+} from "./edem"
 import type { EdemWorker, EdemWorkerFactory, EdemWorkerContext } from "./edem"
 
 function createDatabase() {
@@ -145,6 +152,45 @@ describe("Edem", () => {
 
     const { flowId } = await edem.flows.runFlow({ name: "test" })
     expect(flowId).toMatch(/^[0-9a-f-]{36}$/i)
+  })
+
+  it("exposes procedure metadata for a module", () => {
+    const procedures = getModuleProcedures(collectionModule)
+
+    expect(procedures.map((proc) => proc.name)).toEqual([
+      "collectionCreated",
+      "createCollection",
+      "getCollection",
+    ])
+
+    const createCollection = procedures.find((proc) => proc.name === "createCollection")
+    expect(createCollection?.kind).toBe("mutation")
+    expect(createCollection?.inputSchema?.safeParse({ name: "Projects" }).success).toBe(true)
+    expect(createCollection?.outputSchema.safeParse({ id: crypto.randomUUID() }).success).toBe(true)
+
+    const collectionCreated = procedures.find((proc) => proc.name === "collectionCreated")
+    expect(collectionCreated?.kind).toBe("subscription")
+    expect(collectionCreated?.inputSchema).toBeNull()
+    expect(
+      collectionCreated?.outputSchema.safeParse({ id: crypto.randomUUID(), name: "Projects" })
+        .success,
+    ).toBe(true)
+  })
+
+  it("builds a procedure catalog for multiple modules", () => {
+    const catalog = getProcedureCatalog([collectionModule, flowsModule])
+
+    expect(catalog.map((entry) => entry.module)).toEqual(["collection", "flows"])
+    expect(catalog[0]?.procedures.some((proc) => proc.name === "createCollection")).toBe(true)
+    expect(catalog[1]?.procedures.some((proc) => proc.name === "flowCompleted")).toBe(true)
+  })
+
+  it("attaches procedure catalog to created edem instance", () => {
+    const edem = createEdem([collectionModule, flowsModule])
+    const catalog = getEdemProcedureCatalog(edem)
+
+    expect(catalog).not.toBeNull()
+    expect(catalog?.map((entry) => entry.module)).toEqual(["collection", "flows"])
   })
 })
 

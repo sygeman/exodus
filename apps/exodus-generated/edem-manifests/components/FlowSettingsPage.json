@@ -2,7 +2,7 @@
   "component": "div",
   "queries": {
     "flows": {
-      "collection": "flows",
+      "collection": "project_flows",
       "filter": {
         "project_id": {
           "_eq": "{{ route.params.id }}"
@@ -64,7 +64,7 @@
         },
         {
           "type": "update-item",
-          "collection": "flows",
+          "collection": "project_flows",
           "id": "{{ flow.value.id }}",
           "data": {
             "name": "{{ (((($event as FocusEvent | KeyboardEvent).target) as HTMLInputElement).value).trim() }}"
@@ -84,7 +84,7 @@
         },
         {
           "type": "update-item",
-          "collection": "flows",
+          "collection": "project_flows",
           "id": "{{ flow.value.id }}",
           "data": {
             "status": "{{ $event }}"
@@ -118,7 +118,7 @@
         },
         {
           "type": "delete-item",
-          "collection": "flows",
+          "collection": "project_flows",
           "id": "{{ flow.value.id }}"
         },
         {
