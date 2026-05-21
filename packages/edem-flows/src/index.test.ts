@@ -362,17 +362,51 @@ describe("edem-flows", () => {
     it("should expose serializable procedure metadata for editor usage", async () => {
       const { modules } = await edem.flows.getProcedureCatalog()
 
-      expect(modules.find((entry) => entry.module === "data")?.procedures).toContainEqual({
+      const dataProcedures = modules.find((entry) => entry.module === "data")?.procedures ?? []
+      const flowsProcedures = modules.find((entry) => entry.module === "flows")?.procedures ?? []
+
+      expect(dataProcedures.find((entry) => entry.name === "listCollections")).toMatchObject({
         name: "listCollections",
         kind: "query",
+        inputSchema: {
+          mode: "json-schema",
+          schema: expect.objectContaining({
+            type: "object",
+            properties: expect.objectContaining({
+              parent_id: expect.objectContaining({ type: "string" }),
+            }),
+          }),
+        },
+        outputSchema: {
+          mode: "json-schema",
+          schema: expect.objectContaining({ type: "object" }),
+        },
       })
-      expect(modules.find((entry) => entry.module === "data")?.procedures).toContainEqual({
+      expect(dataProcedures.find((entry) => entry.name === "itemCreated")).toMatchObject({
         name: "itemCreated",
         kind: "subscription",
+        inputSchema: { mode: "none" },
+        outputSchema: {
+          mode: "json-schema",
+          schema: expect.objectContaining({ type: "object" }),
+        },
       })
-      expect(modules.find((entry) => entry.module === "flows")?.procedures).toContainEqual({
+      expect(flowsProcedures.find((entry) => entry.name === "runFlow")).toMatchObject({
         name: "runFlow",
         kind: "mutation",
+        inputSchema: {
+          mode: "json-schema",
+          schema: expect.objectContaining({
+            type: "object",
+            properties: expect.objectContaining({
+              flow_id: expect.objectContaining({ type: "string" }),
+            }),
+          }),
+        },
+        outputSchema: {
+          mode: "json-schema",
+          schema: expect.objectContaining({ type: "object" }),
+        },
       })
     })
   })

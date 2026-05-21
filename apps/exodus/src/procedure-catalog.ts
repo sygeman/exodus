@@ -1,8 +1,16 @@
 export type ProcedureKind = "query" | "mutation" | "subscription"
 
+export type ProcedureCatalogSchemaMode = "none" | "json-schema"
+
+export type ProcedureCatalogSchemaDescriptor =
+  | { mode: "none" }
+  | { mode: "json-schema"; schema: unknown }
+
 export type ProcedureCatalogProcedure = {
   name: string
   kind: ProcedureKind
+  inputSchema: ProcedureCatalogSchemaDescriptor
+  outputSchema: ProcedureCatalogSchemaDescriptor
 }
 
 export type ProcedureCatalogModule = {
@@ -23,6 +31,28 @@ function isProcedureKind(value: unknown): value is ProcedureKind {
   return value === "query" || value === "mutation" || value === "subscription"
 }
 
+function isProcedureCatalogSchemaDescriptor(
+  value: unknown,
+): value is ProcedureCatalogSchemaDescriptor {
+  return (
+    isRecord(value) &&
+    (value.mode === "none" || (value.mode === "json-schema" && "schema" in value))
+  )
+}
+
+function normalizeProcedureSchemaDescriptor(
+  value: ProcedureCatalogSchemaDescriptor,
+): ProcedureCatalogSchemaDescriptor {
+  if (value.mode === "none") {
+    return { mode: "none" }
+  }
+
+  return {
+    mode: "json-schema",
+    schema: value.schema,
+  }
+}
+
 export function normalizeProcedureCatalog(value: unknown): ProcedureCatalogModule[] {
   if (!Array.isArray(value)) return []
 
@@ -41,12 +71,21 @@ export function normalizeProcedureCatalog(value: unknown): ProcedureCatalogModul
           if (
             !isRecord(procedure) ||
             typeof procedure.name !== "string" ||
-            !isProcedureKind(procedure.kind)
+            !isProcedureKind(procedure.kind) ||
+            !isProcedureCatalogSchemaDescriptor(procedure.inputSchema) ||
+            !isProcedureCatalogSchemaDescriptor(procedure.outputSchema)
           ) {
             return []
           }
 
-          return [{ name: procedure.name, kind: procedure.kind }]
+          return [
+            {
+              name: procedure.name,
+              kind: procedure.kind,
+              inputSchema: normalizeProcedureSchemaDescriptor(procedure.inputSchema),
+              outputSchema: normalizeProcedureSchemaDescriptor(procedure.outputSchema),
+            },
+          ]
         })
         .toSorted((left, right) => left.name.localeCompare(right.name))
 

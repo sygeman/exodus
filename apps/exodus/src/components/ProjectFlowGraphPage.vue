@@ -140,6 +140,8 @@ const vfNodes = ref<GraphNodeView[]>([])
 const vfEdges = ref<GraphEdgeView[]>([])
 
 const procedureCatalog = ref<ProcedureCatalogModule[]>([])
+const procedureCatalogLoading = ref(false)
+const procedureCatalogError = ref<string | null>(null)
 
 const suppressAutoSave = ref(false)
 const hydratedFlowId = ref<string | null>(null)
@@ -201,11 +203,19 @@ function updateFlowItem(itemId: string, data: Record<string, unknown>) {
 }
 
 async function loadProcedureCatalog() {
+  if (procedureCatalogLoading.value) return
+
+  procedureCatalogLoading.value = true
+  procedureCatalogError.value = null
+
   try {
     const result = await edem.flows.getProcedureCatalog(undefined)
     procedureCatalog.value = normalizeProcedureCatalog(result.modules)
   } catch (error) {
+    procedureCatalogError.value = error instanceof Error ? error.message : String(error)
     console.error("[project-flows] Failed to load procedure catalog:", error)
+  } finally {
+    procedureCatalogLoading.value = false
   }
 }
 
@@ -567,6 +577,10 @@ provide("deleteEdge", handleDeleteEdge)
 provide("flowKind", flowKind)
 provide("graphNodes", vfNodes)
 provide("graphEdges", vfEdges)
+provide("projectFlows", flows)
+provide("procedureCatalog", procedureCatalog)
+provide("procedureCatalogLoading", procedureCatalogLoading)
+provide("procedureCatalogError", procedureCatalogError)
 provide("selectedNodeId", selectedNodeId)
 provide("saveGraph", saveToDb)
 </script>

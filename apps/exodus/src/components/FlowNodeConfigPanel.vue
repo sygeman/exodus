@@ -1,12 +1,12 @@
 <script setup lang="ts">
-import { computed, inject, ref, type ComputedRef, type Ref } from "vue"
+import { computed, inject, type ComputedRef, type Ref } from "vue"
 import { useT } from "@exodus/edem-vue"
-import { edem } from "@/edem"
+import { buildNodeContract } from "@/flow-node-contract"
+import FlowContractFieldList from "@/components/FlowContractFieldList.vue"
 import {
   listCallableModuleOptions,
   listCallableProcedureOptions,
   listSubscriptionProcedureOptions,
-  normalizeProcedureCatalog,
   type ProcedureCatalogModule,
   type SelectOption,
 } from "@/procedure-catalog"
@@ -53,11 +53,27 @@ type GraphEdge = {
   label?: string
 }
 
+type ProjectFlowItem = {
+  id: string
+  data: {
+    name?: string
+    kind?: unknown
+    nodes?: unknown
+    edges?: unknown
+    valid?: unknown
+    validation_errors?: unknown
+  }
+}
+
 const t = useT()
 
 const injectedFlowKindRef = inject<ComputedRef<FlowKind>>("flowKind")
 const injectedGraphNodesRef = inject<Ref<GraphNode[]>>("graphNodes")
 const injectedGraphEdgesRef = inject<Ref<GraphEdge[]>>("graphEdges")
+const injectedProjectFlowsRef = inject<Ref<ProjectFlowItem[]>>("projectFlows")
+const injectedProcedureCatalogRef = inject<Ref<ProcedureCatalogModule[]>>("procedureCatalog")
+const injectedProcedureCatalogLoadingRef = inject<Ref<boolean>>("procedureCatalogLoading")
+const injectedProcedureCatalogErrorRef = inject<Ref<string | null>>("procedureCatalogError")
 const injectedSelectedNodeIdRef = inject<Ref<string | null>>("selectedNodeId")
 const injectedSaveGraph = inject<() => void>("saveGraph")
 
@@ -65,6 +81,10 @@ if (
   !injectedFlowKindRef ||
   !injectedGraphNodesRef ||
   !injectedGraphEdgesRef ||
+  !injectedProjectFlowsRef ||
+  !injectedProcedureCatalogRef ||
+  !injectedProcedureCatalogLoadingRef ||
+  !injectedProcedureCatalogErrorRef ||
   !injectedSelectedNodeIdRef ||
   !injectedSaveGraph
 ) {
@@ -74,6 +94,10 @@ if (
 const flowKind = injectedFlowKindRef
 const graphNodesRef = injectedGraphNodesRef
 const graphEdgesRef = injectedGraphEdgesRef
+const projectFlows = injectedProjectFlowsRef
+const procedureCatalog = injectedProcedureCatalogRef
+const procedureCatalogLoading = injectedProcedureCatalogLoadingRef
+const procedureCatalogError = injectedProcedureCatalogErrorRef
 const selectedNodeId = injectedSelectedNodeIdRef
 const saveGraph = injectedSaveGraph
 
@@ -172,10 +196,6 @@ const OPERATOR_OPTIONS = [
   { label: "contains", value: "contains" },
 ]
 
-const procedureCatalog = ref<ProcedureCatalogModule[]>([])
-const procedureCatalogLoading = ref(false)
-const procedureCatalogError = ref<string | null>(null)
-
 function prependCurrentOption(options: SelectOption[], currentValue: string): SelectOption[] {
   if (!currentValue || options.some((option) => option.value === currentValue)) {
     return options
@@ -232,24 +252,6 @@ const availableProcedureOptions = computed(() =>
 const procedureOptions = computed(() =>
   prependCurrentOption(availableProcedureOptions.value, selectedProcedureName.value),
 )
-
-async function loadProcedureCatalog() {
-  if (procedureCatalogLoading.value || procedureCatalog.value.length > 0) return
-
-  procedureCatalogLoading.value = true
-  procedureCatalogError.value = null
-
-  try {
-    const result = await edem.flows.getProcedureCatalog(undefined)
-    procedureCatalog.value = normalizeProcedureCatalog(result.modules)
-  } catch (error) {
-    procedureCatalogError.value = error instanceof Error ? error.message : String(error)
-  } finally {
-    procedureCatalogLoading.value = false
-  }
-}
-
-void loadProcedureCatalog()
 
 function getSelectStringValue(value: unknown): string | null {
   if (typeof value === "string") return value
@@ -435,6 +437,20 @@ const incomingEdges = computed(() => {
 const outgoingEdges = computed(() => {
   if (!node.value) return []
   return edges.value.filter((e) => e.source === node.value!.id)
+})
+
+const nodeContract = computed(() => {
+  if (!node.value) return null
+
+  return buildNodeContract({
+    node: {
+      id: node.value.id,
+      type: node.value.type,
+      data: node.value.data,
+    },
+    procedureCatalog: procedureCatalog.value,
+    projectFlows: projectFlows.value,
+  })
 })
 
 function getNodeLabel(nodeId: string): string {
@@ -759,6 +775,26 @@ function getNodeLabel(nodeId: string): string {
                   size="sm"
                   @update:model-value="updateField('flow_id', $event)"
                 />
+              </div>
+            </template>
+
+            <!-- Contract -->
+            <template
+              v-if="
+                nodeContract &&
+                (nodeContract.input.fields.length > 0 || nodeContract.output.fields.length > 0)
+              "
+            >
+              <div class="flex flex-col gap-3">
+                <div v-if="nodeContract.input.fields.length > 0" class="flex flex-col gap-1.5">
+                  <p class="text-xs font-medium">{{ t({ en: "Input", ru: "Вход" }) }}</p>
+                  <FlowContractFieldList :fields="nodeContract.input.fields" />
+                </div>
+
+                <div v-if="nodeContract.output.fields.length > 0" class="flex flex-col gap-1.5">
+                  <p class="text-xs font-medium">{{ t({ en: "Output", ru: "Выход" }) }}</p>
+                  <FlowContractFieldList :fields="nodeContract.output.fields" />
+                </div>
               </div>
             </template>
 

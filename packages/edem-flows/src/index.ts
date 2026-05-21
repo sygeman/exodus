@@ -68,6 +68,11 @@ const backpressureSchema = z.object({
 
 const procedureKindSchema = z.enum(["query", "mutation", "subscription"])
 
+const serializedProcedureSchemaSchema = z.discriminatedUnion("mode", [
+  z.object({ mode: z.literal("none") }),
+  z.object({ mode: z.literal("json-schema"), schema: z.unknown() }),
+])
+
 const procedureCatalogSchema = z.object({
   modules: z.array(
     z.object({
@@ -76,6 +81,8 @@ const procedureCatalogSchema = z.object({
         z.object({
           name: z.string(),
           kind: procedureKindSchema,
+          inputSchema: serializedProcedureSchemaSchema,
+          outputSchema: serializedProcedureSchemaSchema,
         }),
       ),
     }),
@@ -279,10 +286,47 @@ function serializeProcedureCatalog(
           .map((procedure) => ({
             name: procedure.name,
             kind: procedure.kind,
+            inputSchema: serializeProcedureSchema(procedure.inputSchema, { io: "input" }),
+            outputSchema: serializeProcedureSchema(procedure.outputSchema),
           }))
           .toSorted((left, right) => left.name.localeCompare(right.name)),
       }))
       .toSorted((left, right) => left.module.localeCompare(right.module)),
+  }
+}
+
+function isVoidSchema(schema: unknown): boolean {
+  if (!schema || typeof schema !== "object") {
+    return false
+  }
+
+  const zod4Type = (schema as { _zod?: { def?: { type?: unknown } } })._zod?.def?.type
+  if (zod4Type === "void") {
+    return true
+  }
+
+  const legacyTypeName = (schema as { _def?: { typeName?: unknown } })._def?.typeName
+  return legacyTypeName === "ZodVoid"
+}
+
+function serializeProcedureSchema(
+  schema: unknown,
+  options?: { io?: "input" | "output" },
+): z.infer<typeof serializedProcedureSchemaSchema> {
+  if (schema === null || schema === undefined || isVoidSchema(schema)) {
+    return { mode: "none" }
+  }
+
+  return {
+    mode: "json-schema",
+    schema: JSON.parse(
+      JSON.stringify(
+        z.toJSONSchema(schema as z.ZodType, {
+          io: options?.io,
+          unrepresentable: "any",
+        }),
+      ),
+    ),
   }
 }
 

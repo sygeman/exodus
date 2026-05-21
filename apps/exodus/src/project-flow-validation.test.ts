@@ -3,13 +3,32 @@ import { validateProjectFlow } from "./project-flow-validation"
 import { FlowKind } from "./types/flow"
 
 describe("project flow validation", () => {
+  const inputSchema = { mode: "json-schema" as const, schema: { type: "object" } }
+  const outputSchema = { mode: "json-schema" as const, schema: { type: "object" } }
+  const noInputSchema = { mode: "none" as const }
+
   const procedureCatalog = [
     {
       module: "data",
       procedures: [
-        { name: "listCollections", kind: "query" as const },
-        { name: "createItem", kind: "mutation" as const },
-        { name: "itemCreated", kind: "subscription" as const },
+        {
+          name: "listCollections",
+          kind: "query" as const,
+          inputSchema,
+          outputSchema,
+        },
+        {
+          name: "createItem",
+          kind: "mutation" as const,
+          inputSchema,
+          outputSchema,
+        },
+        {
+          name: "itemCreated",
+          kind: "subscription" as const,
+          inputSchema: noInputSchema,
+          outputSchema,
+        },
       ],
     },
   ]

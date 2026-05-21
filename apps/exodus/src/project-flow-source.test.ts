@@ -139,7 +139,14 @@ describe("project flow source", () => {
       [
         {
           module: "data",
-          procedures: [{ name: "listCollections", kind: "query" }],
+          procedures: [
+            {
+              name: "listCollections",
+              kind: "query",
+              inputSchema: { mode: "json-schema", schema: { type: "object" } },
+              outputSchema: { mode: "json-schema", schema: { type: "object" } },
+            },
+          ],
         },
       ],
     )

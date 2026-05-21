@@ -12,14 +12,36 @@ describe("procedure catalog helpers", () => {
     {
       module: "data",
       procedures: [
-        { name: "itemCreated", kind: "subscription" },
-        { name: "createItem", kind: "mutation" },
-        { name: "listCollections", kind: "query" },
+        {
+          name: "itemCreated",
+          kind: "subscription",
+          inputSchema: { mode: "none" },
+          outputSchema: { mode: "json-schema", schema: { type: "object" } },
+        },
+        {
+          name: "createItem",
+          kind: "mutation",
+          inputSchema: { mode: "json-schema", schema: { type: "object" } },
+          outputSchema: { mode: "json-schema", schema: { type: "object" } },
+        },
+        {
+          name: "listCollections",
+          kind: "query",
+          inputSchema: { mode: "none" },
+          outputSchema: { mode: "json-schema", schema: { type: "object" } },
+        },
       ],
     },
     {
       module: "events",
-      procedures: [{ name: "tick", kind: "subscription" }],
+      procedures: [
+        {
+          name: "tick",
+          kind: "subscription",
+          inputSchema: { mode: "none" },
+          outputSchema: { mode: "json-schema", schema: { type: "object" } },
+        },
+      ],
     },
   ])
 
@@ -28,14 +50,36 @@ describe("procedure catalog helpers", () => {
       {
         module: "data",
         procedures: [
-          { name: "createItem", kind: "mutation" },
-          { name: "itemCreated", kind: "subscription" },
-          { name: "listCollections", kind: "query" },
+          {
+            name: "createItem",
+            kind: "mutation",
+            inputSchema: { mode: "json-schema", schema: { type: "object" } },
+            outputSchema: { mode: "json-schema", schema: { type: "object" } },
+          },
+          {
+            name: "itemCreated",
+            kind: "subscription",
+            inputSchema: { mode: "none" },
+            outputSchema: { mode: "json-schema", schema: { type: "object" } },
+          },
+          {
+            name: "listCollections",
+            kind: "query",
+            inputSchema: { mode: "none" },
+            outputSchema: { mode: "json-schema", schema: { type: "object" } },
+          },
         ],
       },
       {
         module: "events",
-        procedures: [{ name: "tick", kind: "subscription" }],
+        procedures: [
+          {
+            name: "tick",
+            kind: "subscription",
+            inputSchema: { mode: "none" },
+            outputSchema: { mode: "json-schema", schema: { type: "object" } },
+          },
+        ],
       },
     ])
   })
@@ -60,8 +104,40 @@ describe("procedure catalog helpers", () => {
   })
 
   it("marks only queries and mutations as callable", () => {
-    expect(isCallableProcedure({ name: "listCollections", kind: "query" })).toBe(true)
-    expect(isCallableProcedure({ name: "createItem", kind: "mutation" })).toBe(true)
-    expect(isCallableProcedure({ name: "itemCreated", kind: "subscription" })).toBe(false)
+    expect(
+      isCallableProcedure({
+        name: "listCollections",
+        kind: "query",
+        inputSchema: { mode: "none" },
+        outputSchema: { mode: "json-schema", schema: { type: "object" } },
+      }),
+    ).toBe(true)
+    expect(
+      isCallableProcedure({
+        name: "createItem",
+        kind: "mutation",
+        inputSchema: { mode: "json-schema", schema: { type: "object" } },
+        outputSchema: { mode: "json-schema", schema: { type: "object" } },
+      }),
+    ).toBe(true)
+    expect(
+      isCallableProcedure({
+        name: "itemCreated",
+        kind: "subscription",
+        inputSchema: { mode: "none" },
+        outputSchema: { mode: "json-schema", schema: { type: "object" } },
+      }),
+    ).toBe(false)
+  })
+
+  it("drops invalid procedure entries that do not expose schemas", () => {
+    expect(
+      normalizeProcedureCatalog([
+        {
+          module: "legacy",
+          procedures: [{ name: "run", kind: "mutation" }],
+        },
+      ]),
+    ).toEqual([{ module: "legacy", procedures: [] }])
   })
 })
