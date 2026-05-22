@@ -5,6 +5,7 @@ import {
   setFlowVariable,
   type FlowContext,
 } from "./context"
+import { buildMapNodeOutput } from "./map-node"
 
 let edemModules: Record<string, Record<string, unknown>> | null = null
 
@@ -32,6 +33,7 @@ export interface ProcedureReference {
 
 export const executors: Record<string, NodeExecutor> = {
   trigger: executeTrigger,
+  map: executeMap,
   condition: executeCondition,
   transform: executeTransform,
   switch: executeSwitch,
@@ -114,6 +116,15 @@ async function executeTrigger(
   _context: FlowContext,
 ): Promise<NodeExecutorResult> {
   return { output: input }
+}
+
+async function executeMap(
+  config: Record<string, unknown> | undefined,
+  input: Record<string, unknown>,
+): Promise<NodeExecutorResult> {
+  return {
+    output: buildMapNodeOutput(config?.mappings, input),
+  }
 }
 
 async function executeCondition(

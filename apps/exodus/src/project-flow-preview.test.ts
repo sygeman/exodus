@@ -119,4 +119,125 @@ describe("project flow preview", () => {
       },
     })
   })
+
+  it("builds mapped payloads before output nodes", () => {
+    const result = runProjectFlowPreview({
+      kind: FlowKind.flow,
+      triggerData: { title: "Task", status: "active" },
+      nodes: [
+        {
+          id: "trigger",
+          type: "trigger",
+          position: { x: 0, y: 0 },
+          data: { nodeType: "trigger", source: { type: "manual" } },
+        },
+        {
+          id: "map",
+          type: "map",
+          position: { x: 120, y: 0 },
+          data: {
+            nodeType: "map",
+            mappings: [
+              { sourcePath: "title", targetPath: "data.title" },
+              { sourcePath: "status", targetPath: "data.status" },
+            ],
+          },
+        },
+        {
+          id: "output",
+          type: "output",
+          position: { x: 240, y: 0 },
+          data: {
+            nodeType: "output",
+            outputs: {
+              title: "{{nodes.map.output.data.title}}",
+              status: "{{nodes.map.output.data.status}}",
+            },
+          },
+        },
+      ],
+      edges: [
+        { id: "e1", source: "trigger", target: "map" },
+        { id: "e2", source: "map", target: "output" },
+      ],
+    })
+
+    expect(result.status).toBe("completed")
+    expect(result.nodeStates.map?.output).toEqual({
+      data: {
+        title: "Task",
+        status: "active",
+      },
+    })
+    expect(result.finalOutput).toEqual({
+      status: "completed",
+      outputs: {
+        title: "Task",
+        status: "active",
+      },
+    })
+  })
+
+  it("supports whole-object mappings in map nodes", () => {
+    const result = runProjectFlowPreview({
+      kind: FlowKind.flow,
+      triggerData: {
+        profile: {
+          name: "Alice",
+          status: "active",
+        },
+      },
+      nodes: [
+        {
+          id: "trigger",
+          type: "trigger",
+          position: { x: 0, y: 0 },
+          data: { nodeType: "trigger", source: { type: "manual" } },
+        },
+        {
+          id: "map",
+          type: "map",
+          position: { x: 120, y: 0 },
+          data: {
+            nodeType: "map",
+            mappings: [{ sourcePath: "profile", targetPath: "data.profile" }],
+          },
+        },
+        {
+          id: "output",
+          type: "output",
+          position: { x: 240, y: 0 },
+          data: {
+            nodeType: "output",
+            outputs: {
+              profile: "{{nodes.map.output.data.profile}}",
+            },
+          },
+        },
+      ],
+      edges: [
+        { id: "e1", source: "trigger", target: "map" },
+        { id: "e2", source: "map", target: "output" },
+      ],
+    })
+
+    expect(result.status).toBe("completed")
+    expect(result.nodeStates.map?.output).toEqual({
+      data: {
+        profile: {
+          name: "Alice",
+          status: "active",
+        },
+      },
+    })
+    expect(result.finalOutput).toEqual({
+      status: "completed",
+      outputs: {
+        profile: {
+          name: "Alice",
+          status: "active",
+        },
+      },
+    })
+  })
 })

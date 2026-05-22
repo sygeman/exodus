@@ -148,6 +148,7 @@ function deleteEdge(edgeId: string) {
 
 const BASE_NODE_TYPE_OPTIONS = [
   { label: "Call", value: "call" },
+  { label: "Map", value: "map" },
   { label: "Condition", value: "condition" },
   { label: "Delay", value: "delay" },
   { label: "Fork", value: "fork" },
@@ -161,6 +162,7 @@ const BASE_NODE_TYPE_OPTIONS = [
 const LOCKED_NODE_TYPE_LABELS: Record<string, string> = {
   trigger: "Trigger",
   call: "Call",
+  map: "Map",
   input: "Input",
   output: "Output",
 }

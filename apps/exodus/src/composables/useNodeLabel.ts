@@ -37,6 +37,8 @@ export function generateNodeLabel(data: VueFlowNodeData): string {
         (raw.procedure as string | undefined) ?? (config.procedure as string | undefined)
       return moduleName && procedureName ? `${moduleName}.${procedureName}` : "Call"
     }
+    case "map":
+      return "Map"
     case "condition":
       return "Condition"
     case "switch":
@@ -80,6 +82,18 @@ export function generateNodeParams(data: VueFlowNodeData): string | null {
     }
     case "call":
       return null
+    case "map": {
+      const rawMappings = raw.mappings
+      if (!Array.isArray(rawMappings)) return null
+      const mappedTargets = rawMappings.filter(
+        (entry) =>
+          typeof entry === "object" &&
+          entry !== null &&
+          typeof (entry as { targetPath?: unknown }).targetPath === "string" &&
+          typeof (entry as { sourcePath?: unknown }).sourcePath === "string",
+      )
+      return mappedTargets.length > 0 ? `${mappedTargets.length} links` : null
+    }
     case "condition": {
       const expression = config.expression as string
       if (!expression || expression.includes("{{")) return null

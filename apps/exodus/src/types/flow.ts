@@ -1,6 +1,7 @@
 export const NodeType = {
   trigger: "trigger",
   call: "call",
+  map: "map",
   condition: "condition",
   switch: "switch",
   loop: "loop",
@@ -113,6 +114,7 @@ export function getAllowedNodeTypes(kind: FlowKind): NodeType[] {
   if (kind === FlowKind.subflow) {
     return [
       NodeType.call,
+      NodeType.map,
       NodeType.condition,
       NodeType.switch,
       NodeType.loop,
@@ -126,6 +128,7 @@ export function getAllowedNodeTypes(kind: FlowKind): NodeType[] {
 
   return [
     NodeType.call,
+    NodeType.map,
     NodeType.condition,
     NodeType.switch,
     NodeType.loop,
@@ -356,6 +359,7 @@ export type VueFlowNodeData = {
 export const NODE_LABELS: Record<NodeType, { label: string; icon: string }> = {
   trigger: { label: "Trigger", icon: "i-lucide-play" },
   call: { label: "Call", icon: "i-lucide-zap" },
+  map: { label: "Map", icon: "i-lucide-waypoints" },
   condition: { label: "Condition", icon: "i-lucide-git-branch" },
   switch: { label: "Switch", icon: "i-lucide-git-fork" },
   loop: { label: "Loop", icon: "i-lucide-repeat" },
@@ -395,6 +399,9 @@ export function buildHandleLayout(input: HandleConfigInput): HandleDef[] {
       return [{ id: null, type: "source", position: "right", top: "50%" }]
 
     case "transform":
+      return [{ id: "output", type: "source", position: "right", top: "50%" }]
+
+    case "map":
       return [{ id: "output", type: "source", position: "right", top: "50%" }]
 
     case "call":

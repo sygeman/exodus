@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, provide, markRaw } from "vue"
+import type { Manifest as DataManifest } from "@exodus/edem-data"
 import { useRoute } from "vue-router"
 import {
   VueFlow,
@@ -14,6 +15,8 @@ import { useCollectionQuery } from "@/hooks"
 import { PROJECT_FLOW_SOURCE_COLLECTION } from "@/flow-collections"
 import { useFlowHighlighting } from "@/composables/useFlowHighlighting"
 import FlowNode from "@/components/FlowNode.vue"
+import FlowMapNode from "@/components/FlowMapNode.vue"
+import FlowMapEditorModal from "@/components/FlowMapEditorModal.vue"
 import DeletableEdge from "@/components/DeletableEdge.vue"
 import FlowNodeConfigPanel from "@/components/FlowNodeConfigPanel.vue"
 import { normalizeProjectFlowGraph } from "@/project-flow-normalization"
@@ -108,6 +111,7 @@ type GraphEdgeView = {
 const NODE_TYPE_MAP: Record<string, string> = {
   trigger: "trigger",
   call: "call",
+  map: "map",
   transform: "transform",
   delay: "delay",
   condition: "condition",
@@ -123,6 +127,7 @@ const NODE_TYPE_MAP: Record<string, string> = {
 const REVERSE_TYPE_MAP: Record<string, string> = {
   trigger: "trigger",
   call: "call",
+  map: "map",
   condition: "condition",
   switch: "switch",
   loop: "loop",
@@ -142,6 +147,9 @@ const vfEdges = ref<GraphEdgeView[]>([])
 const procedureCatalog = ref<ProcedureCatalogModule[]>([])
 const procedureCatalogLoading = ref(false)
 const procedureCatalogError = ref<string | null>(null)
+const dataManifest = ref<DataManifest | null>(null)
+const dataManifestLoading = ref(false)
+const dataManifestError = ref<string | null>(null)
 
 const suppressAutoSave = ref(false)
 const hydratedFlowId = ref<string | null>(null)
@@ -219,7 +227,24 @@ async function loadProcedureCatalog() {
   }
 }
 
+async function loadDataManifest() {
+  if (dataManifestLoading.value) return
+
+  dataManifestLoading.value = true
+  dataManifestError.value = null
+
+  try {
+    dataManifest.value = await edem.data.getManifest(undefined)
+  } catch (error) {
+    dataManifestError.value = error instanceof Error ? error.message : String(error)
+    console.error("[project-flows] Failed to load data manifest:", error)
+  } finally {
+    dataManifestLoading.value = false
+  }
+}
+
 void loadProcedureCatalog()
+void loadDataManifest()
 
 watch(
   [flow, procedureCatalog],
@@ -311,6 +336,7 @@ const FlowNodeRaw = markRaw(FlowNode)
 const nodeTypes = {
   trigger: FlowNodeRaw,
   call: FlowNodeRaw,
+  map: markRaw(FlowMapNode),
   condition: FlowNodeRaw,
   switch: FlowNodeRaw,
   loop: FlowNodeRaw,
@@ -328,6 +354,7 @@ const edgeTypes = {
 }
 
 const selectedNodeId = ref<string | null>(null)
+const mapEditorNodeId = ref<string | null>(null)
 
 const validationState = computed(() =>
   validateProjectFlow({
@@ -411,16 +438,43 @@ watch(selectedNodeId, () => {
 
 // --- Node selection ---
 function onNodeClick({ node }: { node: { id: string } }) {
+  if (mapEditorNodeId.value && mapEditorNodeId.value !== node.id) {
+    mapEditorNodeId.value = null
+  }
   selectedNodeId.value = node.id
 }
 
 function onNodeDragStart({ node }: { node: { id: string } }) {
+  if (mapEditorNodeId.value && mapEditorNodeId.value !== node.id) {
+    mapEditorNodeId.value = null
+  }
   selectedNodeId.value = node.id
 }
 
 function onPaneClick() {
+  mapEditorNodeId.value = null
   selectedNodeId.value = null
 }
+
+function openMapEditor(nodeId: string) {
+  mapEditorNodeId.value = nodeId
+  selectedNodeId.value = nodeId
+}
+
+function closeMapEditor() {
+  mapEditorNodeId.value = null
+}
+
+watch([mapEditorNodeId, vfNodes], ([nodeId, nodes]) => {
+  if (!nodeId) {
+    return
+  }
+
+  const node = nodes.find((candidate) => candidate.id === nodeId)
+  if (!node || ((node.data as Record<string, unknown>).nodeType as string) !== "map") {
+    mapEditorNodeId.value = null
+  }
+})
 
 onMoveEnd(() => {
   saveToDb()
@@ -581,8 +635,12 @@ provide("projectFlows", flows)
 provide("procedureCatalog", procedureCatalog)
 provide("procedureCatalogLoading", procedureCatalogLoading)
 provide("procedureCatalogError", procedureCatalogError)
+provide("dataManifest", dataManifest)
+provide("dataManifestLoading", dataManifestLoading)
+provide("dataManifestError", dataManifestError)
 provide("selectedNodeId", selectedNodeId)
 provide("saveGraph", saveToDb)
+provide("openMapEditor", openMapEditor)
 </script>
 
 <template>
@@ -609,6 +667,16 @@ provide("saveGraph", saveToDb)
       >
         <Background :gap="16" :size="1" :color="'var(--vf-bg-dot)'" />
       </VueFlow>
+
+      <FlowMapEditorModal
+        :open="mapEditorNodeId !== null"
+        :node-id="mapEditorNodeId"
+        @update:open="
+          (open) => {
+            if (!open) closeMapEditor()
+          }
+        "
+      />
     </div>
 
     <FlowNodeConfigPanel />

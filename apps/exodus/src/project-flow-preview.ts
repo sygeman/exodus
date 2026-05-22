@@ -252,6 +252,65 @@ function executeOutput(
   }
 }
 
+function setNestedOutputValue(
+  target: Record<string, unknown>,
+  path: string[],
+  value: unknown,
+): void {
+  if (path.length === 0) {
+    return
+  }
+
+  let current: Record<string, unknown> = target
+
+  for (let index = 0; index < path.length - 1; index += 1) {
+    const key = path[index]
+    const next = current[key]
+
+    if (!isRecord(next)) {
+      current[key] = {}
+    }
+
+    current = current[key] as Record<string, unknown>
+  }
+
+  current[path[path.length - 1]] = value
+}
+
+function executeMap(
+  config: Record<string, unknown> | undefined,
+  input: Record<string, unknown>,
+): PreviewNodeResult {
+  const mappings = Array.isArray(config?.mappings) ? config.mappings : []
+  const output: Record<string, unknown> = {}
+
+  for (const mapping of mappings) {
+    if (!isRecord(mapping) || typeof mapping.targetPath !== "string") {
+      continue
+    }
+
+    const targetPath = mapping.targetPath
+      .split(".")
+      .map((segment) => segment.trim())
+      .filter((segment) => segment !== "")
+
+    if (targetPath.length === 0) {
+      continue
+    }
+
+    const resolvedValue =
+      mapping.kind === "literal"
+        ? mapping.literal
+        : typeof mapping.sourcePath === "string"
+          ? resolveNestedValue(input, mapping.sourcePath.split("."))
+          : undefined
+
+    setNestedOutputValue(output, targetPath, resolvedValue)
+  }
+
+  return { output }
+}
+
 function executeNodePreview(
   node: StoredFlowNode,
   input: Record<string, unknown>,
@@ -265,6 +324,8 @@ function executeNodePreview(
         output:
           (context.trigger_data.inputs as Record<string, unknown>) ?? context.trigger_data ?? {},
       }
+    case NodeType.map:
+      return executeMap(node.data, input)
     case NodeType.condition:
       return executeCondition(node.data, input, context)
     case NodeType.transform:

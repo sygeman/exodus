@@ -13,6 +13,73 @@ describe("Node Executors", () => {
     })
   })
 
+  describe("map", () => {
+    it("should build a new payload from mapped source fields", async () => {
+      const ctx = createContext()
+      const result = await executors.map(
+        {
+          mappings: [
+            { sourcePath: "title", targetPath: "data.title" },
+            { sourcePath: "status", targetPath: "data.status" },
+          ],
+        },
+        { title: "Draft", status: "active", ignored: true },
+        ctx,
+      )
+
+      expect(result.output).toEqual({
+        data: {
+          title: "Draft",
+          status: "active",
+        },
+      })
+    })
+
+    it("should map nested objects as a whole value", async () => {
+      const ctx = createContext()
+      const result = await executors.map(
+        {
+          mappings: [{ sourcePath: "profile", targetPath: "data.profile" }],
+        },
+        {
+          profile: {
+            name: "Alice",
+            status: "active",
+          },
+        },
+        ctx,
+      )
+
+      expect(result.output).toEqual({
+        data: {
+          profile: {
+            name: "Alice",
+            status: "active",
+          },
+        },
+      })
+    })
+
+    it("should support literal mappings", async () => {
+      const ctx = createContext()
+      const result = await executors.map(
+        {
+          mappings: [
+            { kind: "literal", targetPath: "collection_id", literal: "tasks" },
+            { sourcePath: "title", targetPath: "data.title" },
+          ],
+        },
+        { title: "Task title" },
+        ctx,
+      )
+
+      expect(result.output).toEqual({
+        collection_id: "tasks",
+        data: { title: "Task title" },
+      })
+    })
+  })
+
   describe("condition", () => {
     it("should evaluate eq operator (true)", async () => {
       const ctx = createContext()
