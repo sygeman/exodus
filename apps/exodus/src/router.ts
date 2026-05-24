@@ -5,11 +5,13 @@ import ProjectLayout from "@/components/ProjectLayout.vue"
 import ProjectOverviewPage from "@/components/ProjectOverviewPage.vue"
 import ProjectIdeasPage from "@/components/ProjectIdeasPage.vue"
 import ProjectIdeaPage from "@/components/ProjectIdeaPage.vue"
+import ProjectDataPage from "@/components/ProjectDataPage.vue"
 import ProjectFlowsPage from "@/components/ProjectFlowsPage.vue"
 import ProjectFlowGraphPage from "@/components/ProjectFlowGraphPage.vue"
 import ProjectFlowLayout from "@/components/ProjectFlowLayout.vue"
 import ProjectFlowCodePage from "@/components/ProjectFlowCodePage.vue"
 import ProjectFlowSettingsPage from "@/components/ProjectFlowSettingsPage.vue"
+import ProjectUiPage from "@/components/ProjectUiPage.vue"
 import ProjectSettingsPage from "@/components/ProjectSettingsPage.vue"
 import DebugLayout from "@/components/DebugLayout.vue"
 import DebugLogsPage from "@/components/DebugLogsPage.vue"
@@ -31,6 +33,8 @@ const routes: RouteRecordRaw[] = [
       { path: "overview", name: "project-overview", component: ProjectOverviewPage },
       { path: "ideas", name: "project-ideas", component: ProjectIdeasPage },
       { path: "ideas/:ideaId", name: "project-idea", props: true, component: ProjectIdeaPage },
+      { path: "data", name: "project-data", component: ProjectDataPage },
+      { path: "ui", name: "project-ui", component: ProjectUiPage },
       { path: "flows", name: "project-flows", component: ProjectFlowsPage },
       {
         path: "flows/:flowId",

@@ -16,7 +16,7 @@
     },
     "apps/exodus": {
       "name": "exodus",
-      "version": "1.15.0",
+      "version": "2.0.0",
       "dependencies": {
         "@exodus/edem-core": "workspace:*",
         "@exodus/edem-data": "workspace:*",
@@ -25,6 +25,7 @@
         "@exodus/edem-vue": "workspace:*",
         "@exodus/typescript-config": "workspace:*",
         "@nuxt/ui": "4.7.1",
+        "@vue-dnd-kit/core": "2.4.6",
         "@vue-flow/background": "1.3.2",
         "@vue-flow/controls": "1.1.3",
         "@vue-flow/core": "1.48.2",
@@ -630,6 +631,8 @@
     "@volar/source-map": ["@volar/source-map@2.4.28", "", {}, "sha512-yX2BDBqJkRXfKw8my8VarTyjv48QwxdJtvRgUpNE5erCsgEUdI2DsLbpa+rOQVAJYshY99szEcRDmyHbF10ggQ=="],
 
     "@volar/typescript": ["@volar/typescript@2.4.28", "", { "dependencies": { "@volar/language-core": "2.4.28", "path-browserify": "^1.0.1", "vscode-uri": "^3.0.8" } }, "sha512-Ja6yvWrbis2QtN4ClAKreeUZPVYMARDYZl9LMEv1iQ1QdepB6wn0jTRxA9MftYmYa4DQ4k/DaSZpFPUfxl8giw=="],
+
+    "@vue-dnd-kit/core": ["@vue-dnd-kit/core@2.4.6", "", { "peerDependencies": { "vue": "^3.5.13" } }, "sha512-MnfO05RTGyhxq0d0VmkPHoBbwa7U1Yt8MtE1s8ngnu9uyI3RC1t0IIi4/ULABDuTr6957IueYWHSdAt9hRZXqQ=="],
 
     "@vue-flow/background": ["@vue-flow/background@1.3.2", "", { "peerDependencies": { "@vue-flow/core": "^1.23.0", "vue": "^3.3.0" } }, "sha512-eJPhDcLj1wEo45bBoqTXw1uhl0yK2RaQGnEINqvvBsAFKh/camHJd5NPmOdS1w+M9lggc9igUewxaEd3iCQX2w=="],
 

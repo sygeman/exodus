@@ -9,6 +9,8 @@ import {
   fieldInputSchema,
   fieldTypes,
   labelsSchema,
+  type ManifestField,
+  type RelationField,
   validateFieldValue,
   manifestSchema,
   type FieldType,
@@ -21,6 +23,144 @@ function safeJsonParse<T>(value: string, context: string): T {
     return JSON.parse(value) as T
   } catch {
     throw new Error(`Failed to parse JSON in ${context}`)
+  }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function splitFieldOptions(
+  type: FieldType,
+  options: Record<string, unknown> | undefined,
+): {
+  options?: Record<string, unknown>
+  relation?: RelationField
+} {
+  if (type !== "relation" || !options) {
+    return { options }
+  }
+
+  const nextOptions = { ...options }
+  const collection =
+    typeof nextOptions.collection === "string" && nextOptions.collection.trim() !== ""
+      ? nextOptions.collection
+      : typeof nextOptions.target_collection_id === "string" &&
+          nextOptions.target_collection_id.trim() !== ""
+        ? nextOptions.target_collection_id
+        : undefined
+
+  delete nextOptions.collection
+  delete nextOptions.target_collection_id
+
+  return {
+    options: Object.keys(nextOptions).length > 0 ? nextOptions : undefined,
+    relation: collection ? { collection } : undefined,
+  }
+}
+
+function mergeFieldOptions(
+  type: FieldType,
+  options: Record<string, unknown> | undefined,
+  relation: RelationField | undefined,
+): Record<string, unknown> | undefined {
+  const nextOptions = options ? { ...options } : {}
+
+  if (type === "relation") {
+    delete nextOptions.target_collection_id
+
+    if (relation?.collection.trim()) {
+      nextOptions.collection = relation.collection.trim()
+    } else {
+      delete nextOptions.collection
+    }
+  }
+
+  return Object.keys(nextOptions).length > 0 ? nextOptions : undefined
+}
+
+function serializeFieldDefaultValue(value: unknown): string | null {
+  return value !== null && value !== undefined ? JSON.stringify(value) : null
+}
+
+function serializeFieldOptions(
+  type: FieldType,
+  options: Record<string, unknown> | undefined,
+  relation: RelationField | undefined,
+): string | null {
+  const mergedOptions = mergeFieldOptions(type, options, relation)
+  return mergedOptions ? JSON.stringify(mergedOptions) : null
+}
+
+function parseFieldOptions(
+  raw: string | null,
+  context: string,
+): Record<string, unknown> | undefined {
+  if (!raw) {
+    return undefined
+  }
+
+  const parsed = safeJsonParse<unknown>(raw, context)
+  return isRecord(parsed) ? parsed : undefined
+}
+
+function parseStoredField(field: {
+  id: string
+  collection_id: string
+  name: string
+  labels: string | null
+  type: string
+  interface_options: string | null
+  required: boolean | null
+  default_value: string | null
+  meta: string | null
+}): z.infer<typeof fieldSchema> {
+  const type = field.type as FieldType
+  const parsedOptions = parseFieldOptions(field.interface_options, `field ${field.id} options`)
+  const { options, relation } = splitFieldOptions(type, parsedOptions)
+
+  return {
+    id: field.id,
+    collection_id: field.collection_id,
+    name: field.name,
+    labels: field.labels
+      ? safeJsonParse<Record<string, string>>(field.labels, `field ${field.id} labels`)
+      : undefined,
+    type,
+    relation,
+    options,
+    required: field.required ?? undefined,
+    default: field.default_value
+      ? safeJsonParse(field.default_value, `field ${field.id} default_value`)
+      : undefined,
+    meta: field.meta
+      ? safeJsonParse<Record<string, unknown>>(field.meta, `field ${field.id} meta`)
+      : undefined,
+  }
+}
+
+function parseStoredManifestField(field: {
+  id: string
+  collection_id: string
+  name: string
+  labels: string | null
+  type: string
+  interface_options: string | null
+  required: boolean | null
+  default_value: string | null
+  meta: string | null
+}): ManifestField {
+  const parsed = parseStoredField(field)
+
+  return {
+    name: parsed.name,
+    labels: parsed.labels,
+    type: parsed.type,
+    relation: parsed.relation,
+    required: parsed.required,
+    default: parsed.default,
+    options: parsed.options,
+    meta: parsed.meta,
   }
 }
 
@@ -142,11 +282,8 @@ export const dataModule = createEdemModule("data", (module) => {
                 labels: field.labels ? JSON.stringify(field.labels) : null,
                 type: field.type,
                 required: field.required,
-                default_value:
-                  field.default !== null && field.default !== undefined
-                    ? JSON.stringify(field.default)
-                    : null,
-                interface_options: field.options ? JSON.stringify(field.options) : null,
+                default_value: serializeFieldDefaultValue(field.default),
+                interface_options: serializeFieldOptions(field.type, field.options, field.relation),
                 meta: field.meta ? JSON.stringify(field.meta) : null,
               })
             }
@@ -203,11 +340,12 @@ export const dataModule = createEdemModule("data", (module) => {
                   labels: field.labels ? JSON.stringify(field.labels) : null,
                   type: field.type,
                   required: field.required,
-                  default_value:
-                    field.default !== null && field.default !== undefined
-                      ? JSON.stringify(field.default)
-                      : null,
-                  interface_options: field.options ? JSON.stringify(field.options) : null,
+                  default_value: serializeFieldDefaultValue(field.default),
+                  interface_options: serializeFieldOptions(
+                    field.type,
+                    field.options,
+                    field.relation,
+                  ),
                   meta: field.meta ? JSON.stringify(field.meta) : null,
                 })
               }
@@ -291,28 +429,7 @@ export const dataModule = createEdemModule("data", (module) => {
                 meta: row.meta
                   ? safeJsonParse<Record<string, unknown>>(row.meta, `collection ${row.id} meta`)
                   : undefined,
-                fields: fields.map((f) => ({
-                  id: f.id,
-                  collection_id: f.collection_id,
-                  name: f.name,
-                  labels: f.labels
-                    ? safeJsonParse<Record<string, string>>(f.labels, `field ${f.id} labels`)
-                    : undefined,
-                  type: f.type as FieldType,
-                  options: f.interface_options
-                    ? safeJsonParse<Record<string, unknown>>(
-                        f.interface_options,
-                        `field ${f.id} options`,
-                      )
-                    : undefined,
-                  required: f.required ?? undefined,
-                  default: f.default_value
-                    ? safeJsonParse(f.default_value, `field ${f.id} default_value`)
-                    : undefined,
-                  meta: f.meta
-                    ? safeJsonParse<Record<string, unknown>>(f.meta, `field ${f.id} meta`)
-                    : undefined,
-                })),
+                fields: fields.map(parseStoredField),
               }
             }),
           )
@@ -356,6 +473,8 @@ export const dataModule = createEdemModule("data", (module) => {
           name: z.string(),
           labels: labelsSchema.optional(),
           type: z.enum(fieldTypes),
+          relation: z.object({ collection: z.string() }).optional(),
+          options: z.record(z.string(), z.any()).optional(),
           interface: z.string().optional(),
           display: z.string().optional(),
           required: z.boolean().optional(),
@@ -373,6 +492,11 @@ export const dataModule = createEdemModule("data", (module) => {
           })
           if (!collection) throw new Error(`Collection ${input.collection_id} not found`)
 
+          const serializedOptions = serializeFieldOptions(input.type, input.options, input.relation)
+          if (input.type === "relation" && !serializedOptions) {
+            throw new Error("Relation field must define a target collection")
+          }
+
           const id = crypto.randomUUID()
           await ctx.db.insert(schema.fields).values({
             id,
@@ -382,6 +506,7 @@ export const dataModule = createEdemModule("data", (module) => {
             type: input.type,
             interface: input.interface,
             display: input.display,
+            interface_options: serializedOptions,
             required: input.required ?? false,
             hidden: input.hidden ?? false,
             readonly: input.readonly ?? false,
@@ -406,6 +531,8 @@ export const dataModule = createEdemModule("data", (module) => {
           name: z.string().optional(),
           labels: labelsSchema.optional(),
           type: z.enum(fieldTypes).optional(),
+          relation: z.object({ collection: z.string() }).optional(),
+          options: z.record(z.string(), z.any()).optional(),
           interface: z.string().optional(),
           display: z.string().optional(),
           required: z.boolean().optional(),
@@ -417,18 +544,47 @@ export const dataModule = createEdemModule("data", (module) => {
         }),
         output: z.object({ id: z.string() }),
         resolve: async ({ input, ctx }) => {
-          const { field_id, default_value, validation, meta, labels, ...updates } = input
+          const {
+            field_id,
+            default_value,
+            validation,
+            meta,
+            labels,
+            relation,
+            options,
+            ...updates
+          } = input
 
           const field = await ctx.db.query.fields.findFirst({
             where: eq(schema.fields.id, field_id),
           })
           if (!field) throw new Error(`Field ${field_id} not found`)
 
+          const existingOptions = parseFieldOptions(
+            field.interface_options,
+            `field ${field.id} options`,
+          )
+          const { options: currentOptions, relation: currentRelation } = splitFieldOptions(
+            field.type as FieldType,
+            existingOptions,
+          )
+          const nextType = (updates.type as FieldType | undefined) ?? (field.type as FieldType)
+          const nextOptions = options ?? currentOptions
+          const nextRelation = relation ?? currentRelation
+          const serializedOptions = serializeFieldOptions(nextType, nextOptions, nextRelation)
+
+          if (nextType === "relation" && !serializedOptions) {
+            throw new Error("Relation field must define a target collection")
+          }
+
           const updateData: Record<string, unknown> = { ...updates }
           if (default_value !== undefined) updateData.default_value = JSON.stringify(default_value)
           if (validation !== undefined) updateData.validation = JSON.stringify(validation)
           if (meta !== undefined) updateData.meta = JSON.stringify(meta)
           if (labels !== undefined) updateData.labels = JSON.stringify(labels)
+          if (relation !== undefined || options !== undefined || updates.type !== undefined) {
+            updateData.interface_options = serializedOptions
+          }
 
           await ctx.db.update(schema.fields).set(updateData).where(eq(schema.fields.id, field_id))
 
@@ -480,28 +636,7 @@ export const dataModule = createEdemModule("data", (module) => {
             where: eq(schema.fields.collection_id, input.collection_id),
           })
           return {
-            fields: fields.map((f) => ({
-              id: f.id,
-              collection_id: f.collection_id,
-              name: f.name,
-              labels: f.labels
-                ? safeJsonParse<Record<string, string>>(f.labels, `field ${f.id} labels`)
-                : undefined,
-              type: f.type as FieldType,
-              options: f.interface_options
-                ? safeJsonParse<Record<string, unknown>>(
-                    f.interface_options,
-                    `field ${f.id} options`,
-                  )
-                : undefined,
-              required: f.required ?? undefined,
-              default: f.default_value
-                ? safeJsonParse(f.default_value, `field ${f.id} default_value`)
-                : undefined,
-              meta: f.meta
-                ? safeJsonParse<Record<string, unknown>>(f.meta, `field ${f.id} meta`)
-                : undefined,
-            })),
+            fields: fields.map(parseStoredField),
           }
         },
       })
@@ -514,28 +649,7 @@ export const dataModule = createEdemModule("data", (module) => {
           })
           if (!f) return { field: null }
           return {
-            field: {
-              id: f.id,
-              collection_id: f.collection_id,
-              name: f.name,
-              labels: f.labels
-                ? safeJsonParse<Record<string, string>>(f.labels, `field ${f.id} labels`)
-                : undefined,
-              type: f.type as FieldType,
-              options: f.interface_options
-                ? safeJsonParse<Record<string, unknown>>(
-                    f.interface_options,
-                    `field ${f.id} options`,
-                  )
-                : undefined,
-              required: f.required ?? undefined,
-              default: f.default_value
-                ? safeJsonParse(f.default_value, `field ${f.id} default_value`)
-                : undefined,
-              meta: f.meta
-                ? safeJsonParse<Record<string, unknown>>(f.meta, `field ${f.id} meta`)
-                : undefined,
-            },
+            field: parseStoredField(f),
           }
         },
       })
@@ -1303,26 +1417,7 @@ export const dataModule = createEdemModule("data", (module) => {
                 description: row.description ?? undefined,
                 icon: row.icon ?? undefined,
                 singleton: row.singleton ?? undefined,
-                fields: fields.map((f) => ({
-                  name: f.name,
-                  labels: f.labels
-                    ? safeJsonParse<Record<string, string>>(f.labels, `field ${f.id} labels`)
-                    : undefined,
-                  type: f.type as FieldType,
-                  required: f.required ?? undefined,
-                  default: f.default_value
-                    ? safeJsonParse(f.default_value, `field ${f.id} default`)
-                    : undefined,
-                  options: f.interface_options
-                    ? safeJsonParse<Record<string, unknown>>(
-                        f.interface_options,
-                        `field ${f.id} options`,
-                      )
-                    : undefined,
-                  meta: f.meta
-                    ? safeJsonParse<Record<string, unknown>>(f.meta, `field ${f.id} meta`)
-                    : undefined,
-                })),
+                fields: fields.map(parseStoredManifestField),
               }
             }),
           )
@@ -1383,11 +1478,12 @@ export const dataModule = createEdemModule("data", (module) => {
                     labels: fieldDef.labels ? JSON.stringify(fieldDef.labels) : null,
                     type: fieldDef.type,
                     required: fieldDef.required ?? false,
-                    default_value:
-                      fieldDef.default !== null && fieldDef.default !== undefined
-                        ? JSON.stringify(fieldDef.default)
-                        : null,
-                    interface_options: fieldDef.options ? JSON.stringify(fieldDef.options) : null,
+                    default_value: serializeFieldDefaultValue(fieldDef.default),
+                    interface_options: serializeFieldOptions(
+                      fieldDef.type,
+                      fieldDef.options,
+                      fieldDef.relation,
+                    ),
                     meta: fieldDef.meta ? JSON.stringify(fieldDef.meta) : null,
                   })
                   fieldsChanged = true
@@ -1424,11 +1520,12 @@ export const dataModule = createEdemModule("data", (module) => {
 
                 const newLabels = fieldDef.labels ? JSON.stringify(fieldDef.labels) : null
                 const newRequired = fieldDef.required ?? false
-                const newDefault =
-                  fieldDef.default !== null && fieldDef.default !== undefined
-                    ? JSON.stringify(fieldDef.default)
-                    : null
-                const newOptions = fieldDef.options ? JSON.stringify(fieldDef.options) : null
+                const newDefault = serializeFieldDefaultValue(fieldDef.default)
+                const newOptions = serializeFieldOptions(
+                  fieldDef.type,
+                  fieldDef.options,
+                  fieldDef.relation,
+                )
                 const newMeta = fieldDef.meta ? JSON.stringify(fieldDef.meta) : null
 
                 if (
@@ -1491,11 +1588,12 @@ export const dataModule = createEdemModule("data", (module) => {
                   labels: fieldDef.labels ? JSON.stringify(fieldDef.labels) : null,
                   type: fieldDef.type,
                   required: fieldDef.required ?? false,
-                  default_value:
-                    fieldDef.default !== null && fieldDef.default !== undefined
-                      ? JSON.stringify(fieldDef.default)
-                      : null,
-                  interface_options: fieldDef.options ? JSON.stringify(fieldDef.options) : null,
+                  default_value: serializeFieldDefaultValue(fieldDef.default),
+                  interface_options: serializeFieldOptions(
+                    fieldDef.type,
+                    fieldDef.options,
+                    fieldDef.relation,
+                  ),
                   meta: fieldDef.meta ? JSON.stringify(fieldDef.meta) : null,
                 })
               }
@@ -1667,25 +1765,7 @@ async function getCollectionWithFields(
     meta: collection.meta
       ? safeJsonParse<Record<string, unknown>>(collection.meta, `collection ${collectionId} meta`)
       : undefined,
-    fields: fields.map((f) => ({
-      id: f.id,
-      collection_id: f.collection_id,
-      name: f.name,
-      labels: f.labels
-        ? safeJsonParse<Record<string, string>>(f.labels, `field ${f.id} labels`)
-        : undefined,
-      type: f.type as FieldType,
-      options: f.interface_options
-        ? safeJsonParse<Record<string, unknown>>(f.interface_options, `field ${f.id} options`)
-        : undefined,
-      required: f.required ?? undefined,
-      default: f.default_value
-        ? safeJsonParse(f.default_value, `field ${f.id} default_value`)
-        : undefined,
-      meta: f.meta
-        ? safeJsonParse<Record<string, unknown>>(f.meta, `field ${f.id} meta`)
-        : undefined,
-    })),
+    fields: fields.map(parseStoredField),
   }
 }
 

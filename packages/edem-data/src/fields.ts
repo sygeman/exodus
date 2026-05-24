@@ -23,29 +23,79 @@ export type FieldType = (typeof fieldTypes)[number]
 
 export const labelsSchema = z.record(z.string(), z.string())
 
-export const fieldSchema = z.object({
+export const relationFieldSchema = z.object({
+  collection: z.string(),
+})
+
+function getRelationCollection(relation: unknown, options: unknown): string | undefined {
+  if (typeof relation === "object" && relation !== null && "collection" in relation) {
+    const collection = (relation as { collection?: unknown }).collection
+    if (typeof collection === "string" && collection.trim() !== "") {
+      return collection
+    }
+  }
+
+  if (typeof options === "object" && options !== null && !Array.isArray(options)) {
+    const record = options as Record<string, unknown>
+
+    if (typeof record.collection === "string" && record.collection.trim() !== "") {
+      return record.collection
+    }
+
+    if (
+      typeof record.target_collection_id === "string" &&
+      record.target_collection_id.trim() !== ""
+    ) {
+      return record.target_collection_id
+    }
+  }
+
+  return undefined
+}
+
+const baseFieldShape = {
+  name: z.string(),
+  labels: labelsSchema.optional(),
+  type: z.enum(fieldTypes),
+  relation: relationFieldSchema.optional(),
+  options: z.record(z.string(), z.any()).optional(),
+  required: z.boolean().optional(),
+  default: z.any().optional(),
+  meta: z.record(z.string(), z.any()).optional(),
+}
+
+function validateRelationField(
+  value: { type: FieldType; relation?: { collection: string }; options?: Record<string, unknown> },
+  ctx: z.RefinementCtx,
+) {
+  if (value.type !== "relation") {
+    return
+  }
+
+  if (getRelationCollection(value.relation, value.options)) {
+    return
+  }
+
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    path: ["relation", "collection"],
+    message: "Relation field must define a target collection",
+  })
+}
+
+const fieldObjectSchema = z.object({
   id: z.string(),
   collection_id: z.string(),
-  name: z.string(),
-  labels: labelsSchema.optional(),
-  type: z.enum(fieldTypes),
-  options: z.record(z.string(), z.any()).optional(),
-  required: z.boolean().optional(),
-  default: z.any().optional(),
-  meta: z.record(z.string(), z.any()).optional(),
+  ...baseFieldShape,
 })
 
-export const fieldInputSchema = fieldSchema.omit({ id: true, collection_id: true })
+export const fieldSchema = fieldObjectSchema.superRefine(validateRelationField)
 
-export const manifestFieldSchema = z.object({
-  name: z.string(),
-  labels: labelsSchema.optional(),
-  type: z.enum(fieldTypes),
-  required: z.boolean().optional(),
-  default: z.any().optional(),
-  options: z.record(z.string(), z.any()).optional(),
-  meta: z.record(z.string(), z.any()).optional(),
-})
+export const fieldInputSchema = fieldObjectSchema
+  .omit({ id: true, collection_id: true })
+  .superRefine(validateRelationField)
+
+export const manifestFieldSchema = z.object(baseFieldShape).superRefine(validateRelationField)
 
 export const manifestCollectionSchema = z.object({
   id: z.string(),
@@ -64,6 +114,7 @@ export const manifestSchema = z.object({
 export type Manifest = z.infer<typeof manifestSchema>
 export type ManifestCollection = z.infer<typeof manifestCollectionSchema>
 export type ManifestField = z.infer<typeof manifestFieldSchema>
+export type RelationField = z.infer<typeof relationFieldSchema>
 
 const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/
 const isoDatetimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/

@@ -1365,6 +1365,45 @@ describe("data module", () => {
       expect(collection?.fields[0].meta).toEqual({ sortable: true })
     })
 
+    it("should sync relation target collection", async () => {
+      await edem.data.createCollection({
+        id: "posts",
+        name: "Posts",
+        fields: [{ name: "author", type: "relation", relation: { collection: "users" } }],
+      })
+
+      const { collection } = await edem.data.getCollection({ collection_id: "posts" })
+      expect(collection?.fields[0].relation).toEqual({ collection: "users" })
+
+      const manifest = await edem.data.getManifest()
+      expect(manifest.collections[0]?.fields[0]?.relation).toEqual({ collection: "users" })
+    })
+
+    it("should preserve non-relation field options alongside relation config", async () => {
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "posts",
+              name: "Posts",
+              fields: [
+                {
+                  name: "author",
+                  type: "relation",
+                  relation: { collection: "users" },
+                  options: { mode: "many" },
+                },
+              ],
+            },
+          ],
+        },
+      })
+
+      const { collection } = await edem.data.getCollection({ collection_id: "posts" })
+      expect(collection?.fields[0].relation).toEqual({ collection: "users" })
+      expect(collection?.fields[0].options).toEqual({ mode: "many" })
+    })
+
     it("should remove fields not in manifest", async () => {
       await edem.data.createCollection({
         id: "test",

@@ -23,6 +23,16 @@ const tabs = computed(() => [
     icon: "i-lucide-lightbulb",
   },
   {
+    to: `/project/${projectId.value}/data`,
+    label: t({ en: "Data", ru: "Данные" }),
+    icon: "i-lucide-database",
+  },
+  {
+    to: `/project/${projectId.value}/ui`,
+    label: t({ en: "UI", ru: "UI" }),
+    icon: "i-lucide-panels-top-left",
+  },
+  {
     to: `/project/${projectId.value}/flows`,
     label: t({ en: "Flows", ru: "Потоки" }),
     icon: "i-lucide-workflow",

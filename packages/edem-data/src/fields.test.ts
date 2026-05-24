@@ -1,5 +1,5 @@
 import { describe, it, expect } from "bun:test"
-import { validateFieldValue, fieldTypes, fieldSchema } from "./fields"
+import { validateFieldValue, fieldTypes, fieldSchema, manifestFieldSchema } from "./fields"
 
 describe("field types", () => {
   it("should have all field types defined", () => {
@@ -250,6 +250,7 @@ describe("fieldSchema", () => {
         collection_id: "col1",
         name: "field",
         type,
+        ...(type === "relation" ? { relation: { collection: "target" } } : {}),
       })
       expect(result.success).toBe(true)
     }
@@ -267,6 +268,27 @@ describe("fieldSchema", () => {
     if (result.success) {
       expect(result.data.labels).toEqual({ en: "Title", ru: "Заголовок" })
     }
+  })
+
+  it("should validate relation field with target collection", () => {
+    const result = fieldSchema.safeParse({
+      id: "1",
+      collection_id: "posts",
+      name: "author",
+      type: "relation",
+      relation: { collection: "users" },
+    })
+
+    expect(result.success).toBe(true)
+  })
+
+  it("should reject relation field without target collection", () => {
+    const result = manifestFieldSchema.safeParse({
+      name: "author",
+      type: "relation",
+    })
+
+    expect(result.success).toBe(false)
   })
 
   it("should validate with empty labels", () => {
