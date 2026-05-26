@@ -666,6 +666,10 @@ function buildDataRouteLocation(
   collectionId: string | null,
   section: DataSectionRouteValue = "fields",
 ): RouteLocationRaw {
+  if (section === "manifest") {
+    return { name: "project-data-manifest", params: { id: projectId.value } }
+  }
+
   if (!collectionId) {
     return { name: "project-data", params: { id: projectId.value } }
   }
@@ -691,9 +695,13 @@ function navigateDataRoute(
 }
 
 function syncRouteToState(): void {
+  const routeName = typeof route.name === "string" ? route.name : null
+  const isProjectManifestRoute = routeName === "project-data-manifest"
   const routeCollectionId = getRouteStringParam(route.params.collectionId)
   const routeSectionParam = getRouteStringParam(route.params.section)
-  const section = parseDataSectionRouteValue(routeSectionParam) ?? "fields"
+  const section = isProjectManifestRoute
+    ? "manifest"
+    : (parseDataSectionRouteValue(routeSectionParam) ?? "fields")
   const tab = dataSectionRouteValueToTab(section)
 
   if (
@@ -735,6 +743,28 @@ function syncRouteToState(): void {
   const selectableItems = pendingDeletedCollectionId.value
     ? collectionItems.value.filter((item) => item.id !== pendingDeletedCollectionId.value)
     : collectionItems.value
+
+  if (section === "manifest") {
+    const routeCollection = routeCollectionId
+      ? selectableItems.find((item) => item.id === routeCollectionId)
+      : null
+    const selectedCollectionStillExists = selectedCollectionId.value
+      ? selectableItems.some((item) => item.id === selectedCollectionId.value)
+      : false
+
+    selectedCollectionId.value =
+      routeCollection?.id ??
+      (selectedCollectionStillExists ? selectedCollectionId.value : selectableItems[0]?.id) ??
+      null
+    selectedFieldIndex.value = null
+    activeTab.value = "manifest"
+
+    if (!isProjectManifestRoute || routeCollectionId || routeSectionParam) {
+      navigateDataRoute(null, "manifest", "replace")
+    }
+
+    return
+  }
 
   if (selectableItems.length === 0) {
     selectedCollectionId.value = null
@@ -794,6 +824,7 @@ watch(
     () => route.params.id,
     () => route.params.collectionId,
     () => route.params.section,
+    () => route.name,
   ],
   syncRouteToState,
   { immediate: true },
@@ -952,7 +983,7 @@ function openSettingsTab() {
 
 function openManifestTab() {
   activeTab.value = "manifest"
-  navigateDataRoute(selectedCollectionId.value, "manifest")
+  navigateDataRoute(null, "manifest")
 }
 
 function selectField(index: number) {
@@ -1552,7 +1583,10 @@ async function confirmDeleteField() {
 
 function selectCollection(id: string) {
   selectedCollectionId.value = id
-  navigateDataRoute(id, getCurrentDataSectionRouteValue())
+  navigateDataRoute(
+    id,
+    activeTab.value === "manifest" ? "fields" : getCurrentDataSectionRouteValue(),
+  )
 }
 
 async function handleUpdateCollectionName(event: FocusEvent | KeyboardEvent) {
@@ -1812,6 +1846,26 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
           :placeholder="t({ en: 'Search collections', ru: 'Поиск коллекций' })"
           class="w-full"
         />
+
+        <button
+          class="mt-2 flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-sm font-medium transition-colors"
+          :class="
+            activeTab === 'manifest'
+              ? 'bg-primary/10 text-primary'
+              : 'text-muted hover:bg-elevated hover:text-default'
+          "
+          @click="openManifestTab"
+        >
+          <UIcon name="i-lucide-braces" class="h-4 w-4" />
+          <span class="min-w-0 flex-1 truncate">{{ t({ en: "Manifest", ru: "Манифест" }) }}</span>
+          <UBadge
+            v-if="manifestValidationErrors.length > 0"
+            :label="getIssueCountLabel(manifestValidationErrors.length)"
+            color="error"
+            variant="subtle"
+            size="sm"
+          />
+        </button>
       </div>
 
       <div v-if="loading && showSkeleton" class="flex flex-1 flex-col gap-2 p-2">
@@ -1867,7 +1921,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
             :key="collection.id"
             class="group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors"
             :class="
-              selectedCollectionId === collection.id
+              selectedCollectionId === collection.id && activeTab !== 'manifest'
                 ? 'bg-primary/5 text-default'
                 : 'text-default hover:bg-elevated/60'
             "
@@ -1876,13 +1930,19 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
             <span
               class="absolute top-2 bottom-2 left-0 w-0.5 rounded-full transition-opacity"
               :class="
-                selectedCollectionId === collection.id ? 'bg-primary opacity-100' : 'opacity-0'
+                selectedCollectionId === collection.id && activeTab !== 'manifest'
+                  ? 'bg-primary opacity-100'
+                  : 'opacity-0'
               "
             />
 
             <span
               class="bg-elevated text-muted group-hover:text-default flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors"
-              :class="selectedCollectionId === collection.id ? 'text-primary' : ''"
+              :class="
+                selectedCollectionId === collection.id && activeTab !== 'manifest'
+                  ? 'text-primary'
+                  : ''
+              "
             >
               <UIcon :name="getCollectionIcon(collection)" class="h-4 w-4" />
             </span>
@@ -1943,7 +2003,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
         </div>
       </div>
 
-      <div v-if="selectedCollection" class="px-3 pt-3 pb-1">
+      <div v-if="selectedCollection && activeTab !== 'manifest'" class="px-3 pt-3 pb-1">
         <div class="flex w-full items-center gap-2">
           <button
             class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors"
@@ -1965,26 +2025,6 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
             <UBadge
               v-if="fieldIssueCount > 0"
               :label="getIssueCountLabel(fieldIssueCount)"
-              color="error"
-              variant="subtle"
-              size="sm"
-            />
-          </button>
-
-          <button
-            class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors"
-            :class="
-              activeTab === 'manifest'
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted hover:bg-elevated hover:text-default'
-            "
-            @click="openManifestTab"
-          >
-            <UIcon name="i-lucide-braces" class="h-4 w-4" />
-            <span>{{ t({ en: "Manifest", ru: "Манифест" }) }}</span>
-            <UBadge
-              v-if="manifestValidationErrors.length > 0"
-              :label="getIssueCountLabel(manifestValidationErrors.length)"
               color="error"
               variant="subtle"
               size="sm"
@@ -2021,6 +2061,36 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
           <USkeleton class="h-[420px] w-full rounded-2xl" />
           <USkeleton class="h-[420px] w-full rounded-2xl" />
         </div>
+      </div>
+
+      <div
+        v-else-if="activeTab === 'manifest'"
+        class="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pt-2 pb-3"
+      >
+        <section class="flex min-h-0 flex-1 flex-col">
+          <div
+            class="border-default bg-default flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border shadow-sm"
+          >
+            <div class="border-default border-b px-4 py-3">
+              <h3 class="text-base font-semibold">{{ t({ en: "Manifest", ru: "Манифест" }) }}</h3>
+              <p class="text-muted mt-1 text-xs leading-5">
+                {{
+                  t({
+                    en: "Current project data structure as JSON.",
+                    ru: "Текущая структура данных проекта в JSON.",
+                  })
+                }}
+              </p>
+            </div>
+
+            <UScrollArea class="min-h-0 flex-1">
+              <pre
+                class="min-h-full p-4 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap"
+                >{{ manifestPreview }}</pre
+              >
+            </UScrollArea>
+          </div>
+        </section>
       </div>
 
       <div
@@ -2649,31 +2719,6 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                 </UScrollArea>
               </div>
             </aside>
-          </section>
-
-          <section v-else-if="activeTab === 'manifest'" class="flex min-h-0 flex-1 flex-col">
-            <div
-              class="border-default bg-default flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border shadow-sm"
-            >
-              <div class="border-default border-b px-4 py-3">
-                <h3 class="text-base font-semibold">{{ t({ en: "Manifest", ru: "Манифест" }) }}</h3>
-                <p class="text-muted mt-1 text-xs leading-5">
-                  {{
-                    t({
-                      en: "Current project structure as JSON.",
-                      ru: "Текущая структура проекта в JSON.",
-                    })
-                  }}
-                </p>
-              </div>
-
-              <div class="min-h-0 flex-1 overflow-auto">
-                <pre
-                  class="min-h-full p-4 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap"
-                  >{{ manifestPreview }}</pre
-                >
-              </div>
-            </div>
           </section>
 
           <section
