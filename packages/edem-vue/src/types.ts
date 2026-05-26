@@ -27,7 +27,14 @@ export interface QueryResult<T = Record<string, unknown>> {
   total: number
 }
 
-type MapFieldType<T> = T extends "string" | "text" | "uuid" | "datetime"
+type MapFieldType<T> = T extends
+  | "string"
+  | "text"
+  | "uuid"
+  | "datetime"
+  | "file"
+  | "image"
+  | "video"
   ? string
   : T extends "number"
     ? number

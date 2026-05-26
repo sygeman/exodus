@@ -125,17 +125,21 @@ async function extractImageMetadata(
     return {}
   }
 
-  const imageMetadata = await Bun.file(path).image().metadata()
-  const metadata: Record<string, unknown> = {}
+  try {
+    const imageMetadata = await Bun.file(path).image().metadata()
+    const metadata: Record<string, unknown> = {}
 
-  if (imageMetadata.format) {
-    metadata.format = imageMetadata.format
-  }
+    if (imageMetadata.format) {
+      metadata.format = imageMetadata.format
+    }
 
-  return {
-    width: imageMetadata.width,
-    height: imageMetadata.height,
-    metadata,
+    return {
+      width: imageMetadata.width,
+      height: imageMetadata.height,
+      metadata,
+    }
+  } catch {
+    return {}
   }
 }
 

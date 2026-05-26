@@ -26,6 +26,16 @@ type ReadFileBlobResult = {
   size: number
 }
 
+type UploadFileInput = {
+  file: Blob
+  name?: string
+  mimeType?: string
+  chunkSize?: number
+  expectedHash?: string
+}
+
+type UploadedFile = Awaited<ReturnType<EdemData["completeFileUpload"]>>["file"]
+
 type FileObjectUrlOptions = {
   chunkSize?: number
   thumbnailSize?: ThumbnailSize
@@ -51,6 +61,26 @@ function decodeBase64(data: string): ArrayBuffer {
   const buffer = new ArrayBuffer(bytes.byteLength)
   new Uint8Array(buffer).set(bytes)
   return buffer
+}
+
+function encodeBase64(bytes: Uint8Array): string {
+  let binary = ""
+
+  for (let index = 0; index < bytes.byteLength; index++) {
+    binary += String.fromCharCode(bytes[index])
+  }
+
+  return btoa(binary)
+}
+
+function getBlobName(file: Blob): string | undefined {
+  const name = (file as { name?: unknown }).name
+
+  if (typeof name === "string" && name.trim() !== "") {
+    return name
+  }
+
+  return undefined
 }
 
 async function readChunk(
@@ -112,6 +142,39 @@ export async function readFileBlob(
     mimeType,
     originalName,
     size,
+  }
+}
+
+export async function uploadFile(data: EdemData, input: UploadFileInput): Promise<UploadedFile> {
+  const chunkSize = normalizeChunkSize(input.chunkSize)
+  const upload = await data.beginFileUpload({
+    name: input.name ?? getBlobName(input.file),
+    mime_type: input.mimeType ?? (input.file.type || "application/octet-stream"),
+    size: input.file.size,
+  })
+
+  try {
+    for (let offset = 0; offset < input.file.size; offset += chunkSize) {
+      const bytes = new Uint8Array(
+        await input.file.slice(offset, Math.min(offset + chunkSize, input.file.size)).arrayBuffer(),
+      )
+
+      await data.writeFileUploadChunk({
+        upload_id: upload.upload_id,
+        offset,
+        data_base64: encodeBase64(bytes),
+      })
+    }
+
+    const completed = await data.completeFileUpload({
+      upload_id: upload.upload_id,
+      expected_hash: input.expectedHash,
+    })
+
+    return completed.file
+  } catch (cause) {
+    await data.abortFileUpload({ upload_id: upload.upload_id }).catch(() => {})
+    throw cause
   }
 }
 
