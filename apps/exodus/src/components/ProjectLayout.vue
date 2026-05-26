@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { useFileObjectUrl, useT } from "@exodus/edem-vue"
-import { edem } from "@/edem"
+import ProjectLogo from "@/components/ProjectLogo.vue"
+import { useT } from "@exodus/edem-vue"
 import { useCollectionQuery } from "@/hooks"
 import { useRoute } from "vue-router"
 import { computed } from "vue"
@@ -11,18 +11,6 @@ const { data: projects, loading } = useCollectionQuery("projects")
 
 const projectId = computed(() => route.params.id as string)
 const project = computed(() => projects.value.find((p) => p.id === projectId.value))
-const projectLogoHash = computed(() => {
-  const logo = project.value?.data.logo
-  return typeof logo === "string" && logo.trim() !== "" ? logo : null
-})
-const { url: projectLogoUrl, loading: projectLogoLoading } = useFileObjectUrl(
-  edem.data,
-  projectLogoHash,
-)
-
-function getInitials(name: string): string {
-  return name.slice(0, 2).toUpperCase()
-}
 
 const tabs = computed(() => [
   {
@@ -65,18 +53,11 @@ const tabs = computed(() => [
         :to="`/project/${projectId}/overview`"
         class="hover:text-primary flex min-w-0 items-center gap-2.5 text-lg font-semibold transition-colors"
       >
-        <span
-          class="border-default bg-elevated flex h-7 w-7 shrink-0 items-center justify-center overflow-hidden rounded-lg border text-[10px] font-bold"
-        >
-          <img
-            v-if="projectLogoUrl"
-            :src="projectLogoUrl"
-            :alt="t({ en: 'Project logo', ru: 'Логотип проекта' })"
-            class="h-full w-full object-cover"
-          />
-          <USkeleton v-else-if="projectLogoLoading" class="h-full w-full" />
-          <span v-else class="text-muted">{{ getInitials(project.data.name ?? "") }}</span>
-        </span>
+        <ProjectLogo
+          :name="project.data.name ?? ''"
+          :logo="project.data.logo"
+          class="border-default bg-elevated text-muted h-7 w-7 rounded-lg border text-[10px] font-bold"
+        />
         <span class="truncate">{{ project.data.name }}</span>
       </RouterLink>
 

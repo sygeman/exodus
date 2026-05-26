@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ProjectLogo from "@/components/ProjectLogo.vue"
 import { useT } from "@exodus/edem-vue"
 import { useCollectionQuery, useCreateItem, useDeleteItem } from "@/hooks"
 import { useRoute, useRouter } from "vue-router"
@@ -62,10 +63,6 @@ const tooltipContent = {
   side: "right" as const,
   sideOffset: 8,
 }
-
-function getInitials(name: string): string {
-  return name.slice(0, 2).toUpperCase()
-}
 </script>
 
 <template>
@@ -80,14 +77,18 @@ function getInitials(name: string): string {
       <UTooltip :text="project.data.name" :content="tooltipContent" :delay-duration="0">
         <ULink
           :to="`/project/${project.id}/overview`"
-          class="electrobun-webkit-app-region-no-drag bg-default/50 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg font-semibold transition-all"
+          class="electrobun-webkit-app-region-no-drag bg-default/50 flex h-10 w-10 shrink-0 cursor-pointer items-center justify-center rounded-lg border-2 font-semibold transition-all"
           :class="
             currentProjectId === project.id
-              ? 'bg-default text-primary border-primary border-2'
-              : 'text-muted hover:bg-default'
+              ? 'bg-default text-primary border-primary'
+              : 'text-muted hover:bg-default border-transparent'
           "
         >
-          {{ getInitials(project.data.name) }}
+          <ProjectLogo
+            :name="project.data.name"
+            :logo="project.data.logo"
+            class="h-full w-full rounded-[inherit] text-sm"
+          />
         </ULink>
       </UTooltip>
     </UContextMenu>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import ProjectLogo from "@/components/ProjectLogo.vue"
 import { useT } from "@exodus/edem-vue"
 import { useCollectionQuery, useCreateItem } from "@/hooks"
 import { useRouter } from "vue-router"
@@ -41,10 +42,6 @@ async function handleCreate() {
     sort_order: 0,
   })
   router.push(`/project/${id}/overview`)
-}
-
-function getInitials(name: string): string {
-  return name.slice(0, 2).toUpperCase()
 }
 </script>
 
@@ -90,11 +87,11 @@ function getInitials(name: string): string {
         :to="`/project/${project.id}/overview`"
         class="hover:border-primary border-default flex items-center gap-4 rounded-lg border p-4 transition-colors"
       >
-        <div
-          class="bg-elevated flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border-2 border-transparent font-semibold transition-colors"
-        >
-          {{ getInitials(project.data.name) }}
-        </div>
+        <ProjectLogo
+          :name="project.data.name"
+          :logo="project.data.logo"
+          class="bg-elevated h-10 w-10 rounded-lg border-2 border-transparent font-semibold transition-colors"
+        />
         <span class="font-medium">{{ project.data.name }}</span>
       </RouterLink>
     </div>

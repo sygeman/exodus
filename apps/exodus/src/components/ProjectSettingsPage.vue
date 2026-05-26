@@ -1,13 +1,13 @@
 <script setup lang="ts">
+import ProjectLogo from "@/components/ProjectLogo.vue"
 import SettingsLayout from "@/components/SettingsLayout.vue"
-import { uploadFile, useFileObjectUrl, useT } from "@exodus/edem-vue"
 import { edem } from "@/edem"
+import { useCollectionQuery, useDeleteItem, useUpdateItem } from "@/hooks"
+import { uploadFile, useT } from "@exodus/edem-vue"
+import { computed, ref } from "vue"
+import { useRoute, useRouter } from "vue-router"
 
 const t = useT()
-
-import { useRoute, useRouter } from "vue-router"
-import { computed, ref } from "vue"
-import { useCollectionQuery, useUpdateItem, useDeleteItem } from "@/hooks"
 
 const route = useRoute()
 const router = useRouter()
@@ -21,15 +21,11 @@ const deleteModalOpen = ref(false)
 const logoInput = ref<HTMLInputElement | null>(null)
 const logoUploading = ref(false)
 const logoError = ref<string | null>(null)
+const logoPreviewError = ref<string | null>(null)
 const projectLogoHash = computed(() => {
   const logo = project.value?.data.logo
   return typeof logo === "string" && logo.trim() !== "" ? logo : null
 })
-const {
-  url: logoUrl,
-  loading: logoPreviewLoading,
-  error: logoPreviewError,
-} = useFileObjectUrl(edem.data, projectLogoHash)
 
 const navItems = computed(() => [
   {
@@ -45,12 +41,12 @@ function updateName(e: FocusEvent | KeyboardEvent) {
   updateItem(project.value.id, { name })
 }
 
-function getInitials(name: string): string {
-  return name.slice(0, 2).toUpperCase()
-}
-
 function openLogoPicker() {
   logoInput.value?.click()
+}
+
+function setLogoPreviewError(message: string | null) {
+  logoPreviewError.value = message
 }
 
 async function handleLogoFileChange(event: Event) {
@@ -135,20 +131,12 @@ function confirmDelete(_event?: Event) {
           </div>
 
           <div class="flex items-center gap-4">
-            <div
-              class="border-default bg-elevated flex h-20 w-20 shrink-0 items-center justify-center overflow-hidden rounded-2xl border shadow-sm"
-            >
-              <img
-                v-if="logoUrl"
-                :src="logoUrl"
-                :alt="t({ en: 'Project logo', ru: 'Логотип проекта' })"
-                class="h-full w-full object-cover"
-              />
-              <USkeleton v-else-if="logoPreviewLoading" class="h-full w-full" />
-              <span v-else class="text-muted text-xl font-semibold">
-                {{ getInitials(project.data.name ?? "") }}
-              </span>
-            </div>
+            <ProjectLogo
+              :name="project.data.name ?? ''"
+              :logo="projectLogoHash"
+              class="border-default bg-elevated text-muted h-20 w-20 rounded-2xl border text-xl font-semibold shadow-sm"
+              @error="setLogoPreviewError"
+            />
 
             <div class="flex min-w-0 flex-col gap-2">
               <div class="flex flex-wrap gap-2">
