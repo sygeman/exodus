@@ -34,6 +34,12 @@ const routes: RouteRecordRaw[] = [
       { path: "ideas", name: "project-ideas", component: ProjectIdeasPage },
       { path: "ideas/:ideaId", name: "project-idea", props: true, component: ProjectIdeaPage },
       { path: "data", name: "project-data", component: ProjectDataPage },
+      { path: "data/:collectionId", name: "project-data-collection", component: ProjectDataPage },
+      {
+        path: "data/:collectionId/:section",
+        name: "project-data-section",
+        component: ProjectDataPage,
+      },
       { path: "ui", name: "project-ui", component: ProjectUiPage },
       { path: "flows", name: "project-flows", component: ProjectFlowsPage },
       {

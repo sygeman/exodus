@@ -19,20 +19,34 @@ describe("project data source", () => {
     ])
   })
 
+  it("forces canonical names for generated fields", () => {
+    expect(
+      normalizeProjectDataFields([
+        { name: "custom_uuid", type: "uuid", special: "uuid", system: true, readonly: true },
+        { name: "created", type: "timestamp", special: "date-created" },
+        { name: "updated", type: "timestamp", special: "date-updated" },
+      ]),
+    ).toEqual([
+      { name: "id", type: "uuid", special: "uuid", system: true, readonly: true },
+      { name: "created_at", type: "timestamp", special: "date-created" },
+      { name: "updated_at", type: "timestamp", special: "date-updated" },
+    ])
+  })
+
   it("normalizes relation config from legacy field options", () => {
     expect(
       normalizeProjectDataFields([
         {
           name: "author",
           type: "relation",
-          options: { collection: "users", mode: "one" },
+          options: { collection: "users", kind: "many", mode: "one" },
         },
       ]),
     ).toEqual([
       {
         name: "author",
         type: "relation",
-        relation: { collection: "users" },
+        relation: { collection: "users", kind: "many" },
         options: { mode: "one" },
       },
     ])

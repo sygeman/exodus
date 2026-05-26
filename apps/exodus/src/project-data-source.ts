@@ -1,5 +1,6 @@
 import {
   manifestFieldInputSchema,
+  getGeneratedFieldName,
   type FieldType,
   type DataManifest,
   type ManifestCollection,
@@ -10,6 +11,7 @@ import {
 export type ProjectDataCollectionSourceItem = {
   id: string
   data: {
+    project_id?: unknown
     manifest_id?: unknown
     name?: unknown
     singleton?: unknown
@@ -55,13 +57,16 @@ function splitFieldOptions(
           nextOptions.target_collection_id.trim() !== ""
         ? nextOptions.target_collection_id
         : undefined
+  const kind =
+    nextOptions.kind === "many" || nextOptions.kind === "one" ? nextOptions.kind : undefined
 
   delete nextOptions.collection
   delete nextOptions.target_collection_id
+  delete nextOptions.kind
 
   return {
     options: Object.keys(nextOptions).length > 0 ? nextOptions : undefined,
-    relation: collection ? { collection } : undefined,
+    relation: collection ? { collection, ...(kind ? { kind } : {}) } : undefined,
   }
 }
 
@@ -73,11 +78,13 @@ function normalizeProjectDataField(value: unknown): ManifestField | null {
 
   const { options, relation } = splitFieldOptions(parsed.data.type, parsed.data.options)
 
-  return {
+  const field = {
     ...parsed.data,
     options,
     relation: parsed.data.relation ?? relation,
   }
+
+  return field.special ? { ...field, name: getGeneratedFieldName(field.special) } : field
 }
 
 export function normalizeProjectDataFields(value: unknown): ManifestField[] {

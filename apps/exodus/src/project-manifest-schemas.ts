@@ -20,14 +20,28 @@ export const fieldTypes = [
 ] as const
 
 export const fieldSpecials = ["uuid", "date-created", "date-updated"] as const
+export const relationKinds = ["one", "many"] as const
 
 export type FieldType = (typeof fieldTypes)[number]
 export type FieldSpecial = (typeof fieldSpecials)[number]
+export type RelationKind = (typeof relationKinds)[number]
+
+export function getGeneratedFieldName(special: FieldSpecial): string {
+  switch (special) {
+    case "uuid":
+      return "id"
+    case "date-created":
+      return "created_at"
+    case "date-updated":
+      return "updated_at"
+  }
+}
 
 export const labelsSchema = z.record(z.string(), z.string())
 
 export const relationFieldSchema = z.object({
   collection: z.string(),
+  kind: z.enum(relationKinds).optional(),
 })
 
 function getRelationCollection(relation: unknown, options: unknown): string | undefined {
@@ -72,7 +86,7 @@ const baseManifestFieldShape = {
 }
 
 function validateRelationField(
-  value: { type: FieldType; relation?: { collection: string }; options?: Record<string, unknown> },
+  value: { type: FieldType; relation?: RelationField; options?: Record<string, unknown> },
   ctx: z.RefinementCtx,
 ) {
   if (value.type !== "relation") {

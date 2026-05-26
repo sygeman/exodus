@@ -1,12 +1,14 @@
 <script setup lang="ts">
 import { computed, ref, watch } from "vue"
-import { useRoute } from "vue-router"
+import { useRoute, useRouter, type RouteLocationRaw } from "vue-router"
 import { useT } from "@exodus/edem-vue"
 import {
   dataManifestSchema,
+  getGeneratedFieldName,
   type FieldSpecial,
   type FieldType,
   type ManifestField,
+  type RelationKind,
 } from "@/project-manifest-schemas"
 import { useCollectionQuery, useCreateItem, useDeleteItem, useUpdateItem } from "@/hooks"
 import { PROJECT_DATA_SOURCE_COLLECTION } from "@/project-manifest-collections"
@@ -18,6 +20,7 @@ import {
 
 const t = useT()
 const route = useRoute()
+const router = useRouter()
 const projectId = computed(() => route.params.id as string)
 
 const { data: collections, loading } = useCollectionQuery(PROJECT_DATA_SOURCE_COLLECTION, () => ({
@@ -29,14 +32,19 @@ const [createItem] = useCreateItem()
 const [updateItem] = useUpdateItem()
 const [deleteItem] = useDeleteItem()
 
-const collectionItems = computed(
-  () => collections.value as unknown as ProjectDataCollectionSourceItem[],
+const collectionItems = computed(() =>
+  (collections.value as unknown as ProjectDataCollectionSourceItem[]).filter(
+    (item) => item.data.project_id === projectId.value,
+  ),
 )
 
 const selectedCollectionId = ref<string | null>(null)
 const selectedFieldIndex = ref<number | null>(null)
 const pendingDeleteFieldIndex = ref<number | null>(null)
-const activeTab = ref<"fields" | "relations" | "manifest" | "settings">("fields")
+type DataTab = "fields" | "manifest" | "settings"
+type DataSectionRouteValue = "fields" | "manifest" | "collection"
+
+const activeTab = ref<DataTab>("fields")
 const collectionSearch = ref("")
 const errorMessage = ref<string | null>(null)
 const deleteCollectionModalOpen = ref(false)
@@ -45,6 +53,8 @@ const pendingMutations = ref(0)
 const showSkeleton = ref(false)
 const fieldTypeSearch = ref("")
 const activeFieldInspectorTab = ref<"settings" | "type">("settings")
+const pendingCreatedCollectionRouteId = ref<string | null>(null)
+const pendingDeletedCollectionId = ref<string | null>(null)
 
 let skeletonTimeout: ReturnType<typeof setTimeout> | null = null
 
@@ -65,6 +75,19 @@ type FieldTypeCatalogItem = {
 type FieldTypeCatalogGroup = {
   label: string
   items: FieldTypeCatalogItem[]
+}
+
+type FieldEntry = {
+  field: ManifestField
+  index: number
+}
+
+type FieldEntryGroupKey = "identity" | "fields" | "timestamps" | "relations"
+
+type FieldEntryGroup = {
+  key: FieldEntryGroupKey
+  label: string
+  entries: FieldEntry[]
 }
 
 const fieldTypeGroups = computed<FieldTypeCatalogGroup[]>(() => [
@@ -245,15 +268,15 @@ const fieldTypeGroups = computed<FieldTypeCatalogGroup[]>(() => [
     label: t({ en: "Links & Advanced", ru: "Связи и расширенное" }),
     items: [
       {
-        label: t({ en: "Relation", ru: "Связь" }),
+        label: t({ en: "Linked records", ru: "Связанные записи" }),
         value: "relation",
         type: "relation",
-        icon: "i-lucide-waypoints",
+        icon: "i-lucide-list-plus",
         description: t({
-          en: "Links this record to another collection.",
-          ru: "Связывает запись с другой коллекцией.",
+          en: "Pick one or more records from another collection.",
+          ru: "Выбор одной или нескольких записей из другой коллекции.",
         }),
-        keywords: ["relation", "link", "reference", "foreign"],
+        keywords: ["relation", "link", "reference", "foreign", "record", "select"],
       },
       {
         label: t({ en: "JSON", ru: "JSON" }),
@@ -309,9 +332,28 @@ const booleanDefaultItems = computed(() => [
   { label: "false", value: "false" },
 ])
 
+const relationKindOptions = computed<
+  Array<{
+    label: string
+    description: string
+    value: RelationKind
+  }>
+>(() => [
+  {
+    label: t({ en: "One record", ru: "Одну запись" }),
+    description: t({ en: "Like choosing an author.", ru: "Например, выбрать автора." }),
+    value: "one",
+  },
+  {
+    label: t({ en: "Several records", ru: "Несколько записей" }),
+    description: t({ en: "Like choosing tags.", ru: "Например, выбрать теги." }),
+    value: "many",
+  },
+])
+
 const relationCollectionItems = computed(() =>
   collectionItems.value.map((item) => ({
-    label: `${getCollectionName(item)} · ${getCollectionManifestId(item)}`,
+    label: getCollectionName(item),
     value: getCollectionManifestId(item),
   })),
 )
@@ -348,27 +390,28 @@ const selectedField = computed(() => {
   return selectedFields.value[selectedFieldIndex.value] ?? null
 })
 
-const regularFieldEntries = computed(() =>
-  selectedFields.value.flatMap((field, index) =>
-    isRelationFieldType(field.type) ? [] : [{ field, index }],
-  ),
+const fieldEntries = computed(() =>
+  selectedFields.value.map((field, index) => ({ field, index })).sort(compareFieldEntries),
 )
 
-const relationFieldEntries = computed(() =>
-  selectedFields.value.flatMap((field, index) =>
-    isRelationFieldType(field.type) ? [{ field, index }] : [],
-  ),
-)
+const fieldEntryGroups = computed<FieldEntryGroup[]>(() => {
+  const groups: FieldEntryGroup[] = [
+    { key: "identity", label: t({ en: "Identity", ru: "Идентификатор" }), entries: [] },
+    { key: "fields", label: t({ en: "Fields", ru: "Поля" }), entries: [] },
+    { key: "timestamps", label: t({ en: "Dates", ru: "Даты" }), entries: [] },
+    { key: "relations", label: t({ en: "Linked records", ru: "Связи" }), entries: [] },
+  ]
 
-const selectedRegularField = computed(() =>
-  selectedField.value && !isRelationFieldType(selectedField.value.type)
-    ? selectedField.value
-    : null,
-)
+  for (const entry of fieldEntries.value) {
+    const key = getFieldEntryGroupKey(entry.field)
+    const group = groups.find((candidate) => candidate.key === key)
+    group?.entries.push(entry)
+  }
 
-const selectedRelationField = computed(() =>
-  selectedField.value && isRelationFieldType(selectedField.value.type) ? selectedField.value : null,
-)
+  return groups.filter((group) => group.entries.length > 0)
+})
+
+const selectedEditorField = computed(() => selectedField.value)
 
 const pendingDeleteField = computed(() => {
   if (pendingDeleteFieldIndex.value === null) {
@@ -548,23 +591,9 @@ const fieldIssuesByIndex = computed<Record<number, string[]>>(() => {
   return issues
 })
 
-const regularFieldIssueCount = computed(() =>
-  regularFieldEntries.value.reduce((total, entry) => total + getFieldIssueCount(entry.index), 0),
+const fieldIssueCount = computed(() =>
+  fieldEntries.value.reduce((total, entry) => total + getFieldIssueCount(entry.index), 0),
 )
-
-const relationFieldIssueCount = computed(() =>
-  relationFieldEntries.value.reduce((total, entry) => total + getFieldIssueCount(entry.index), 0),
-)
-
-const relationTargetSuggestions = computed(() => {
-  const currentManifestId = selectedCollection.value
-    ? getCollectionManifestId(selectedCollection.value)
-    : null
-  const otherCollections = relationCollectionItems.value.filter(
-    (item) => item.value !== currentManifestId,
-  )
-  return otherCollections.length > 0 ? otherCollections : relationCollectionItems.value
-})
 
 const hasAnyIssues = computed(() => {
   if (manifestValidationErrors.value.length > 0) {
@@ -595,6 +624,150 @@ const deleteFieldDescription = computed(() => {
   })
 })
 
+function getRouteStringParam(value: unknown): string | null {
+  if (typeof value === "string") {
+    return value
+  }
+
+  if (Array.isArray(value)) {
+    return getRouteStringParam(value[0])
+  }
+
+  return null
+}
+
+function parseDataSectionRouteValue(value: string | null): DataSectionRouteValue | null {
+  switch (value) {
+    case "fields":
+      return "fields"
+    case "relations":
+      return "fields"
+    case "manifest":
+    case "collection":
+      return value
+    default:
+      return null
+  }
+}
+
+function dataSectionRouteValueToTab(section: DataSectionRouteValue): DataTab {
+  return section === "collection" ? "settings" : section
+}
+
+function dataTabToSectionRouteValue(tab: DataTab): DataSectionRouteValue {
+  return tab === "settings" ? "collection" : tab
+}
+
+function getCurrentDataSectionRouteValue(): DataSectionRouteValue {
+  return dataTabToSectionRouteValue(activeTab.value)
+}
+
+function buildDataRouteLocation(
+  collectionId: string | null,
+  section: DataSectionRouteValue = "fields",
+): RouteLocationRaw {
+  if (!collectionId) {
+    return { name: "project-data", params: { id: projectId.value } }
+  }
+
+  return {
+    name: "project-data-section",
+    params: { id: projectId.value, collectionId, section },
+  }
+}
+
+function navigateDataRoute(
+  collectionId: string | null,
+  section: DataSectionRouteValue = "fields",
+  mode: "push" | "replace" = "push",
+): void {
+  const location = buildDataRouteLocation(collectionId, section)
+  if (mode === "replace") {
+    void router.replace(location).catch(() => {})
+    return
+  }
+
+  void router.push(location).catch(() => {})
+}
+
+function syncRouteToState(): void {
+  const routeCollectionId = getRouteStringParam(route.params.collectionId)
+  const routeSectionParam = getRouteStringParam(route.params.section)
+  const section = parseDataSectionRouteValue(routeSectionParam) ?? "fields"
+  const tab = dataSectionRouteValueToTab(section)
+
+  if (
+    pendingCreatedCollectionRouteId.value &&
+    routeCollectionId !== pendingCreatedCollectionRouteId.value
+  ) {
+    pendingCreatedCollectionRouteId.value = null
+  }
+
+  if (
+    pendingCreatedCollectionRouteId.value &&
+    collectionItems.value.some((item) => item.id === pendingCreatedCollectionRouteId.value)
+  ) {
+    pendingCreatedCollectionRouteId.value = null
+  }
+
+  if (
+    routeCollectionId &&
+    pendingCreatedCollectionRouteId.value === routeCollectionId &&
+    !collectionItems.value.some((item) => item.id === routeCollectionId)
+  ) {
+    selectedCollectionId.value = routeCollectionId
+    activeTab.value = tab
+
+    if (routeSectionParam !== section) {
+      navigateDataRoute(routeCollectionId, section, "replace")
+    }
+
+    return
+  }
+
+  if (
+    pendingDeletedCollectionId.value &&
+    !collectionItems.value.some((item) => item.id === pendingDeletedCollectionId.value)
+  ) {
+    pendingDeletedCollectionId.value = null
+  }
+
+  const selectableItems = pendingDeletedCollectionId.value
+    ? collectionItems.value.filter((item) => item.id !== pendingDeletedCollectionId.value)
+    : collectionItems.value
+
+  if (selectableItems.length === 0) {
+    selectedCollectionId.value = null
+    selectedFieldIndex.value = null
+    activeTab.value = tab
+
+    if (!loading.value && (routeCollectionId || routeSectionParam)) {
+      navigateDataRoute(null, "fields", "replace")
+    }
+
+    return
+  }
+
+  const routeCollection = routeCollectionId
+    ? selectableItems.find((item) => item.id === routeCollectionId)
+    : null
+
+  const targetCollection = routeCollection ?? selectableItems[0]
+  if (!targetCollection) {
+    selectedCollectionId.value = null
+    selectedFieldIndex.value = null
+    activeTab.value = tab
+    return
+  }
+
+  selectedCollectionId.value = targetCollection.id
+  activeTab.value = tab
+
+  if (routeCollectionId !== targetCollection.id || routeSectionParam !== section) {
+    navigateDataRoute(targetCollection.id, section, "replace")
+  }
+}
+
 watch(
   loading,
   (isLoading) => {
@@ -616,26 +789,18 @@ watch(
 )
 
 watch(
-  collectionItems,
-  (items) => {
-    if (items.length === 0) {
-      selectedCollectionId.value = null
-      return
-    }
-
-    if (
-      !selectedCollectionId.value ||
-      !items.some((item) => item.id === selectedCollectionId.value)
-    ) {
-      selectedCollectionId.value = items[0]?.id ?? null
-    }
-  },
+  [
+    collectionItems,
+    () => route.params.id,
+    () => route.params.collectionId,
+    () => route.params.section,
+  ],
+  syncRouteToState,
   { immediate: true },
 )
 
 watch(selectedCollectionId, () => {
   selectedFieldIndex.value = null
-  activeTab.value = "fields"
   openFieldSettingsTab()
   fieldTypeSearch.value = ""
 })
@@ -661,10 +826,7 @@ watch(
     }
 
     const currentField = selectedFieldIndex.value === null ? null : fields[selectedFieldIndex.value]
-    const currentVisible =
-      currentField &&
-      ((tab === "fields" && !isRelationFieldType(currentField.type)) ||
-        (tab === "relations" && isRelationFieldType(currentField.type)))
+    const currentVisible = tab === "fields" && Boolean(currentField)
 
     if (
       currentVisible &&
@@ -679,16 +841,9 @@ watch(
   { immediate: true },
 )
 
-function getFirstFieldIndexForTab(
-  tab: "fields" | "relations" | "manifest" | "settings",
-): number | null {
+function getFirstFieldIndexForTab(tab: DataTab): number | null {
   if (tab === "fields") {
-    const entry = regularFieldEntries.value[0]
-    return entry ? entry.index : null
-  }
-
-  if (tab === "relations") {
-    const entry = relationFieldEntries.value[0]
+    const entry = fieldEntries.value[0]
     return entry ? entry.index : null
   }
 
@@ -710,35 +865,68 @@ function getRelationTargetCollectionName(field: ManifestField): string {
   const manifestId = getRelationCollectionValue(field)
 
   if (manifestId === "") {
-    return t({ en: "Target is not selected", ru: "Целевая коллекция не выбрана" })
+    return t({ en: "Choose a collection", ru: "Выбери коллекцию" })
   }
 
   return getCollectionNameByManifestId(manifestId)
 }
 
-function getRelationFieldSummary(field: ManifestField): string {
-  const sourceName = selectedCollection.value
-    ? getCollectionName(selectedCollection.value)
-    : t({ en: "Current collection", ru: "Текущая коллекция" })
-
-  return `${sourceName} -> ${field.name} -> ${getRelationTargetCollectionName(field)}`
-}
-
-function getRelationBadgeColor(_field: ManifestField): "primary" {
-  return "primary"
-}
-
-function getRelationFieldName(fields: ManifestField[]): string {
-  const existing = new Set(fields.map((field) => field.name))
-  let index = 1
-  let candidate = `relation_${index}`
-
-  while (existing.has(candidate)) {
-    index += 1
-    candidate = `relation_${index}`
+function getFieldEntryGroupKey(field: ManifestField): FieldEntryGroupKey {
+  if (field.name.trim().toLowerCase() === "id") {
+    return "identity"
   }
 
-  return candidate
+  if (field.special === "date-created" || field.special === "date-updated") {
+    return "timestamps"
+  }
+
+  if (isRelationFieldType(field.type)) {
+    return "relations"
+  }
+
+  return "fields"
+}
+
+function compareFieldEntries(left: FieldEntry, right: FieldEntry): number {
+  const priorityDiff = getFieldDisplayPriority(left.field) - getFieldDisplayPriority(right.field)
+  if (priorityDiff !== 0) {
+    return priorityDiff
+  }
+
+  const dateDiff = getGeneratedDatePriority(left.field) - getGeneratedDatePriority(right.field)
+  if (dateDiff !== 0) {
+    return dateDiff
+  }
+
+  return left.index - right.index
+}
+
+function getFieldDisplayPriority(field: ManifestField): number {
+  if (field.name.trim().toLowerCase() === "id") {
+    return 0
+  }
+
+  if (field.special === "date-created" || field.special === "date-updated") {
+    return 2
+  }
+
+  if (isRelationFieldType(field.type)) {
+    return 3
+  }
+
+  return 1
+}
+
+function getGeneratedDatePriority(field: ManifestField): number {
+  if (field.special === "date-created") {
+    return 0
+  }
+
+  if (field.special === "date-updated") {
+    return 1
+  }
+
+  return 2
 }
 
 function getDefaultRelationTargetCollectionId(): string | undefined {
@@ -752,63 +940,25 @@ function getDefaultRelationTargetCollectionId(): string | undefined {
   return otherCollection?.value ?? currentManifestId ?? relationCollectionItems.value[0]?.value
 }
 
-function openRelationsTab() {
-  activeTab.value = "relations"
-}
-
 function openFieldsTab() {
   activeTab.value = "fields"
+  navigateDataRoute(selectedCollectionId.value, "fields")
 }
 
 function openSettingsTab() {
   activeTab.value = "settings"
+  navigateDataRoute(selectedCollectionId.value, "collection")
 }
 
 function openManifestTab() {
   activeTab.value = "manifest"
+  navigateDataRoute(selectedCollectionId.value, "manifest")
 }
 
-function selectRelationField(index: number) {
-  selectedFieldIndex.value = index
-  activeTab.value = "relations"
-}
-
-function selectRegularField(index: number) {
+function selectField(index: number) {
   selectedFieldIndex.value = index
   activeTab.value = "fields"
-}
-
-async function handleCreateRelationField(targetCollectionId?: string) {
-  const nextIndex = selectedFields.value.length
-  const nextTargetCollectionId = targetCollectionId ?? getDefaultRelationTargetCollectionId() ?? ""
-
-  await updateSelectedFields((fields) => [
-    ...fields,
-    {
-      name: getRelationFieldName(fields),
-      type: "relation",
-      relation: {
-        collection: nextTargetCollectionId,
-      },
-    },
-  ])
-
-  selectedFieldIndex.value = nextIndex
-  activeTab.value = "relations"
-}
-
-function getRelationEmptyStateDescription(): string {
-  if (relationCollectionItems.value.length <= 1) {
-    return t({
-      en: "Create the first relation. You can link it to this collection now and change it later.",
-      ru: "Создай первую связь. Пока можно связать её с этой же коллекцией, а потом поменять цель.",
-    })
-  }
-
-  return t({
-    en: "Create the first relation by choosing which collection it should link to.",
-    ru: "Создай первую связь, выбрав, к какой коллекции она должна вести.",
-  })
+  navigateDataRoute(selectedCollectionId.value, "fields")
 }
 
 function addFieldIssue(map: Record<number, string[]>, index: number, message: string) {
@@ -885,7 +1035,7 @@ function getFieldDefaultPreviewForField(field: ManifestField): string {
 }
 
 function hasVisibleFieldDefault(field: ManifestField): boolean {
-  return !isGeneratedField(field) && field.default !== undefined
+  return !isGeneratedField(field) && !isRelationFieldType(field.type) && field.default !== undefined
 }
 
 function getIssueCountLabel(count: number): string {
@@ -983,6 +1133,12 @@ function getFieldTypeDisplayIcon(field: ManifestField): string {
   return getFieldTypeCatalogItem(getFieldTypeSelectValue(field))?.icon ?? "i-lucide-circle-dot"
 }
 
+function getInspectorFieldTypeBadgeLabel(field: ManifestField): string {
+  return isRelationFieldType(field.type)
+    ? getRelationFieldTypeLabel(field)
+    : getFieldTypeDisplayLabel(field)
+}
+
 function openFieldSettingsTab(): void {
   activeFieldInspectorTab.value = "settings"
 }
@@ -1040,8 +1196,6 @@ function getFieldDefaultPlaceholder(type: FieldType): string {
     case "datetime":
     case "timestamp":
       return "2026-05-24T18:00:00Z"
-    case "relation":
-      return t({ en: "Default linked record ID", ru: "ID связанной записи по умолчанию" })
     default:
       return t({ en: "Optional default value", ru: "Необязательное значение по умолчанию" })
   }
@@ -1067,7 +1221,10 @@ function getFieldTypeHint(type: FieldType): string {
         ru: "Структурированный объект или массив.",
       })
     case "relation":
-      return t({ en: "Link to another collection.", ru: "Связь с другой коллекцией." })
+      return t({
+        en: "Lets this record choose records from another collection.",
+        ru: "Позволяет этой записи выбирать записи из другой коллекции.",
+      })
     case "collection":
       return t({ en: "Nested structure.", ru: "Вложенная структура." })
     case "uuid":
@@ -1103,6 +1260,61 @@ function getRelationCollectionValue(field: ManifestField): string {
   }
 
   return ""
+}
+
+function getRelationKind(field: ManifestField): RelationKind {
+  return field.relation?.kind === "many" ? "many" : "one"
+}
+
+function getRelationFieldTypeLabel(field: ManifestField): string {
+  return getRelationKind(field) === "many"
+    ? t({ en: "Linked records", ru: "Связанные записи" })
+    : t({ en: "Linked record", ru: "Связанная запись" })
+}
+
+function getRelationFieldSummary(field: ManifestField): string {
+  return getRelationKind(field) === "many"
+    ? t(
+        { en: "Several records from {collection}", ru: "Несколько записей из {collection}" },
+        { collection: getRelationTargetCollectionName(field) },
+      )
+    : t(
+        { en: "One record from {collection}", ru: "Одна запись из {collection}" },
+        { collection: getRelationTargetCollectionName(field) },
+      )
+}
+
+function getRelationExampleRecordId(field: ManifestField, index: number): string {
+  const manifestId = getRelationCollectionValue(field).trim() || "record"
+  const base = manifestId.replace(/[^a-zA-Z0-9_-]+/g, "_").replace(/^_+|_+$/g, "") || "record"
+  return `${base}_${String(index).padStart(2, "0")}`
+}
+
+function getRelationDataExample(field: ManifestField): string {
+  const value =
+    getRelationKind(field) === "many"
+      ? [getRelationExampleRecordId(field, 1), getRelationExampleRecordId(field, 2)]
+      : getRelationExampleRecordId(field, 1)
+
+  return JSON.stringify({ [field.name]: value }, null, 2)
+}
+
+function getRelationDataExplanation(field: ManifestField): string {
+  return getRelationKind(field) === "many"
+    ? t(
+        {
+          en: "The field stores an array of selected record IDs from {collection}.",
+          ru: "Поле хранит массив ID выбранных записей из {collection}.",
+        },
+        { collection: getRelationTargetCollectionName(field) },
+      )
+    : t(
+        {
+          en: "The field stores one selected record ID from {collection}.",
+          ru: "Поле хранит один ID выбранной записи из {collection}.",
+        },
+        { collection: getRelationTargetCollectionName(field) },
+      )
 }
 
 function getRelationCollectionItems(currentValue: string): { label: string; value: string }[] {
@@ -1210,6 +1422,32 @@ function buildFieldName(fields: ManifestField[]): string {
   return candidate
 }
 
+function buildDefaultCollectionFields(): ManifestField[] {
+  return [
+    {
+      name: getGeneratedFieldName("uuid"),
+      type: "uuid",
+      special: "uuid",
+      system: true,
+      readonly: true,
+    },
+    {
+      name: getGeneratedFieldName("date-created"),
+      type: "timestamp",
+      special: "date-created",
+      system: true,
+      readonly: true,
+    },
+    {
+      name: getGeneratedFieldName("date-updated"),
+      type: "timestamp",
+      special: "date-updated",
+      system: true,
+      readonly: true,
+    },
+  ]
+}
+
 async function handleCreateCollection() {
   errorMessage.value = null
 
@@ -1220,12 +1458,14 @@ async function handleCreateCollection() {
         manifest_id: buildCollectionManifestId(),
         name: t({ en: "New collection", ru: "Новая коллекция" }),
         singleton: false,
-        fields: [],
+        fields: buildDefaultCollectionFields(),
       }),
     )
 
     collectionSearch.value = ""
+    pendingCreatedCollectionRouteId.value = id
     selectedCollectionId.value = id
+    navigateDataRoute(id, "fields")
   } catch (error) {
     errorMessage.value = error instanceof Error ? error.message : String(error)
   }
@@ -1245,11 +1485,19 @@ async function confirmDeleteCollection() {
   }
 
   errorMessage.value = null
+  const deletedCollectionId = selectedCollection.value.id
+  const fallbackCollectionId =
+    collectionItems.value.find((item) => item.id !== deletedCollectionId)?.id ?? null
+  const fallbackSection = getCurrentDataSectionRouteValue()
+  pendingDeletedCollectionId.value = deletedCollectionId
 
   try {
     await runMutation(() => deleteItem(selectedCollection.value!.id))
     deleteCollectionModalOpen.value = false
+    selectedCollectionId.value = fallbackCollectionId
+    navigateDataRoute(fallbackCollectionId, fallbackSection, "replace")
   } catch (error) {
+    pendingDeletedCollectionId.value = null
     errorMessage.value = error instanceof Error ? error.message : String(error)
   }
 }
@@ -1266,6 +1514,8 @@ async function handleAddField() {
   ])
 
   selectedFieldIndex.value = nextIndex
+  activeTab.value = "fields"
+  navigateDataRoute(selectedCollectionId.value, "fields")
 }
 
 function openDeleteFieldModal(index: number) {
@@ -1302,6 +1552,7 @@ async function confirmDeleteField() {
 
 function selectCollection(id: string) {
   selectedCollectionId.value = id
+  navigateDataRoute(id, getCurrentDataSectionRouteValue())
 }
 
 async function handleUpdateCollectionName(event: FocusEvent | KeyboardEvent) {
@@ -1340,6 +1591,11 @@ async function handleUpdateSingleton(value: boolean) {
 }
 
 async function handleUpdateFieldName(index: number, event: FocusEvent | KeyboardEvent) {
+  const currentField = selectedFields.value[index]
+  if (currentField && isGeneratedField(currentField)) {
+    return
+  }
+
   const value = getTextEventValue(event).trim()
   if (value === "") {
     return
@@ -1372,6 +1628,7 @@ async function handleUpdateFieldType(index: number, value: unknown) {
             if (generatedSpecial) {
               const nextField: ManifestField = {
                 ...field,
+                name: getGeneratedFieldName(generatedSpecial),
                 type: generatedSpecial === "uuid" ? "uuid" : "timestamp",
                 special: generatedSpecial,
                 system: true,
@@ -1397,7 +1654,12 @@ async function handleUpdateFieldType(index: number, value: unknown) {
             delete nextField.readonly
 
             if (nextType === "relation") {
-              nextField.relation ??= { collection: getDefaultRelationTargetCollectionId() ?? "" }
+              nextField.relation ??= {
+                collection: getDefaultRelationTargetCollectionId() ?? "",
+                kind: "one",
+              }
+              nextField.relation.kind ??= "one"
+              delete nextField.default
             } else {
               delete nextField.relation
             }
@@ -1414,7 +1676,10 @@ async function handleSelectFieldType(index: number, value: FieldTypeSelectValue)
 
   fieldTypeSearch.value = ""
   if (value === "relation") {
-    activeTab.value = "relations"
+    selectedFieldIndex.value = index
+    activeTab.value = "fields"
+    navigateDataRoute(selectedCollectionId.value, "fields")
+    openFieldSettingsTab()
     return
   }
 
@@ -1432,10 +1697,37 @@ async function handleUpdateFieldRelationCollection(index: number, value: unknown
       fieldIndex === index
         ? {
             ...field,
-            relation: { collection: nextCollectionId },
+            relation: { collection: nextCollectionId, kind: getRelationKind(field) },
           }
         : field,
     ),
+  )
+}
+
+async function handleUpdateFieldRelationKind(index: number, value: unknown) {
+  const nextKind = getSelectStringValue(value)
+  if (nextKind !== "one" && nextKind !== "many") {
+    return
+  }
+
+  await updateSelectedFields((fields) =>
+    fields.map((field, fieldIndex) => {
+      if (fieldIndex !== index) {
+        return field
+      }
+
+      const nextField: ManifestField = {
+        ...field,
+        relation: {
+          collection:
+            getRelationCollectionValue(field) || getDefaultRelationTargetCollectionId() || "",
+          kind: nextKind,
+        },
+      }
+
+      delete nextField.default
+      return nextField
+    }),
   )
 }
 
@@ -1643,8 +1935,8 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
           <p>
             {{
               t({
-                en: "There are issues in this setup. Check the error badges in collections, fields, relations, or collection settings.",
-                ru: "В этой настройке есть ошибки. Посмотри бейджи в коллекциях, полях, связях или настройках коллекции.",
+                en: "There are issues in this setup. Check the error badges in collections, fields, or collection settings.",
+                ru: "В этой настройке есть ошибки. Посмотри бейджи в коллекциях, полях или настройках коллекции.",
               })
             }}
           </p>
@@ -1665,40 +1957,14 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
             <UIcon name="i-lucide-columns-2" class="h-4 w-4" />
             <span>{{ t({ en: "Fields", ru: "Поля" }) }}</span>
             <UBadge
-              :label="`${regularFieldEntries.length}`"
+              :label="`${fieldEntries.length}`"
               :color="activeTab === 'fields' ? 'primary' : 'neutral'"
               variant="soft"
               size="sm"
             />
             <UBadge
-              v-if="regularFieldIssueCount > 0"
-              :label="getIssueCountLabel(regularFieldIssueCount)"
-              color="error"
-              variant="subtle"
-              size="sm"
-            />
-          </button>
-
-          <button
-            class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors"
-            :class="
-              activeTab === 'relations'
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted hover:bg-elevated hover:text-default'
-            "
-            @click="openRelationsTab"
-          >
-            <UIcon name="i-lucide-waypoints" class="h-4 w-4" />
-            <span>{{ t({ en: "Relations", ru: "Связи" }) }}</span>
-            <UBadge
-              :label="`${relationFieldEntries.length}`"
-              :color="activeTab === 'relations' ? 'primary' : 'neutral'"
-              variant="soft"
-              size="sm"
-            />
-            <UBadge
-              v-if="relationFieldIssueCount > 0"
-              :label="getIssueCountLabel(relationFieldIssueCount)"
+              v-if="fieldIssueCount > 0"
+              :label="getIssueCountLabel(fieldIssueCount)"
               color="error"
               variant="subtle"
               size="sm"
@@ -1797,15 +2063,15 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
               </div>
 
               <div
-                v-if="regularFieldEntries.length === 0"
+                v-if="fieldEntries.length === 0"
                 class="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-12 text-center"
               >
                 <UIcon name="i-lucide-columns-2" class="text-muted h-10 w-10" />
                 <p class="text-muted text-sm">
                   {{
                     t({
-                      en: "No fields yet. Add your first field here. Links are edited in the Relations tab.",
-                      ru: "Пока нет полей. Добавь первое поле здесь. Связи редактируются во вкладке Связи.",
+                      en: "No fields yet. Add your first field here.",
+                      ru: "Пока нет полей. Добавь первое поле здесь.",
                     })
                   }}
                 </p>
@@ -1814,75 +2080,117 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
               <div v-else class="min-h-0 flex-1 overflow-auto">
                 <table class="min-w-full text-sm">
                   <tbody>
-                    <tr
-                      v-for="entry in regularFieldEntries"
-                      :key="`${entry.field.name}-${entry.index}`"
-                      class="border-default cursor-pointer border-b transition-colors last:border-b-0"
-                      :class="
-                        selectedFieldIndex === entry.index ? 'bg-primary/5' : 'hover:bg-elevated/40'
-                      "
-                      @click="selectRegularField(entry.index)"
-                    >
-                      <td class="px-4 py-3">
-                        <div class="flex items-center gap-2">
-                          <span class="font-medium">{{ entry.field.name }}</span>
-                          <UBadge
-                            v-if="getFieldIssueCount(entry.index) > 0"
-                            :label="getIssueCountLabel(getFieldIssueCount(entry.index))"
-                            color="error"
-                            variant="subtle"
-                            size="sm"
-                          />
-                        </div>
-                      </td>
-                      <td class="px-4 py-3">
-                        <span class="text-sm">{{ getFieldTypeDisplayLabel(entry.field) }}</span>
-                        <span class="text-muted ml-2 font-mono text-xs">{{
-                          entry.field.type
-                        }}</span>
-                      </td>
-                      <td class="px-4 py-3">
-                        <div class="flex flex-wrap gap-1.5">
-                          <UBadge
-                            v-if="isGeneratedField(entry.field)"
-                            :label="t({ en: 'Generated', ru: 'Генерируется' })"
-                            color="neutral"
-                            variant="subtle"
-                            size="sm"
-                          />
-                          <UBadge
-                            v-else
-                            :label="
-                              entry.field.required === true
-                                ? t({ en: 'Required', ru: 'Обязательное' })
-                                : t({ en: 'Optional', ru: 'Необязательное' })
-                            "
-                            :color="entry.field.required === true ? 'primary' : 'neutral'"
-                            variant="subtle"
-                            size="sm"
-                          />
-                          <UBadge
-                            v-if="entry.field.readonly === true"
-                            :label="t({ en: 'Readonly', ru: 'Только чтение' })"
-                            color="neutral"
-                            variant="subtle"
-                            size="sm"
-                          />
-                          <UBadge
-                            v-if="hasVisibleFieldDefault(entry.field)"
-                            :label="
-                              t(
-                                { en: 'Default: {value}', ru: 'По умолчанию: {value}' },
-                                { value: getFieldDefaultPreviewForField(entry.field) },
-                              )
-                            "
-                            color="neutral"
-                            variant="subtle"
-                            size="sm"
-                          />
-                        </div>
-                      </td>
-                    </tr>
+                    <template v-for="group in fieldEntryGroups" :key="group.key">
+                      <tr class="border-default bg-elevated/50 border-y first:border-t-0">
+                        <td colspan="3" class="px-4 py-2">
+                          <div class="flex items-center gap-2">
+                            <span
+                              class="text-muted text-[11px] font-medium tracking-wide uppercase"
+                            >
+                              {{ group.label }}
+                            </span>
+                            <UBadge
+                              :label="String(group.entries.length)"
+                              color="neutral"
+                              variant="subtle"
+                              size="sm"
+                            />
+                          </div>
+                        </td>
+                      </tr>
+
+                      <tr
+                        v-for="entry in group.entries"
+                        :key="`${entry.field.name}-${entry.index}`"
+                        class="border-default cursor-pointer border-b transition-colors last:border-b-0"
+                        :class="
+                          selectedFieldIndex === entry.index
+                            ? 'bg-primary/5'
+                            : 'hover:bg-elevated/40'
+                        "
+                        @click="selectField(entry.index)"
+                      >
+                        <td class="px-4 py-3">
+                          <div class="flex items-center gap-2">
+                            <span class="font-medium">{{ entry.field.name }}</span>
+                            <UBadge
+                              v-if="getFieldIssueCount(entry.index) > 0"
+                              :label="getIssueCountLabel(getFieldIssueCount(entry.index))"
+                              color="error"
+                              variant="subtle"
+                              size="sm"
+                            />
+                          </div>
+                        </td>
+                        <td class="px-4 py-3">
+                          <div
+                            v-if="isRelationFieldType(entry.field.type)"
+                            class="flex items-center gap-2"
+                          >
+                            <span
+                              class="bg-primary/10 text-primary flex h-8 w-8 shrink-0 items-center justify-center rounded-xl"
+                            >
+                              <UIcon name="i-lucide-link-2" class="h-4 w-4" />
+                            </span>
+                            <span class="min-w-0">
+                              <span class="block text-sm font-medium">
+                                {{ getRelationFieldTypeLabel(entry.field) }}
+                              </span>
+                              <span class="text-muted block truncate text-xs">
+                                {{ getRelationFieldSummary(entry.field) }}
+                              </span>
+                            </span>
+                          </div>
+                          <template v-else>
+                            <span class="text-sm">{{ getFieldTypeDisplayLabel(entry.field) }}</span>
+                            <span class="text-muted ml-2 font-mono text-xs">{{
+                              entry.field.type
+                            }}</span>
+                          </template>
+                        </td>
+                        <td class="px-4 py-3">
+                          <div class="flex flex-wrap gap-1.5">
+                            <UBadge
+                              v-if="isGeneratedField(entry.field)"
+                              :label="t({ en: 'Generated', ru: 'Генерируется' })"
+                              color="neutral"
+                              variant="subtle"
+                              size="sm"
+                            />
+                            <UBadge
+                              v-else
+                              :label="
+                                entry.field.required === true
+                                  ? t({ en: 'Required', ru: 'Обязательное' })
+                                  : t({ en: 'Optional', ru: 'Необязательное' })
+                              "
+                              :color="entry.field.required === true ? 'primary' : 'neutral'"
+                              variant="subtle"
+                              size="sm"
+                            />
+                            <UBadge
+                              v-if="entry.field.readonly === true"
+                              :label="t({ en: 'Readonly', ru: 'Только чтение' })"
+                              color="neutral"
+                              variant="subtle"
+                              size="sm"
+                            />
+                            <UBadge
+                              v-if="hasVisibleFieldDefault(entry.field)"
+                              :label="
+                                t(
+                                  { en: 'Default: {value}', ru: 'По умолчанию: {value}' },
+                                  { value: getFieldDefaultPreviewForField(entry.field) },
+                                )
+                              "
+                              color="neutral"
+                              variant="subtle"
+                              size="sm"
+                            />
+                          </div>
+                        </td>
+                      </tr>
+                    </template>
                   </tbody>
                 </table>
               </div>
@@ -1892,7 +2200,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
               class="border-default bg-default flex min-h-0 flex-col overflow-hidden rounded-2xl border shadow-sm"
             >
               <div
-                v-if="!selectedRegularField || selectedFieldIndex === null"
+                v-if="!selectedEditorField || selectedFieldIndex === null"
                 class="flex h-full min-h-[320px] flex-col items-center justify-center gap-3 p-4 text-center"
               >
                 <UIcon name="i-lucide-mouse-pointer-click" class="text-muted h-10 w-10" />
@@ -1915,21 +2223,21 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                           {{ t({ en: "Field settings", ru: "Настройки поля" }) }}
                         </h3>
                         <UBadge
-                          :label="selectedRegularField.type"
+                          :label="getInspectorFieldTypeBadgeLabel(selectedEditorField)"
                           color="primary"
                           variant="soft"
                           size="sm"
                         />
                         <UBadge
-                          v-if="isGeneratedField(selectedRegularField)"
-                          :label="getGeneratedFieldLabel(selectedRegularField)"
+                          v-if="isGeneratedField(selectedEditorField)"
+                          :label="getGeneratedFieldLabel(selectedEditorField)"
                           color="neutral"
                           variant="subtle"
                           size="sm"
                         />
                       </div>
                       <p class="text-muted text-xs leading-5">
-                        {{ getFieldTypeHint(selectedRegularField.type) }}
+                        {{ getFieldTypeHint(selectedEditorField.type) }}
                       </p>
                     </div>
 
@@ -1979,10 +2287,19 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                           t({ en: "Field name", ru: "Имя поля" })
                         }}</label>
                         <UInput
-                          :model-value="selectedRegularField.name"
+                          :model-value="selectedEditorField.name"
+                          :disabled="isGeneratedField(selectedEditorField)"
                           @blur="handleUpdateFieldName(selectedFieldIndex, $event)"
                           @keyup.enter="handleUpdateFieldName(selectedFieldIndex, $event)"
                         />
+                        <p v-if="isGeneratedField(selectedEditorField)" class="text-muted text-xs">
+                          {{
+                            t({
+                              en: "Generated fields use a fixed system name.",
+                              ru: "Генерируемые поля используют фиксированное системное имя.",
+                            })
+                          }}
+                        </p>
                       </div>
 
                       <div class="border-default rounded-2xl border p-3">
@@ -1992,16 +2309,16 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                               class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
                             >
                               <UIcon
-                                :name="getFieldTypeDisplayIcon(selectedRegularField)"
+                                :name="getFieldTypeDisplayIcon(selectedEditorField)"
                                 class="h-5 w-5"
                               />
                             </div>
                             <div class="min-w-0">
                               <p class="text-sm font-medium">
-                                {{ getFieldTypeDisplayLabel(selectedRegularField) }}
+                                {{ getInspectorFieldTypeBadgeLabel(selectedEditorField) }}
                               </p>
                               <p class="text-muted mt-1 text-xs leading-5">
-                                {{ getFieldTypeHint(selectedRegularField.type) }}
+                                {{ getFieldTypeHint(selectedEditorField.type) }}
                               </p>
                             </div>
                           </div>
@@ -2012,7 +2329,118 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                       </div>
 
                       <div
-                        v-if="!isGeneratedField(selectedRegularField)"
+                        v-if="isRelationFieldType(selectedEditorField.type)"
+                        class="flex flex-col gap-2"
+                      >
+                        <label class="text-sm font-medium">{{
+                          t({ en: "Choose records from", ru: "Откуда выбирать записи" })
+                        }}</label>
+                        <USelect
+                          :model-value="getRelationCollectionValue(selectedEditorField)"
+                          :items="
+                            getRelationCollectionItems(
+                              getRelationCollectionValue(selectedEditorField),
+                            )
+                          "
+                          value-key="value"
+                          label-key="label"
+                          @update:model-value="
+                            handleUpdateFieldRelationCollection(selectedFieldIndex, $event)
+                          "
+                        />
+                        <p class="text-muted text-xs">
+                          {{
+                            t({
+                              en: "Users will pick records from this collection.",
+                              ru: "Пользователь будет выбирать записи из этой коллекции.",
+                            })
+                          }}
+                        </p>
+                      </div>
+
+                      <div
+                        v-if="isRelationFieldType(selectedEditorField.type)"
+                        class="flex flex-col gap-2"
+                      >
+                        <p class="text-sm font-medium">
+                          {{ t({ en: "How many can be selected?", ru: "Сколько можно выбрать?" }) }}
+                        </p>
+                        <URadioGroup
+                          :model-value="getRelationKind(selectedEditorField)"
+                          :items="relationKindOptions"
+                          :name="`relation-kind-${selectedCollectionId ?? 'collection'}-${selectedFieldIndex}`"
+                          value-key="value"
+                          label-key="label"
+                          description-key="description"
+                          variant="table"
+                          size="sm"
+                          @update:model-value="
+                            handleUpdateFieldRelationKind(selectedFieldIndex, $event)
+                          "
+                        />
+                      </div>
+
+                      <div
+                        v-if="isRelationFieldType(selectedEditorField.type)"
+                        class="border-default bg-elevated/30 rounded-2xl border p-3"
+                      >
+                        <div class="mb-3 flex items-start justify-between gap-3">
+                          <div class="min-w-0">
+                            <p class="text-sm font-medium">
+                              {{ t({ en: "Current link", ru: "Текущая связь" }) }}
+                            </p>
+                            <p class="text-muted mt-1 text-xs leading-5">
+                              {{ getRelationDataExplanation(selectedEditorField) }}
+                            </p>
+                          </div>
+                          <UBadge
+                            :label="getRelationFieldTypeLabel(selectedEditorField)"
+                            color="neutral"
+                            variant="subtle"
+                            size="sm"
+                          />
+                        </div>
+
+                        <div
+                          class="grid items-stretch gap-2 sm:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
+                        >
+                          <div class="border-default bg-default rounded-xl border p-3">
+                            <p class="text-muted text-[10px] tracking-wide uppercase">
+                              {{ t({ en: "Stored in", ru: "Хранится в" }) }}
+                            </p>
+                            <p class="mt-1 truncate text-sm font-medium">
+                              {{ selectedCollection ? getCollectionName(selectedCollection) : "" }}
+                            </p>
+                            <p class="text-muted mt-1 truncate font-mono text-xs">
+                              data.{{ selectedEditorField.name }}
+                            </p>
+                          </div>
+                          <div class="text-primary flex items-center justify-center">
+                            <UIcon name="i-lucide-arrow-right" class="h-4 w-4" />
+                          </div>
+                          <div class="border-primary/30 bg-default rounded-xl border p-3">
+                            <p class="text-muted text-[10px] tracking-wide uppercase">
+                              {{ t({ en: "Points to", ru: "Указывает на" }) }}
+                            </p>
+                            <p class="mt-1 truncate text-sm font-medium">
+                              {{ getRelationTargetCollectionName(selectedEditorField) }}
+                            </p>
+                            <p class="text-muted mt-1 truncate font-mono text-xs">id</p>
+                          </div>
+                        </div>
+
+                        <div class="border-default bg-default mt-3 rounded-xl border p-3">
+                          <p class="text-muted text-[10px] tracking-wide uppercase">
+                            {{ t({ en: "Example data", ru: "Пример данных" }) }}
+                          </p>
+                          <pre
+                            class="bg-elevated text-highlighted mt-2 rounded-lg px-3 py-2 text-xs leading-5 break-words whitespace-pre-wrap"
+                          ><code>{{ getRelationDataExample(selectedEditorField) }}</code></pre>
+                        </div>
+                      </div>
+
+                      <div
+                        v-if="!isGeneratedField(selectedEditorField)"
                         class="border-default rounded-2xl border p-3"
                       >
                         <div class="mb-2 flex items-center justify-between gap-4">
@@ -2030,7 +2458,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                             </p>
                           </div>
                           <USwitch
-                            :model-value="selectedRegularField.required === true"
+                            :model-value="selectedEditorField.required === true"
                             @update:model-value="
                               handleUpdateFieldRequired(selectedFieldIndex, Boolean($event))
                             "
@@ -2058,7 +2486,10 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                       </div>
 
                       <div
-                        v-if="!isGeneratedField(selectedRegularField)"
+                        v-if="
+                          !isGeneratedField(selectedEditorField) &&
+                          !isRelationFieldType(selectedEditorField.type)
+                        "
                         class="flex flex-col gap-2"
                       >
                         <label class="text-sm font-medium">{{
@@ -2066,8 +2497,8 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                         }}</label>
 
                         <USelect
-                          v-if="isBooleanFieldType(selectedRegularField.type)"
-                          :model-value="getBooleanDefaultValue(selectedRegularField.default)"
+                          v-if="isBooleanFieldType(selectedEditorField.type)"
+                          :model-value="getBooleanDefaultValue(selectedEditorField.default)"
                           :items="booleanDefaultItems"
                           value-key="value"
                           label-key="label"
@@ -2077,14 +2508,14 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                         />
 
                         <UTextarea
-                          v-else-if="isMultilineFieldType(selectedRegularField.type)"
-                          :model-value="serializeDefaultValue(selectedRegularField.default)"
-                          :rows="selectedRegularField.type === 'json' ? 7 : 4"
-                          :placeholder="getFieldDefaultPlaceholder(selectedRegularField.type)"
+                          v-else-if="isMultilineFieldType(selectedEditorField.type)"
+                          :model-value="serializeDefaultValue(selectedEditorField.default)"
+                          :rows="selectedEditorField.type === 'json' ? 7 : 4"
+                          :placeholder="getFieldDefaultPlaceholder(selectedEditorField.type)"
                           @blur="
                             handleUpdateFieldDefault(
                               selectedFieldIndex,
-                              selectedRegularField.type,
+                              selectedEditorField.type,
                               $event,
                             )
                           "
@@ -2092,20 +2523,20 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
 
                         <UInput
                           v-else
-                          :model-value="serializeDefaultValue(selectedRegularField.default)"
-                          :type="isNumericFieldType(selectedRegularField.type) ? 'number' : 'text'"
-                          :placeholder="getFieldDefaultPlaceholder(selectedRegularField.type)"
+                          :model-value="serializeDefaultValue(selectedEditorField.default)"
+                          :type="isNumericFieldType(selectedEditorField.type) ? 'number' : 'text'"
+                          :placeholder="getFieldDefaultPlaceholder(selectedEditorField.type)"
                           @blur="
                             handleUpdateFieldDefault(
                               selectedFieldIndex,
-                              selectedRegularField.type,
+                              selectedEditorField.type,
                               $event,
                             )
                           "
                         />
 
                         <p class="text-muted text-xs">
-                          {{ getFieldTypeHint(selectedRegularField.type) }}
+                          {{ getFieldTypeHint(selectedEditorField.type) }}
                         </p>
                       </div>
 
@@ -2152,19 +2583,19 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                             type="button"
                             class="border-default group flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition-all"
                             :class="
-                              getFieldTypeSelectValue(selectedRegularField) === item.value
+                              getFieldTypeSelectValue(selectedEditorField) === item.value
                                 ? 'border-primary bg-primary/5 shadow-sm'
                                 : 'bg-default hover:border-primary/40 hover:bg-elevated/40'
                             "
                             :aria-pressed="
-                              getFieldTypeSelectValue(selectedRegularField) === item.value
+                              getFieldTypeSelectValue(selectedEditorField) === item.value
                             "
                             @click="handleSelectFieldType(selectedFieldIndex, item.value)"
                           >
                             <div
                               class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors"
                               :class="
-                                getFieldTypeSelectValue(selectedRegularField) === item.value
+                                getFieldTypeSelectValue(selectedEditorField) === item.value
                                   ? 'bg-primary text-white'
                                   : 'bg-elevated text-muted group-hover:text-default'
                               "
@@ -2181,9 +2612,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                                   </p>
                                 </div>
                                 <UIcon
-                                  v-if="
-                                    getFieldTypeSelectValue(selectedRegularField) === item.value
-                                  "
+                                  v-if="getFieldTypeSelectValue(selectedEditorField) === item.value"
                                   name="i-lucide-check"
                                   class="text-primary h-4 w-4 shrink-0"
                                 />
@@ -2220,367 +2649,6 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                 </UScrollArea>
               </div>
             </aside>
-          </section>
-
-          <section v-else-if="activeTab === 'relations'" class="flex min-h-0 flex-1 flex-col gap-3">
-            <div class="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1.05fr)_500px]">
-              <div
-                class="border-default bg-default flex min-h-0 flex-col overflow-hidden rounded-2xl border shadow-sm"
-              >
-                <div
-                  class="border-default flex items-center justify-between gap-4 border-b px-4 py-3"
-                >
-                  <div>
-                    <h3 class="text-base font-semibold">
-                      {{ t({ en: "Relations", ru: "Связи" }) }}
-                    </h3>
-                    <p class="text-muted mt-1 text-xs leading-5">
-                      {{
-                        t({
-                          en: "Each card is one link from this collection to another collection.",
-                          ru: "Каждая карточка — это одна связь из этой коллекции в другую коллекцию.",
-                        })
-                      }}
-                    </p>
-                  </div>
-
-                  <div class="flex items-center gap-3">
-                    <UButton size="sm" icon="i-lucide-plus" @click="handleCreateRelationField()">
-                      {{ t({ en: "Add relation", ru: "Добавить связь" }) }}
-                    </UButton>
-                  </div>
-                </div>
-
-                <div
-                  v-if="relationFieldEntries.length === 0"
-                  class="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-12 text-center"
-                >
-                  <UIcon name="i-lucide-git-compare-arrows" class="text-primary/70 h-12 w-12" />
-                  <div class="max-w-2xl">
-                    <p class="text-base font-medium">
-                      {{ t({ en: "No relations yet", ru: "Пока нет связей" }) }}
-                    </p>
-                    <p class="text-muted mt-2 text-sm leading-6">
-                      {{ getRelationEmptyStateDescription() }}
-                    </p>
-                  </div>
-
-                  <div class="mt-2 flex flex-wrap justify-center gap-2">
-                    <UButton size="sm" @click="handleCreateRelationField()">
-                      {{ t({ en: "Create relation", ru: "Создать связь" }) }}
-                    </UButton>
-                    <UButton
-                      v-for="suggestion in relationTargetSuggestions"
-                      :key="suggestion.value"
-                      size="sm"
-                      variant="outline"
-                      @click="handleCreateRelationField(suggestion.value)"
-                    >
-                      {{ suggestion.label }}
-                    </UButton>
-                  </div>
-                </div>
-
-                <div
-                  v-else
-                  class="grid min-h-0 flex-1 content-start gap-3 overflow-auto p-3 lg:grid-cols-2"
-                >
-                  <button
-                    v-for="entry in relationFieldEntries"
-                    :key="`${entry.field.name}-${entry.index}`"
-                    class="border-default group rounded-2xl border p-3 text-left transition-all"
-                    :class="
-                      selectedFieldIndex === entry.index
-                        ? 'border-primary bg-primary/5 shadow-sm'
-                        : 'bg-default hover:border-primary/40 hover:bg-elevated/40'
-                    "
-                    @click="selectRelationField(entry.index)"
-                  >
-                    <div class="mb-3 flex items-start justify-between gap-3">
-                      <div>
-                        <p class="text-sm font-semibold">{{ entry.field.name }}</p>
-                        <p class="text-muted mt-1 text-xs">
-                          {{ getRelationFieldSummary(entry.field) }}
-                        </p>
-                      </div>
-
-                      <div class="flex flex-col items-end gap-1">
-                        <UBadge
-                          :label="
-                            entry.field.required === true
-                              ? t({ en: 'Required', ru: 'Обязательная' })
-                              : t({ en: 'Optional', ru: 'Необязательная' })
-                          "
-                          :color="getRelationBadgeColor(entry.field)"
-                          variant="subtle"
-                          size="sm"
-                        />
-                        <UBadge
-                          v-if="getFieldIssueCount(entry.index) > 0"
-                          :label="getIssueCountLabel(getFieldIssueCount(entry.index))"
-                          color="error"
-                          variant="subtle"
-                          size="sm"
-                        />
-                      </div>
-                    </div>
-
-                    <div
-                      class="grid items-center gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
-                    >
-                      <div class="border-default bg-elevated/40 rounded-2xl border px-3 py-3">
-                        <p class="text-muted text-[11px] tracking-wide uppercase">
-                          {{ t({ en: "From", ru: "Из" }) }}
-                        </p>
-                        <p class="mt-1 truncate text-sm font-medium">
-                          {{ getCollectionName(selectedCollection) }}
-                        </p>
-                      </div>
-
-                      <div class="text-primary flex flex-col items-center gap-1">
-                        <UIcon name="i-lucide-arrow-right" class="h-4 w-4" />
-                        <span
-                          class="bg-primary/10 rounded-full px-2 py-1 text-[11px] font-medium"
-                          >{{ entry.field.name }}</span
-                        >
-                      </div>
-
-                      <div class="border-default bg-default rounded-2xl border px-3 py-3">
-                        <p class="text-muted text-[11px] tracking-wide uppercase">
-                          {{ t({ en: "To", ru: "В" }) }}
-                        </p>
-                        <p class="mt-1 truncate text-sm font-medium">
-                          {{ getRelationTargetCollectionName(entry.field) }}
-                        </p>
-                      </div>
-                    </div>
-
-                    <div class="text-muted mt-3 flex items-center justify-between text-xs">
-                      <span>
-                        {{
-                          t({
-                            en: "Use this when one record should point to another collection.",
-                            ru: "Используй это, когда одна запись должна ссылаться на другую коллекцию.",
-                          })
-                        }}
-                      </span>
-                      <UIcon
-                        :name="
-                          selectedFieldIndex === entry.index
-                            ? 'i-lucide-check-circle-2'
-                            : 'i-lucide-arrow-up-right'
-                        "
-                        class="h-4 w-4 shrink-0"
-                      />
-                    </div>
-                  </button>
-                </div>
-              </div>
-
-              <aside
-                class="border-default bg-default flex min-h-0 flex-col overflow-hidden rounded-2xl border p-4 shadow-sm"
-              >
-                <div
-                  v-if="!selectedRelationField || selectedFieldIndex === null"
-                  class="flex h-full min-h-[360px] flex-col items-center justify-center gap-3 text-center"
-                >
-                  <UIcon name="i-lucide-waypoints" class="text-primary/70 h-10 w-10" />
-                  <p class="text-muted text-sm">
-                    {{
-                      t({
-                        en: "Select a relation card to edit the link",
-                        ru: "Выбери карточку связи, чтобы настроить связь",
-                      })
-                    }}
-                  </p>
-                </div>
-
-                <div v-else class="min-h-0 flex-1 overflow-auto">
-                  <div class="flex flex-col gap-4">
-                    <div>
-                      <div class="mb-2 flex items-center gap-2">
-                        <h3 class="text-base font-semibold">
-                          {{ t({ en: "Relation settings", ru: "Настройки связи" }) }}
-                        </h3>
-                        <UBadge
-                          :label="selectedRelationField.type"
-                          color="primary"
-                          variant="soft"
-                          size="sm"
-                        />
-                      </div>
-                      <p class="text-muted text-xs leading-5">
-                        {{
-                          t({
-                            en: "Give the link a clear name and choose where it should lead.",
-                            ru: "Дай связи понятное имя и выбери, куда она должна вести.",
-                          })
-                        }}
-                      </p>
-                    </div>
-
-                    <div class="border-primary/20 bg-primary/5 rounded-2xl border p-3">
-                      <p class="text-muted text-[11px] tracking-wide uppercase">
-                        {{ t({ en: "Relation flow", ru: "Схема связи" }) }}
-                      </p>
-                      <div
-                        class="mt-3 grid items-center gap-3 md:grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)]"
-                      >
-                        <div class="border-default bg-default rounded-2xl border px-3 py-3">
-                          <p class="text-muted text-[11px] tracking-wide uppercase">
-                            {{ t({ en: "Source", ru: "Источник" }) }}
-                          </p>
-                          <p class="mt-1 truncate text-sm font-medium">
-                            {{ getCollectionName(selectedCollection) }}
-                          </p>
-                        </div>
-
-                        <div class="text-primary flex flex-col items-center gap-1">
-                          <UIcon name="i-lucide-arrow-right" class="h-4 w-4" />
-                          <span
-                            class="bg-primary/10 rounded-full px-2 py-1 text-[11px] font-medium"
-                            >{{ selectedRelationField.name }}</span
-                          >
-                        </div>
-
-                        <div class="border-default bg-default rounded-2xl border px-3 py-3">
-                          <p class="text-muted text-[11px] tracking-wide uppercase">
-                            {{ t({ en: "Target", ru: "Цель" }) }}
-                          </p>
-                          <p class="mt-1 truncate text-sm font-medium">
-                            {{ getRelationTargetCollectionName(selectedRelationField) }}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div
-                      v-if="fieldIssuesByIndex[selectedFieldIndex]?.length"
-                      class="border-error/30 bg-error/5 text-error rounded-2xl border p-3 text-sm"
-                    >
-                      <p class="font-medium">
-                        {{ t({ en: "Relation issues", ru: "Ошибки связи" }) }}
-                      </p>
-                      <ul class="mt-2 flex list-disc flex-col gap-1 pl-5">
-                        <li v-for="issue in fieldIssuesByIndex[selectedFieldIndex]" :key="issue">
-                          {{ issue }}
-                        </li>
-                      </ul>
-                    </div>
-
-                    <div class="flex flex-col gap-2">
-                      <label class="text-sm font-medium">{{
-                        t({ en: "Relation field name", ru: "Имя relation-поля" })
-                      }}</label>
-                      <UInput
-                        :model-value="selectedRelationField.name"
-                        @blur="handleUpdateFieldName(selectedFieldIndex, $event)"
-                        @keyup.enter="handleUpdateFieldName(selectedFieldIndex, $event)"
-                      />
-                      <p class="text-muted text-xs">
-                        {{
-                          t({
-                            en: "Use a clear name like author, category, owner or parent.",
-                            ru: "Используй понятные имена: author, category, owner, parent и так далее.",
-                          })
-                        }}
-                      </p>
-                    </div>
-
-                    <div class="flex flex-col gap-2">
-                      <label class="text-sm font-medium">{{
-                        t({ en: "Target collection", ru: "Целевая коллекция" })
-                      }}</label>
-                      <USelect
-                        :model-value="getRelationCollectionValue(selectedRelationField)"
-                        :items="
-                          getRelationCollectionItems(
-                            getRelationCollectionValue(selectedRelationField),
-                          )
-                        "
-                        value-key="value"
-                        label-key="label"
-                        @update:model-value="
-                          handleUpdateFieldRelationCollection(selectedFieldIndex, $event)
-                        "
-                      />
-                      <p class="text-muted text-xs">
-                        {{
-                          t({
-                            en: "Choose which collection this field should link to.",
-                            ru: "Выбери, к какой коллекции должно вести это поле.",
-                          })
-                        }}
-                      </p>
-                    </div>
-
-                    <div class="border-default rounded-2xl border p-3">
-                      <div class="mb-2 flex items-center justify-between gap-4">
-                        <div>
-                          <p class="text-sm font-medium">
-                            {{ t({ en: "Required", ru: "Обязательная" }) }}
-                          </p>
-                          <p class="text-muted mt-1 text-xs">
-                            {{
-                              t({
-                                en: "Turn this on if every record must have this link filled in.",
-                                ru: "Включай это, если у каждой записи эта связь должна быть заполнена.",
-                              })
-                            }}
-                          </p>
-                        </div>
-                        <USwitch
-                          :model-value="selectedRelationField.required === true"
-                          @update:model-value="
-                            handleUpdateFieldRequired(selectedFieldIndex, Boolean($event))
-                          "
-                        />
-                      </div>
-                    </div>
-
-                    <div class="flex flex-col gap-2">
-                      <label class="text-sm font-medium">{{
-                        t({
-                          en: "Default linked record ID",
-                          ru: "ID связанной записи по умолчанию",
-                        })
-                      }}</label>
-                      <UInput
-                        :model-value="serializeDefaultValue(selectedRelationField.default)"
-                        :placeholder="getFieldDefaultPlaceholder(selectedRelationField.type)"
-                        @blur="
-                          handleUpdateFieldDefault(
-                            selectedFieldIndex,
-                            selectedRelationField.type,
-                            $event,
-                          )
-                        "
-                      />
-                      <p class="text-muted text-xs">
-                        {{
-                          t({
-                            en: "Usually left empty. Use only when a stable default relation really exists.",
-                            ru: "Обычно оставляют пустым. Используй только если действительно есть стабильная связь по умолчанию.",
-                          })
-                        }}
-                      </p>
-                    </div>
-
-                    <div class="border-default mt-2 border-t pt-4">
-                      <UButton
-                        color="error"
-                        variant="outline"
-                        size="sm"
-                        icon="i-lucide-trash-2"
-                        @click="openDeleteFieldModal(selectedFieldIndex)"
-                      >
-                        {{ t({ en: "Delete relation", ru: "Удалить связь" }) }}
-                      </UButton>
-                    </div>
-                  </div>
-                </div>
-              </aside>
-            </div>
           </section>
 
           <section v-else-if="activeTab === 'manifest'" class="flex min-h-0 flex-1 flex-col">

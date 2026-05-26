@@ -356,6 +356,36 @@ describe("data module", () => {
       ).rejects.toThrow('Invalid value for field "age" of type "number"')
     })
 
+    it("should validate relation cardinality on create", async () => {
+      await edem.data.createCollection({ name: "Users", id: "users" })
+      await edem.data.createCollection({ name: "Tags", id: "tags" })
+      const { id: colId } = await edem.data.createCollection({
+        name: "Posts",
+        id: "posts",
+        fields: [
+          { name: "author", type: "relation", relation: { collection: "users", kind: "one" } },
+          { name: "tags", type: "relation", relation: { collection: "tags", kind: "many" } },
+        ],
+      })
+
+      const { id: itemId } = await edem.data.createItem({
+        collection_id: colId,
+        data: { author: "user-1", tags: ["tag-1", "tag-2"] },
+      })
+      const { item } = await edem.data.getItem({ item_id: itemId })
+
+      expect(item?.data.author).toBe("user-1")
+      expect(item?.data.tags).toEqual(["tag-1", "tag-2"])
+
+      await expect(
+        edem.data.createItem({ collection_id: colId, data: { author: ["user-1"] } }),
+      ).rejects.toThrow('Invalid value for field "author" of type "relation"')
+
+      await expect(
+        edem.data.createItem({ collection_id: colId, data: { tags: "tag-1" } }),
+      ).rejects.toThrow('Invalid value for field "tags" of type "relation"')
+    })
+
     it("should enforce required fields", async () => {
       const { id: colId } = await edem.data.createCollection({
         name: "Users",
@@ -369,6 +399,26 @@ describe("data module", () => {
           data: {},
         }),
       ).rejects.toThrow('Field "email" is required')
+    })
+
+    it("should require non-empty arrays for required many relations", async () => {
+      await edem.data.createCollection({ name: "Tags", id: "tags" })
+      const { id: colId } = await edem.data.createCollection({
+        name: "Posts",
+        id: "posts",
+        fields: [
+          {
+            name: "tags",
+            type: "relation",
+            relation: { collection: "tags", kind: "many" },
+            required: true,
+          },
+        ],
+      })
+
+      await expect(
+        edem.data.createItem({ collection_id: colId, data: { tags: [] } }),
+      ).rejects.toThrow('Field "tags" is required')
     })
   })
 
@@ -1504,14 +1554,19 @@ describe("data module", () => {
       await edem.data.createCollection({
         id: "posts",
         name: "Posts",
-        fields: [{ name: "author", type: "relation", relation: { collection: "users" } }],
+        fields: [
+          { name: "author", type: "relation", relation: { collection: "users", kind: "many" } },
+        ],
       })
 
       const { collection } = await edem.data.getCollection({ collection_id: "posts" })
-      expect(collection?.fields[0].relation).toEqual({ collection: "users" })
+      expect(collection?.fields[0].relation).toEqual({ collection: "users", kind: "many" })
 
       const manifest = await edem.data.getManifest()
-      expect(manifest.collections[0]?.fields[0]?.relation).toEqual({ collection: "users" })
+      expect(manifest.collections[0]?.fields[0]?.relation).toEqual({
+        collection: "users",
+        kind: "many",
+      })
     })
 
     it("should preserve non-relation field options alongside relation config", async () => {

@@ -630,6 +630,18 @@ function buildCollectionItemFields(collection: ManifestCollection): NodeContract
 }
 
 function manifestFieldToContractField(collectionField: ManifestField): NodeContractField {
+  if (collectionField.type === "relation" && collectionField.relation?.kind === "many") {
+    return field(
+      collectionField.name,
+      "array",
+      collectionField.required === true,
+      [],
+      [field("item", "string", true)],
+      buildManifestFieldNote(collectionField),
+      collectManifestFieldEnumValues(collectionField),
+    )
+  }
+
   return field(
     collectionField.name,
     collectionField.type,
@@ -645,6 +657,7 @@ function buildManifestFieldNote(collectionField: ManifestField): string | null {
   const note = compact([
     buildManifestFieldSpecialNote(collectionField),
     collectionField.relation ? `Target collection: ${collectionField.relation.collection}` : null,
+    collectionField.relation?.kind === "many" ? "Multiple records" : null,
     collectionField.default !== undefined
       ? `Default: ${formatValue(collectionField.default)}`
       : null,

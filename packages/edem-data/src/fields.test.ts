@@ -1,5 +1,11 @@
 import { describe, it, expect } from "bun:test"
-import { validateFieldValue, fieldTypes, fieldSchema, manifestFieldSchema } from "./fields"
+import {
+  validateFieldDataValue,
+  validateFieldValue,
+  fieldTypes,
+  fieldSchema,
+  manifestFieldSchema,
+} from "./fields"
 
 describe("field types", () => {
   it("should have all field types defined", () => {
@@ -190,6 +196,34 @@ describe("validateFieldValue", () => {
   })
 })
 
+describe("validateFieldDataValue", () => {
+  it("should validate relation cardinality", () => {
+    expect(
+      validateFieldDataValue(
+        { type: "relation", relation: { collection: "users", kind: "one" } },
+        "user-1",
+      ),
+    ).toBe(true)
+    expect(
+      validateFieldDataValue({ type: "relation", relation: { collection: "users", kind: "one" } }, [
+        "user-1",
+      ]),
+    ).toBe(false)
+    expect(
+      validateFieldDataValue({ type: "relation", relation: { collection: "tags", kind: "many" } }, [
+        "tag-1",
+        "tag-2",
+      ]),
+    ).toBe(true)
+    expect(
+      validateFieldDataValue(
+        { type: "relation", relation: { collection: "tags", kind: "many" } },
+        "tag-1",
+      ),
+    ).toBe(false)
+  })
+})
+
 describe("fieldSchema", () => {
   it("should validate a valid field", () => {
     const result = fieldSchema.safeParse({
@@ -276,10 +310,13 @@ describe("fieldSchema", () => {
       collection_id: "posts",
       name: "author",
       type: "relation",
-      relation: { collection: "users" },
+      relation: { collection: "users", kind: "many" },
     })
 
     expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.relation).toEqual({ collection: "users", kind: "many" })
+    }
   })
 
   it("should reject relation field without target collection", () => {

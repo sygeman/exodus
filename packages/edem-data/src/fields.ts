@@ -20,14 +20,17 @@ export const fieldTypes = [
 ] as const
 
 export const fieldSpecials = ["uuid", "date-created", "date-updated"] as const
+export const relationKinds = ["one", "many"] as const
 
 export type FieldType = (typeof fieldTypes)[number]
 export type FieldSpecial = (typeof fieldSpecials)[number]
+export type RelationKind = (typeof relationKinds)[number]
 
 export const labelsSchema = z.record(z.string(), z.string())
 
 export const relationFieldSchema = z.object({
   collection: z.string(),
+  kind: z.enum(relationKinds).optional(),
 })
 
 function getRelationCollection(relation: unknown, options: unknown): string | undefined {
@@ -72,7 +75,7 @@ const baseFieldShape = {
 }
 
 function validateRelationField(
-  value: { type: FieldType; relation?: { collection: string }; options?: Record<string, unknown> },
+  value: { type: FieldType; relation?: RelationField; options?: Record<string, unknown> },
   ctx: z.RefinementCtx,
 ) {
   if (value.type !== "relation") {
@@ -123,6 +126,11 @@ export type ManifestCollection = z.infer<typeof manifestCollectionSchema>
 export type ManifestField = z.infer<typeof manifestFieldSchema>
 export type RelationField = z.infer<typeof relationFieldSchema>
 
+type FieldValueDefinition = {
+  type: FieldType
+  relation?: RelationField
+}
+
 const isoDateRegex = /^\d{4}-\d{2}-\d{2}$/
 const isoDatetimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}/
 
@@ -170,4 +178,22 @@ export function validateFieldValue(type: FieldType, value: unknown): boolean {
     default:
       return false
   }
+}
+
+export function getRelationKind(field: FieldValueDefinition): RelationKind {
+  return field.type === "relation" && field.relation?.kind === "many" ? "many" : "one"
+}
+
+export function validateFieldDataValue(field: FieldValueDefinition, value: unknown): boolean {
+  if (value === null || value === undefined) return true
+
+  if (field.type !== "relation") {
+    return validateFieldValue(field.type, value)
+  }
+
+  if (getRelationKind(field) === "many") {
+    return Array.isArray(value) && value.every((item) => typeof item === "string")
+  }
+
+  return typeof value === "string"
 }

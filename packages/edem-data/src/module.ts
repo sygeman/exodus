@@ -10,9 +10,10 @@ import {
   fieldSpecials,
   fieldTypes,
   labelsSchema,
+  relationFieldSchema,
   type ManifestField,
   type RelationField,
-  validateFieldValue,
+  validateFieldDataValue,
   manifestSchema,
   type FieldSpecial,
   type FieldType,
@@ -55,13 +56,16 @@ function splitFieldOptions(
           nextOptions.target_collection_id.trim() !== ""
         ? nextOptions.target_collection_id
         : undefined
+  const kind =
+    nextOptions.kind === "many" || nextOptions.kind === "one" ? nextOptions.kind : undefined
 
   delete nextOptions.collection
   delete nextOptions.target_collection_id
+  delete nextOptions.kind
 
   return {
     options: Object.keys(nextOptions).length > 0 ? nextOptions : undefined,
-    relation: collection ? { collection } : undefined,
+    relation: collection ? { collection, ...(kind ? { kind } : {}) } : undefined,
   }
 }
 
@@ -77,8 +81,14 @@ function mergeFieldOptions(
 
     if (relation?.collection.trim()) {
       nextOptions.collection = relation.collection.trim()
+      if (relation.kind) {
+        nextOptions.kind = relation.kind
+      } else {
+        delete nextOptions.kind
+      }
     } else {
       delete nextOptions.collection
+      delete nextOptions.kind
     }
   }
 
@@ -191,6 +201,9 @@ type DataFieldDefinition = {
   type: string
   required?: boolean | null
   special?: string | null
+  relation?: RelationField | null
+  options?: Record<string, unknown>
+  interface_options?: string | null
 }
 
 function hasStoredValue(value: unknown): boolean {
@@ -265,6 +278,36 @@ function buildUpdatedFieldValidationNames(
   ])
 }
 
+function getDataFieldRelation(field: DataFieldDefinition): RelationField | undefined {
+  if (field.relation) {
+    return field.relation
+  }
+
+  const fieldType = field.type as FieldType
+  const options =
+    field.options ??
+    (field.interface_options
+      ? parseFieldOptions(field.interface_options, `field ${field.name} options`)
+      : undefined)
+
+  return splitFieldOptions(fieldType, options).relation
+}
+
+function isMissingRequiredFieldValue(field: DataFieldDefinition, value: unknown): boolean {
+  if (value === null || value === undefined) {
+    return true
+  }
+
+  const fieldType = field.type as FieldType
+  const relation = getDataFieldRelation(field)
+  return (
+    fieldType === "relation" &&
+    relation?.kind === "many" &&
+    Array.isArray(value) &&
+    value.length === 0
+  )
+}
+
 function validateItemData(
   fields: DataFieldDefinition[],
   data: Record<string, unknown>,
@@ -272,14 +315,17 @@ function validateItemData(
 ): void {
   for (const field of fields) {
     const value = data[field.name]
-    if (field.required && (value === null || value === undefined)) {
+    if (field.required && isMissingRequiredFieldValue(field, value)) {
       throw new Error(`Field "${field.name}" is required`)
     }
     if (options.validateFieldNames && !options.validateFieldNames.has(field.name)) {
       continue
     }
     const fieldType = field.type as FieldType
-    if (value !== undefined && !validateFieldValue(fieldType, value)) {
+    if (
+      value !== undefined &&
+      !validateFieldDataValue({ type: fieldType, relation: getDataFieldRelation(field) }, value)
+    ) {
       throw new Error(`Invalid value for field "${field.name}" of type "${field.type}"`)
     }
   }
@@ -602,7 +648,7 @@ export const dataModule = createEdemModule("data", (module) => {
           name: z.string(),
           labels: labelsSchema.optional(),
           type: z.enum(fieldTypes),
-          relation: z.object({ collection: z.string() }).optional(),
+          relation: relationFieldSchema.optional(),
           options: z.record(z.string(), z.any()).optional(),
           interface: z.string().optional(),
           display: z.string().optional(),
@@ -662,7 +708,7 @@ export const dataModule = createEdemModule("data", (module) => {
           name: z.string().optional(),
           labels: labelsSchema.optional(),
           type: z.enum(fieldTypes).optional(),
-          relation: z.object({ collection: z.string() }).optional(),
+          relation: relationFieldSchema.optional(),
           options: z.record(z.string(), z.any()).optional(),
           interface: z.string().optional(),
           display: z.string().optional(),
