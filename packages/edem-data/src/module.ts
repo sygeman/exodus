@@ -1,9 +1,13 @@
-import { join } from "path"
+import { mkdir, mkdtemp, open } from "node:fs/promises"
+import { tmpdir } from "node:os"
+import { basename, dirname, join } from "node:path"
+import { pathToFileURL } from "node:url"
 import { z } from "zod"
 import { eq, and, desc, asc, isNull, isNotNull } from "drizzle-orm"
 import { createEdemModule } from "@exodus/edem-core"
 import { createDataEngine, type DataEngine } from "./db"
 import * as schema from "./schema"
+import { createFileStorage } from "./storage"
 import {
   fieldSchema,
   fieldInputSchema,
@@ -31,6 +35,133 @@ function safeJsonParse<T>(value: string, context: string): T {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+const fileHashSchema = z.string().regex(/^[a-f0-9]{64}$/)
+const thumbnailSizes = ["small", "medium", "large"] as const
+const thumbnailSizeSchema = z.enum(thumbnailSizes)
+const fileMetadataSchema = z.record(z.string(), z.unknown())
+const uploadIdSchema = z.string().uuid()
+const recommendedFileChunkBytes = 256 * 1024
+const maxFileChunkBytes = 1024 * 1024
+
+type ThumbnailSize = (typeof thumbnailSizes)[number]
+
+type FileUploadSession = {
+  id: string
+  path: string
+  originalName: string
+  mimeType: string
+  size?: number
+  uploadedBytes: number
+  createdAt: number
+}
+
+const thumbnailDimensions: Record<ThumbnailSize, { width: number; height: number }> = {
+  small: { width: 150, height: 150 },
+  medium: { width: 400, height: 400 },
+  large: { width: 800, height: 800 },
+}
+
+function serializeMetadata(value: Record<string, unknown> | undefined): string | null {
+  return value && Object.keys(value).length > 0 ? JSON.stringify(value) : null
+}
+
+async function ensureParentDir(path: string): Promise<void> {
+  await mkdir(dirname(path), { recursive: true })
+}
+
+async function removeFilePath(path: string): Promise<void> {
+  try {
+    await Bun.file(path).delete()
+  } catch {
+    // The database row is the source of truth; missing files are already gone.
+  }
+}
+
+function decodeBase64Chunk(value: string): Uint8Array {
+  return new Uint8Array(Buffer.from(value, "base64"))
+}
+
+async function writeUploadChunk(path: string, offset: number, data: Uint8Array): Promise<void> {
+  const file = await open(path, "r+")
+
+  try {
+    const result = await file.write(data, 0, data.byteLength, offset)
+    if (result.bytesWritten !== data.byteLength) {
+      throw new Error(`Failed to write full upload chunk to "${path}"`)
+    }
+  } finally {
+    await file.close()
+  }
+}
+
+async function readBase64Chunk(input: {
+  path: string
+  total: number
+  offset: number
+  length: number
+}): Promise<{ data_base64: string; length: number; done: boolean }> {
+  if (input.offset > input.total) {
+    throw new Error(`Chunk offset ${input.offset} exceeds file size ${input.total}`)
+  }
+
+  const end = Math.min(input.offset + input.length, input.total)
+  const data = await Bun.file(input.path).slice(input.offset, end).arrayBuffer()
+  const bytes = Buffer.from(data)
+
+  return {
+    data_base64: bytes.toString("base64"),
+    length: bytes.byteLength,
+    done: end >= input.total,
+  }
+}
+
+async function extractImageMetadata(
+  path: string,
+  mimeType: string,
+): Promise<{ width?: number; height?: number; metadata?: Record<string, unknown> }> {
+  if (!mimeType.startsWith("image/")) {
+    return {}
+  }
+
+  const imageMetadata = await Bun.file(path).image().metadata()
+  const metadata: Record<string, unknown> = {}
+
+  if (imageMetadata.format) {
+    metadata.format = imageMetadata.format
+  }
+
+  return {
+    width: imageMetadata.width,
+    height: imageMetadata.height,
+    metadata,
+  }
+}
+
+function getThumbnailPath(thumbnailsDir: string, hash: string, size: ThumbnailSize): string {
+  return join(thumbnailsDir, hash.slice(0, 2), `${hash}_${size}.webp`)
+}
+
+async function writeImageThumbnail(
+  sourcePath: string,
+  targetPath: string,
+  dimensions: { width: number; height: number },
+): Promise<{ width: number; height: number }> {
+  await ensureParentDir(targetPath)
+
+  await Bun.file(sourcePath)
+    .image()
+    .resize(dimensions.width, dimensions.height, { fit: "inside", withoutEnlargement: true })
+    .webp({ quality: 80 })
+    .write(targetPath)
+
+  const metadata = await Bun.file(targetPath).image().metadata()
+  if (!metadata.width || !metadata.height) {
+    throw new Error(`Failed to read thumbnail metadata for "${targetPath}"`)
+  }
+
+  return { width: metadata.width, height: metadata.height }
 }
 
 function parseFieldSpecial(value: string | null | undefined): FieldSpecial | undefined {
@@ -388,13 +519,67 @@ const itemLockSchema = z.object({
   created_at: z.number(),
 })
 
+const fileSchema = z.object({
+  hash: fileHashSchema,
+  original_name: z.string(),
+  mime_type: z.string(),
+  size: z.number(),
+  storage_path: z.string(),
+  ref_count: z.number().nullable().optional(),
+  width: z.number().nullable().optional(),
+  height: z.number().nullable().optional(),
+  duration: z.number().nullable().optional(),
+  frame_rate: z.number().nullable().optional(),
+  video_codec: z.string().nullable().optional(),
+  audio_codec: z.string().nullable().optional(),
+  bitrate: z.number().nullable().optional(),
+  sample_rate: z.number().nullable().optional(),
+  channels: z.number().nullable().optional(),
+  orientation: z.number().nullable().optional(),
+  color_space: z.string().nullable().optional(),
+  metadata: fileMetadataSchema.nullable().optional(),
+  created_at: z.number(),
+})
+
+const itemFileSchema = z.object({
+  id: z.string(),
+  item_id: z.string(),
+  field_id: z.string().nullable().optional(),
+  file_hash: fileHashSchema,
+  sort_order: z.number().nullable().optional(),
+  metadata: fileMetadataSchema.nullable().optional(),
+  created_at: z.number(),
+})
+
+const itemFileWithFileSchema = itemFileSchema.extend({
+  file: fileSchema,
+})
+
+const fileThumbnailSchema = z.object({
+  id: z.string(),
+  file_hash: fileHashSchema,
+  size_name: thumbnailSizeSchema,
+  width: z.number(),
+  height: z.number(),
+  format: z.string().nullable().optional(),
+  storage_path: z.string(),
+  created_at: z.number(),
+})
+
 export const dataModule = createEdemModule("data", (module) => {
   return (
     module
       .context(async (config) => {
         const dbPath = config.appData ? join(config.appData, "data.db") : ":memory:"
+        const storageRoot = config.appData ?? (await mkdtemp(join(tmpdir(), "edem-data-")))
         const engine = createDataEngine({ dbPath })
-        return { db: engine.db, engine }
+        const filesDir = join(storageRoot, "files")
+        const thumbnailsDir = join(storageRoot, "thumbnails")
+        const uploadsDir = join(storageRoot, "uploads")
+        const storage = createFileStorage({ baseDir: filesDir })
+        const fileUploads = new Map<string, FileUploadSession>()
+
+        return { db: engine.db, engine, storage, thumbnailsDir, uploadsDir, fileUploads }
       })
       // ── Subscriptions ──────────────────────────────────────────────────────
       .subscription("collectionCreated", { output: collectionSchema })
@@ -1521,6 +1706,554 @@ export const dataModule = createEdemModule("data", (module) => {
           return { lock: lock ?? null }
         },
       })
+      // ── Files ──────────────────────────────────────────────────────────────
+      .mutation("beginFileUpload", {
+        input: z.object({
+          name: z.string().optional(),
+          mime_type: z.string().optional(),
+          size: z.number().int().nonnegative().optional(),
+        }),
+        output: z.object({ upload_id: uploadIdSchema, chunk_size: z.number() }),
+        resolve: async ({ input, ctx }) => {
+          const uploadId = crypto.randomUUID()
+          const uploadPath = join(ctx.uploadsDir, uploadId)
+
+          await ensureParentDir(uploadPath)
+          await Bun.write(uploadPath, new Uint8Array())
+
+          ctx.fileUploads.set(uploadId, {
+            id: uploadId,
+            path: uploadPath,
+            originalName: input.name?.trim() || uploadId,
+            mimeType: input.mime_type?.trim() || "application/octet-stream",
+            size: input.size,
+            uploadedBytes: 0,
+            createdAt: Date.now(),
+          })
+
+          return { upload_id: uploadId, chunk_size: recommendedFileChunkBytes }
+        },
+      })
+      .mutation("writeFileUploadChunk", {
+        input: z.object({
+          upload_id: uploadIdSchema,
+          offset: z.number().int().nonnegative(),
+          data_base64: z.string(),
+        }),
+        output: z.object({ uploaded: z.number(), done: z.boolean() }),
+        resolve: async ({ input, ctx }) => {
+          const session = ctx.fileUploads.get(input.upload_id)
+          if (!session) {
+            throw new Error(`File upload ${input.upload_id} not found`)
+          }
+          if (input.offset !== session.uploadedBytes) {
+            throw new Error(
+              `File upload ${input.upload_id} expected offset ${session.uploadedBytes}, got ${input.offset}`,
+            )
+          }
+
+          const chunk = decodeBase64Chunk(input.data_base64)
+          if (chunk.byteLength > maxFileChunkBytes) {
+            throw new Error(`File upload chunk exceeds ${maxFileChunkBytes} bytes`)
+          }
+          if (
+            session.size !== undefined &&
+            session.uploadedBytes + chunk.byteLength > session.size
+          ) {
+            throw new Error(`File upload ${input.upload_id} exceeds declared size ${session.size}`)
+          }
+
+          await writeUploadChunk(session.path, input.offset, chunk)
+          session.uploadedBytes += chunk.byteLength
+
+          return {
+            uploaded: session.uploadedBytes,
+            done: session.size !== undefined && session.uploadedBytes >= session.size,
+          }
+        },
+      })
+      .mutation("completeFileUpload", {
+        input: z.object({
+          upload_id: uploadIdSchema,
+          expected_hash: fileHashSchema.optional(),
+        }),
+        output: z.object({ file: fileSchema }),
+        resolve: async ({ input, ctx }) => {
+          const session = ctx.fileUploads.get(input.upload_id)
+          if (!session) {
+            throw new Error(`File upload ${input.upload_id} not found`)
+          }
+          if (session.size !== undefined && session.uploadedBytes !== session.size) {
+            throw new Error(
+              `File upload ${input.upload_id} is incomplete: ${session.uploadedBytes}/${session.size} bytes`,
+            )
+          }
+
+          const tempFile = Bun.file(session.path)
+          if (!(await tempFile.exists())) {
+            throw new Error(`File upload ${input.upload_id} temp file is missing`)
+          }
+          if (tempFile.size !== session.uploadedBytes) {
+            throw new Error(
+              `File upload ${input.upload_id} size mismatch: ${tempFile.size}/${session.uploadedBytes} bytes`,
+            )
+          }
+
+          const stored = await ctx.storage.putFile(session.path)
+          if (input.expected_hash && stored.hash !== input.expected_hash) {
+            throw new Error(
+              `File upload ${input.upload_id} hash mismatch: expected ${input.expected_hash}, got ${stored.hash}`,
+            )
+          }
+
+          const file = await ensureStoredFileRecord(ctx.db, {
+            stored,
+            originalName: session.originalName,
+            mimeType: session.mimeType,
+          })
+
+          ctx.fileUploads.delete(input.upload_id)
+          await removeFilePath(session.path)
+
+          return { file }
+        },
+      })
+      .mutation("abortFileUpload", {
+        input: z.object({ upload_id: uploadIdSchema }),
+        output: z.object({ success: z.boolean() }),
+        resolve: async ({ input, ctx }) => {
+          const session = ctx.fileUploads.get(input.upload_id)
+          if (!session) return { success: false }
+
+          ctx.fileUploads.delete(input.upload_id)
+          await removeFilePath(session.path)
+
+          return { success: true }
+        },
+      })
+      .mutation("storeFile", {
+        input: z.object({
+          file_path: z.string(),
+          name: z.string().optional(),
+        }),
+        output: z.object({ hash: fileHashSchema, size: z.number(), path: z.string() }),
+        resolve: async ({ input, ctx }) => {
+          const sourceFile = Bun.file(input.file_path)
+          if (!(await sourceFile.exists())) {
+            throw new Error(`File "${input.file_path}" not found`)
+          }
+
+          const stored = await ctx.storage.putFile(input.file_path)
+          const existing = await ctx.db.query.files.findFirst({
+            where: eq(schema.files.hash, stored.hash),
+          })
+
+          if (!existing) {
+            const mimeType = sourceFile.type || "application/octet-stream"
+            const originalName = input.name ?? basename(input.file_path)
+            await ensureStoredFileRecord(ctx.db, {
+              stored,
+              originalName,
+              mimeType,
+            })
+          }
+
+          return stored
+        },
+      })
+      .mutation("deleteFile", {
+        input: z.object({ hash: fileHashSchema }),
+        output: z.object({ success: z.boolean() }),
+        resolve: async ({ input, ctx }) => {
+          const file = await ctx.db.query.files.findFirst({
+            where: eq(schema.files.hash, input.hash),
+          })
+          if (!file) return { success: false }
+
+          const thumbnails = await ctx.db.query.fileThumbnails.findMany({
+            where: eq(schema.fileThumbnails.file_hash, input.hash),
+          })
+
+          for (const thumbnail of thumbnails) {
+            await removeFilePath(thumbnail.storage_path)
+          }
+
+          await ctx.db.delete(schema.files).where(eq(schema.files.hash, input.hash))
+          await ctx.storage.remove(input.hash)
+
+          return { success: true }
+        },
+      })
+      .mutation("attachFile", {
+        input: z.object({
+          item_id: z.string(),
+          file_hash: fileHashSchema,
+          field_id: z.string().optional(),
+          metadata: fileMetadataSchema.optional(),
+        }),
+        output: z.object({ id: z.string() }),
+        resolve: async ({ input, ctx }) => {
+          const item = await ctx.db.query.items.findFirst({
+            where: eq(schema.items.id, input.item_id),
+          })
+          if (!item) {
+            throw new Error(`Item ${input.item_id} not found`)
+          }
+
+          const file = await ctx.db.query.files.findFirst({
+            where: eq(schema.files.hash, input.file_hash),
+          })
+          if (!file) {
+            throw new Error(`File ${input.file_hash} not found`)
+          }
+
+          if (input.field_id) {
+            const field = await ctx.db.query.fields.findFirst({
+              where: eq(schema.fields.id, input.field_id),
+            })
+            if (!field || field.collection_id !== item.collection_id) {
+              throw new Error(`Field ${input.field_id} not found for item ${input.item_id}`)
+            }
+          }
+
+          const attachmentWhere = input.field_id
+            ? and(
+                eq(schema.itemFiles.item_id, input.item_id),
+                eq(schema.itemFiles.field_id, input.field_id),
+              )
+            : eq(schema.itemFiles.item_id, input.item_id)
+          const existingAttachments = await ctx.db.query.itemFiles.findMany({
+            where: attachmentWhere,
+          })
+          const sortOrder =
+            existingAttachments.reduce(
+              (max, attachment) => Math.max(max, attachment.sort_order ?? 0),
+              -1,
+            ) + 1
+          const id = crypto.randomUUID()
+
+          await ctx.db.insert(schema.itemFiles).values({
+            id,
+            item_id: input.item_id,
+            field_id: input.field_id,
+            file_hash: input.file_hash,
+            sort_order: sortOrder,
+            metadata: serializeMetadata(input.metadata),
+            created_at: Date.now(),
+          })
+
+          await ctx.db
+            .update(schema.files)
+            .set({ ref_count: (file.ref_count ?? 0) + 1 })
+            .where(eq(schema.files.hash, input.file_hash))
+
+          return { id }
+        },
+      })
+      .mutation("detachFile", {
+        input: z.object({ item_file_id: z.string() }),
+        output: z.object({ success: z.boolean() }),
+        resolve: async ({ input, ctx }) => {
+          const itemFile = await ctx.db.query.itemFiles.findFirst({
+            where: eq(schema.itemFiles.id, input.item_file_id),
+          })
+          if (!itemFile) return { success: false }
+
+          const file = await ctx.db.query.files.findFirst({
+            where: eq(schema.files.hash, itemFile.file_hash),
+          })
+
+          await ctx.db.delete(schema.itemFiles).where(eq(schema.itemFiles.id, input.item_file_id))
+
+          if (file) {
+            await ctx.db
+              .update(schema.files)
+              .set({ ref_count: Math.max((file.ref_count ?? 0) - 1, 0) })
+              .where(eq(schema.files.hash, itemFile.file_hash))
+          }
+
+          return { success: true }
+        },
+      })
+      .mutation("updateItemFile", {
+        input: z.object({
+          item_file_id: z.string(),
+          metadata: fileMetadataSchema.nullable().optional(),
+        }),
+        output: z.object({ success: z.boolean() }),
+        resolve: async ({ input, ctx }) => {
+          const itemFile = await ctx.db.query.itemFiles.findFirst({
+            where: eq(schema.itemFiles.id, input.item_file_id),
+          })
+          if (!itemFile) return { success: false }
+
+          if (input.metadata !== undefined) {
+            await ctx.db
+              .update(schema.itemFiles)
+              .set({ metadata: input.metadata ? serializeMetadata(input.metadata) : null })
+              .where(eq(schema.itemFiles.id, input.item_file_id))
+          }
+
+          return { success: true }
+        },
+      })
+      .mutation("reorderItemFiles", {
+        input: z.object({ item_file_ids: z.array(z.string()) }),
+        output: z.object({ success: z.boolean() }),
+        resolve: async ({ input, ctx }) => {
+          for (let i = 0; i < input.item_file_ids.length; i++) {
+            await ctx.db
+              .update(schema.itemFiles)
+              .set({ sort_order: i })
+              .where(eq(schema.itemFiles.id, input.item_file_ids[i]))
+          }
+
+          return { success: true }
+        },
+      })
+      .query("getFile", {
+        input: z.object({ hash: fileHashSchema }),
+        output: z.object({ file: fileSchema.nullable() }),
+        resolve: async ({ input, ctx }) => {
+          const file = await ctx.db.query.files.findFirst({
+            where: eq(schema.files.hash, input.hash),
+          })
+
+          return { file: file ? parseFile(file) : null }
+        },
+      })
+      .query("fileExists", {
+        input: z.object({ hash: fileHashSchema }),
+        output: z.object({ exists: z.boolean() }),
+        resolve: async ({ input, ctx }) => {
+          const file = await ctx.db.query.files.findFirst({
+            where: eq(schema.files.hash, input.hash),
+          })
+
+          return { exists: file ? await ctx.storage.exists(input.hash) : false }
+        },
+      })
+      .query("getFilePath", {
+        input: z.object({ hash: fileHashSchema }),
+        output: z.object({ path: z.string() }),
+        resolve: async ({ input, ctx }) => {
+          const file = await getExistingFile(ctx.db, input.hash)
+          return { path: file.storage_path }
+        },
+      })
+      .query("getFileStreamUrl", {
+        input: z.object({ hash: fileHashSchema }),
+        output: z.object({ url: z.string() }),
+        resolve: async ({ input, ctx }) => {
+          const file = await getExistingFile(ctx.db, input.hash)
+          return { url: pathToFileURL(file.storage_path).href }
+        },
+      })
+      .query("readFileChunk", {
+        input: z.object({
+          hash: fileHashSchema,
+          offset: z.number().int().nonnegative(),
+          length: z.number().int().positive().max(maxFileChunkBytes),
+        }),
+        output: z.object({
+          data_base64: z.string(),
+          offset: z.number(),
+          length: z.number(),
+          total: z.number(),
+          done: z.boolean(),
+          mime_type: z.string(),
+          original_name: z.string(),
+        }),
+        resolve: async ({ input, ctx }) => {
+          const file = await getExistingFile(ctx.db, input.hash)
+          const chunk = await readBase64Chunk({
+            path: file.storage_path,
+            total: file.size,
+            offset: input.offset,
+            length: input.length,
+          })
+
+          return {
+            ...chunk,
+            offset: input.offset,
+            total: file.size,
+            mime_type: file.mime_type,
+            original_name: file.original_name,
+          }
+        },
+      })
+      .query("getItemFiles", {
+        input: z.object({ item_id: z.string() }),
+        output: z.object({ files: z.array(itemFileWithFileSchema) }),
+        resolve: async ({ input, ctx }) => {
+          return { files: await getItemFileAttachments(ctx.db, input.item_id) }
+        },
+      })
+      .query("getItemFieldFiles", {
+        input: z.object({ item_id: z.string(), field_id: z.string() }),
+        output: z.object({ files: z.array(itemFileWithFileSchema) }),
+        resolve: async ({ input, ctx }) => {
+          return { files: await getItemFileAttachments(ctx.db, input.item_id, input.field_id) }
+        },
+      })
+      // ── Thumbnails ─────────────────────────────────────────────────────────
+      .mutation("generateThumbnails", {
+        input: z.object({
+          file_hash: fileHashSchema,
+          sizes: z.array(thumbnailSizeSchema).optional(),
+        }),
+        output: z.object({ thumbnails: z.array(fileThumbnailSchema) }),
+        resolve: async ({ input, ctx }) => {
+          const file = await getExistingFile(ctx.db, input.file_hash)
+          if (!file.mime_type.startsWith("image/")) {
+            throw new Error(`Thumbnails are only supported for images, got ${file.mime_type}`)
+          }
+
+          const sizes = input.sizes ?? [...thumbnailSizes]
+          const thumbnails: Array<z.infer<typeof fileThumbnailSchema>> = []
+
+          for (const size of sizes) {
+            const targetPath = getThumbnailPath(ctx.thumbnailsDir, input.file_hash, size)
+            const dimensions = await writeImageThumbnail(
+              file.storage_path,
+              targetPath,
+              thumbnailDimensions[size],
+            )
+            const existing = await ctx.db.query.fileThumbnails.findFirst({
+              where: and(
+                eq(schema.fileThumbnails.file_hash, input.file_hash),
+                eq(schema.fileThumbnails.size_name, size),
+              ),
+            })
+            const now = Date.now()
+
+            if (existing) {
+              await ctx.db
+                .update(schema.fileThumbnails)
+                .set({
+                  width: dimensions.width,
+                  height: dimensions.height,
+                  format: "webp",
+                  storage_path: targetPath,
+                  created_at: now,
+                })
+                .where(eq(schema.fileThumbnails.id, existing.id))
+            } else {
+              await ctx.db.insert(schema.fileThumbnails).values({
+                id: crypto.randomUUID(),
+                file_hash: input.file_hash,
+                size_name: size,
+                width: dimensions.width,
+                height: dimensions.height,
+                format: "webp",
+                storage_path: targetPath,
+                created_at: now,
+              })
+            }
+
+            const thumbnail = await ctx.db.query.fileThumbnails.findFirst({
+              where: and(
+                eq(schema.fileThumbnails.file_hash, input.file_hash),
+                eq(schema.fileThumbnails.size_name, size),
+              ),
+            })
+            if (!thumbnail) {
+              throw new Error(`Thumbnail ${size} for file ${input.file_hash} not found after write`)
+            }
+
+            thumbnails.push(parseThumbnail(thumbnail))
+          }
+
+          return { thumbnails }
+        },
+      })
+      .query("getThumbnail", {
+        input: z.object({ file_hash: fileHashSchema, size: thumbnailSizeSchema }),
+        output: z.object({ thumbnail: fileThumbnailSchema.nullable() }),
+        resolve: async ({ input, ctx }) => {
+          const thumbnail = await ctx.db.query.fileThumbnails.findFirst({
+            where: and(
+              eq(schema.fileThumbnails.file_hash, input.file_hash),
+              eq(schema.fileThumbnails.size_name, input.size),
+            ),
+          })
+
+          return { thumbnail: thumbnail ? parseThumbnail(thumbnail) : null }
+        },
+      })
+      .query("getFileThumbnails", {
+        input: z.object({ file_hash: fileHashSchema }),
+        output: z.object({ thumbnails: z.array(fileThumbnailSchema) }),
+        resolve: async ({ input, ctx }) => {
+          const thumbnails = await ctx.db.query.fileThumbnails.findMany({
+            where: eq(schema.fileThumbnails.file_hash, input.file_hash),
+            orderBy: asc(schema.fileThumbnails.size_name),
+          })
+
+          return { thumbnails: thumbnails.map(parseThumbnail) }
+        },
+      })
+      .query("getThumbnailPath", {
+        input: z.object({ file_hash: fileHashSchema, size: thumbnailSizeSchema }),
+        output: z.object({ path: z.string() }),
+        resolve: async ({ input, ctx }) => {
+          const thumbnail = await ctx.db.query.fileThumbnails.findFirst({
+            where: and(
+              eq(schema.fileThumbnails.file_hash, input.file_hash),
+              eq(schema.fileThumbnails.size_name, input.size),
+            ),
+          })
+          if (!thumbnail) {
+            throw new Error(`Thumbnail ${input.size} for file ${input.file_hash} not found`)
+          }
+
+          return { path: thumbnail.storage_path }
+        },
+      })
+      .query("readThumbnailChunk", {
+        input: z.object({
+          file_hash: fileHashSchema,
+          size: thumbnailSizeSchema,
+          offset: z.number().int().nonnegative(),
+          length: z.number().int().positive().max(maxFileChunkBytes),
+        }),
+        output: z.object({
+          data_base64: z.string(),
+          offset: z.number(),
+          length: z.number(),
+          total: z.number(),
+          done: z.boolean(),
+          mime_type: z.string(),
+          original_name: z.string(),
+        }),
+        resolve: async ({ input, ctx }) => {
+          const thumbnail = await ctx.db.query.fileThumbnails.findFirst({
+            where: and(
+              eq(schema.fileThumbnails.file_hash, input.file_hash),
+              eq(schema.fileThumbnails.size_name, input.size),
+            ),
+          })
+          if (!thumbnail) {
+            throw new Error(`Thumbnail ${input.size} for file ${input.file_hash} not found`)
+          }
+
+          const total = Bun.file(thumbnail.storage_path).size
+          const chunk = await readBase64Chunk({
+            path: thumbnail.storage_path,
+            total,
+            offset: input.offset,
+            length: input.length,
+          })
+
+          return {
+            ...chunk,
+            offset: input.offset,
+            total,
+            mime_type: "image/webp",
+            original_name: `${input.file_hash}_${input.size}.webp`,
+          }
+        },
+      })
       // ── Versions ──────────────────────────────────────────────────────────
       .query("getItemVersions", {
         input: z.object({ item_id: z.string() }),
@@ -1999,6 +2732,140 @@ async function getCollectionWithFields(
       ? safeJsonParse<Record<string, unknown>>(collection.meta, `collection ${collectionId} meta`)
       : undefined,
     fields: fields.map(parseStoredField),
+  }
+}
+
+async function ensureStoredFileRecord(
+  db: DataEngine["db"],
+  input: {
+    stored: { hash: string; size: number; path: string }
+    originalName: string
+    mimeType: string
+  },
+): Promise<z.infer<typeof fileSchema>> {
+  const existing = await db.query.files.findFirst({
+    where: eq(schema.files.hash, input.stored.hash),
+  })
+  if (existing) {
+    return parseFile(existing)
+  }
+
+  const image = await extractImageMetadata(input.stored.path, input.mimeType)
+
+  await db.insert(schema.files).values({
+    hash: input.stored.hash,
+    original_name: input.originalName,
+    mime_type: input.mimeType,
+    size: input.stored.size,
+    storage_path: input.stored.path,
+    ref_count: 0,
+    width: image.width,
+    height: image.height,
+    metadata: serializeMetadata(image.metadata),
+    created_at: Date.now(),
+  })
+
+  const file = await getExistingFile(db, input.stored.hash)
+  return parseFile(file)
+}
+
+async function getExistingFile(
+  db: DataEngine["db"],
+  hash: string,
+): Promise<typeof schema.files.$inferSelect> {
+  const file = await db.query.files.findFirst({
+    where: eq(schema.files.hash, hash),
+  })
+  if (!file) {
+    throw new Error(`File ${hash} not found`)
+  }
+
+  return file
+}
+
+async function getItemFileAttachments(
+  db: DataEngine["db"],
+  itemId: string,
+  fieldId?: string,
+): Promise<Array<z.infer<typeof itemFileWithFileSchema>>> {
+  const where = fieldId
+    ? and(eq(schema.itemFiles.item_id, itemId), eq(schema.itemFiles.field_id, fieldId))
+    : eq(schema.itemFiles.item_id, itemId)
+  const itemFiles = await db.query.itemFiles.findMany({
+    where,
+    orderBy: asc(schema.itemFiles.sort_order),
+  })
+  const attachments: Array<z.infer<typeof itemFileWithFileSchema>> = []
+
+  for (const itemFile of itemFiles) {
+    const file = await db.query.files.findFirst({
+      where: eq(schema.files.hash, itemFile.file_hash),
+    })
+    if (file) {
+      attachments.push({ ...parseItemFile(itemFile), file: parseFile(file) })
+    }
+  }
+
+  return attachments
+}
+
+function parseFile(file: typeof schema.files.$inferSelect): z.infer<typeof fileSchema> {
+  return {
+    hash: file.hash,
+    original_name: file.original_name,
+    mime_type: file.mime_type,
+    size: file.size,
+    storage_path: file.storage_path,
+    ref_count: file.ref_count,
+    width: file.width,
+    height: file.height,
+    duration: file.duration,
+    frame_rate: file.frame_rate,
+    video_codec: file.video_codec,
+    audio_codec: file.audio_codec,
+    bitrate: file.bitrate,
+    sample_rate: file.sample_rate,
+    channels: file.channels,
+    orientation: file.orientation,
+    color_space: file.color_space,
+    metadata: file.metadata
+      ? safeJsonParse<Record<string, unknown>>(file.metadata, `file ${file.hash} metadata`)
+      : undefined,
+    created_at: file.created_at,
+  }
+}
+
+function parseItemFile(
+  itemFile: typeof schema.itemFiles.$inferSelect,
+): z.infer<typeof itemFileSchema> {
+  return {
+    id: itemFile.id,
+    item_id: itemFile.item_id,
+    field_id: itemFile.field_id,
+    file_hash: itemFile.file_hash,
+    sort_order: itemFile.sort_order,
+    metadata: itemFile.metadata
+      ? safeJsonParse<Record<string, unknown>>(
+          itemFile.metadata,
+          `item_file ${itemFile.id} metadata`,
+        )
+      : undefined,
+    created_at: itemFile.created_at,
+  }
+}
+
+function parseThumbnail(
+  thumbnail: typeof schema.fileThumbnails.$inferSelect,
+): z.infer<typeof fileThumbnailSchema> {
+  return {
+    id: thumbnail.id,
+    file_hash: thumbnail.file_hash,
+    size_name: thumbnail.size_name,
+    width: thumbnail.width,
+    height: thumbnail.height,
+    format: thumbnail.format,
+    storage_path: thumbnail.storage_path,
+    created_at: thumbnail.created_at,
   }
 }
 

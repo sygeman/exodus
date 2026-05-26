@@ -3,6 +3,7 @@ export type { EdemData, TypedItem, QueryOptions, QueryResult, InferCollectionMap
 export { createEdemHooks } from "./hooks"
 export { createElectrobunHooks } from "./hooks-electrobun"
 export { createFlowsHooks } from "./hooks-flows"
+export { readFileBlob, useFileObjectUrl } from "./files"
 
 export { useI18n } from "./useI18n"
 export { useT } from "./useT"

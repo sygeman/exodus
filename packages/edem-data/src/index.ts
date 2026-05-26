@@ -1,5 +1,7 @@
 export { dataModule } from "./module"
 export { resetDataEngine } from "./db"
+export { createFileStorage } from "./storage"
 export type { Manifest, ManifestCollection, ManifestField } from "./fields"
+export type { FileStorageInput, FileStorageOptions, StoredFile } from "./storage"
 export { labelsSchema } from "./fields"
 export { resolveLocalizedValue, resolveLocalizedData, isLocalizedValue } from "./locale"
