@@ -42,6 +42,7 @@ const routes: RouteRecordRaw[] = [
         component: ProjectDataPage,
       },
       { path: "ui", name: "project-ui", component: ProjectUiPage },
+      { path: "ui/:componentId", name: "project-ui-component", component: ProjectUiPage },
       { path: "flows", name: "project-flows", component: ProjectFlowsPage },
       {
         path: "flows/:flowId",
