@@ -159,6 +159,14 @@ describe("flow map editor helpers", () => {
             id: "posts",
             name: "Posts",
             fields: [
+              { name: "id", type: "uuid", special: "uuid", system: true, readonly: true },
+              {
+                name: "created_at",
+                type: "timestamp",
+                special: "date-created",
+                system: true,
+                readonly: true,
+              },
               { name: "title", type: "string", required: true },
               { name: "status", type: "string" },
             ],

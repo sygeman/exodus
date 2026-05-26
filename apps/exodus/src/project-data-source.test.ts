@@ -10,9 +10,13 @@ describe("project data source", () => {
     expect(
       normalizeProjectDataFields([
         { name: "title", type: "string", required: true },
+        { name: "id", type: "uuid", special: "uuid", system: true, readonly: true },
         { invalid: true },
       ]),
-    ).toEqual([{ name: "title", type: "string", required: true }])
+    ).toEqual([
+      { name: "title", type: "string", required: true },
+      { name: "id", type: "uuid", special: "uuid", system: true, readonly: true },
+    ])
   })
 
   it("normalizes relation config from legacy field options", () => {

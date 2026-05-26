@@ -408,7 +408,7 @@ function specializeDataProcedureContract(input: {
           ...contract,
           input: replaceTopLevelFieldInSection(
             contract.input,
-            buildCollectionDataField("data", true, collection),
+            buildCollectionDataField("data", true, collection, { includeGeneratedFields: false }),
           ),
         }
       }
@@ -564,14 +564,28 @@ function buildCollectionDataField(
   name: string,
   required: boolean,
   collection: ManifestCollection,
+  options: { includeGeneratedFields?: boolean } = {},
 ): NodeContractField {
+  const fields =
+    options.includeGeneratedFields === false
+      ? collection.fields.filter((collectionField) => !isGeneratedManifestField(collectionField))
+      : collection.fields
+
   return field(
     name,
     "object",
     required,
     [],
-    collection.fields.map((collectionField) => manifestFieldToContractField(collectionField)),
+    fields.map((collectionField) => manifestFieldToContractField(collectionField)),
     `Fields from project collection "${collection.id}".`,
+  )
+}
+
+function isGeneratedManifestField(collectionField: ManifestField): boolean {
+  return (
+    collectionField.special === "uuid" ||
+    collectionField.special === "date-created" ||
+    collectionField.special === "date-updated"
   )
 }
 
@@ -629,6 +643,7 @@ function manifestFieldToContractField(collectionField: ManifestField): NodeContr
 
 function buildManifestFieldNote(collectionField: ManifestField): string | null {
   const note = compact([
+    buildManifestFieldSpecialNote(collectionField),
     collectionField.relation ? `Target collection: ${collectionField.relation.collection}` : null,
     collectionField.default !== undefined
       ? `Default: ${formatValue(collectionField.default)}`
@@ -636,6 +651,19 @@ function buildManifestFieldNote(collectionField: ManifestField): string | null {
   ])
 
   return note.length > 0 ? note.join(" · ") : null
+}
+
+function buildManifestFieldSpecialNote(collectionField: ManifestField): string | null {
+  switch (collectionField.special) {
+    case "uuid":
+      return "Generated UUID"
+    case "date-created":
+      return "Generated on create"
+    case "date-updated":
+      return "Updated automatically"
+    default:
+      return null
+  }
 }
 
 function collectManifestFieldEnumValues(collectionField: ManifestField): string[] {

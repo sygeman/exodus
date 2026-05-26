@@ -7,12 +7,14 @@ import * as schema from "./schema"
 import {
   fieldSchema,
   fieldInputSchema,
+  fieldSpecials,
   fieldTypes,
   labelsSchema,
   type ManifestField,
   type RelationField,
   validateFieldValue,
   manifestSchema,
+  type FieldSpecial,
   type FieldType,
 } from "./fields"
 import { matchFilter, sortItems, filterSchema, sortSchema } from "./filters"
@@ -28,6 +30,10 @@ function safeJsonParse<T>(value: string, context: string): T {
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
+}
+
+function parseFieldSpecial(value: string | null | undefined): FieldSpecial | undefined {
+  return fieldSpecials.find((special) => special === value)
 }
 
 function splitFieldOptions(
@@ -112,6 +118,10 @@ function parseStoredField(field: {
   type: string
   interface_options: string | null
   required: boolean | null
+  hidden: boolean | null
+  readonly: boolean | null
+  system: boolean | null
+  special: string | null
   default_value: string | null
   meta: string | null
 }): z.infer<typeof fieldSchema> {
@@ -130,6 +140,10 @@ function parseStoredField(field: {
     relation,
     options,
     required: field.required ?? undefined,
+    hidden: field.hidden === true ? true : undefined,
+    readonly: field.readonly === true ? true : undefined,
+    system: field.system === true ? true : undefined,
+    special: parseFieldSpecial(field.special),
     default: field.default_value
       ? safeJsonParse(field.default_value, `field ${field.id} default_value`)
       : undefined,
@@ -147,6 +161,10 @@ function parseStoredManifestField(field: {
   type: string
   interface_options: string | null
   required: boolean | null
+  hidden: boolean | null
+  readonly: boolean | null
+  system: boolean | null
+  special: string | null
   default_value: string | null
   meta: string | null
 }): ManifestField {
@@ -158,9 +176,112 @@ function parseStoredManifestField(field: {
     type: parsed.type,
     relation: parsed.relation,
     required: parsed.required,
+    hidden: parsed.hidden,
+    readonly: parsed.readonly,
+    system: parsed.system,
+    special: parsed.special,
     default: parsed.default,
     options: parsed.options,
     meta: parsed.meta,
+  }
+}
+
+type DataFieldDefinition = {
+  name: string
+  type: string
+  required?: boolean | null
+  special?: string | null
+}
+
+function hasStoredValue(value: unknown): boolean {
+  return value !== null && value !== undefined
+}
+
+function formatSystemTimestamp(value: number): string {
+  return new Date(value).toISOString()
+}
+
+function getGeneratedFieldValue(
+  field: DataFieldDefinition,
+  context: {
+    itemId: string
+    now: number
+    createdAt?: number
+    currentData?: Record<string, unknown>
+  },
+): unknown {
+  const currentValue = context.currentData?.[field.name]
+
+  switch (parseFieldSpecial(field.special)) {
+    case "uuid":
+      if (hasStoredValue(currentValue)) {
+        return currentValue
+      }
+      return field.name === "id" ? context.itemId : crypto.randomUUID()
+
+    case "date-created":
+      if (hasStoredValue(currentValue)) {
+        return currentValue
+      }
+      return formatSystemTimestamp(context.createdAt ?? context.now)
+
+    case "date-updated":
+      return formatSystemTimestamp(context.now)
+
+    default:
+      return undefined
+  }
+}
+
+function applyGeneratedFieldValues(
+  data: Record<string, unknown>,
+  fields: DataFieldDefinition[],
+  context: {
+    itemId: string
+    now: number
+    createdAt?: number
+    currentData?: Record<string, unknown>
+  },
+): Record<string, unknown> {
+  const nextData = { ...data }
+
+  for (const field of fields) {
+    const value = getGeneratedFieldValue(field, context)
+    if (value !== undefined) {
+      nextData[field.name] = value
+    }
+  }
+
+  return nextData
+}
+
+function buildUpdatedFieldValidationNames(
+  inputData: Record<string, unknown>,
+  fields: DataFieldDefinition[],
+): Set<string> {
+  return new Set([
+    ...Object.keys(inputData),
+    ...fields.flatMap((field) => (parseFieldSpecial(field.special) ? [field.name] : [])),
+  ])
+}
+
+function validateItemData(
+  fields: DataFieldDefinition[],
+  data: Record<string, unknown>,
+  options: { validateFieldNames?: Set<string> } = {},
+): void {
+  for (const field of fields) {
+    const value = data[field.name]
+    if (field.required && (value === null || value === undefined)) {
+      throw new Error(`Field "${field.name}" is required`)
+    }
+    if (options.validateFieldNames && !options.validateFieldNames.has(field.name)) {
+      continue
+    }
+    const fieldType = field.type as FieldType
+    if (value !== undefined && !validateFieldValue(fieldType, value)) {
+      throw new Error(`Invalid value for field "${field.name}" of type "${field.type}"`)
+    }
   }
 }
 
@@ -282,6 +403,10 @@ export const dataModule = createEdemModule("data", (module) => {
                 labels: field.labels ? JSON.stringify(field.labels) : null,
                 type: field.type,
                 required: field.required,
+                hidden: field.hidden ?? false,
+                readonly: field.readonly ?? false,
+                system: field.system ?? false,
+                special: field.special ?? null,
                 default_value: serializeFieldDefaultValue(field.default),
                 interface_options: serializeFieldOptions(field.type, field.options, field.relation),
                 meta: field.meta ? JSON.stringify(field.meta) : null,
@@ -340,6 +465,10 @@ export const dataModule = createEdemModule("data", (module) => {
                   labels: field.labels ? JSON.stringify(field.labels) : null,
                   type: field.type,
                   required: field.required,
+                  hidden: field.hidden ?? false,
+                  readonly: field.readonly ?? false,
+                  system: field.system ?? false,
+                  special: field.special ?? null,
                   default_value: serializeFieldDefaultValue(field.default),
                   interface_options: serializeFieldOptions(
                     field.type,
@@ -480,7 +609,8 @@ export const dataModule = createEdemModule("data", (module) => {
           required: z.boolean().optional(),
           hidden: z.boolean().optional(),
           readonly: z.boolean().optional(),
-          special: z.string().optional(),
+          system: z.boolean().optional(),
+          special: z.enum(fieldSpecials).optional(),
           default_value: z.any().optional(),
           validation: z.record(z.string(), z.any()).optional(),
           meta: z.record(z.string(), z.any()).optional(),
@@ -510,7 +640,8 @@ export const dataModule = createEdemModule("data", (module) => {
             required: input.required ?? false,
             hidden: input.hidden ?? false,
             readonly: input.readonly ?? false,
-            special: input.special,
+            system: input.system ?? false,
+            special: input.special ?? null,
             default_value:
               input.default_value !== undefined ? JSON.stringify(input.default_value) : null,
             validation: input.validation ? JSON.stringify(input.validation) : null,
@@ -538,6 +669,8 @@ export const dataModule = createEdemModule("data", (module) => {
           required: z.boolean().optional(),
           hidden: z.boolean().optional(),
           readonly: z.boolean().optional(),
+          system: z.boolean().optional(),
+          special: z.enum(fieldSpecials).optional(),
           default_value: z.any().optional(),
           validation: z.record(z.string(), z.any()).optional(),
           meta: z.record(z.string(), z.any()).optional(),
@@ -684,26 +817,18 @@ export const dataModule = createEdemModule("data", (module) => {
             where: eq(schema.fields.collection_id, input.collection_id),
           })
 
-          for (const field of fields) {
-            const value = input.data[field.name]
-            if (field.required && (value === null || value === undefined)) {
-              throw new Error(`Field "${field.name}" is required`)
-            }
-            const fieldType = field.type as FieldType
-            if (value !== undefined && !validateFieldValue(fieldType, value)) {
-              throw new Error(`Invalid value for field "${field.name}" of type "${field.type}"`)
-            }
-          }
-
           const id = crypto.randomUUID()
           const now = Date.now()
+          const data = applyGeneratedFieldValues(input.data, fields, { itemId: id, now })
+
+          validateItemData(fields, data)
 
           await ctx.db.insert(schema.items).values({
             id,
             collection_id: input.collection_id,
             schema_version: collection.schema_version ?? 1,
             source: input.source,
-            data: JSON.stringify(input.data),
+            data: JSON.stringify(data),
             created_at: now,
             updated_at: now,
           })
@@ -736,25 +861,23 @@ export const dataModule = createEdemModule("data", (module) => {
             item.data,
             `item ${input.item_id}`,
           )
-          const mergedData = { ...currentData, ...input.data }
+          const mergedInputData = { ...currentData, ...input.data }
 
           const fields = await ctx.db.query.fields.findMany({
             where: eq(schema.fields.collection_id, item.collection_id),
           })
 
-          for (const field of fields) {
-            const value = input.data[field.name]
-            const fieldType = field.type as FieldType
-            if (value !== undefined && !validateFieldValue(fieldType, value)) {
-              throw new Error(`Invalid value for field "${field.name}" of type "${field.type}"`)
-            }
-            if (
-              field.required &&
-              (mergedData[field.name] === null || mergedData[field.name] === undefined)
-            ) {
-              throw new Error(`Field "${field.name}" is required`)
-            }
-          }
+          const now = Date.now()
+          const mergedData = applyGeneratedFieldValues(mergedInputData, fields, {
+            itemId: input.item_id,
+            now,
+            createdAt: item.created_at,
+            currentData,
+          })
+
+          validateItemData(fields, mergedData, {
+            validateFieldNames: buildUpdatedFieldValidationNames(input.data, fields),
+          })
 
           if (input.create_version !== false) {
             const versions = await ctx.db.query.itemVersions.findMany({
@@ -769,11 +892,10 @@ export const dataModule = createEdemModule("data", (module) => {
               version: nextVersion,
               data: item.data,
               source: input.source,
-              created_at: Date.now(),
+              created_at: now,
             })
           }
 
-          const now = Date.now()
           await ctx.db
             .update(schema.items)
             .set({
@@ -863,7 +985,19 @@ export const dataModule = createEdemModule("data", (module) => {
             if (!item) continue
 
             const currentData = safeJsonParse<Record<string, unknown>>(item.data, `item ${item_id}`)
-            const mergedData = { ...currentData, ...input.data }
+            const fields = await ctx.db.query.fields.findMany({
+              where: eq(schema.fields.collection_id, item.collection_id),
+            })
+            const mergedData = applyGeneratedFieldValues(
+              { ...currentData, ...input.data },
+              fields,
+              {
+                itemId: item_id,
+                now,
+                createdAt: item.created_at,
+                currentData,
+              },
+            )
 
             await ctx.db
               .update(schema.items)
@@ -894,7 +1028,15 @@ export const dataModule = createEdemModule("data", (module) => {
             if (!item) continue
 
             const currentData = safeJsonParse<Record<string, unknown>>(item.data, `item ${item_id}`)
-            const mergedData = { ...currentData, ...data }
+            const fields = await ctx.db.query.fields.findMany({
+              where: eq(schema.fields.collection_id, item.collection_id),
+            })
+            const mergedData = applyGeneratedFieldValues({ ...currentData, ...data }, fields, {
+              itemId: item_id,
+              now,
+              createdAt: item.created_at,
+              currentData,
+            })
 
             await ctx.db
               .update(schema.items)
@@ -1384,9 +1526,25 @@ export const dataModule = createEdemModule("data", (module) => {
             throw new Error(`Item ${version.item_id} not found`)
           }
 
+          const fields = await ctx.db.query.fields.findMany({
+            where: eq(schema.fields.collection_id, item.collection_id),
+          })
+          const currentData = safeJsonParse<Record<string, unknown>>(item.data, `item ${item.id}`)
+          const versionData = safeJsonParse<Record<string, unknown>>(
+            version.data,
+            `version ${version.id}`,
+          )
+          const now = Date.now()
+          const restoredData = applyGeneratedFieldValues(versionData, fields, {
+            itemId: item.id,
+            now,
+            createdAt: item.created_at,
+            currentData,
+          })
+
           await ctx.db
             .update(schema.items)
-            .set({ data: version.data, updated_at: Date.now() })
+            .set({ data: JSON.stringify(restoredData), updated_at: now })
             .where(eq(schema.items.id, version.item_id))
 
           await emit.versionRestored(parseVersion(version))
@@ -1478,6 +1636,10 @@ export const dataModule = createEdemModule("data", (module) => {
                     labels: fieldDef.labels ? JSON.stringify(fieldDef.labels) : null,
                     type: fieldDef.type,
                     required: fieldDef.required ?? false,
+                    hidden: fieldDef.hidden ?? false,
+                    readonly: fieldDef.readonly ?? false,
+                    system: fieldDef.system ?? false,
+                    special: fieldDef.special ?? null,
                     default_value: serializeFieldDefaultValue(fieldDef.default),
                     interface_options: serializeFieldOptions(
                       fieldDef.type,
@@ -1488,11 +1650,9 @@ export const dataModule = createEdemModule("data", (module) => {
                   })
                   fieldsChanged = true
 
-                  if (
-                    colDef.singleton &&
-                    fieldDef.default !== null &&
-                    fieldDef.default !== undefined
-                  ) {
+                  const fieldSpecial = parseFieldSpecial(fieldDef.special)
+                  const hasDefault = fieldDef.default !== null && fieldDef.default !== undefined
+                  if (colDef.singleton && (fieldSpecial || hasDefault)) {
                     const singletonItem = await ctx.db.query.items.findFirst({
                       where: eq(schema.items.collection_id, existing.id),
                     })
@@ -1501,11 +1661,22 @@ export const dataModule = createEdemModule("data", (module) => {
                         singletonItem.data,
                         `singleton ${existing.id}`,
                       )
-                      if (data[fieldDef.name] === undefined) {
-                        data[fieldDef.name] = fieldDef.default
+                      const nextData = fieldSpecial
+                        ? applyGeneratedFieldValues(data, [fieldDef], {
+                            itemId: singletonItem.id,
+                            now,
+                            createdAt: singletonItem.created_at,
+                            currentData: data,
+                          })
+                        : { ...data, [fieldDef.name]: fieldDef.default }
+
+                      if (
+                        !hasStoredValue(data[fieldDef.name]) &&
+                        nextData[fieldDef.name] !== undefined
+                      ) {
                         await ctx.db
                           .update(schema.items)
-                          .set({ data: JSON.stringify(data), updated_at: now })
+                          .set({ data: JSON.stringify(nextData), updated_at: now })
                           .where(eq(schema.items.id, singletonItem.id))
                       }
                     }
@@ -1520,6 +1691,9 @@ export const dataModule = createEdemModule("data", (module) => {
 
                 const newLabels = fieldDef.labels ? JSON.stringify(fieldDef.labels) : null
                 const newRequired = fieldDef.required ?? false
+                const newHidden = fieldDef.hidden ?? false
+                const newReadonly = fieldDef.readonly ?? false
+                const newSystem = fieldDef.system ?? false
                 const newDefault = serializeFieldDefaultValue(fieldDef.default)
                 const newOptions = serializeFieldOptions(
                   fieldDef.type,
@@ -1531,6 +1705,10 @@ export const dataModule = createEdemModule("data", (module) => {
                 if (
                   existingField.type !== fieldDef.type ||
                   existingField.required !== newRequired ||
+                  existingField.hidden !== newHidden ||
+                  existingField.readonly !== newReadonly ||
+                  existingField.system !== newSystem ||
+                  existingField.special !== (fieldDef.special ?? null) ||
                   existingField.labels !== newLabels ||
                   existingField.default_value !== newDefault ||
                   existingField.interface_options !== newOptions ||
@@ -1542,6 +1720,10 @@ export const dataModule = createEdemModule("data", (module) => {
                       type: fieldDef.type,
                       labels: newLabels,
                       required: newRequired,
+                      hidden: newHidden,
+                      readonly: newReadonly,
+                      system: newSystem,
+                      special: fieldDef.special ?? null,
                       default_value: newDefault,
                       interface_options: newOptions,
                       meta: newMeta,
@@ -1588,6 +1770,10 @@ export const dataModule = createEdemModule("data", (module) => {
                   labels: fieldDef.labels ? JSON.stringify(fieldDef.labels) : null,
                   type: fieldDef.type,
                   required: fieldDef.required ?? false,
+                  hidden: fieldDef.hidden ?? false,
+                  readonly: fieldDef.readonly ?? false,
+                  system: fieldDef.system ?? false,
+                  special: fieldDef.special ?? null,
                   default_value: serializeFieldDefaultValue(fieldDef.default),
                   interface_options: serializeFieldOptions(
                     fieldDef.type,
@@ -1615,10 +1801,14 @@ export const dataModule = createEdemModule("data", (module) => {
                   }
                 }
                 const id = crypto.randomUUID()
+                const singletonData = applyGeneratedFieldValues(defaultData, colDef.fields, {
+                  itemId: id,
+                  now,
+                })
                 await ctx.db.insert(schema.items).values({
                   id,
                   collection_id: colDef.id,
-                  data: JSON.stringify(defaultData),
+                  data: JSON.stringify(singletonData),
                   created_at: now,
                   updated_at: now,
                 })
@@ -1685,27 +1875,24 @@ export const dataModule = createEdemModule("data", (module) => {
             row.data,
             `singleton item ${row.id}`,
           )
-          const mergedData = { ...currentData, ...input.data }
+          const mergedInputData = { ...currentData, ...input.data }
 
           const fields = await ctx.db.query.fields.findMany({
             where: eq(schema.fields.collection_id, input.collection_id),
           })
 
-          for (const field of fields) {
-            const value = input.data[field.name]
-            const fieldType = field.type as FieldType
-            if (value !== undefined && !validateFieldValue(fieldType, value)) {
-              throw new Error(`Invalid value for field "${field.name}" of type "${field.type}"`)
-            }
-            if (
-              field.required &&
-              (mergedData[field.name] === null || mergedData[field.name] === undefined)
-            ) {
-              throw new Error(`Field "${field.name}" is required`)
-            }
-          }
-
           const now = Date.now()
+          const mergedData = applyGeneratedFieldValues(mergedInputData, fields, {
+            itemId: row.id,
+            now,
+            createdAt: row.created_at,
+            currentData,
+          })
+
+          validateItemData(fields, mergedData, {
+            validateFieldNames: buildUpdatedFieldValidationNames(input.data, fields),
+          })
+
           await ctx.db
             .update(schema.items)
             .set({

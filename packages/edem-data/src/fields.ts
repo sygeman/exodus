@@ -19,7 +19,10 @@ export const fieldTypes = [
   "sort",
 ] as const
 
+export const fieldSpecials = ["uuid", "date-created", "date-updated"] as const
+
 export type FieldType = (typeof fieldTypes)[number]
+export type FieldSpecial = (typeof fieldSpecials)[number]
 
 export const labelsSchema = z.record(z.string(), z.string())
 
@@ -60,6 +63,10 @@ const baseFieldShape = {
   relation: relationFieldSchema.optional(),
   options: z.record(z.string(), z.any()).optional(),
   required: z.boolean().optional(),
+  hidden: z.boolean().optional(),
+  readonly: z.boolean().optional(),
+  system: z.boolean().optional(),
+  special: z.enum(fieldSpecials).optional(),
   default: z.any().optional(),
   meta: z.record(z.string(), z.any()).optional(),
 }

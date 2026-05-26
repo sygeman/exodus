@@ -1,5 +1,6 @@
 import { describe, expect, it } from "bun:test"
 import { buildNodeContract } from "./flow-node-contract"
+import type { DataManifest } from "./project-manifest-schemas"
 import { FlowKind } from "./types/flow"
 
 describe("flow node contract", () => {
@@ -422,6 +423,137 @@ describe("flow node contract", () => {
         ],
       },
     ])
+  })
+
+  it("omits generated project fields from data call input and keeps them in item output", () => {
+    const projectDataManifest = {
+      collections: [
+        {
+          id: "posts",
+          name: "Posts",
+          fields: [
+            { name: "id", type: "uuid", special: "uuid", system: true, readonly: true },
+            {
+              name: "created_at",
+              type: "timestamp",
+              special: "date-created",
+              system: true,
+              readonly: true,
+            },
+            { name: "title", type: "string", required: true },
+          ],
+        },
+      ],
+    } satisfies DataManifest
+
+    const procedureCatalog = [
+      {
+        module: "data",
+        procedures: [
+          {
+            name: "createItem",
+            kind: "mutation" as const,
+            inputSchema: {
+              mode: "json-schema" as const,
+              schema: {
+                type: "object",
+                required: ["collection_id", "data"],
+                properties: {
+                  collection_id: { type: "string" },
+                  data: { type: "object" },
+                },
+              },
+            },
+            outputSchema: {
+              mode: "json-schema" as const,
+              schema: {
+                type: "object",
+                required: ["id"],
+                properties: { id: { type: "string" } },
+              },
+            },
+          },
+          {
+            name: "queryItems",
+            kind: "query" as const,
+            inputSchema: {
+              mode: "json-schema" as const,
+              schema: {
+                type: "object",
+                required: ["collection_id"],
+                properties: { collection_id: { type: "string" } },
+              },
+            },
+            outputSchema: {
+              mode: "json-schema" as const,
+              schema: {
+                type: "object",
+                required: ["items"],
+                properties: { items: { type: "array", items: { type: "object" } } },
+              },
+            },
+          },
+        ],
+      },
+    ]
+
+    const createContract = buildNodeContract({
+      node: {
+        id: "call-create",
+        type: "call",
+        data: {
+          type: "call",
+          module: "data",
+          procedure: "createItem",
+          collection_id: "posts",
+        },
+      },
+      procedureCatalog,
+      projectDataManifest,
+    })
+
+    expect(createContract.input.fields.find((field) => field.name === "data")?.children).toEqual([
+      {
+        name: "title",
+        type: "string",
+        required: true,
+        enumValues: [],
+        constraints: [],
+        children: [],
+        note: null,
+      },
+    ])
+
+    const queryContract = buildNodeContract({
+      node: {
+        id: "call-query",
+        type: "call",
+        data: {
+          type: "call",
+          module: "data",
+          procedure: "queryItems",
+          collection_id: "posts",
+        },
+      },
+      procedureCatalog,
+      projectDataManifest,
+    })
+
+    const itemDataField = queryContract.output.fields[0]?.children.find(
+      (field) => field.name === "data",
+    )
+
+    expect(itemDataField?.children.map((field) => field.name)).toEqual([
+      "id",
+      "created_at",
+      "title",
+    ])
+    expect(itemDataField?.children.find((field) => field.name === "id")?.note).toBe(
+      "Generated UUID",
+    )
+    expect(itemDataField?.children.find((field) => field.name === "created_at")?.note).toBe(
+      "Generated on create",
+    )
   })
 
   it("uses project data schema for getSingleton output when collection_id is fixed in the incoming map", () => {

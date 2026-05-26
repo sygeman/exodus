@@ -4,7 +4,7 @@ import { useRoute } from "vue-router"
 import { useT } from "@exodus/edem-vue"
 import {
   dataManifestSchema,
-  fieldTypes,
+  type FieldSpecial,
   type FieldType,
   type ManifestField,
 } from "@/project-manifest-schemas"
@@ -43,15 +43,262 @@ const deleteCollectionModalOpen = ref(false)
 const deleteFieldModalOpen = ref(false)
 const pendingMutations = ref(0)
 const showSkeleton = ref(false)
+const fieldTypeSearch = ref("")
+const activeFieldInspectorTab = ref<"settings" | "type">("settings")
 
 let skeletonTimeout: ReturnType<typeof setTimeout> | null = null
 
-const isSaving = computed(() => pendingMutations.value > 0)
+type GeneratedFieldTypeValue = `generated:${FieldSpecial}`
+type FieldTypeSelectValue = FieldType | GeneratedFieldTypeValue
 
-const fieldTypeItems = fieldTypes.map((type) => ({
-  label: type,
-  value: type,
-}))
+type FieldTypeCatalogItem = {
+  label: string
+  value: FieldTypeSelectValue
+  type: FieldType
+  icon: string
+  description: string
+  keywords: string[]
+  generated?: boolean
+  readonly?: boolean
+}
+
+type FieldTypeCatalogGroup = {
+  label: string
+  items: FieldTypeCatalogItem[]
+}
+
+const fieldTypeGroups = computed<FieldTypeCatalogGroup[]>(() => [
+  {
+    label: t({ en: "Text", ru: "Текст" }),
+    items: [
+      {
+        label: t({ en: "Short text", ru: "Короткий текст" }),
+        value: "string",
+        type: "string",
+        icon: "i-lucide-type",
+        description: t({
+          en: "Titles, names, slugs and short labels.",
+          ru: "Заголовки, имена, slug и короткие подписи.",
+        }),
+        keywords: ["string", "title", "name", "slug", "label"],
+      },
+      {
+        label: t({ en: "Long text", ru: "Длинный текст" }),
+        value: "text",
+        type: "text",
+        icon: "i-lucide-align-left",
+        description: t({
+          en: "Descriptions, notes and longer content.",
+          ru: "Описания, заметки и длинный контент.",
+        }),
+        keywords: ["text", "textarea", "description", "content", "notes"],
+      },
+    ],
+  },
+  {
+    label: t({ en: "Values", ru: "Значения" }),
+    items: [
+      {
+        label: t({ en: "Number", ru: "Число" }),
+        value: "number",
+        type: "number",
+        icon: "i-lucide-hash",
+        description: t({
+          en: "Prices, counters, ratings and measurements.",
+          ru: "Цены, счётчики, рейтинги и измерения.",
+        }),
+        keywords: ["number", "price", "count", "rating", "amount"],
+      },
+      {
+        label: t({ en: "Boolean", ru: "Логическое" }),
+        value: "boolean",
+        type: "boolean",
+        icon: "i-lucide-toggle-right",
+        description: t({ en: "A true or false switch.", ru: "Переключатель true или false." }),
+        keywords: ["boolean", "true", "false", "toggle", "flag"],
+      },
+      {
+        label: t({ en: "Sort order", ru: "Порядок сортировки" }),
+        value: "sort",
+        type: "sort",
+        icon: "i-lucide-arrow-up-down",
+        description: t({
+          en: "Manual ordering for lists and cards.",
+          ru: "Ручной порядок для списков и карточек.",
+        }),
+        keywords: ["sort", "order", "position", "manual"],
+      },
+    ],
+  },
+  {
+    label: t({ en: "Date & Time", ru: "Дата и время" }),
+    items: [
+      {
+        label: t({ en: "Date", ru: "Дата" }),
+        value: "date",
+        type: "date",
+        icon: "i-lucide-calendar-days",
+        description: t({
+          en: "A calendar date without time.",
+          ru: "Календарная дата без времени.",
+        }),
+        keywords: ["date", "calendar", "day"],
+      },
+      {
+        label: t({ en: "Date and time", ru: "Дата и время" }),
+        value: "datetime",
+        type: "datetime",
+        icon: "i-lucide-calendar-clock",
+        description: t({
+          en: "A full ISO date-time value.",
+          ru: "Полное ISO-значение даты и времени.",
+        }),
+        keywords: ["datetime", "time", "calendar", "iso"],
+      },
+      {
+        label: t({ en: "Timestamp", ru: "Timestamp" }),
+        value: "timestamp",
+        type: "timestamp",
+        icon: "i-lucide-clock-3",
+        description: t({
+          en: "A machine-friendly point in time.",
+          ru: "Машинное значение момента времени.",
+        }),
+        keywords: ["timestamp", "time", "iso"],
+      },
+    ],
+  },
+  {
+    label: t({ en: "Generated", ru: "Генерируемые" }),
+    items: [
+      {
+        label: t({ en: "Auto UUID", ru: "Авто UUID" }),
+        value: "generated:uuid",
+        type: "uuid",
+        icon: "i-lucide-fingerprint",
+        description: t({
+          en: "Creates a stable unique id for each record.",
+          ru: "Создаёт стабильный уникальный ID для каждой записи.",
+        }),
+        keywords: ["uuid", "id", "identifier", "generated", "auto"],
+        generated: true,
+        readonly: true,
+      },
+      {
+        label: t({ en: "Created at", ru: "Дата создания" }),
+        value: "generated:date-created",
+        type: "timestamp",
+        icon: "i-lucide-calendar-plus",
+        description: t({
+          en: "Stores when the record was created.",
+          ru: "Хранит момент создания записи.",
+        }),
+        keywords: ["created", "created_at", "date_created", "timestamp", "generated"],
+        generated: true,
+        readonly: true,
+      },
+      {
+        label: t({ en: "Updated at", ru: "Дата обновления" }),
+        value: "generated:date-updated",
+        type: "timestamp",
+        icon: "i-lucide-calendar-sync",
+        description: t({
+          en: "Refreshes when the record changes.",
+          ru: "Обновляется при изменении записи.",
+        }),
+        keywords: ["updated", "updated_at", "date_updated", "timestamp", "generated"],
+        generated: true,
+        readonly: true,
+      },
+    ],
+  },
+  {
+    label: t({ en: "Media", ru: "Медиа" }),
+    items: [
+      {
+        label: t({ en: "File", ru: "Файл" }),
+        value: "file",
+        type: "file",
+        icon: "i-lucide-paperclip",
+        description: t({ en: "A stored file reference.", ru: "Ссылка на сохранённый файл." }),
+        keywords: ["file", "attachment", "upload"],
+      },
+      {
+        label: t({ en: "Image", ru: "Изображение" }),
+        value: "image",
+        type: "image",
+        icon: "i-lucide-image",
+        description: t({ en: "An image file reference.", ru: "Ссылка на изображение." }),
+        keywords: ["image", "photo", "picture", "media"],
+      },
+      {
+        label: t({ en: "Video", ru: "Видео" }),
+        value: "video",
+        type: "video",
+        icon: "i-lucide-video",
+        description: t({ en: "A video file reference.", ru: "Ссылка на видеофайл." }),
+        keywords: ["video", "movie", "media"],
+      },
+    ],
+  },
+  {
+    label: t({ en: "Links & Advanced", ru: "Связи и расширенное" }),
+    items: [
+      {
+        label: t({ en: "Relation", ru: "Связь" }),
+        value: "relation",
+        type: "relation",
+        icon: "i-lucide-waypoints",
+        description: t({
+          en: "Links this record to another collection.",
+          ru: "Связывает запись с другой коллекцией.",
+        }),
+        keywords: ["relation", "link", "reference", "foreign"],
+      },
+      {
+        label: t({ en: "JSON", ru: "JSON" }),
+        value: "json",
+        type: "json",
+        icon: "i-lucide-braces",
+        description: t({
+          en: "Structured object or array data.",
+          ru: "Структурированные объекты или массивы.",
+        }),
+        keywords: ["json", "object", "array", "structured"],
+      },
+      {
+        label: t({ en: "Nested collection", ru: "Вложенная коллекция" }),
+        value: "collection",
+        type: "collection",
+        icon: "i-lucide-panels-top-left",
+        description: t({
+          en: "A nested structure managed as a collection.",
+          ru: "Вложенная структура, управляемая как коллекция.",
+        }),
+        keywords: ["collection", "nested", "structure"],
+      },
+      {
+        label: t({ en: "User", ru: "Пользователь" }),
+        value: "user",
+        type: "user",
+        icon: "i-lucide-user",
+        description: t({ en: "A user identifier.", ru: "Идентификатор пользователя." }),
+        keywords: ["user", "owner", "account"],
+      },
+      {
+        label: t({ en: "UUID", ru: "UUID" }),
+        value: "uuid",
+        type: "uuid",
+        icon: "i-lucide-binary",
+        description: t({
+          en: "A manually supplied UUID value.",
+          ru: "UUID-значение, которое передаётся вручную.",
+        }),
+        keywords: ["uuid", "manual", "id"],
+      },
+    ],
+  },
+])
 
 const booleanDefaultItems = computed(() => [
   {
@@ -68,6 +315,18 @@ const relationCollectionItems = computed(() =>
     value: getCollectionManifestId(item),
   })),
 )
+
+const filteredFieldTypeGroups = computed<FieldTypeCatalogGroup[]>(() => {
+  const query = fieldTypeSearch.value.trim().toLowerCase()
+  if (query === "") {
+    return fieldTypeGroups.value
+  }
+
+  return fieldTypeGroups.value.flatMap((group) => {
+    const items = group.items.filter((item) => fieldTypeMatchesQuery(item, query))
+    return items.length > 0 ? [{ ...group, items }] : []
+  })
+})
 
 const selectedCollection = computed(
   () => collectionItems.value.find((item) => item.id === selectedCollectionId.value) ?? null,
@@ -377,6 +636,13 @@ watch(
 watch(selectedCollectionId, () => {
   selectedFieldIndex.value = null
   activeTab.value = "fields"
+  openFieldSettingsTab()
+  fieldTypeSearch.value = ""
+})
+
+watch(selectedFieldIndex, () => {
+  openFieldSettingsTab()
+  fieldTypeSearch.value = ""
 })
 
 watch(
@@ -588,6 +854,12 @@ function getCollectionIssueCount(item: ProjectDataCollectionSourceItem): number 
   return collectionIssueCounts.value[item.id] ?? 0
 }
 
+function getCollectionIcon(item: ProjectDataCollectionSourceItem): string {
+  return typeof item.data.icon === "string" && item.data.icon.trim() !== ""
+    ? item.data.icon
+    : "i-lucide-table-2"
+}
+
 function getFieldIssueCount(index: number): number {
   return fieldIssuesByIndex.value[index]?.length ?? 0
 }
@@ -602,6 +874,18 @@ function getFieldDefaultPreview(value: unknown): string {
   }
 
   return JSON.stringify(value)
+}
+
+function getFieldDefaultPreviewForField(field: ManifestField): string {
+  if (isGeneratedField(field) || field.default === undefined) {
+    return "—"
+  }
+
+  return getFieldDefaultPreview(field.default)
+}
+
+function hasVisibleFieldDefault(field: ManifestField): boolean {
+  return !isGeneratedField(field) && field.default !== undefined
 }
 
 function getIssueCountLabel(count: number): string {
@@ -652,6 +936,86 @@ function isBooleanFieldType(type: FieldType): boolean {
 
 function isRelationFieldType(type: FieldType): boolean {
   return type === "relation"
+}
+
+function isGeneratedField(field: ManifestField): boolean {
+  return (
+    field.special === "uuid" || field.special === "date-created" || field.special === "date-updated"
+  )
+}
+
+function getGeneratedFieldLabel(field: ManifestField): string {
+  switch (field.special) {
+    case "uuid":
+      return t({ en: "Auto UUID", ru: "Авто UUID" })
+    case "date-created":
+      return t({ en: "Created at", ru: "Дата создания" })
+    case "date-updated":
+      return t({ en: "Updated at", ru: "Дата обновления" })
+    default:
+      return t({ en: "Generated", ru: "Генерируется" })
+  }
+}
+
+function fieldTypeMatchesQuery(item: FieldTypeCatalogItem, query: string): boolean {
+  return [item.label, item.value, item.type, item.description, ...item.keywords]
+    .join(" ")
+    .toLowerCase()
+    .includes(query)
+}
+
+function getFieldTypeCatalogItem(value: FieldTypeSelectValue): FieldTypeCatalogItem | null {
+  for (const group of fieldTypeGroups.value) {
+    const item = group.items.find((candidate) => candidate.value === value)
+    if (item) {
+      return item
+    }
+  }
+
+  return null
+}
+
+function getFieldTypeDisplayLabel(field: ManifestField): string {
+  return getFieldTypeCatalogItem(getFieldTypeSelectValue(field))?.label ?? field.type
+}
+
+function getFieldTypeDisplayIcon(field: ManifestField): string {
+  return getFieldTypeCatalogItem(getFieldTypeSelectValue(field))?.icon ?? "i-lucide-circle-dot"
+}
+
+function openFieldSettingsTab(): void {
+  activeFieldInspectorTab.value = "settings"
+}
+
+function openFieldTypeTab(): void {
+  activeFieldInspectorTab.value = "type"
+}
+
+function getFieldTypeSelectValue(field: ManifestField): FieldTypeSelectValue {
+  if (field.special === "uuid") {
+    return "generated:uuid"
+  }
+
+  if (field.special === "date-created") {
+    return "generated:date-created"
+  }
+
+  if (field.special === "date-updated") {
+    return "generated:date-updated"
+  }
+
+  return field.type
+}
+
+function parseGeneratedFieldTypeValue(value: string): FieldSpecial | null {
+  if (!value.startsWith("generated:")) {
+    return null
+  }
+
+  const special = value.slice("generated:".length)
+  return special === "uuid" || special === "date-created" || special === "date-updated"
+    ? special
+    : null
 }
 
 function isNumericFieldType(type: FieldType): boolean {
@@ -994,19 +1358,43 @@ async function handleUpdateFieldName(index: number, event: FocusEvent | Keyboard
 }
 
 async function handleUpdateFieldType(index: number, value: unknown) {
-  const nextType = getSelectStringValue(value) as FieldType | null
-  if (!nextType) {
+  const selectedValue = getSelectStringValue(value)
+  if (!selectedValue) {
     return
   }
+
+  const generatedSpecial = parseGeneratedFieldTypeValue(selectedValue)
 
   await updateSelectedFields((fields) =>
     fields.map((field, fieldIndex) =>
       fieldIndex === index
         ? (() => {
+            if (generatedSpecial) {
+              const nextField: ManifestField = {
+                ...field,
+                type: generatedSpecial === "uuid" ? "uuid" : "timestamp",
+                special: generatedSpecial,
+                system: true,
+                readonly: true,
+              }
+
+              delete nextField.default
+              delete nextField.options
+              delete nextField.relation
+              delete nextField.required
+
+              return nextField
+            }
+
+            const nextType = selectedValue as FieldType
             const nextField: ManifestField = {
               ...field,
               type: nextType,
             }
+
+            delete nextField.special
+            delete nextField.system
+            delete nextField.readonly
 
             if (nextType === "relation") {
               nextField.relation ??= { collection: getDefaultRelationTargetCollectionId() ?? "" }
@@ -1019,6 +1407,18 @@ async function handleUpdateFieldType(index: number, value: unknown) {
         : field,
     ),
   )
+}
+
+async function handleSelectFieldType(index: number, value: FieldTypeSelectValue) {
+  await handleUpdateFieldType(index, value)
+
+  fieldTypeSearch.value = ""
+  if (value === "relation") {
+    activeTab.value = "relations"
+    return
+  }
+
+  openFieldSettingsTab()
 }
 
 async function handleUpdateFieldRelationCollection(index: number, value: unknown) {
@@ -1040,6 +1440,11 @@ async function handleUpdateFieldRelationCollection(index: number, value: unknown
 }
 
 async function handleUpdateFieldRequired(index: number, value: boolean) {
+  const currentField = selectedFields.value[index]
+  if (currentField && isGeneratedField(currentField)) {
+    return
+  }
+
   await updateSelectedFields((fields) =>
     fields.map((field, fieldIndex) =>
       fieldIndex === index
@@ -1061,6 +1466,11 @@ async function handleUpdateFieldBooleanDefault(index: number, value: unknown) {
 }
 
 async function handleUpdateFieldDefaultValue(index: number, type: FieldType, rawValue: string) {
+  const currentField = selectedFields.value[index]
+  if (currentField && isGeneratedField(currentField)) {
+    return
+  }
+
   try {
     const nextDefault = parseDefaultValue(type, rawValue)
     await updateSelectedFields((fields) =>
@@ -1089,22 +1499,20 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
 
 <template>
   <div class="bg-elevated/10 flex h-full min-h-0">
-    <aside class="border-default bg-default/80 flex w-80 shrink-0 flex-col border-r backdrop-blur">
-      <div class="border-default border-b px-4 py-4">
-        <div class="mb-4 flex items-start justify-between gap-3">
-          <div>
-            <h1 class="text-base font-semibold">{{ t({ en: "Data", ru: "Данные" }) }}</h1>
-            <p class="text-muted mt-1 text-xs">
-              {{
-                t({
-                  en: "Set up collections, fields and links for your app.",
-                  ru: "Настрой коллекции, поля и связи для своего приложения.",
-                })
-              }}
-            </p>
+    <aside class="border-default bg-default/80 flex w-72 shrink-0 flex-col border-r backdrop-blur">
+      <div class="border-default border-b px-3 py-3">
+        <div class="mb-3 flex items-center justify-between gap-3">
+          <div class="flex items-center gap-2">
+            <h1 class="text-sm font-semibold">{{ t({ en: "Collections", ru: "Коллекции" }) }}</h1>
+            <UBadge
+              :label="`${collectionItems.length}`"
+              color="neutral"
+              variant="subtle"
+              size="sm"
+            />
           </div>
 
-          <UButton size="xs" icon="i-lucide-plus" @click="handleCreateCollection" />
+          <UButton size="xs" icon="i-lucide-plus" variant="soft" @click="handleCreateCollection" />
         </div>
 
         <UInput
@@ -1112,15 +1520,10 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
           :placeholder="t({ en: 'Search collections', ru: 'Поиск коллекций' })"
           class="w-full"
         />
-
-        <div class="text-muted mt-3 flex items-center justify-between text-xs">
-          <span>{{ t({ en: "Collections", ru: "Коллекции" }) }}</span>
-          <span>{{ collectionItems.length }}</span>
-        </div>
       </div>
 
-      <div v-if="loading && showSkeleton" class="flex flex-1 flex-col gap-3 p-3">
-        <div v-for="i in 5" :key="i" class="border-default rounded-2xl border p-3">
+      <div v-if="loading && showSkeleton" class="flex flex-1 flex-col gap-2 p-2">
+        <div v-for="i in 5" :key="i" class="rounded-xl p-2.5">
           <USkeleton class="mb-2 h-4 w-32" />
           <USkeleton class="h-3 w-24" />
         </div>
@@ -1128,12 +1531,24 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
 
       <div
         v-else-if="!loading && collectionItems.length === 0"
-        class="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
+        class="flex flex-1 flex-col items-start justify-center gap-3 px-4 text-left"
       >
-        <UIcon name="i-lucide-database-zap" class="text-muted h-10 w-10" />
-        <p class="text-muted text-sm">
-          {{ t({ en: "No project collections yet", ru: "Пока нет проектных коллекций" }) }}
-        </p>
+        <div class="bg-elevated text-muted flex h-9 w-9 items-center justify-center rounded-xl">
+          <UIcon name="i-lucide-database-zap" class="h-5 w-5" />
+        </div>
+        <div>
+          <p class="text-sm font-medium">
+            {{ t({ en: "No collections yet", ru: "Пока нет коллекций" }) }}
+          </p>
+          <p class="text-muted mt-1 text-xs leading-5">
+            {{
+              t({
+                en: "Create the first collection to define app data.",
+                ru: "Создай первую коллекцию, чтобы описать данные приложения.",
+              })
+            }}
+          </p>
+        </div>
         <UButton size="sm" @click="handleCreateCollection">
           {{ t({ en: "Create collection", ru: "Создать коллекцию" }) }}
         </UButton>
@@ -1141,100 +1556,77 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
 
       <div
         v-else-if="filteredCollections.length === 0"
-        class="flex flex-1 flex-col items-center justify-center gap-3 px-6 text-center"
+        class="flex flex-1 flex-col items-start justify-center gap-3 px-4 text-left"
       >
-        <UIcon name="i-lucide-search-x" class="text-muted h-10 w-10" />
-        <p class="text-muted text-sm">
+        <div class="bg-elevated text-muted flex h-9 w-9 items-center justify-center rounded-xl">
+          <UIcon name="i-lucide-search-x" class="h-5 w-5" />
+        </div>
+        <p class="text-muted text-sm leading-5">
           {{
             t({ en: "No collections match this search", ru: "По этому поиску ничего не найдено" })
           }}
         </p>
       </div>
 
-      <div v-else class="flex min-h-0 flex-1 flex-col overflow-y-auto p-3">
-        <button
-          v-for="collection in filteredCollections"
-          :key="collection.id"
-          class="border-default mb-2 flex w-full flex-col gap-2 rounded-2xl border px-3 py-2.5 text-left transition-colors"
-          :class="
-            selectedCollectionId === collection.id
-              ? 'bg-elevated shadow-sm'
-              : 'bg-default hover:bg-elevated/70'
-          "
-          @click="selectCollection(collection.id)"
-        >
-          <div class="flex items-start justify-between gap-3">
-            <div class="min-w-0">
-              <p class="truncate text-sm font-medium">{{ getCollectionName(collection) }}</p>
-              <p class="text-muted truncate font-mono text-xs">
-                {{ getCollectionManifestId(collection) }}
-              </p>
-            </div>
+      <UScrollArea v-else class="min-h-0 flex-1">
+        <div class="flex flex-col gap-1 p-2">
+          <button
+            v-for="collection in filteredCollections"
+            :key="collection.id"
+            class="group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors"
+            :class="
+              selectedCollectionId === collection.id
+                ? 'bg-primary/5 text-default'
+                : 'text-default hover:bg-elevated/60'
+            "
+            @click="selectCollection(collection.id)"
+          >
+            <span
+              class="absolute top-2 bottom-2 left-0 w-0.5 rounded-full transition-opacity"
+              :class="
+                selectedCollectionId === collection.id ? 'bg-primary opacity-100' : 'opacity-0'
+              "
+            />
 
-            <div class="flex shrink-0 flex-col items-end gap-1">
+            <span
+              class="bg-elevated text-muted group-hover:text-default flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors"
+              :class="selectedCollectionId === collection.id ? 'text-primary' : ''"
+            >
+              <UIcon :name="getCollectionIcon(collection)" class="h-4 w-4" />
+            </span>
+
+            <span class="min-w-0 flex-1">
+              <span class="block truncate text-sm font-medium">{{
+                getCollectionName(collection)
+              }}</span>
+              <span class="text-muted block truncate font-mono text-xs">
+                {{ getCollectionManifestId(collection) }}
+              </span>
+            </span>
+
+            <span class="flex shrink-0 items-center gap-1">
               <UBadge
                 v-if="collection.data.singleton === true"
-                :label="t({ en: 'One record', ru: 'Одна запись' })"
-                color="primary"
+                label="1"
+                color="neutral"
                 variant="subtle"
                 size="sm"
+                :title="t({ en: 'One record', ru: 'Одна запись' })"
               />
               <UBadge
                 v-if="getCollectionIssueCount(collection) > 0"
-                :label="getIssueCountLabel(getCollectionIssueCount(collection))"
+                :label="`${getCollectionIssueCount(collection)}`"
                 color="error"
                 variant="subtle"
                 size="sm"
               />
-            </div>
-          </div>
-        </button>
-      </div>
+            </span>
+          </button>
+        </div>
+      </UScrollArea>
     </aside>
 
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <div
-        class="border-default bg-default/80 flex items-center justify-between border-b px-6 py-4 backdrop-blur"
-      >
-        <div>
-          <h2 class="text-lg font-semibold">
-            {{
-              selectedCollection
-                ? getCollectionName(selectedCollection)
-                : t({ en: "Data editor", ru: "Редактор данных" })
-            }}
-          </h2>
-          <p class="text-muted mt-1 text-sm">
-            {{
-              t({
-                en: "Build the structure of your data: collections, fields and links.",
-                ru: "Собери структуру данных: коллекции, поля и связи.",
-              })
-            }}
-          </p>
-        </div>
-
-        <div class="flex items-center gap-2">
-          <UBadge
-            :label="
-              isSaving
-                ? t({ en: 'Saving...', ru: 'Сохранение...' })
-                : t({ en: 'Auto-save', ru: 'Автосохранение' })
-            "
-            :color="isSaving ? 'warning' : 'success'"
-            variant="subtle"
-            size="sm"
-          />
-          <UBadge
-            v-if="selectedCollection && getCollectionIssueCount(selectedCollection) > 0"
-            :label="getIssueCountLabel(getCollectionIssueCount(selectedCollection))"
-            color="error"
-            variant="subtle"
-            size="sm"
-          />
-        </div>
-      </div>
-
       <div
         v-if="errorMessage"
         class="border-default bg-error/5 text-error border-b px-6 py-3 text-sm"
@@ -1259,11 +1651,8 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
         </div>
       </div>
 
-      <div
-        v-if="selectedCollection"
-        class="border-default bg-default/70 border-b px-6 py-3 backdrop-blur"
-      >
-        <div class="flex items-center gap-2">
+      <div v-if="selectedCollection" class="px-3 pt-3 pb-1">
+        <div class="flex w-full items-center gap-2">
           <button
             class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors"
             :class="
@@ -1277,7 +1666,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
             <span>{{ t({ en: "Fields", ru: "Поля" }) }}</span>
             <UBadge
               :label="`${regularFieldEntries.length}`"
-              color="primary"
+              :color="activeTab === 'fields' ? 'primary' : 'neutral'"
               variant="soft"
               size="sm"
             />
@@ -1303,7 +1692,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
             <span>{{ t({ en: "Relations", ru: "Связи" }) }}</span>
             <UBadge
               :label="`${relationFieldEntries.length}`"
-              color="primary"
+              :color="activeTab === 'relations' ? 'primary' : 'neutral'"
               variant="soft"
               size="sm"
             />
@@ -1358,10 +1747,13 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
         </div>
       </div>
 
-      <div v-if="loading && showSkeleton" class="flex flex-1 flex-col gap-6 overflow-hidden p-6">
-        <div class="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1fr)_440px]">
-          <USkeleton class="h-[420px] w-full rounded-3xl" />
-          <USkeleton class="h-[420px] w-full rounded-3xl" />
+      <div
+        v-if="loading && showSkeleton"
+        class="flex flex-1 flex-col gap-3 overflow-hidden px-3 pt-2 pb-3"
+      >
+        <div class="grid min-h-0 w-full flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_440px]">
+          <USkeleton class="h-[420px] w-full rounded-2xl" />
+          <USkeleton class="h-[420px] w-full rounded-2xl" />
         </div>
       </div>
 
@@ -1377,19 +1769,19 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
         </p>
       </div>
 
-      <div v-else class="flex min-h-0 flex-1 flex-col overflow-hidden p-6">
-        <div class="mx-auto flex min-h-0 w-full max-w-7xl flex-1 flex-col gap-6">
+      <div v-else class="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pt-2 pb-3">
+        <div class="flex min-h-0 w-full flex-1 flex-col gap-3">
           <section
             v-if="activeTab === 'fields'"
-            class="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1fr)_440px]"
+            class="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_440px]"
           >
             <div
-              class="border-default bg-default flex min-h-0 flex-col overflow-hidden rounded-3xl border shadow-sm"
+              class="border-default bg-default flex min-h-0 flex-col overflow-hidden rounded-2xl border shadow-sm"
             >
-              <div class="border-default flex items-center justify-between border-b px-5 py-4">
+              <div class="border-default flex items-center justify-between border-b px-4 py-3">
                 <div>
                   <h3 class="text-base font-semibold">{{ t({ en: "Fields", ru: "Поля" }) }}</h3>
-                  <p class="text-muted mt-1 text-sm">
+                  <p class="text-muted mt-1 text-xs leading-5">
                     {{
                       t({
                         en: "Select a field to edit it on the right.",
@@ -1406,7 +1798,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
 
               <div
                 v-if="regularFieldEntries.length === 0"
-                class="flex flex-1 flex-col items-center justify-center gap-3 px-6 py-16 text-center"
+                class="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-12 text-center"
               >
                 <UIcon name="i-lucide-columns-2" class="text-muted h-10 w-10" />
                 <p class="text-muted text-sm">
@@ -1421,33 +1813,17 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
 
               <div v-else class="min-h-0 flex-1 overflow-auto">
                 <table class="min-w-full text-sm">
-                  <thead class="bg-elevated/60 text-muted">
-                    <tr>
-                      <th class="px-5 py-3 text-left font-medium">
-                        {{ t({ en: "Field", ru: "Поле" }) }}
-                      </th>
-                      <th class="px-5 py-3 text-left font-medium">
-                        {{ t({ en: "Type", ru: "Тип" }) }}
-                      </th>
-                      <th class="px-5 py-3 text-left font-medium">
-                        {{ t({ en: "Required", ru: "Обязательное" }) }}
-                      </th>
-                      <th class="px-5 py-3 text-left font-medium">
-                        {{ t({ en: "Default", ru: "По умолчанию" }) }}
-                      </th>
-                    </tr>
-                  </thead>
                   <tbody>
                     <tr
                       v-for="entry in regularFieldEntries"
                       :key="`${entry.field.name}-${entry.index}`"
-                      class="border-default cursor-pointer border-t transition-colors"
+                      class="border-default cursor-pointer border-b transition-colors last:border-b-0"
                       :class="
                         selectedFieldIndex === entry.index ? 'bg-primary/5' : 'hover:bg-elevated/40'
                       "
                       @click="selectRegularField(entry.index)"
                     >
-                      <td class="px-5 py-4">
+                      <td class="px-4 py-3">
                         <div class="flex items-center gap-2">
                           <span class="font-medium">{{ entry.field.name }}</span>
                           <UBadge
@@ -1459,23 +1835,52 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                           />
                         </div>
                       </td>
-                      <td class="px-5 py-4 font-mono text-xs">{{ entry.field.type }}</td>
-                      <td class="px-5 py-4">
-                        <UBadge
-                          :label="
-                            entry.field.required === true
-                              ? t({ en: 'Required', ru: 'Да' })
-                              : t({ en: 'Optional', ru: 'Нет' })
-                          "
-                          color="primary"
-                          variant="subtle"
-                          size="sm"
-                        />
+                      <td class="px-4 py-3">
+                        <span class="text-sm">{{ getFieldTypeDisplayLabel(entry.field) }}</span>
+                        <span class="text-muted ml-2 font-mono text-xs">{{
+                          entry.field.type
+                        }}</span>
                       </td>
-                      <td class="px-5 py-4">
-                        <span class="text-muted block max-w-[240px] truncate font-mono text-xs">
-                          {{ getFieldDefaultPreview(entry.field.default) }}
-                        </span>
+                      <td class="px-4 py-3">
+                        <div class="flex flex-wrap gap-1.5">
+                          <UBadge
+                            v-if="isGeneratedField(entry.field)"
+                            :label="t({ en: 'Generated', ru: 'Генерируется' })"
+                            color="neutral"
+                            variant="subtle"
+                            size="sm"
+                          />
+                          <UBadge
+                            v-else
+                            :label="
+                              entry.field.required === true
+                                ? t({ en: 'Required', ru: 'Обязательное' })
+                                : t({ en: 'Optional', ru: 'Необязательное' })
+                            "
+                            :color="entry.field.required === true ? 'primary' : 'neutral'"
+                            variant="subtle"
+                            size="sm"
+                          />
+                          <UBadge
+                            v-if="entry.field.readonly === true"
+                            :label="t({ en: 'Readonly', ru: 'Только чтение' })"
+                            color="neutral"
+                            variant="subtle"
+                            size="sm"
+                          />
+                          <UBadge
+                            v-if="hasVisibleFieldDefault(entry.field)"
+                            :label="
+                              t(
+                                { en: 'Default: {value}', ru: 'По умолчанию: {value}' },
+                                { value: getFieldDefaultPreviewForField(entry.field) },
+                              )
+                            "
+                            color="neutral"
+                            variant="subtle"
+                            size="sm"
+                          />
+                        </div>
                       </td>
                     </tr>
                   </tbody>
@@ -1484,11 +1889,11 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
             </div>
 
             <aside
-              class="border-default bg-default flex min-h-0 flex-col overflow-hidden rounded-3xl border p-5 shadow-sm"
+              class="border-default bg-default flex min-h-0 flex-col overflow-hidden rounded-2xl border shadow-sm"
             >
               <div
                 v-if="!selectedRegularField || selectedFieldIndex === null"
-                class="flex h-full min-h-[320px] flex-col items-center justify-center gap-3 text-center"
+                class="flex h-full min-h-[320px] flex-col items-center justify-center gap-3 p-4 text-center"
               >
                 <UIcon name="i-lucide-mouse-pointer-click" class="text-muted h-10 w-10" />
                 <p class="text-muted text-sm">
@@ -1501,161 +1906,335 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                 </p>
               </div>
 
-              <div v-else class="min-h-0 flex-1 overflow-auto">
-                <div class="flex flex-col gap-5">
-                  <div>
-                    <div class="mb-2 flex items-center gap-2">
-                      <h3 class="text-base font-semibold">
-                        {{ t({ en: "Field settings", ru: "Настройки поля" }) }}
-                      </h3>
-                      <UBadge
-                        :label="selectedRegularField.type"
-                        color="primary"
-                        variant="soft"
-                        size="sm"
-                      />
-                    </div>
-                    <p class="text-muted text-sm">
-                      {{ getFieldTypeHint(selectedRegularField.type) }}
-                    </p>
-                  </div>
-
-                  <div
-                    v-if="fieldIssuesByIndex[selectedFieldIndex]?.length"
-                    class="border-error/30 bg-error/5 text-error rounded-2xl border p-4 text-sm"
-                  >
-                    <p class="font-medium">{{ t({ en: "Field issues", ru: "Ошибки поля" }) }}</p>
-                    <ul class="mt-2 flex list-disc flex-col gap-1 pl-5">
-                      <li v-for="issue in fieldIssuesByIndex[selectedFieldIndex]" :key="issue">
-                        {{ issue }}
-                      </li>
-                    </ul>
-                  </div>
-
-                  <div class="flex flex-col gap-2">
-                    <label class="text-sm font-medium">{{
-                      t({ en: "Field name", ru: "Имя поля" })
-                    }}</label>
-                    <UInput
-                      :model-value="selectedRegularField.name"
-                      @blur="handleUpdateFieldName(selectedFieldIndex, $event)"
-                      @keyup.enter="handleUpdateFieldName(selectedFieldIndex, $event)"
-                    />
-                  </div>
-
-                  <div class="flex flex-col gap-2">
-                    <label class="text-sm font-medium">{{ t({ en: "Type", ru: "Тип" }) }}</label>
-                    <USelect
-                      :model-value="selectedRegularField.type"
-                      :items="fieldTypeItems"
-                      value-key="value"
-                      label-key="label"
-                      @update:model-value="handleUpdateFieldType(selectedFieldIndex, $event)"
-                    />
-                  </div>
-
-                  <div class="border-default rounded-2xl border p-4">
-                    <div class="mb-2 flex items-center justify-between gap-4">
-                      <div>
-                        <p class="text-sm font-medium">
-                          {{ t({ en: "Required", ru: "Обязательное" }) }}
-                        </p>
-                        <p class="text-muted mt-1 text-xs">
-                          {{
-                            t({
-                              en: "Turn this on if the field must be filled in.",
-                              ru: "Включай это, если поле обязательно нужно заполнить.",
-                            })
-                          }}
-                        </p>
+              <div v-else class="flex min-h-0 flex-1 flex-col">
+                <div class="flex shrink-0 flex-col gap-4 p-4 pb-2">
+                  <template v-if="activeFieldInspectorTab === 'settings'">
+                    <div>
+                      <div class="mb-2 flex items-center gap-2">
+                        <h3 class="text-base font-semibold">
+                          {{ t({ en: "Field settings", ru: "Настройки поля" }) }}
+                        </h3>
+                        <UBadge
+                          :label="selectedRegularField.type"
+                          color="primary"
+                          variant="soft"
+                          size="sm"
+                        />
+                        <UBadge
+                          v-if="isGeneratedField(selectedRegularField)"
+                          :label="getGeneratedFieldLabel(selectedRegularField)"
+                          color="neutral"
+                          variant="subtle"
+                          size="sm"
+                        />
                       </div>
-                      <USwitch
-                        :model-value="selectedRegularField.required === true"
-                        @update:model-value="
-                          handleUpdateFieldRequired(selectedFieldIndex, Boolean($event))
-                        "
-                      />
+                      <p class="text-muted text-xs leading-5">
+                        {{ getFieldTypeHint(selectedRegularField.type) }}
+                      </p>
                     </div>
-                  </div>
 
-                  <div class="flex flex-col gap-2">
-                    <label class="text-sm font-medium">{{
-                      t({ en: "Default value", ru: "Значение по умолчанию" })
-                    }}</label>
-
-                    <USelect
-                      v-if="isBooleanFieldType(selectedRegularField.type)"
-                      :model-value="getBooleanDefaultValue(selectedRegularField.default)"
-                      :items="booleanDefaultItems"
-                      value-key="value"
-                      label-key="label"
-                      @update:model-value="
-                        handleUpdateFieldBooleanDefault(selectedFieldIndex, $event)
-                      "
-                    />
-
-                    <UTextarea
-                      v-else-if="isMultilineFieldType(selectedRegularField.type)"
-                      :model-value="serializeDefaultValue(selectedRegularField.default)"
-                      :rows="selectedRegularField.type === 'json' ? 7 : 4"
-                      :placeholder="getFieldDefaultPlaceholder(selectedRegularField.type)"
-                      @blur="
-                        handleUpdateFieldDefault(
-                          selectedFieldIndex,
-                          selectedRegularField.type,
-                          $event,
-                        )
-                      "
-                    />
-
-                    <UInput
-                      v-else
-                      :model-value="serializeDefaultValue(selectedRegularField.default)"
-                      :type="isNumericFieldType(selectedRegularField.type) ? 'number' : 'text'"
-                      :placeholder="getFieldDefaultPlaceholder(selectedRegularField.type)"
-                      @blur="
-                        handleUpdateFieldDefault(
-                          selectedFieldIndex,
-                          selectedRegularField.type,
-                          $event,
-                        )
-                      "
-                    />
-
-                    <p class="text-muted text-xs">
-                      {{ getFieldTypeHint(selectedRegularField.type) }}
-                    </p>
-                  </div>
-
-                  <div class="border-default mt-2 border-t pt-4">
-                    <UButton
-                      color="error"
-                      variant="outline"
-                      size="sm"
-                      icon="i-lucide-trash-2"
-                      @click="openDeleteFieldModal(selectedFieldIndex)"
+                    <div
+                      v-if="fieldIssuesByIndex[selectedFieldIndex]?.length"
+                      class="border-error/30 bg-error/5 text-error rounded-2xl border p-3 text-sm"
                     >
-                      {{ t({ en: "Delete field", ru: "Удалить поле" }) }}
-                    </UButton>
+                      <p class="font-medium">{{ t({ en: "Field issues", ru: "Ошибки поля" }) }}</p>
+                      <ul class="mt-2 flex list-disc flex-col gap-1 pl-5">
+                        <li v-for="issue in fieldIssuesByIndex[selectedFieldIndex]" :key="issue">
+                          {{ issue }}
+                        </li>
+                      </ul>
+                    </div>
+                  </template>
+
+                  <div v-else class="flex items-start gap-3">
+                    <UButton
+                      icon="i-lucide-arrow-left"
+                      color="neutral"
+                      variant="ghost"
+                      size="xs"
+                      class="mt-0.5 shrink-0"
+                      @click="openFieldSettingsTab"
+                    />
+                    <div class="min-w-0">
+                      <h3 class="text-base font-semibold">
+                        {{ t({ en: "Choose field type", ru: "Выбор типа поля" }) }}
+                      </h3>
+                      <p class="text-muted mt-1 text-xs leading-5">
+                        {{
+                          t({
+                            en: "Pick how this field stores values. The field settings will adjust after selection.",
+                            ru: "Выбери, как это поле хранит значение. После выбора настройки поля обновятся.",
+                          })
+                        }}
+                      </p>
+                    </div>
                   </div>
                 </div>
+
+                <UScrollArea class="min-h-0 flex-1">
+                  <div class="flex flex-col gap-4 px-4 pb-4">
+                    <template v-if="activeFieldInspectorTab === 'settings'">
+                      <div class="flex flex-col gap-2">
+                        <label class="text-sm font-medium">{{
+                          t({ en: "Field name", ru: "Имя поля" })
+                        }}</label>
+                        <UInput
+                          :model-value="selectedRegularField.name"
+                          @blur="handleUpdateFieldName(selectedFieldIndex, $event)"
+                          @keyup.enter="handleUpdateFieldName(selectedFieldIndex, $event)"
+                        />
+                      </div>
+
+                      <div class="border-default rounded-2xl border p-3">
+                        <div class="flex items-start justify-between gap-4">
+                          <div class="flex min-w-0 items-start gap-3">
+                            <div
+                              class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
+                            >
+                              <UIcon
+                                :name="getFieldTypeDisplayIcon(selectedRegularField)"
+                                class="h-5 w-5"
+                              />
+                            </div>
+                            <div class="min-w-0">
+                              <p class="text-sm font-medium">
+                                {{ getFieldTypeDisplayLabel(selectedRegularField) }}
+                              </p>
+                              <p class="text-muted mt-1 text-xs leading-5">
+                                {{ getFieldTypeHint(selectedRegularField.type) }}
+                              </p>
+                            </div>
+                          </div>
+                          <UButton size="xs" variant="soft" @click="openFieldTypeTab">
+                            {{ t({ en: "Change", ru: "Изменить" }) }}
+                          </UButton>
+                        </div>
+                      </div>
+
+                      <div
+                        v-if="!isGeneratedField(selectedRegularField)"
+                        class="border-default rounded-2xl border p-3"
+                      >
+                        <div class="mb-2 flex items-center justify-between gap-4">
+                          <div>
+                            <p class="text-sm font-medium">
+                              {{ t({ en: "Required", ru: "Обязательное" }) }}
+                            </p>
+                            <p class="text-muted mt-1 text-xs">
+                              {{
+                                t({
+                                  en: "Turn this on if the field must be filled in.",
+                                  ru: "Включай это, если поле обязательно нужно заполнить.",
+                                })
+                              }}
+                            </p>
+                          </div>
+                          <USwitch
+                            :model-value="selectedRegularField.required === true"
+                            @update:model-value="
+                              handleUpdateFieldRequired(selectedFieldIndex, Boolean($event))
+                            "
+                          />
+                        </div>
+                      </div>
+
+                      <div v-else class="border-primary/20 bg-primary/5 rounded-2xl border p-3">
+                        <div class="flex items-start gap-3">
+                          <UIcon name="i-lucide-sparkles" class="text-primary mt-0.5 h-4 w-4" />
+                          <div>
+                            <p class="text-sm font-medium">
+                              {{ t({ en: "Automatic value", ru: "Автоматическое значение" }) }}
+                            </p>
+                            <p class="text-muted mt-1 text-xs leading-5">
+                              {{
+                                t({
+                                  en: "This field is filled automatically and does not need a default value.",
+                                  ru: "Это поле заполняется автоматически и не требует значения по умолчанию.",
+                                })
+                              }}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div
+                        v-if="!isGeneratedField(selectedRegularField)"
+                        class="flex flex-col gap-2"
+                      >
+                        <label class="text-sm font-medium">{{
+                          t({ en: "Default value", ru: "Значение по умолчанию" })
+                        }}</label>
+
+                        <USelect
+                          v-if="isBooleanFieldType(selectedRegularField.type)"
+                          :model-value="getBooleanDefaultValue(selectedRegularField.default)"
+                          :items="booleanDefaultItems"
+                          value-key="value"
+                          label-key="label"
+                          @update:model-value="
+                            handleUpdateFieldBooleanDefault(selectedFieldIndex, $event)
+                          "
+                        />
+
+                        <UTextarea
+                          v-else-if="isMultilineFieldType(selectedRegularField.type)"
+                          :model-value="serializeDefaultValue(selectedRegularField.default)"
+                          :rows="selectedRegularField.type === 'json' ? 7 : 4"
+                          :placeholder="getFieldDefaultPlaceholder(selectedRegularField.type)"
+                          @blur="
+                            handleUpdateFieldDefault(
+                              selectedFieldIndex,
+                              selectedRegularField.type,
+                              $event,
+                            )
+                          "
+                        />
+
+                        <UInput
+                          v-else
+                          :model-value="serializeDefaultValue(selectedRegularField.default)"
+                          :type="isNumericFieldType(selectedRegularField.type) ? 'number' : 'text'"
+                          :placeholder="getFieldDefaultPlaceholder(selectedRegularField.type)"
+                          @blur="
+                            handleUpdateFieldDefault(
+                              selectedFieldIndex,
+                              selectedRegularField.type,
+                              $event,
+                            )
+                          "
+                        />
+
+                        <p class="text-muted text-xs">
+                          {{ getFieldTypeHint(selectedRegularField.type) }}
+                        </p>
+                      </div>
+
+                      <div class="border-default mt-2 border-t pt-4">
+                        <UButton
+                          color="error"
+                          variant="outline"
+                          size="sm"
+                          icon="i-lucide-trash-2"
+                          @click="openDeleteFieldModal(selectedFieldIndex)"
+                        >
+                          {{ t({ en: "Delete field", ru: "Удалить поле" }) }}
+                        </UButton>
+                      </div>
+                    </template>
+
+                    <template v-else>
+                      <UInput
+                        v-model="fieldTypeSearch"
+                        icon="i-lucide-search"
+                        :placeholder="t({ en: 'Search field types', ru: 'Поиск типов поля' })"
+                      />
+
+                      <div
+                        v-if="filteredFieldTypeGroups.length === 0"
+                        class="text-muted flex flex-col items-center justify-center gap-3 rounded-2xl border border-dashed px-4 py-10 text-center text-sm"
+                      >
+                        <UIcon name="i-lucide-search-x" class="h-8 w-8" />
+                        <p>{{ t({ en: "No types match this search", ru: "Типы не найдены" }) }}</p>
+                      </div>
+
+                      <div v-else class="flex flex-col gap-4">
+                        <div
+                          v-for="group in filteredFieldTypeGroups"
+                          :key="group.label"
+                          class="flex flex-col gap-2"
+                        >
+                          <p class="text-muted text-[11px] font-medium tracking-wide uppercase">
+                            {{ group.label }}
+                          </p>
+                          <button
+                            v-for="item in group.items"
+                            :key="item.value"
+                            type="button"
+                            class="border-default group flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition-all"
+                            :class="
+                              getFieldTypeSelectValue(selectedRegularField) === item.value
+                                ? 'border-primary bg-primary/5 shadow-sm'
+                                : 'bg-default hover:border-primary/40 hover:bg-elevated/40'
+                            "
+                            :aria-pressed="
+                              getFieldTypeSelectValue(selectedRegularField) === item.value
+                            "
+                            @click="handleSelectFieldType(selectedFieldIndex, item.value)"
+                          >
+                            <div
+                              class="flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl transition-colors"
+                              :class="
+                                getFieldTypeSelectValue(selectedRegularField) === item.value
+                                  ? 'bg-primary text-white'
+                                  : 'bg-elevated text-muted group-hover:text-default'
+                              "
+                            >
+                              <UIcon :name="item.icon" class="h-5 w-5" />
+                            </div>
+
+                            <div class="min-w-0 flex-1">
+                              <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0">
+                                  <p class="text-sm font-medium">{{ item.label }}</p>
+                                  <p class="text-muted mt-1 text-xs leading-5">
+                                    {{ item.description }}
+                                  </p>
+                                </div>
+                                <UIcon
+                                  v-if="
+                                    getFieldTypeSelectValue(selectedRegularField) === item.value
+                                  "
+                                  name="i-lucide-check"
+                                  class="text-primary h-4 w-4 shrink-0"
+                                />
+                              </div>
+
+                              <div class="mt-3 flex flex-wrap gap-1.5">
+                                <UBadge
+                                  :label="item.type"
+                                  color="primary"
+                                  variant="soft"
+                                  size="sm"
+                                />
+                                <UBadge
+                                  v-if="item.generated"
+                                  :label="t({ en: 'Generated', ru: 'Генерируется' })"
+                                  color="neutral"
+                                  variant="subtle"
+                                  size="sm"
+                                />
+                                <UBadge
+                                  v-if="item.readonly"
+                                  :label="t({ en: 'Readonly', ru: 'Только чтение' })"
+                                  color="neutral"
+                                  variant="subtle"
+                                  size="sm"
+                                />
+                              </div>
+                            </div>
+                          </button>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+                </UScrollArea>
               </div>
             </aside>
           </section>
 
-          <section v-else-if="activeTab === 'relations'" class="flex min-h-0 flex-1 flex-col gap-6">
-            <div class="grid min-h-0 flex-1 gap-6 xl:grid-cols-[minmax(0,1.05fr)_500px]">
+          <section v-else-if="activeTab === 'relations'" class="flex min-h-0 flex-1 flex-col gap-3">
+            <div class="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1.05fr)_500px]">
               <div
-                class="border-default bg-default flex min-h-0 flex-col overflow-hidden rounded-3xl border shadow-sm"
+                class="border-default bg-default flex min-h-0 flex-col overflow-hidden rounded-2xl border shadow-sm"
               >
                 <div
-                  class="border-default flex items-center justify-between gap-4 border-b px-5 py-4"
+                  class="border-default flex items-center justify-between gap-4 border-b px-4 py-3"
                 >
                   <div>
                     <h3 class="text-base font-semibold">
                       {{ t({ en: "Relations", ru: "Связи" }) }}
                     </h3>
-                    <p class="text-muted mt-1 text-sm">
+                    <p class="text-muted mt-1 text-xs leading-5">
                       {{
                         t({
                           en: "Each card is one link from this collection to another collection.",
@@ -1674,7 +2253,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
 
                 <div
                   v-if="relationFieldEntries.length === 0"
-                  class="flex flex-1 flex-col items-center justify-center gap-4 px-6 py-16 text-center"
+                  class="flex flex-1 flex-col items-center justify-center gap-3 px-4 py-12 text-center"
                 >
                   <UIcon name="i-lucide-git-compare-arrows" class="text-primary/70 h-12 w-12" />
                   <div class="max-w-2xl">
@@ -1704,12 +2283,12 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
 
                 <div
                   v-else
-                  class="grid min-h-0 flex-1 content-start gap-4 overflow-auto p-4 lg:grid-cols-2"
+                  class="grid min-h-0 flex-1 content-start gap-3 overflow-auto p-3 lg:grid-cols-2"
                 >
                   <button
                     v-for="entry in relationFieldEntries"
                     :key="`${entry.field.name}-${entry.index}`"
-                    class="border-default group rounded-3xl border p-4 text-left transition-all"
+                    class="border-default group rounded-2xl border p-3 text-left transition-all"
                     :class="
                       selectedFieldIndex === entry.index
                         ? 'border-primary bg-primary/5 shadow-sm'
@@ -1717,7 +2296,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                     "
                     @click="selectRelationField(entry.index)"
                   >
-                    <div class="mb-4 flex items-start justify-between gap-3">
+                    <div class="mb-3 flex items-start justify-between gap-3">
                       <div>
                         <p class="text-sm font-semibold">{{ entry.field.name }}</p>
                         <p class="text-muted mt-1 text-xs">
@@ -1776,7 +2355,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                       </div>
                     </div>
 
-                    <div class="text-muted mt-4 flex items-center justify-between text-xs">
+                    <div class="text-muted mt-3 flex items-center justify-between text-xs">
                       <span>
                         {{
                           t({
@@ -1799,7 +2378,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
               </div>
 
               <aside
-                class="border-default bg-default flex min-h-0 flex-col overflow-hidden rounded-3xl border p-5 shadow-sm"
+                class="border-default bg-default flex min-h-0 flex-col overflow-hidden rounded-2xl border p-4 shadow-sm"
               >
                 <div
                   v-if="!selectedRelationField || selectedFieldIndex === null"
@@ -1817,7 +2396,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                 </div>
 
                 <div v-else class="min-h-0 flex-1 overflow-auto">
-                  <div class="flex flex-col gap-5">
+                  <div class="flex flex-col gap-4">
                     <div>
                       <div class="mb-2 flex items-center gap-2">
                         <h3 class="text-base font-semibold">
@@ -1830,7 +2409,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                           size="sm"
                         />
                       </div>
-                      <p class="text-muted text-sm leading-6">
+                      <p class="text-muted text-xs leading-5">
                         {{
                           t({
                             en: "Give the link a clear name and choose where it should lead.",
@@ -1840,7 +2419,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                       </p>
                     </div>
 
-                    <div class="border-primary/20 bg-primary/5 rounded-3xl border p-4">
+                    <div class="border-primary/20 bg-primary/5 rounded-2xl border p-3">
                       <p class="text-muted text-[11px] tracking-wide uppercase">
                         {{ t({ en: "Relation flow", ru: "Схема связи" }) }}
                       </p>
@@ -1877,7 +2456,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
 
                     <div
                       v-if="fieldIssuesByIndex[selectedFieldIndex]?.length"
-                      class="border-error/30 bg-error/5 text-error rounded-2xl border p-4 text-sm"
+                      class="border-error/30 bg-error/5 text-error rounded-2xl border p-3 text-sm"
                     >
                       <p class="font-medium">
                         {{ t({ en: "Relation issues", ru: "Ошибки связи" }) }}
@@ -1935,7 +2514,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                       </p>
                     </div>
 
-                    <div class="border-default rounded-2xl border p-4">
+                    <div class="border-default rounded-2xl border p-3">
                       <div class="mb-2 flex items-center justify-between gap-4">
                         <div>
                           <p class="text-sm font-medium">
@@ -2006,11 +2585,11 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
 
           <section v-else-if="activeTab === 'manifest'" class="flex min-h-0 flex-1 flex-col">
             <div
-              class="border-default bg-default flex min-h-0 flex-1 flex-col overflow-hidden rounded-3xl border shadow-sm"
+              class="border-default bg-default flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border shadow-sm"
             >
-              <div class="border-default border-b px-5 py-4">
+              <div class="border-default border-b px-4 py-3">
                 <h3 class="text-base font-semibold">{{ t({ en: "Manifest", ru: "Манифест" }) }}</h3>
-                <p class="text-muted mt-1 text-sm">
+                <p class="text-muted mt-1 text-xs leading-5">
                   {{
                     t({
                       en: "Current project structure as JSON.",
@@ -2022,7 +2601,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
 
               <div class="min-h-0 flex-1 overflow-auto">
                 <pre
-                  class="min-h-full p-5 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap"
+                  class="min-h-full p-4 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap"
                   >{{ manifestPreview }}</pre
                 >
               </div>
@@ -2031,15 +2610,15 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
 
           <section
             v-else
-            class="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-4 overflow-auto pr-1"
+            class="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-3 overflow-auto pr-1"
           >
-            <div class="border-default bg-default rounded-3xl border p-5 shadow-sm">
-              <div class="mb-5 flex items-start justify-between gap-4">
+            <div class="border-default bg-default rounded-2xl border p-4 shadow-sm">
+              <div class="mb-4 flex items-start justify-between gap-4">
                 <div>
                   <h3 class="text-base font-semibold">
                     {{ t({ en: "Collection", ru: "Коллекция" }) }}
                   </h3>
-                  <p class="text-muted mt-1 text-sm">
+                  <p class="text-muted mt-1 text-xs leading-5">
                     {{
                       t({
                         en: "Give the collection a clear name and a short stable ID.",
@@ -2062,7 +2641,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
 
               <div
                 v-if="selectedCollectionIssues.length > 0"
-                class="border-error/30 bg-error/5 text-error mb-5 rounded-2xl border p-4 text-sm"
+                class="border-error/30 bg-error/5 text-error mb-4 rounded-2xl border p-3 text-sm"
               >
                 <p class="font-medium">
                   {{ t({ en: "Collection issues", ru: "Ошибки коллекции" }) }}
@@ -2072,7 +2651,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                 </ul>
               </div>
 
-              <div class="grid gap-4 md:grid-cols-2">
+              <div class="grid gap-3 md:grid-cols-2">
                 <div class="flex flex-col gap-2">
                   <label class="text-sm font-medium">{{ t({ en: "Name", ru: "Название" }) }}</label>
                   <UInput
@@ -2114,10 +2693,10 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
               </div>
             </div>
 
-            <div class="border-default bg-default rounded-3xl border p-5 shadow-sm">
+            <div class="border-default bg-default rounded-2xl border p-4 shadow-sm">
               <h3 class="text-base font-semibold">{{ t({ en: "Behavior", ru: "Поведение" }) }}</h3>
-              <div class="mt-4 flex flex-col gap-3">
-                <div class="border-default rounded-2xl border p-4">
+              <div class="mt-3 flex flex-col gap-3">
+                <div class="border-default rounded-2xl border p-3">
                   <div class="mb-2 flex items-center justify-between gap-4">
                     <p class="text-sm font-medium">
                       {{ t({ en: "One record", ru: "Одна запись" }) }}

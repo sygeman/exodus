@@ -69,6 +69,50 @@ describe("data module", () => {
       expect(items).toHaveLength(1)
       expect(items[0].data.title).toBe("Test Project")
     })
+
+    it("should generate special system field values", async () => {
+      const { id: colId } = await edem.data.createCollection({
+        name: "Test",
+        id: "test",
+        fields: [
+          { name: "id", type: "uuid", special: "uuid", system: true, readonly: true },
+          {
+            name: "created_at",
+            type: "timestamp",
+            special: "date-created",
+            system: true,
+            readonly: true,
+          },
+          {
+            name: "updated_at",
+            type: "timestamp",
+            special: "date-updated",
+            system: true,
+            readonly: true,
+          },
+          { name: "title", type: "string" },
+        ],
+      })
+
+      const { id: itemId } = await edem.data.createItem({
+        collection_id: colId,
+        data: {
+          id: "not-a-uuid",
+          created_at: "not-a-date",
+          updated_at: "not-a-date",
+          title: "Generated",
+        },
+      })
+
+      const { item } = await edem.data.getItem({ item_id: itemId })
+
+      expect(item?.data.id).toBe(itemId)
+      expect(item?.data.title).toBe("Generated")
+      expect(typeof item?.data.created_at).toBe("string")
+      expect(typeof item?.data.updated_at).toBe("string")
+      expect(Number.isNaN(Date.parse(String(item?.data.created_at)))).toBe(false)
+      expect(Number.isNaN(Date.parse(String(item?.data.updated_at)))).toBe(false)
+    })
   })
 
   describe("updateItem", () => {
@@ -105,6 +149,56 @@ describe("data module", () => {
 
       const { item: after } = await edem.data.getItem({ item_id: itemId })
       expect(after!.updated_at).toBeGreaterThanOrEqual(createdAt)
+    })
+
+    it("should preserve immutable special fields and refresh update timestamps", async () => {
+      const { id: colId } = await edem.data.createCollection({
+        name: "Test",
+        id: "test",
+        fields: [
+          { name: "id", type: "uuid", special: "uuid", system: true, readonly: true },
+          {
+            name: "created_at",
+            type: "timestamp",
+            special: "date-created",
+            system: true,
+            readonly: true,
+          },
+          {
+            name: "updated_at",
+            type: "timestamp",
+            special: "date-updated",
+            system: true,
+            readonly: true,
+          },
+          { name: "title", type: "string" },
+        ],
+      })
+      const { id: itemId } = await edem.data.createItem({
+        collection_id: colId,
+        data: { title: "Original" },
+      })
+      const { item: before } = await edem.data.getItem({ item_id: itemId })
+
+      await Bun.sleep(1)
+      await edem.data.updateItem({
+        item_id: itemId,
+        data: {
+          id: "00000000-0000-0000-0000-000000000000",
+          created_at: "2020-01-01T00:00:00.000Z",
+          updated_at: "2020-01-01T00:00:00.000Z",
+          title: "Updated",
+        },
+      })
+
+      const { item: after } = await edem.data.getItem({ item_id: itemId })
+
+      expect(after?.data.id).toBe(itemId)
+      expect(after?.data.created_at).toBe(before?.data.created_at)
+      expect(Date.parse(String(after?.data.updated_at))).toBeGreaterThanOrEqual(
+        Date.parse(String(before?.data.updated_at)),
+      )
+      expect(after?.data.title).toBe("Updated")
     })
 
     it("should allow update when collection is deleted", async () => {
@@ -806,6 +900,47 @@ describe("data module", () => {
       expect(items[0].data.theme).toBe("light")
       expect(items[0].data.notifications).toBe(true)
       expect(items[0].data.count).toBe(0)
+    })
+
+    it("should create singleton item with generated system fields", async () => {
+      await edem.data.applyManifest({
+        manifest: {
+          collections: [
+            {
+              id: "settings",
+              name: "Settings",
+              singleton: true,
+              fields: [
+                { name: "id", type: "uuid", special: "uuid", system: true, readonly: true },
+                {
+                  name: "created_at",
+                  type: "timestamp",
+                  special: "date-created",
+                  system: true,
+                  readonly: true,
+                },
+                {
+                  name: "updated_at",
+                  type: "timestamp",
+                  special: "date-updated",
+                  system: true,
+                  readonly: true,
+                },
+              ],
+            },
+          ],
+        },
+      })
+
+      const { item } = await edem.data.getSingleton({ collection_id: "settings" })
+      const { collection } = await edem.data.getCollection({ collection_id: "settings" })
+
+      expect(item?.data.id).toBe(item?.id)
+      expect(Number.isNaN(Date.parse(String(item?.data.created_at)))).toBe(false)
+      expect(Number.isNaN(Date.parse(String(item?.data.updated_at)))).toBe(false)
+      expect(collection?.fields.find((field) => field.name === "id")?.special).toBe("uuid")
+      expect(collection?.fields.find((field) => field.name === "id")?.system).toBe(true)
+      expect(collection?.fields.find((field) => field.name === "id")?.readonly).toBe(true)
     })
 
     it("should not create duplicate singleton item on re-apply", async () => {
