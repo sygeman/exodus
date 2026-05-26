@@ -41,12 +41,13 @@ const collectionItems = computed(() =>
 const selectedCollectionId = ref<string | null>(null)
 const selectedFieldIndex = ref<number | null>(null)
 const pendingDeleteFieldIndex = ref<number | null>(null)
-type DataTab = "fields" | "manifest" | "settings"
-type DataSectionRouteValue = "fields" | "manifest" | "collection"
+type DataTab = "fields" | "manifest"
+type DataSectionRouteValue = "fields" | "manifest"
 
 const activeTab = ref<DataTab>("fields")
 const collectionSearch = ref("")
 const errorMessage = ref<string | null>(null)
+const collectionSettingsModalOpen = ref(false)
 const deleteCollectionModalOpen = ref(false)
 const deleteFieldModalOpen = ref(false)
 const pendingMutations = ref(0)
@@ -591,10 +592,6 @@ const fieldIssuesByIndex = computed<Record<number, string[]>>(() => {
   return issues
 })
 
-const fieldIssueCount = computed(() =>
-  fieldEntries.value.reduce((total, entry) => total + getFieldIssueCount(entry.index), 0),
-)
-
 const hasAnyIssues = computed(() => {
   if (manifestValidationErrors.value.length > 0) {
     return true
@@ -643,19 +640,20 @@ function parseDataSectionRouteValue(value: string | null): DataSectionRouteValue
     case "relations":
       return "fields"
     case "manifest":
-    case "collection":
       return value
+    case "collection":
+      return "fields"
     default:
       return null
   }
 }
 
 function dataSectionRouteValueToTab(section: DataSectionRouteValue): DataTab {
-  return section === "collection" ? "settings" : section
+  return section
 }
 
 function dataTabToSectionRouteValue(tab: DataTab): DataSectionRouteValue {
-  return tab === "settings" ? "collection" : tab
+  return tab
 }
 
 function getCurrentDataSectionRouteValue(): DataSectionRouteValue {
@@ -849,7 +847,7 @@ watch(
       return
     }
 
-    if (tab === "settings" || tab === "manifest") {
+    if (tab === "manifest") {
       if (selectedFieldIndex.value !== null && selectedFieldIndex.value >= fields.length) {
         selectedFieldIndex.value = null
       }
@@ -971,19 +969,13 @@ function getDefaultRelationTargetCollectionId(): string | undefined {
   return otherCollection?.value ?? currentManifestId ?? relationCollectionItems.value[0]?.value
 }
 
-function openFieldsTab() {
-  activeTab.value = "fields"
-  navigateDataRoute(selectedCollectionId.value, "fields")
-}
-
-function openSettingsTab() {
-  activeTab.value = "settings"
-  navigateDataRoute(selectedCollectionId.value, "collection")
-}
-
 function openManifestTab() {
   activeTab.value = "manifest"
   navigateDataRoute(null, "manifest")
+}
+
+function openCollectionSettingsModal() {
+  collectionSettingsModalOpen.value = true
 }
 
 function selectField(index: number) {
@@ -1503,6 +1495,7 @@ async function handleCreateCollection() {
 }
 
 function openDeleteCollectionModal() {
+  collectionSettingsModalOpen.value = false
   deleteCollectionModalOpen.value = true
 }
 
@@ -1524,6 +1517,7 @@ async function confirmDeleteCollection() {
 
   try {
     await runMutation(() => deleteItem(selectedCollection.value!.id))
+    collectionSettingsModalOpen.value = false
     deleteCollectionModalOpen.value = false
     selectedCollectionId.value = fallbackCollectionId
     navigateDataRoute(fallbackCollectionId, fallbackSection, "replace")
@@ -1825,157 +1819,166 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
 
 <template>
   <div class="bg-elevated/10 flex h-full min-h-0">
-    <aside class="border-default bg-default/80 flex w-72 shrink-0 flex-col border-r backdrop-blur">
-      <div class="border-default border-b px-3 py-3">
-        <div class="mb-3 flex items-center justify-between gap-3">
-          <div class="flex items-center gap-2">
-            <h1 class="text-sm font-semibold">{{ t({ en: "Collections", ru: "Коллекции" }) }}</h1>
-            <UBadge
-              :label="`${collectionItems.length}`"
-              color="neutral"
-              variant="subtle"
-              size="sm"
-            />
-          </div>
-
-          <UButton size="xs" icon="i-lucide-plus" variant="soft" @click="handleCreateCollection" />
-        </div>
-
-        <UInput
-          v-model="collectionSearch"
-          :placeholder="t({ en: 'Search collections', ru: 'Поиск коллекций' })"
-          class="w-full"
-        />
-
-        <button
-          class="mt-2 flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-sm font-medium transition-colors"
-          :class="
-            activeTab === 'manifest'
-              ? 'bg-primary/10 text-primary'
-              : 'text-muted hover:bg-elevated hover:text-default'
-          "
-          @click="openManifestTab"
-        >
-          <UIcon name="i-lucide-braces" class="h-4 w-4" />
-          <span class="min-w-0 flex-1 truncate">{{ t({ en: "Manifest", ru: "Манифест" }) }}</span>
-          <UBadge
-            v-if="manifestValidationErrors.length > 0"
-            :label="getIssueCountLabel(manifestValidationErrors.length)"
-            color="error"
-            variant="subtle"
-            size="sm"
-          />
-        </button>
-      </div>
-
-      <div v-if="loading && showSkeleton" class="flex flex-1 flex-col gap-2 p-2">
-        <div v-for="i in 5" :key="i" class="rounded-xl p-2.5">
-          <USkeleton class="mb-2 h-4 w-32" />
-          <USkeleton class="h-3 w-24" />
-        </div>
-      </div>
-
+    <aside class="flex min-h-0 w-80 shrink-0 p-3 pr-0">
       <div
-        v-else-if="!loading && collectionItems.length === 0"
-        class="flex flex-1 flex-col items-start justify-center gap-3 px-4 text-left"
+        class="border-default bg-default flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border shadow-sm"
       >
-        <div class="bg-elevated text-muted flex h-9 w-9 items-center justify-center rounded-xl">
-          <UIcon name="i-lucide-database-zap" class="h-5 w-5" />
-        </div>
-        <div>
-          <p class="text-sm font-medium">
-            {{ t({ en: "No collections yet", ru: "Пока нет коллекций" }) }}
-          </p>
-          <p class="text-muted mt-1 text-xs leading-5">
-            {{
-              t({
-                en: "Create the first collection to define app data.",
-                ru: "Создай первую коллекцию, чтобы описать данные приложения.",
-              })
-            }}
-          </p>
-        </div>
-        <UButton size="sm" @click="handleCreateCollection">
-          {{ t({ en: "Create collection", ru: "Создать коллекцию" }) }}
-        </UButton>
-      </div>
-
-      <div
-        v-else-if="filteredCollections.length === 0"
-        class="flex flex-1 flex-col items-start justify-center gap-3 px-4 text-left"
-      >
-        <div class="bg-elevated text-muted flex h-9 w-9 items-center justify-center rounded-xl">
-          <UIcon name="i-lucide-search-x" class="h-5 w-5" />
-        </div>
-        <p class="text-muted text-sm leading-5">
-          {{
-            t({ en: "No collections match this search", ru: "По этому поиску ничего не найдено" })
-          }}
-        </p>
-      </div>
-
-      <UScrollArea v-else class="min-h-0 flex-1">
-        <div class="flex flex-col gap-1 p-2">
-          <button
-            v-for="collection in filteredCollections"
-            :key="collection.id"
-            class="group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors"
-            :class="
-              selectedCollectionId === collection.id && activeTab !== 'manifest'
-                ? 'bg-primary/5 text-default'
-                : 'text-default hover:bg-elevated/60'
-            "
-            @click="selectCollection(collection.id)"
-          >
-            <span
-              class="absolute top-2 bottom-2 left-0 w-0.5 rounded-full transition-opacity"
-              :class="
-                selectedCollectionId === collection.id && activeTab !== 'manifest'
-                  ? 'bg-primary opacity-100'
-                  : 'opacity-0'
-              "
-            />
-
-            <span
-              class="bg-elevated text-muted group-hover:text-default flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors"
-              :class="
-                selectedCollectionId === collection.id && activeTab !== 'manifest'
-                  ? 'text-primary'
-                  : ''
-              "
-            >
-              <UIcon :name="getCollectionIcon(collection)" class="h-4 w-4" />
-            </span>
-
-            <span class="min-w-0 flex-1">
-              <span class="block truncate text-sm font-medium">{{
-                getCollectionName(collection)
-              }}</span>
-              <span class="text-muted block truncate font-mono text-xs">
-                {{ getCollectionManifestId(collection) }}
-              </span>
-            </span>
-
-            <span class="flex shrink-0 items-center gap-1">
+        <div class="border-default border-b px-3 py-3">
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-2">
+              <h1 class="text-sm font-semibold">{{ t({ en: "Collections", ru: "Коллекции" }) }}</h1>
               <UBadge
-                v-if="collection.data.singleton === true"
-                label="1"
+                :label="`${collectionItems.length}`"
                 color="neutral"
                 variant="subtle"
                 size="sm"
-                :title="t({ en: 'One record', ru: 'Одна запись' })"
               />
-              <UBadge
-                v-if="getCollectionIssueCount(collection) > 0"
-                :label="`${getCollectionIssueCount(collection)}`"
-                color="error"
-                variant="subtle"
-                size="sm"
-              />
-            </span>
+            </div>
+
+            <UButton
+              size="xs"
+              icon="i-lucide-plus"
+              variant="soft"
+              @click="handleCreateCollection"
+            />
+          </div>
+
+          <UInput
+            v-model="collectionSearch"
+            :placeholder="t({ en: 'Search collections', ru: 'Поиск коллекций' })"
+            class="w-full"
+          />
+
+          <button
+            class="mt-2 flex w-full items-center gap-2 rounded-xl px-2.5 py-2 text-left text-sm font-medium transition-colors"
+            :class="
+              activeTab === 'manifest'
+                ? 'bg-primary/10 text-primary'
+                : 'text-muted hover:bg-elevated hover:text-default'
+            "
+            @click="openManifestTab"
+          >
+            <UIcon name="i-lucide-braces" class="h-4 w-4" />
+            <span class="min-w-0 flex-1 truncate">{{ t({ en: "Manifest", ru: "Манифест" }) }}</span>
+            <UBadge
+              v-if="manifestValidationErrors.length > 0"
+              :label="getIssueCountLabel(manifestValidationErrors.length)"
+              color="error"
+              variant="subtle"
+              size="sm"
+            />
           </button>
         </div>
-      </UScrollArea>
+
+        <div v-if="loading && showSkeleton" class="flex flex-1 flex-col gap-2 p-2">
+          <div v-for="i in 5" :key="i" class="rounded-xl p-2.5">
+            <USkeleton class="mb-2 h-4 w-32" />
+            <USkeleton class="h-3 w-24" />
+          </div>
+        </div>
+
+        <div
+          v-else-if="!loading && collectionItems.length === 0"
+          class="flex flex-1 flex-col items-start justify-center gap-3 px-4 text-left"
+        >
+          <div class="bg-elevated text-muted flex h-9 w-9 items-center justify-center rounded-xl">
+            <UIcon name="i-lucide-database-zap" class="h-5 w-5" />
+          </div>
+          <div>
+            <p class="text-sm font-medium">
+              {{ t({ en: "No collections yet", ru: "Пока нет коллекций" }) }}
+            </p>
+            <p class="text-muted mt-1 text-xs leading-5">
+              {{
+                t({
+                  en: "Create the first collection to define app data.",
+                  ru: "Создай первую коллекцию, чтобы описать данные приложения.",
+                })
+              }}
+            </p>
+          </div>
+          <UButton size="sm" @click="handleCreateCollection">
+            {{ t({ en: "Create collection", ru: "Создать коллекцию" }) }}
+          </UButton>
+        </div>
+
+        <div
+          v-else-if="filteredCollections.length === 0"
+          class="flex flex-1 flex-col items-start justify-center gap-3 px-4 text-left"
+        >
+          <div class="bg-elevated text-muted flex h-9 w-9 items-center justify-center rounded-xl">
+            <UIcon name="i-lucide-search-x" class="h-5 w-5" />
+          </div>
+          <p class="text-muted text-sm leading-5">
+            {{
+              t({ en: "No collections match this search", ru: "По этому поиску ничего не найдено" })
+            }}
+          </p>
+        </div>
+
+        <UScrollArea v-else class="min-h-0 flex-1">
+          <div class="flex flex-col gap-1 p-2">
+            <button
+              v-for="collection in filteredCollections"
+              :key="collection.id"
+              class="group relative flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left transition-colors"
+              :class="
+                selectedCollectionId === collection.id && activeTab !== 'manifest'
+                  ? 'bg-primary/5 text-default'
+                  : 'text-default hover:bg-elevated/60'
+              "
+              @click="selectCollection(collection.id)"
+            >
+              <span
+                class="absolute top-2 bottom-2 left-0 w-0.5 rounded-full transition-opacity"
+                :class="
+                  selectedCollectionId === collection.id && activeTab !== 'manifest'
+                    ? 'bg-primary opacity-100'
+                    : 'opacity-0'
+                "
+              />
+
+              <span
+                class="bg-elevated text-muted group-hover:text-default flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors"
+                :class="
+                  selectedCollectionId === collection.id && activeTab !== 'manifest'
+                    ? 'text-primary'
+                    : ''
+                "
+              >
+                <UIcon :name="getCollectionIcon(collection)" class="h-4 w-4" />
+              </span>
+
+              <span class="min-w-0 flex-1">
+                <span class="block truncate text-sm font-medium">{{
+                  getCollectionName(collection)
+                }}</span>
+                <span class="text-muted block truncate font-mono text-xs">
+                  {{ getCollectionManifestId(collection) }}
+                </span>
+              </span>
+
+              <span class="flex shrink-0 items-center gap-1">
+                <UBadge
+                  v-if="collection.data.singleton === true"
+                  label="1"
+                  color="neutral"
+                  variant="subtle"
+                  size="sm"
+                  :title="t({ en: 'One record', ru: 'Одна запись' })"
+                />
+                <UBadge
+                  v-if="getCollectionIssueCount(collection) > 0"
+                  :label="`${getCollectionIssueCount(collection)}`"
+                  color="error"
+                  variant="subtle"
+                  size="sm"
+                />
+              </span>
+            </button>
+          </div>
+        </UScrollArea>
+      </div>
     </aside>
 
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -2000,56 +2003,6 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
               })
             }}
           </p>
-        </div>
-      </div>
-
-      <div v-if="selectedCollection && activeTab !== 'manifest'" class="px-3 pt-3 pb-1">
-        <div class="flex w-full items-center gap-2">
-          <button
-            class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors"
-            :class="
-              activeTab === 'fields'
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted hover:bg-elevated hover:text-default'
-            "
-            @click="openFieldsTab"
-          >
-            <UIcon name="i-lucide-columns-2" class="h-4 w-4" />
-            <span>{{ t({ en: "Fields", ru: "Поля" }) }}</span>
-            <UBadge
-              :label="`${fieldEntries.length}`"
-              :color="activeTab === 'fields' ? 'primary' : 'neutral'"
-              variant="soft"
-              size="sm"
-            />
-            <UBadge
-              v-if="fieldIssueCount > 0"
-              :label="getIssueCountLabel(fieldIssueCount)"
-              color="error"
-              variant="subtle"
-              size="sm"
-            />
-          </button>
-
-          <button
-            class="flex items-center gap-2 rounded-xl px-3 py-2 text-sm font-medium transition-colors"
-            :class="
-              activeTab === 'settings'
-                ? 'bg-primary/10 text-primary'
-                : 'text-muted hover:bg-elevated hover:text-default'
-            "
-            @click="openSettingsTab"
-          >
-            <UIcon name="i-lucide-settings-2" class="h-4 w-4" />
-            <span>{{ t({ en: "Collection", ru: "Коллекция" }) }}</span>
-            <UBadge
-              v-if="selectedCollectionIssues.length > 0"
-              :label="getIssueCountLabel(selectedCollectionIssues.length)"
-              color="error"
-              variant="subtle"
-              size="sm"
-            />
-          </button>
         </div>
       </div>
 
@@ -2107,10 +2060,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
 
       <div v-else class="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pt-2 pb-3">
         <div class="flex min-h-0 w-full flex-1 flex-col gap-3">
-          <section
-            v-if="activeTab === 'fields'"
-            class="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_440px]"
-          >
+          <section class="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_440px]">
             <div
               class="border-default bg-default flex min-h-0 flex-col overflow-hidden rounded-2xl border shadow-sm"
             >
@@ -2127,9 +2077,28 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                   </p>
                 </div>
 
-                <UButton size="sm" icon="i-lucide-plus" @click="handleAddField">
-                  {{ t({ en: "Add field", ru: "Добавить поле" }) }}
-                </UButton>
+                <div class="flex items-center gap-2">
+                  <UButton size="sm" icon="i-lucide-plus" @click="handleAddField">
+                    {{ t({ en: "Add field", ru: "Добавить поле" }) }}
+                  </UButton>
+
+                  <UButton
+                    color="neutral"
+                    variant="soft"
+                    size="sm"
+                    icon="i-lucide-settings-2"
+                    @click="openCollectionSettingsModal"
+                  >
+                    {{ t({ en: "Settings", ru: "Настройки" }) }}
+                    <UBadge
+                      v-if="selectedCollectionIssues.length > 0"
+                      :label="getIssueCountLabel(selectedCollectionIssues.length)"
+                      color="error"
+                      variant="subtle"
+                      size="sm"
+                    />
+                  </UButton>
+                </div>
               </div>
 
               <div
@@ -2288,22 +2257,33 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                 <div class="flex shrink-0 flex-col gap-4 p-4 pb-2">
                   <template v-if="activeFieldInspectorTab === 'settings'">
                     <div>
-                      <div class="mb-2 flex items-center gap-2">
-                        <h3 class="text-base font-semibold">
-                          {{ t({ en: "Field settings", ru: "Настройки поля" }) }}
-                        </h3>
-                        <UBadge
-                          :label="getInspectorFieldTypeBadgeLabel(selectedEditorField)"
-                          color="primary"
-                          variant="soft"
-                          size="sm"
-                        />
-                        <UBadge
-                          v-if="isGeneratedField(selectedEditorField)"
-                          :label="getGeneratedFieldLabel(selectedEditorField)"
-                          color="neutral"
-                          variant="subtle"
-                          size="sm"
+                      <div class="mb-2 flex items-start justify-between gap-3">
+                        <div class="flex min-w-0 flex-wrap items-center gap-2">
+                          <h3 class="text-base font-semibold">
+                            {{ t({ en: "Field settings", ru: "Настройки поля" }) }}
+                          </h3>
+                          <UBadge
+                            :label="getInspectorFieldTypeBadgeLabel(selectedEditorField)"
+                            color="primary"
+                            variant="soft"
+                            size="sm"
+                          />
+                          <UBadge
+                            v-if="isGeneratedField(selectedEditorField)"
+                            :label="getGeneratedFieldLabel(selectedEditorField)"
+                            color="neutral"
+                            variant="subtle"
+                            size="sm"
+                          />
+                        </div>
+
+                        <UButton
+                          color="error"
+                          variant="ghost"
+                          size="xs"
+                          icon="i-lucide-trash-2"
+                          :title="t({ en: 'Delete field', ru: 'Удалить поле' })"
+                          @click="openDeleteFieldModal(selectedFieldIndex)"
                         />
                       </div>
                       <p class="text-muted text-xs leading-5">
@@ -2609,18 +2589,6 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
                           {{ getFieldTypeHint(selectedEditorField.type) }}
                         </p>
                       </div>
-
-                      <div class="border-default mt-2 border-t pt-4">
-                        <UButton
-                          color="error"
-                          variant="outline"
-                          size="sm"
-                          icon="i-lucide-trash-2"
-                          @click="openDeleteFieldModal(selectedFieldIndex)"
-                        >
-                          {{ t({ en: "Delete field", ru: "Удалить поле" }) }}
-                        </UButton>
-                      </div>
                     </template>
 
                     <template v-else>
@@ -2720,120 +2688,124 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
               </div>
             </aside>
           </section>
-
-          <section
-            v-else
-            class="mx-auto flex min-h-0 w-full max-w-4xl flex-1 flex-col gap-3 overflow-auto pr-1"
-          >
-            <div class="border-default bg-default rounded-2xl border p-4 shadow-sm">
-              <div class="mb-4 flex items-start justify-between gap-4">
-                <div>
-                  <h3 class="text-base font-semibold">
-                    {{ t({ en: "Collection", ru: "Коллекция" }) }}
-                  </h3>
-                  <p class="text-muted mt-1 text-xs leading-5">
-                    {{
-                      t({
-                        en: "Give the collection a clear name and a short stable ID.",
-                        ru: "Дай коллекции понятное имя и короткий стабильный ID.",
-                      })
-                    }}
-                  </p>
-                </div>
-
-                <UButton
-                  color="error"
-                  variant="ghost"
-                  size="sm"
-                  icon="i-lucide-trash-2"
-                  @click="openDeleteCollectionModal"
-                >
-                  {{ t({ en: "Delete", ru: "Удалить" }) }}
-                </UButton>
-              </div>
-
-              <div
-                v-if="selectedCollectionIssues.length > 0"
-                class="border-error/30 bg-error/5 text-error mb-4 rounded-2xl border p-3 text-sm"
-              >
-                <p class="font-medium">
-                  {{ t({ en: "Collection issues", ru: "Ошибки коллекции" }) }}
-                </p>
-                <ul class="mt-2 flex list-disc flex-col gap-1 pl-5">
-                  <li v-for="issue in selectedCollectionIssues" :key="issue">{{ issue }}</li>
-                </ul>
-              </div>
-
-              <div class="grid gap-3 md:grid-cols-2">
-                <div class="flex flex-col gap-2">
-                  <label class="text-sm font-medium">{{ t({ en: "Name", ru: "Название" }) }}</label>
-                  <UInput
-                    :model-value="(selectedCollection.data.name as string | undefined) ?? ''"
-                    @blur="handleUpdateCollectionName($event)"
-                    @keyup.enter="handleUpdateCollectionName($event)"
-                  />
-                </div>
-
-                <div class="flex flex-col gap-2">
-                  <label class="text-sm font-medium">{{
-                    t({ en: "Collection ID", ru: "ID коллекции" })
-                  }}</label>
-                  <UInput
-                    :model-value="getCollectionManifestId(selectedCollection)"
-                    @blur="handleUpdateCollectionManifestId($event)"
-                    @keyup.enter="handleUpdateCollectionManifestId($event)"
-                  />
-                  <p class="text-muted text-xs">
-                    {{
-                      t({
-                        en: "Use this ID in links and references. Better set it once and keep it stable.",
-                        ru: "Используй этот ID в связях и ссылках. Лучше задать его один раз и потом не менять.",
-                      })
-                    }}
-                  </p>
-                </div>
-
-                <div class="flex flex-col gap-2 md:col-span-2">
-                  <label class="text-sm font-medium">{{
-                    t({ en: "Description", ru: "Описание" })
-                  }}</label>
-                  <UTextarea
-                    :model-value="(selectedCollection.data.description as string | undefined) ?? ''"
-                    :rows="4"
-                    @blur="handleUpdateCollectionDescription($event)"
-                  />
-                </div>
-              </div>
-            </div>
-
-            <div class="border-default bg-default rounded-2xl border p-4 shadow-sm">
-              <h3 class="text-base font-semibold">{{ t({ en: "Behavior", ru: "Поведение" }) }}</h3>
-              <div class="mt-3 flex flex-col gap-3">
-                <div class="border-default rounded-2xl border p-3">
-                  <div class="mb-2 flex items-center justify-between gap-4">
-                    <p class="text-sm font-medium">
-                      {{ t({ en: "One record", ru: "Одна запись" }) }}
-                    </p>
-                    <USwitch
-                      :model-value="selectedCollection.data.singleton === true"
-                      @update:model-value="handleUpdateSingleton(Boolean($event))"
-                    />
-                  </div>
-                  <p class="text-muted text-xs">
-                    {{
-                      t({
-                        en: "Turn this on for settings or any other single shared record.",
-                        ru: "Включай это для настроек или любой другой общей одиночной записи.",
-                      })
-                    }}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
         </div>
       </div>
     </div>
+
+    <UModal
+      v-model:open="collectionSettingsModalOpen"
+      :title="t({ en: 'Collection settings', ru: 'Настройки коллекции' })"
+      :description="
+        t({
+          en: 'Edit the selected collection name, ID, description and behavior.',
+          ru: 'Настрой название, ID, описание и поведение выбранной коллекции.',
+        })
+      "
+      scrollable
+      :ui="{ content: 'w-[min(720px,calc(100vw-2rem))] max-w-none', body: 'p-0' }"
+    >
+      <template #body>
+        <div v-if="selectedCollection" class="flex flex-col gap-4 p-4">
+          <div
+            v-if="selectedCollectionIssues.length > 0"
+            class="border-error/30 bg-error/5 text-error rounded-2xl border p-3 text-sm"
+          >
+            <p class="font-medium">
+              {{ t({ en: "Collection issues", ru: "Ошибки коллекции" }) }}
+            </p>
+            <ul class="mt-2 flex list-disc flex-col gap-1 pl-5">
+              <li v-for="issue in selectedCollectionIssues" :key="issue">{{ issue }}</li>
+            </ul>
+          </div>
+
+          <div class="grid gap-3 md:grid-cols-2">
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-medium">{{ t({ en: "Name", ru: "Название" }) }}</label>
+              <UInput
+                :model-value="(selectedCollection.data.name as string | undefined) ?? ''"
+                @blur="handleUpdateCollectionName($event)"
+                @keyup.enter="handleUpdateCollectionName($event)"
+              />
+            </div>
+
+            <div class="flex flex-col gap-2">
+              <label class="text-sm font-medium">{{
+                t({ en: "Collection ID", ru: "ID коллекции" })
+              }}</label>
+              <UInput
+                :model-value="getCollectionManifestId(selectedCollection)"
+                @blur="handleUpdateCollectionManifestId($event)"
+                @keyup.enter="handleUpdateCollectionManifestId($event)"
+              />
+              <p class="text-muted text-xs">
+                {{
+                  t({
+                    en: "Use this ID in links and references. Better set it once and keep it stable.",
+                    ru: "Используй этот ID в связях и ссылках. Лучше задать его один раз и потом не менять.",
+                  })
+                }}
+              </p>
+            </div>
+
+            <div class="flex flex-col gap-2 md:col-span-2">
+              <label class="text-sm font-medium">{{
+                t({ en: "Description", ru: "Описание" })
+              }}</label>
+              <UTextarea
+                :model-value="(selectedCollection.data.description as string | undefined) ?? ''"
+                :rows="4"
+                @blur="handleUpdateCollectionDescription($event)"
+              />
+            </div>
+          </div>
+
+          <div class="border-default rounded-2xl border p-3">
+            <div class="mb-2 flex items-center justify-between gap-4">
+              <p class="text-sm font-medium">
+                {{ t({ en: "One record", ru: "Одна запись" }) }}
+              </p>
+              <USwitch
+                :model-value="selectedCollection.data.singleton === true"
+                @update:model-value="handleUpdateSingleton(Boolean($event))"
+              />
+            </div>
+            <p class="text-muted text-xs">
+              {{
+                t({
+                  en: "Turn this on for settings or any other single shared record.",
+                  ru: "Включай это для настроек или любой другой общей одиночной записи.",
+                })
+              }}
+            </p>
+          </div>
+
+          <div class="border-default flex items-center justify-between gap-4 border-t pt-4">
+            <div>
+              <p class="text-sm font-medium">
+                {{ t({ en: "Delete collection", ru: "Удалить коллекцию" }) }}
+              </p>
+              <p class="text-muted mt-1 text-xs">
+                {{
+                  t({
+                    en: "Remove this collection from the project.",
+                    ru: "Удалить эту коллекцию из проекта.",
+                  })
+                }}
+              </p>
+            </div>
+            <UButton
+              color="error"
+              variant="outline"
+              size="sm"
+              icon="i-lucide-trash-2"
+              @click="openDeleteCollectionModal"
+            >
+              {{ t({ en: "Delete", ru: "Удалить" }) }}
+            </UButton>
+          </div>
+        </div>
+      </template>
+    </UModal>
 
     <UModal
       v-model:open="deleteCollectionModalOpen"
