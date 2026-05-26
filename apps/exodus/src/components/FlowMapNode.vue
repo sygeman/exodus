@@ -2,6 +2,7 @@
 import { computed, inject, type Ref } from "vue"
 import { useT } from "@exodus/edem-vue"
 import { Handle, Position, type NodeProps } from "@vue-flow/core"
+import type { DataManifest as ProjectDataManifest } from "@/project-manifest-schemas"
 import type { ProcedureCatalogModule } from "@/procedure-catalog"
 import { getNodeIcon, type VueFlowNodeData } from "@/types/flow"
 import { useNodeTestMode } from "@/composables/useNodeTestMode"
@@ -25,13 +26,16 @@ const injectedGraphNodesRef = inject<Ref<GraphNode[]>>("graphNodes")
 const injectedGraphEdgesRef = inject<Ref<GraphEdge[]>>("graphEdges")
 const injectedProjectFlowsRef = inject<Ref<ProjectFlowItem[]>>("projectFlows")
 const injectedProcedureCatalogRef = inject<Ref<ProcedureCatalogModule[]>>("procedureCatalog")
+const injectedProjectDataManifestRef =
+  inject<Ref<ProjectDataManifest | null>>("projectDataManifest")
 const injectedOpenMapEditor = inject<((nodeId: string) => void) | null>("openMapEditor", null)
 
 if (
   !injectedGraphNodesRef ||
   !injectedGraphEdgesRef ||
   !injectedProjectFlowsRef ||
-  !injectedProcedureCatalogRef
+  !injectedProcedureCatalogRef ||
+  !injectedProjectDataManifestRef
 ) {
   throw new Error("FlowMapNode requires graph context")
 }
@@ -40,6 +44,7 @@ const graphNodesRef = injectedGraphNodesRef
 const graphEdgesRef = injectedGraphEdgesRef
 const projectFlows = injectedProjectFlowsRef
 const procedureCatalog = injectedProcedureCatalogRef
+const projectDataManifest = injectedProjectDataManifestRef
 
 const { borderClass, showErrorTooltip, handleBorderClass, iconColorClass } = useNodeTestMode(
   () => props.data,
@@ -54,6 +59,7 @@ const model = useFlowMapEditorModel({
   graphEdges: graphEdgesRef,
   projectFlows,
   procedureCatalog,
+  projectDataManifest,
 })
 
 const contextLabel = computed(() => {

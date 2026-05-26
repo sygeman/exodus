@@ -3,6 +3,7 @@ import { computed, inject, type ComputedRef, type Ref } from "vue"
 import { useT } from "@exodus/edem-vue"
 import { buildNodeContract } from "@/flow-node-contract"
 import FlowContractFieldList from "@/components/FlowContractFieldList.vue"
+import type { DataManifest as ProjectDataManifest } from "@/project-manifest-schemas"
 import {
   listCallableModuleOptions,
   listCallableProcedureOptions,
@@ -72,6 +73,8 @@ const injectedGraphNodesRef = inject<Ref<GraphNode[]>>("graphNodes")
 const injectedGraphEdgesRef = inject<Ref<GraphEdge[]>>("graphEdges")
 const injectedProjectFlowsRef = inject<Ref<ProjectFlowItem[]>>("projectFlows")
 const injectedProcedureCatalogRef = inject<Ref<ProcedureCatalogModule[]>>("procedureCatalog")
+const injectedProjectDataManifestRef =
+  inject<Ref<ProjectDataManifest | null>>("projectDataManifest")
 const injectedProcedureCatalogLoadingRef = inject<Ref<boolean>>("procedureCatalogLoading")
 const injectedProcedureCatalogErrorRef = inject<Ref<string | null>>("procedureCatalogError")
 const injectedSelectedNodeIdRef = inject<Ref<string | null>>("selectedNodeId")
@@ -83,6 +86,7 @@ if (
   !injectedGraphEdgesRef ||
   !injectedProjectFlowsRef ||
   !injectedProcedureCatalogRef ||
+  !injectedProjectDataManifestRef ||
   !injectedProcedureCatalogLoadingRef ||
   !injectedProcedureCatalogErrorRef ||
   !injectedSelectedNodeIdRef ||
@@ -96,6 +100,7 @@ const graphNodesRef = injectedGraphNodesRef
 const graphEdgesRef = injectedGraphEdgesRef
 const projectFlows = injectedProjectFlowsRef
 const procedureCatalog = injectedProcedureCatalogRef
+const projectDataManifest = injectedProjectDataManifestRef
 const procedureCatalogLoading = injectedProcedureCatalogLoadingRef
 const procedureCatalogError = injectedProcedureCatalogErrorRef
 const selectedNodeId = injectedSelectedNodeIdRef
@@ -452,6 +457,9 @@ const nodeContract = computed(() => {
     },
     procedureCatalog: procedureCatalog.value,
     projectFlows: projectFlows.value,
+    projectDataManifest: projectDataManifest.value,
+    graphNodes: nodes.value,
+    graphEdges: edges.value,
   })
 })
 

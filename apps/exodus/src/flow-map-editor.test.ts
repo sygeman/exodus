@@ -1,4 +1,5 @@
 import { describe, expect, it } from "bun:test"
+import { ref } from "vue"
 import type { NodeContractField } from "./flow-node-contract"
 import {
   canMapFieldToTarget,
@@ -7,6 +8,7 @@ import {
   isTargetPathSatisfied,
   replaceLiteralMapping,
   replaceSourceMapping,
+  useFlowMapEditorModel,
 } from "./flow-map-editor"
 
 function field(name: string, type: string, children: NodeContractField[] = []): NodeContractField {
@@ -86,5 +88,90 @@ describe("flow map editor helpers", () => {
     expect(canMapFieldToTarget(stringField, objectField)).toBe(false)
     expect(canMapFieldToTarget(objectField, stringField)).toBe(false)
     expect(canMapFieldToTarget(objectField, unknownField)).toBe(true)
+  })
+
+  it("exposes project collection fields for data call targets", () => {
+    const model = useFlowMapEditorModel({
+      nodeId: () => "map-1",
+      graphNodes: ref([
+        {
+          id: "map-1",
+          type: "map",
+          data: {
+            type: "map",
+            mappings: [
+              {
+                kind: "literal" as const,
+                sourcePath: "",
+                targetPath: "collection_id",
+                literal: "posts",
+              },
+            ],
+          },
+        },
+        {
+          id: "call-1",
+          type: "call",
+          data: {
+            type: "call",
+            module: "data",
+            procedure: "createItem",
+          },
+        },
+      ]),
+      graphEdges: ref([{ id: "edge-1", source: "map-1", target: "call-1" }]),
+      projectFlows: ref([]),
+      procedureCatalog: ref([
+        {
+          module: "data",
+          procedures: [
+            {
+              name: "createItem",
+              kind: "mutation" as const,
+              inputSchema: {
+                mode: "json-schema" as const,
+                schema: {
+                  type: "object",
+                  required: ["collection_id", "data"],
+                  properties: {
+                    collection_id: { type: "string" },
+                    data: { type: "object" },
+                  },
+                },
+              },
+              outputSchema: {
+                mode: "json-schema" as const,
+                schema: {
+                  type: "object",
+                  required: ["id"],
+                  properties: {
+                    id: { type: "string" },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ]),
+      projectDataManifest: ref({
+        collections: [
+          {
+            id: "posts",
+            name: "Posts",
+            fields: [
+              { name: "title", type: "string", required: true },
+              { name: "status", type: "string" },
+            ],
+          },
+        ],
+      }),
+    })
+
+    expect(model.targetMappableItems.value.map((item) => item.path)).toEqual([
+      "collection_id",
+      "data",
+      "data.title",
+      "data.status",
+    ])
   })
 })

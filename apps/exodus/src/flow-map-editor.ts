@@ -1,5 +1,6 @@
 import { computed, type Ref } from "vue"
 import { buildNodeContract, type NodeContractField } from "./flow-node-contract"
+import type { DataManifest as ProjectDataManifest } from "./project-manifest-schemas"
 import type { ProcedureCatalogModule } from "./procedure-catalog"
 
 export type MapNodeMapping = {
@@ -56,6 +57,7 @@ type UseFlowMapEditorModelInput = {
   graphEdges: Ref<GraphEdge[]>
   projectFlows: Ref<ProjectFlowItem[]>
   procedureCatalog: Ref<ProcedureCatalogModule[]>
+  projectDataManifest?: Ref<ProjectDataManifest | null>
   saveGraph?: () => void
 }
 
@@ -268,6 +270,7 @@ export function useFlowMapEditorModel(input: UseFlowMapEditorModelInput) {
       graphEdges: input.graphEdges.value,
       procedureCatalog: input.procedureCatalog.value,
       projectFlows: input.projectFlows.value,
+      projectDataManifest: input.projectDataManifest?.value ?? null,
       visited: new Set(),
     }),
   )
@@ -279,6 +282,7 @@ export function useFlowMapEditorModel(input: UseFlowMapEditorModelInput) {
       graphEdges: input.graphEdges.value,
       procedureCatalog: input.procedureCatalog.value,
       projectFlows: input.projectFlows.value,
+      projectDataManifest: input.projectDataManifest?.value ?? null,
       visited: new Set(),
     }),
   )
@@ -388,6 +392,7 @@ function getOutputFieldsForNode(input: {
   graphEdges: GraphEdge[]
   procedureCatalog: ProcedureCatalogModule[]
   projectFlows: ProjectFlowItem[]
+  projectDataManifest: ProjectDataManifest | null
   visited: Set<string>
 }): NodeContractField[] {
   if (!input.nodeId || input.visited.has(input.nodeId)) {
@@ -409,6 +414,9 @@ function getOutputFieldsForNode(input: {
     node,
     procedureCatalog: input.procedureCatalog,
     projectFlows: input.projectFlows,
+    projectDataManifest: input.projectDataManifest,
+    graphNodes: input.graphNodes,
+    graphEdges: input.graphEdges,
   }).output.fields
 }
 
@@ -418,6 +426,7 @@ function getInputFieldsForNode(input: {
   graphEdges: GraphEdge[]
   procedureCatalog: ProcedureCatalogModule[]
   projectFlows: ProjectFlowItem[]
+  projectDataManifest: ProjectDataManifest | null
   visited: Set<string>
 }): NodeContractField[] {
   if (!input.nodeId || input.visited.has(input.nodeId)) {
@@ -439,6 +448,9 @@ function getInputFieldsForNode(input: {
     node,
     procedureCatalog: input.procedureCatalog,
     projectFlows: input.projectFlows,
+    projectDataManifest: input.projectDataManifest,
+    graphNodes: input.graphNodes,
+    graphEdges: input.graphEdges,
   }).input.fields
 }
 

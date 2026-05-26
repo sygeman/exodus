@@ -1,5 +1,10 @@
 import { normalizeProjectFlowGraph } from "./project-flow-normalization"
 import type {
+  DataManifest as ProjectDataManifest,
+  ManifestCollection,
+  ManifestField,
+} from "./project-manifest-schemas"
+import type {
   ProcedureCatalogModule,
   ProcedureCatalogProcedure,
   ProcedureCatalogSchemaDescriptor,
@@ -19,6 +24,17 @@ type FlowNodeLike = {
   id: string
   type: string
   data: NodeData
+}
+
+type GraphNodeLike = {
+  id: string
+  type: string
+  data: NodeData
+}
+
+type GraphEdgeLike = {
+  source: string
+  target: string
 }
 
 type FlowSourceItem = {
@@ -64,6 +80,9 @@ export function buildNodeContract(input: {
   node: FlowNodeLike
   procedureCatalog: ProcedureCatalogModule[]
   projectFlows?: FlowSourceItem[]
+  projectDataManifest?: ProjectDataManifest | null
+  graphNodes?: GraphNodeLike[]
+  graphEdges?: GraphEdgeLike[]
 }): NodeContract {
   const nodeType = getNodeType(input.node)
 
@@ -72,7 +91,11 @@ export function buildNodeContract(input: {
       return buildTriggerContract(input.node, input.procedureCatalog)
 
     case NodeType.call:
-      return buildCallContract(input.node, input.procedureCatalog)
+      return buildCallContract(input.node, input.procedureCatalog, {
+        projectDataManifest: input.projectDataManifest,
+        graphNodes: input.graphNodes,
+        graphEdges: input.graphEdges,
+      })
 
     case NodeType.condition:
       return {
@@ -294,6 +317,11 @@ function buildTriggerContract(
 function buildCallContract(
   node: FlowNodeLike,
   procedureCatalog: ProcedureCatalogModule[],
+  context: {
+    projectDataManifest?: ProjectDataManifest | null
+    graphNodes?: GraphNodeLike[]
+    graphEdges?: GraphEdgeLike[]
+  } = {},
 ): NodeContract {
   const moduleName = typeof node.data.module === "string" ? node.data.module : ""
   const procedureName = typeof node.data.procedure === "string" ? node.data.procedure : ""
@@ -323,7 +351,7 @@ function buildCallContract(
     }
   }
 
-  return {
+  const baseContract = {
     reference: `${moduleName}.${procedureName}`,
     input: schemaSectionFromDescriptor(
       procedure.inputSchema,
@@ -337,6 +365,329 @@ function buildCallContract(
       "Input payload is checked against the procedure schema before execution.",
       collectSchemaRulesFromDescriptor(procedure.inputSchema),
     ),
+  }
+
+  if (moduleName !== "data") {
+    return baseContract
+  }
+
+  return specializeDataProcedureContract({
+    baseContract,
+    procedureName,
+    resolvedCollection: resolveProjectCollectionForCallNode({
+      node,
+      projectDataManifest: context.projectDataManifest ?? null,
+      graphNodes: context.graphNodes ?? [],
+      graphEdges: context.graphEdges ?? [],
+    }),
+  })
+}
+
+type ResolvedProjectCollection = {
+  collectionId: string | null
+  collection: ManifestCollection | null
+}
+
+function specializeDataProcedureContract(input: {
+  baseContract: NodeContract
+  procedureName: string
+  resolvedCollection: ResolvedProjectCollection
+}): NodeContract {
+  if (!isSchemaAwareDataProcedure(input.procedureName)) {
+    return input.baseContract
+  }
+
+  const { collection } = input.resolvedCollection
+  let contract = input.baseContract
+
+  switch (input.procedureName) {
+    case "createItem":
+    case "updateSingleton":
+      if (collection) {
+        contract = {
+          ...contract,
+          input: replaceTopLevelFieldInSection(
+            contract.input,
+            buildCollectionDataField("data", true, collection),
+          ),
+        }
+      }
+      break
+
+    case "getSingleton":
+      if (collection) {
+        contract = {
+          ...contract,
+          output: replaceTopLevelFieldInSection(
+            contract.output,
+            buildCollectionItemField("item", true, collection, {
+              note: "Can be empty when the singleton item does not exist yet.",
+            }),
+          ),
+        }
+      }
+      break
+
+    case "queryItems":
+    case "searchItems":
+    case "getDeletedItems":
+      if (collection) {
+        contract = {
+          ...contract,
+          output: replaceTopLevelFieldInSection(
+            contract.output,
+            buildCollectionItemsField(collection),
+          ),
+        }
+      }
+      break
+  }
+
+  return appendValidationRules(
+    contract,
+    buildCollectionSchemaRules(input.procedureName, input.resolvedCollection),
+  )
+}
+
+function isSchemaAwareDataProcedure(procedureName: string): boolean {
+  return (
+    procedureName === "createItem" ||
+    procedureName === "updateSingleton" ||
+    procedureName === "getSingleton" ||
+    procedureName === "queryItems" ||
+    procedureName === "countItems" ||
+    procedureName === "deleteItemsByFilter" ||
+    procedureName === "searchItems" ||
+    procedureName === "getDeletedItems"
+  )
+}
+
+function resolveProjectCollectionForCallNode(input: {
+  node: FlowNodeLike
+  projectDataManifest: ProjectDataManifest | null
+  graphNodes: GraphNodeLike[]
+  graphEdges: GraphEdgeLike[]
+}): ResolvedProjectCollection {
+  const collectionId =
+    getInlineCollectionId(input.node) ??
+    findLiteralStringMappingOnIncomingMap({
+      nodeId: input.node.id,
+      targetPath: "collection_id",
+      graphNodes: input.graphNodes,
+      graphEdges: input.graphEdges,
+    })
+
+  if (!collectionId) {
+    return { collectionId: null, collection: null }
+  }
+
+  return {
+    collectionId,
+    collection:
+      input.projectDataManifest?.collections.find((collection) => collection.id === collectionId) ??
+      null,
+  }
+}
+
+function getInlineCollectionId(node: FlowNodeLike): string | null {
+  const value = node.data.collection_id
+  return typeof value === "string" && value.trim() !== "" ? value : null
+}
+
+function findLiteralStringMappingOnIncomingMap(input: {
+  nodeId: string
+  targetPath: string
+  graphNodes: GraphNodeLike[]
+  graphEdges: GraphEdgeLike[]
+}): string | null {
+  for (const edge of input.graphEdges) {
+    if (edge.target !== input.nodeId) {
+      continue
+    }
+
+    const sourceNode = input.graphNodes.find((candidate) => candidate.id === edge.source)
+    if (!sourceNode || getNodeType(sourceNode) !== NodeType.map) {
+      continue
+    }
+
+    const literal = findLiteralStringMappingValue(sourceNode.data.mappings, input.targetPath)
+    if (literal) {
+      return literal
+    }
+  }
+
+  return null
+}
+
+function findLiteralStringMappingValue(mappings: unknown, targetPath: string): string | null {
+  if (!Array.isArray(mappings)) {
+    return null
+  }
+
+  for (const entry of mappings) {
+    if (
+      !isRecord(entry) ||
+      entry.kind !== "literal" ||
+      entry.targetPath !== targetPath ||
+      typeof entry.literal !== "string" ||
+      entry.literal.trim() === ""
+    ) {
+      continue
+    }
+
+    return entry.literal
+  }
+
+  return null
+}
+
+function buildCollectionSchemaRules(
+  procedureName: string,
+  resolvedCollection: ResolvedProjectCollection,
+): string[] {
+  if (!isSchemaAwareDataProcedure(procedureName)) {
+    return []
+  }
+
+  if (resolvedCollection.collection) {
+    return [`Collection schema: ${resolvedCollection.collection.id}`]
+  }
+
+  if (resolvedCollection.collectionId) {
+    return [`Collection schema not found in project data: ${resolvedCollection.collectionId}`]
+  }
+
+  return ["Collection schema is dynamic until collection_id is fixed in the incoming map."]
+}
+
+function buildCollectionDataField(
+  name: string,
+  required: boolean,
+  collection: ManifestCollection,
+): NodeContractField {
+  return field(
+    name,
+    "object",
+    required,
+    [],
+    collection.fields.map((collectionField) => manifestFieldToContractField(collectionField)),
+    `Fields from project collection "${collection.id}".`,
+  )
+}
+
+function buildCollectionItemsField(collection: ManifestCollection): NodeContractField {
+  return field(
+    "items",
+    "array",
+    true,
+    [],
+    buildCollectionItemFields(collection),
+    `Each item uses fields from collection "${collection.id}".`,
+  )
+}
+
+function buildCollectionItemField(
+  name: string,
+  required: boolean,
+  collection: ManifestCollection,
+  options: { note?: string | null } = {},
+): NodeContractField {
+  return field(
+    name,
+    "object",
+    required,
+    [],
+    buildCollectionItemFields(collection),
+    options.note ?? null,
+  )
+}
+
+function buildCollectionItemFields(collection: ManifestCollection): NodeContractField[] {
+  return [
+    field("id", "string", true),
+    field("collection_id", "string", true, [], [], null, [collection.id]),
+    field("schema_version", "number", false),
+    field("source", "string", false),
+    buildCollectionDataField("data", true, collection),
+    field("created_at", "number", true),
+    field("updated_at", "number", true),
+    field("deleted_at", "number", false),
+  ]
+}
+
+function manifestFieldToContractField(collectionField: ManifestField): NodeContractField {
+  return field(
+    collectionField.name,
+    collectionField.type,
+    collectionField.required === true,
+    [],
+    [],
+    buildManifestFieldNote(collectionField),
+    collectManifestFieldEnumValues(collectionField),
+  )
+}
+
+function buildManifestFieldNote(collectionField: ManifestField): string | null {
+  const note = compact([
+    collectionField.relation ? `Target collection: ${collectionField.relation.collection}` : null,
+    collectionField.default !== undefined
+      ? `Default: ${formatValue(collectionField.default)}`
+      : null,
+  ])
+
+  return note.length > 0 ? note.join(" · ") : null
+}
+
+function collectManifestFieldEnumValues(collectionField: ManifestField): string[] {
+  const items = collectionField.options?.items
+  if (!Array.isArray(items)) {
+    return []
+  }
+
+  return unique(
+    items.map((item) =>
+      typeof item === "string" || typeof item === "number" || typeof item === "boolean"
+        ? String(item)
+        : "",
+    ),
+  )
+}
+
+function replaceTopLevelFieldInSection(
+  section: NodeContractSchemaSection,
+  replacement: NodeContractField,
+): NodeContractSchemaSection {
+  return {
+    ...section,
+    fields: replaceTopLevelField(section.fields, replacement),
+  }
+}
+
+function replaceTopLevelField(
+  fields: NodeContractField[],
+  replacement: NodeContractField,
+): NodeContractField[] {
+  const index = fields.findIndex((candidate) => candidate.name === replacement.name)
+  if (index === -1) {
+    return [...fields, replacement]
+  }
+
+  return fields.map((candidate, candidateIndex) =>
+    candidateIndex === index ? replacement : candidate,
+  )
+}
+
+function appendValidationRules(contract: NodeContract, rules: string[]): NodeContract {
+  if (rules.length === 0) {
+    return contract
+  }
+
+  return {
+    ...contract,
+    validation: {
+      ...contract.validation,
+      rules: unique([...contract.validation.rules, ...rules]),
+    },
   }
 }
 

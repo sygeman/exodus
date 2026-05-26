@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed, watch, provide, markRaw } from "vue"
-import type { Manifest as DataManifest } from "@exodus/edem-data"
 import { useRoute } from "vue-router"
 import {
   VueFlow,
@@ -13,6 +12,11 @@ import { Background } from "@vue-flow/background"
 import { edem } from "@/edem"
 import { useCollectionQuery } from "@/hooks"
 import { PROJECT_FLOW_SOURCE_COLLECTION } from "@/flow-collections"
+import { PROJECT_DATA_SOURCE_COLLECTION } from "@/project-manifest-collections"
+import {
+  buildProjectDataManifest,
+  type ProjectDataCollectionSourceItem,
+} from "@/project-data-source"
 import { useFlowHighlighting } from "@/composables/useFlowHighlighting"
 import FlowNode from "@/components/FlowNode.vue"
 import FlowMapNode from "@/components/FlowMapNode.vue"
@@ -38,6 +42,11 @@ const { data: flows } = useCollectionQuery(PROJECT_FLOW_SOURCE_COLLECTION, () =>
   filter: { project_id: { _eq: projectId.value } },
 }))
 
+const { data: projectDataCollections } = useCollectionQuery(PROJECT_DATA_SOURCE_COLLECTION, () => ({
+  filter: { project_id: { _eq: projectId.value } },
+  sort: ["name"],
+}))
+
 type FlowItem = {
   id: string
   source?: string | null
@@ -54,6 +63,11 @@ type FlowItem = {
 
 const flow = computed(() => flows.value.find((f) => f.id === flowId.value) as FlowItem | undefined)
 const flowKind = computed(() => getFlowKind(flow.value?.data.kind))
+const projectDataManifest = computed(() =>
+  buildProjectDataManifest(
+    projectDataCollections.value as unknown as ProjectDataCollectionSourceItem[],
+  ),
+)
 
 const { viewport, setViewport, onMoveEnd, screenToFlowCoordinate } = useVueFlow()
 
@@ -147,9 +161,6 @@ const vfEdges = ref<GraphEdgeView[]>([])
 const procedureCatalog = ref<ProcedureCatalogModule[]>([])
 const procedureCatalogLoading = ref(false)
 const procedureCatalogError = ref<string | null>(null)
-const dataManifest = ref<DataManifest | null>(null)
-const dataManifestLoading = ref(false)
-const dataManifestError = ref<string | null>(null)
 
 const suppressAutoSave = ref(false)
 const hydratedFlowId = ref<string | null>(null)
@@ -227,24 +238,7 @@ async function loadProcedureCatalog() {
   }
 }
 
-async function loadDataManifest() {
-  if (dataManifestLoading.value) return
-
-  dataManifestLoading.value = true
-  dataManifestError.value = null
-
-  try {
-    dataManifest.value = await edem.data.getManifest(undefined)
-  } catch (error) {
-    dataManifestError.value = error instanceof Error ? error.message : String(error)
-    console.error("[project-flows] Failed to load data manifest:", error)
-  } finally {
-    dataManifestLoading.value = false
-  }
-}
-
 void loadProcedureCatalog()
-void loadDataManifest()
 
 watch(
   [flow, procedureCatalog],
@@ -635,9 +629,7 @@ provide("projectFlows", flows)
 provide("procedureCatalog", procedureCatalog)
 provide("procedureCatalogLoading", procedureCatalogLoading)
 provide("procedureCatalogError", procedureCatalogError)
-provide("dataManifest", dataManifest)
-provide("dataManifestLoading", dataManifestLoading)
-provide("dataManifestError", dataManifestError)
+provide("projectDataManifest", projectDataManifest)
 provide("selectedNodeId", selectedNodeId)
 provide("saveGraph", saveToDb)
 provide("openMapEditor", openMapEditor)

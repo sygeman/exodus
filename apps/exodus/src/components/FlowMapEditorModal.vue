@@ -1,7 +1,11 @@
 <script setup lang="ts">
 import { computed, inject, ref, type Ref } from "vue"
-import type { Manifest, ManifestCollection, ManifestField } from "@exodus/edem-data"
 import { useT } from "@exodus/edem-vue"
+import type {
+  DataManifest as ProjectDataManifest,
+  ManifestCollection,
+  ManifestField,
+} from "@/project-manifest-schemas"
 import type { ProcedureCatalogModule } from "@/procedure-catalog"
 import {
   canMapFieldToTarget,
@@ -86,7 +90,8 @@ const injectedGraphNodesRef = inject<Ref<GraphNode[]>>("graphNodes")
 const injectedGraphEdgesRef = inject<Ref<GraphEdge[]>>("graphEdges")
 const injectedProjectFlowsRef = inject<Ref<ProjectFlowItem[]>>("projectFlows")
 const injectedProcedureCatalogRef = inject<Ref<ProcedureCatalogModule[]>>("procedureCatalog")
-const injectedDataManifestRef = inject<Ref<Manifest | null>>("dataManifest")
+const injectedProjectDataManifestRef =
+  inject<Ref<ProjectDataManifest | null>>("projectDataManifest")
 const injectedSaveGraph = inject<() => void>("saveGraph")
 
 if (
@@ -94,7 +99,7 @@ if (
   !injectedGraphEdgesRef ||
   !injectedProjectFlowsRef ||
   !injectedProcedureCatalogRef ||
-  !injectedDataManifestRef ||
+  !injectedProjectDataManifestRef ||
   !injectedSaveGraph
 ) {
   throw new Error("FlowMapEditorModal requires graph context")
@@ -104,7 +109,7 @@ const graphNodesRef = injectedGraphNodesRef
 const graphEdgesRef = injectedGraphEdgesRef
 const projectFlows = injectedProjectFlowsRef
 const procedureCatalog = injectedProcedureCatalogRef
-const dataManifest = injectedDataManifestRef
+const projectDataManifest = injectedProjectDataManifestRef
 const saveGraph = injectedSaveGraph
 
 const targetFilter = ref("")
@@ -124,6 +129,7 @@ const model = useFlowMapEditorModel({
   graphEdges: graphEdgesRef,
   projectFlows,
   procedureCatalog,
+  projectDataManifest,
   saveGraph,
 })
 
@@ -248,12 +254,23 @@ const filterRuleSourceOptions = computed<SourceOption[]>(() =>
   })),
 )
 
-const collectionOptions = computed<SourceOption[]>(() =>
-  (dataManifest.value?.collections ?? []).map((collection) => ({
+const availableCollectionOptions = computed<SourceOption[]>(() =>
+  (projectDataManifest.value?.collections ?? []).map((collection) => ({
     label: getCollectionDisplayLabel(collection),
     value: collection.id,
   })),
 )
+
+function getCollectionOptions(currentValue: string | null): SourceOption[] {
+  if (
+    !currentValue ||
+    availableCollectionOptions.value.some((option) => option.value === currentValue)
+  ) {
+    return availableCollectionOptions.value
+  }
+
+  return [{ label: currentValue, value: currentValue }, ...availableCollectionOptions.value]
+}
 
 function isOpenObjectRow(row: FlatTreeRow): boolean {
   return row.mappable && row.field.type === "object" && row.field.children.length === 0
@@ -303,7 +320,8 @@ function getManifestCollectionById(collectionId: string | null): ManifestCollect
   }
 
   return (
-    dataManifest.value?.collections.find((collection) => collection.id === collectionId) ?? null
+    projectDataManifest.value?.collections.find((collection) => collection.id === collectionId) ??
+    null
   )
 }
 
@@ -881,7 +899,10 @@ function getSelectStringValue(value: unknown): string | null {
                   </p>
 
                   <div
-                    v-if="isCollectionIdRow(row) && collectionOptions.length > 0"
+                    v-if="
+                      isCollectionIdRow(row) &&
+                      getCollectionOptions(getLiteralStringValue(row.path)).length > 0
+                    "
                     class="bg-elevated/40 mb-3 rounded-xl p-3"
                   >
                     <p class="text-muted mb-2 text-xs">
@@ -889,7 +910,7 @@ function getSelectStringValue(value: unknown): string | null {
                     </p>
                     <USelectMenu
                       :model-value="getLiteralStringValue(row.path) ?? undefined"
-                      :items="collectionOptions"
+                      :items="getCollectionOptions(getLiteralStringValue(row.path))"
                       value-key="value"
                       label-key="label"
                       color="neutral"
@@ -945,7 +966,9 @@ function getSelectStringValue(value: unknown): string | null {
                       </p>
                       <USelectMenu
                         :model-value="getSelectedCollectionIdForFilterPath(row.path) ?? undefined"
-                        :items="collectionOptions"
+                        :items="
+                          getCollectionOptions(getSelectedCollectionIdForFilterPath(row.path))
+                        "
                         value-key="value"
                         label-key="label"
                         color="neutral"

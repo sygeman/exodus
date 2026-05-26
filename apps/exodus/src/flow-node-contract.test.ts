@@ -283,4 +283,349 @@ describe("flow node contract", () => {
       },
     ])
   })
+
+  it("uses project data schema for createItem when collection_id is fixed in the incoming map", () => {
+    const contract = buildNodeContract({
+      node: {
+        id: "call-create",
+        type: "call",
+        data: {
+          type: "call",
+          module: "data",
+          procedure: "createItem",
+        },
+      },
+      procedureCatalog: [
+        {
+          module: "data",
+          procedures: [
+            {
+              name: "createItem",
+              kind: "mutation",
+              inputSchema: {
+                mode: "json-schema",
+                schema: {
+                  type: "object",
+                  required: ["collection_id", "data"],
+                  properties: {
+                    collection_id: { type: "string" },
+                    data: { type: "object" },
+                  },
+                },
+              },
+              outputSchema: {
+                mode: "json-schema",
+                schema: {
+                  type: "object",
+                  required: ["id"],
+                  properties: {
+                    id: { type: "string" },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      projectDataManifest: {
+        collections: [
+          {
+            id: "posts",
+            name: "Posts",
+            fields: [
+              { name: "title", type: "string", required: true },
+              {
+                name: "status",
+                type: "string",
+                default: "draft",
+                options: { items: ["draft", "published"] },
+              },
+              {
+                name: "author",
+                type: "relation",
+                relation: { collection: "users" },
+              },
+            ],
+          },
+        ],
+      },
+      graphNodes: [
+        {
+          id: "map-1",
+          type: "map",
+          data: {
+            type: "map",
+            mappings: [
+              { kind: "literal", sourcePath: "", targetPath: "collection_id", literal: "posts" },
+            ],
+          },
+        },
+        {
+          id: "call-create",
+          type: "call",
+          data: {
+            type: "call",
+            module: "data",
+            procedure: "createItem",
+          },
+        },
+      ],
+      graphEdges: [{ source: "map-1", target: "call-create" }],
+    })
+
+    expect(contract.validation.rules).toContain("Collection schema: posts")
+    expect(contract.input.fields).toEqual([
+      {
+        name: "collection_id",
+        type: "string",
+        required: true,
+        enumValues: [],
+        constraints: [],
+        children: [],
+        note: null,
+      },
+      {
+        name: "data",
+        type: "object",
+        required: true,
+        enumValues: [],
+        constraints: [],
+        note: 'Fields from project collection "posts".',
+        children: [
+          {
+            name: "title",
+            type: "string",
+            required: true,
+            enumValues: [],
+            constraints: [],
+            children: [],
+            note: null,
+          },
+          {
+            name: "status",
+            type: "string",
+            required: false,
+            enumValues: ["draft", "published"],
+            constraints: [],
+            children: [],
+            note: "Default: draft",
+          },
+          {
+            name: "author",
+            type: "relation",
+            required: false,
+            enumValues: [],
+            constraints: [],
+            children: [],
+            note: "Target collection: users",
+          },
+        ],
+      },
+    ])
+  })
+
+  it("uses project data schema for getSingleton output when collection_id is fixed in the incoming map", () => {
+    const contract = buildNodeContract({
+      node: {
+        id: "call-singleton",
+        type: "call",
+        data: {
+          type: "call",
+          module: "data",
+          procedure: "getSingleton",
+        },
+      },
+      procedureCatalog: [
+        {
+          module: "data",
+          procedures: [
+            {
+              name: "getSingleton",
+              kind: "query",
+              inputSchema: {
+                mode: "json-schema",
+                schema: {
+                  type: "object",
+                  required: ["collection_id"],
+                  properties: {
+                    collection_id: { type: "string" },
+                  },
+                },
+              },
+              outputSchema: {
+                mode: "json-schema",
+                schema: {
+                  type: "object",
+                  required: ["item"],
+                  properties: {
+                    item: {
+                      anyOf: [
+                        {
+                          type: "object",
+                          required: ["id", "collection_id", "data", "created_at", "updated_at"],
+                          properties: {
+                            id: { type: "string" },
+                            collection_id: { type: "string" },
+                            data: { type: "object" },
+                            created_at: { type: "number" },
+                            updated_at: { type: "number" },
+                          },
+                        },
+                        { type: "null" },
+                      ],
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+      ],
+      projectDataManifest: {
+        collections: [
+          {
+            id: "settings",
+            name: "Settings",
+            singleton: true,
+            fields: [
+              { name: "locale", type: "string" },
+              { name: "dark", type: "boolean", default: false },
+            ],
+          },
+        ],
+      },
+      graphNodes: [
+        {
+          id: "map-1",
+          type: "map",
+          data: {
+            type: "map",
+            mappings: [
+              {
+                kind: "literal",
+                sourcePath: "",
+                targetPath: "collection_id",
+                literal: "settings",
+              },
+            ],
+          },
+        },
+        {
+          id: "call-singleton",
+          type: "call",
+          data: {
+            type: "call",
+            module: "data",
+            procedure: "getSingleton",
+          },
+        },
+      ],
+      graphEdges: [{ source: "map-1", target: "call-singleton" }],
+    })
+
+    expect(contract.validation.rules).toContain("Collection schema: settings")
+    expect(contract.output.fields).toEqual([
+      {
+        name: "item",
+        type: "object",
+        required: true,
+        enumValues: [],
+        constraints: [],
+        note: "Can be empty when the singleton item does not exist yet.",
+        children: [
+          {
+            name: "id",
+            type: "string",
+            required: true,
+            enumValues: [],
+            constraints: [],
+            children: [],
+            note: null,
+          },
+          {
+            name: "collection_id",
+            type: "string",
+            required: true,
+            enumValues: ["settings"],
+            constraints: [],
+            children: [],
+            note: null,
+          },
+          {
+            name: "schema_version",
+            type: "number",
+            required: false,
+            enumValues: [],
+            constraints: [],
+            children: [],
+            note: null,
+          },
+          {
+            name: "source",
+            type: "string",
+            required: false,
+            enumValues: [],
+            constraints: [],
+            children: [],
+            note: null,
+          },
+          {
+            name: "data",
+            type: "object",
+            required: true,
+            enumValues: [],
+            constraints: [],
+            note: 'Fields from project collection "settings".',
+            children: [
+              {
+                name: "locale",
+                type: "string",
+                required: false,
+                enumValues: [],
+                constraints: [],
+                children: [],
+                note: null,
+              },
+              {
+                name: "dark",
+                type: "boolean",
+                required: false,
+                enumValues: [],
+                constraints: [],
+                children: [],
+                note: "Default: false",
+              },
+            ],
+          },
+          {
+            name: "created_at",
+            type: "number",
+            required: true,
+            enumValues: [],
+            constraints: [],
+            children: [],
+            note: null,
+          },
+          {
+            name: "updated_at",
+            type: "number",
+            required: true,
+            enumValues: [],
+            constraints: [],
+            children: [],
+            note: null,
+          },
+          {
+            name: "deleted_at",
+            type: "number",
+            required: false,
+            enumValues: [],
+            constraints: [],
+            children: [],
+            note: null,
+          },
+        ],
+      },
+    ])
+  })
 })
