@@ -1,8 +1,14 @@
 <script setup lang="ts">
-import { computed, ref } from "vue"
+import { computed, ref, onErrorCaptured } from "vue"
 import { useT } from "@exodus/edem-vue"
-import { NUI_COMPONENTS_BY_CATEGORY, type NuiComponentMeta } from "@/generated-nuxt-ui-meta"
-import { UI_NODE_TEMPLATE_OPTIONS } from "@/project-ui-node-templates"
+import {
+  NUI_COMPONENTS,
+  NUI_COMPONENTS_BY_CATEGORY,
+  type NuiComponentMeta,
+} from "@/generated-nuxt-ui-meta"
+import { UI_NODE_TEMPLATE_OPTIONS, createDefaultUiNode } from "@/project-ui-node-templates"
+import type { ComponentNode } from "@/project-manifest-schemas"
+import ProjectUiPreviewNode from "@/components/ProjectUiPreviewNode.vue"
 
 defineOptions({ name: "ProjectUiAddComponentModal" })
 
@@ -92,6 +98,29 @@ const selectedMeta = computed(() => {
   return allComponents.value.find((c) => c.component === selectedComponent.value) ?? null
 })
 
+const previewError = ref(false)
+
+onErrorCaptured(() => {
+  previewError.value = true
+  return false
+})
+
+const previewNode = computed<ComponentNode | null>(() => {
+  if (!selectedComponent.value || previewError.value) return null
+  const meta = NUI_COMPONENTS[selectedComponent.value]
+  if (meta) {
+    const node: ComponentNode = { component: meta.name }
+    if (Object.keys(meta.defaults).length > 0) {
+      node.props = { ...meta.defaults }
+    }
+    if (meta.isContainer) {
+      node.children = []
+    }
+    return node
+  }
+  return createDefaultUiNode(selectedComponent.value)
+})
+
 function getCategoryLabel(category: string): string {
   const map: Record<string, string> = {
     html: "HTML",
@@ -108,6 +137,7 @@ function getCategoryLabel(category: string): string {
 
 function handleSelect(component: string): void {
   selectedComponent.value = component
+  previewError.value = false
 }
 
 function handleAdd(): void {
@@ -182,23 +212,29 @@ function handleOpenChange(value: boolean): void {
         <!-- Right: details -->
         <div class="flex min-w-0 flex-1 flex-col overflow-hidden">
           <div v-if="selectedMeta" class="flex min-h-0 flex-1 flex-col">
-            <div class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto p-4">
-              <div class="mb-3 flex items-center gap-2.5">
-                <div
-                  class="bg-elevated flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
-                >
-                  <UIcon :name="selectedMeta.icon" class="h-4 w-4" />
-                </div>
-                <div class="min-w-0">
-                  <p class="text-default truncate text-sm font-medium">{{ selectedMeta.label }}</p>
-                  <p class="text-muted text-[10px]">
-                    {{ getCategoryLabel(selectedMeta.category) }}
-                  </p>
-                </div>
+            <div class="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+              <div v-if="previewNode" class="border-default mx-4 mt-4 rounded-xl border p-3">
+                <ProjectUiPreviewNode :node="previewNode" />
               </div>
 
-              <template v-if="selectedMeta.meta">
-                <div class="mb-3">
+              <div class="p-4">
+                <div class="mb-3 flex items-center gap-2.5">
+                  <div
+                    class="bg-elevated flex h-8 w-8 shrink-0 items-center justify-center rounded-lg"
+                  >
+                    <UIcon :name="selectedMeta.icon" class="h-4 w-4" />
+                  </div>
+                  <div class="min-w-0">
+                    <p class="text-default truncate text-sm font-medium">
+                      {{ selectedMeta.label }}
+                    </p>
+                    <p class="text-muted text-[10px]">
+                      {{ getCategoryLabel(selectedMeta.category) }}
+                    </p>
+                  </div>
+                </div>
+
+                <div v-if="selectedMeta.meta" class="mb-3">
                   <p class="text-muted mb-0.5 text-[10px] font-medium tracking-wider uppercase">
                     {{ t({ en: "Type", ru: "Тип" }) }}
                   </p>
@@ -207,7 +243,10 @@ function handleOpenChange(value: boolean): void {
                   </p>
                 </div>
 
-                <div v-if="Object.keys(selectedMeta.meta.props).length > 0" class="mb-3">
+                <div
+                  v-if="selectedMeta.meta && Object.keys(selectedMeta.meta.props).length > 0"
+                  class="mb-3"
+                >
                   <p class="text-muted mb-1.5 text-[10px] font-medium tracking-wider uppercase">
                     {{ t({ en: "Props", ru: "Свойства" }) }}
                   </p>
@@ -229,7 +268,7 @@ function handleOpenChange(value: boolean): void {
                   </div>
                 </div>
 
-                <div v-if="Object.keys(selectedMeta.meta.defaults).length > 0">
+                <div v-if="selectedMeta.meta && Object.keys(selectedMeta.meta.defaults).length > 0">
                   <p class="text-muted mb-1.5 text-[10px] font-medium tracking-wider uppercase">
                     {{ t({ en: "Defaults", ru: "По умолчанию" }) }}
                   </p>
@@ -238,13 +277,11 @@ function handleOpenChange(value: boolean): void {
                     >{{ JSON.stringify(selectedMeta.meta.defaults, null, 2) }}</pre
                   >
                 </div>
-              </template>
 
-              <template v-else>
-                <p class="text-muted text-xs">
+                <p v-if="!selectedMeta.meta" class="text-muted text-xs">
                   {{ t({ en: "HTML element", ru: "HTML-элемент" }) }}
                 </p>
-              </template>
+              </div>
             </div>
 
             <div class="border-default flex shrink-0 justify-end border-t p-3">
