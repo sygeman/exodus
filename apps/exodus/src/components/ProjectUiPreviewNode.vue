@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from "vue"
+import { computed, ref, onErrorCaptured } from "vue"
 import type { ComponentNode, Translation } from "@/project-manifest-schemas"
 import { serializeUiNodePath, type UiNodePath } from "@/project-ui-tree"
 import { PREVIEW_REGISTRY } from "@/components/ProjectUiPreviewRegistry"
@@ -16,6 +16,13 @@ const props = defineProps<{
 const emit = defineEmits<{
   select: [path: UiNodePath]
 }>()
+
+const renderError = ref(false)
+
+onErrorCaptured(() => {
+  renderError.value = true
+  return false
+})
 
 const REGISTRY = PREVIEW_REGISTRY as Record<string, unknown>
 const KNOWN_DYNAMIC_COMPONENTS = new Set(Object.keys(REGISTRY))
@@ -47,6 +54,13 @@ const textContent = computed(() => {
   return null
 })
 
+function isValidComponent(value: unknown): boolean {
+  if (value === null || value === undefined) return false
+  if (typeof value === "string") return true
+  if (typeof value === "object" || typeof value === "function") return true
+  return false
+}
+
 const resolvedComponent = computed(() => {
   if (props.node.component === "template") {
     return "div"
@@ -57,8 +71,12 @@ const resolvedComponent = computed(() => {
     return props.node.component
   }
 
-  // Return actual component object from registry (not a string)
-  return REGISTRY[props.node.component] ?? "div"
+  const fromRegistry = REGISTRY[props.node.component]
+  if (isValidComponent(fromRegistry)) {
+    return fromRegistry
+  }
+
+  return "div"
 })
 
 const showsFallback = computed(() => {
@@ -103,6 +121,30 @@ const renderedProps = computed<Record<string, unknown>>(() => {
     next.value = 50
   }
 
+  if (props.node.component === "USelect" && next.modelValue === undefined) {
+    next.modelValue = ""
+  }
+
+  if (props.node.component === "USwitch" && next.modelValue === undefined) {
+    next.modelValue = false
+  }
+
+  if (props.node.component === "UCheckbox" && next.modelValue === undefined) {
+    next.modelValue = false
+  }
+
+  if (props.node.component === "URadioGroup" && next.modelValue === undefined) {
+    next.modelValue = ""
+  }
+
+  if (props.node.component === "UInputNumber" && next.modelValue === undefined) {
+    next.modelValue = 0
+  }
+
+  if (props.node.component === "USlider" && next.modelValue === undefined) {
+    next.modelValue = 0
+  }
+
   return next
 })
 
@@ -129,7 +171,14 @@ function handleClick(event: MouseEvent): void {
 </script>
 
 <template>
-  <template v-if="node.component === 'template'">
+  <div
+    v-if="renderError"
+    class="border-default/60 bg-elevated/30 text-muted rounded-xl border border-dashed px-4 py-6 text-sm"
+  >
+    {{ node.component }}
+  </div>
+
+  <template v-else-if="node.component === 'template'">
     <ProjectUiPreviewNode
       v-for="(child, childIndex) in childNodes"
       :key="`${isRoot ? 'root' : node.component}.${childIndex}`"
