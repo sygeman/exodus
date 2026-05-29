@@ -12,10 +12,8 @@ import {
   getProjectUiComponentName,
   type ProjectUiComponentSourceItem,
 } from "@/project-ui-source"
-import type { ComponentNode } from "@/project-manifest-schemas"
 import { getUiNodeLabel, getUiNodeIcon } from "@/project-ui-tree"
 import ProjectUiComponentEditor from "@/components/ProjectUiComponentEditor.vue"
-import { NUI_COMPONENTS_BY_CATEGORY, type NuiComponentMeta } from "@/generated-nuxt-ui-meta"
 
 const t = useT()
 const route = useRoute()
@@ -33,9 +31,6 @@ const { data: components, loading } = useCollectionQuery(
 const componentItems = computed(() => components.value as unknown as ProjectUiComponentSourceItem[])
 const selectedComponentId = ref<string | null>(null)
 const searchQuery = ref("")
-const expandedCategories = ref<Set<string>>(
-  new Set(["form", "layout", "navigation", "data", "feedback", "overlay", "other"]),
-)
 const showSkeleton = ref(false)
 const editorRef = useTemplateRef<InstanceType<typeof ProjectUiComponentEditor>>("editorRef")
 
@@ -180,6 +175,7 @@ useSortable(layersTreeRef, treeItems, {
     const { oldIndex, newIndex, item, from: fromEl } = e
     if (oldIndex === undefined || newIndex === undefined || oldIndex === newIndex) return
     if (!editorRef.value) return
+    if (!item.parentNode) return
 
     removeNode(item)
     insertNodeAt(fromEl, item, oldIndex)
@@ -214,62 +210,6 @@ const filteredProjectComponents = computed(() => {
     return name.includes(query) || manifestId.includes(query)
   })
 })
-
-const filteredNuiComponents = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase()
-  const result: Record<string, NuiComponentMeta[]> = {}
-
-  for (const [category, comps] of Object.entries(NUI_COMPONENTS_BY_CATEGORY)) {
-    const filtered = comps.filter(
-      (c) =>
-        !query || c.name.toLowerCase().includes(query) || category.toLowerCase().includes(query),
-    )
-    if (filtered.length > 0) {
-      result[category] = filtered
-    }
-  }
-
-  return result
-})
-
-function toggleCategory(category: string): void {
-  if (expandedCategories.value.has(category)) {
-    expandedCategories.value.delete(category)
-  } else {
-    expandedCategories.value.add(category)
-  }
-}
-
-function getCategoryLabel(category: string): string {
-  const map: Record<string, string> = {
-    layout: "Layout",
-    form: "Form",
-    data: "Data",
-    feedback: "Feedback",
-    navigation: "Navigation",
-    overlay: "Overlay",
-    other: "Other",
-  }
-  return map[category] ?? category
-}
-
-function createNuiNode(meta: NuiComponentMeta): ComponentNode {
-  const node: ComponentNode = { component: meta.name }
-
-  if (Object.keys(meta.defaults).length > 0) {
-    node.props = { ...meta.defaults }
-  }
-
-  if (meta.isContainer) {
-    node.children = []
-  }
-
-  return node
-}
-
-function handleAddNuiComponent(meta: NuiComponentMeta): void {
-  editorRef.value?.addNode(() => createNuiNode(meta))
-}
 
 function getRouteStringParam(value: unknown): string | null {
   if (typeof value === "string") return value
@@ -419,43 +359,6 @@ watch(
                 </span>
               </span>
             </button>
-
-            <div
-              v-if="
-                filteredProjectComponents.length > 0 &&
-                Object.keys(filteredNuiComponents).length > 0
-              "
-              class="border-default mx-2 my-1 border-t"
-            />
-
-            <template v-for="(comps, category) in filteredNuiComponents" :key="category">
-              <button
-                class="text-muted hover:text-default flex items-center gap-1.5 rounded-lg px-2 pt-2 pb-1 text-left text-[10px] font-medium tracking-wider uppercase transition-colors"
-                @click="toggleCategory(category)"
-              >
-                <UIcon
-                  :name="
-                    expandedCategories.has(category)
-                      ? 'i-lucide-chevron-down'
-                      : 'i-lucide-chevron-right'
-                  "
-                  class="h-3 w-3"
-                />
-                <span>{{ getCategoryLabel(category) }}</span>
-                <span class="text-muted/60 ml-auto">{{ comps.length }}</span>
-              </button>
-
-              <div v-if="expandedCategories.has(category)" class="flex flex-col gap-0.5">
-                <button
-                  v-for="comp in comps"
-                  :key="comp.name"
-                  class="hover:bg-elevated text-muted hover:text-default flex items-center gap-2 rounded-lg py-1 pr-2 pl-6 text-left transition-colors"
-                  @click="handleAddNuiComponent(comp)"
-                >
-                  <span class="truncate font-mono text-xs">{{ comp.name }}</span>
-                </button>
-              </div>
-            </template>
           </div>
         </UScrollArea>
       </div>

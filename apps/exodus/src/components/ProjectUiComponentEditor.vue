@@ -18,7 +18,8 @@ import { useT } from "@exodus/edem-vue"
 import { edem } from "@/edem"
 import ProjectUiPreviewNode from "@/components/ProjectUiPreviewNode.vue"
 import { NUI_COMPONENTS, type NuiComponentMeta, type NuiPropMeta } from "@/generated-nuxt-ui-meta"
-import { UI_NODE_TEMPLATE_OPTIONS, createDefaultUiNode } from "@/project-ui-node-templates"
+import { createDefaultUiNode } from "@/project-ui-node-templates"
+import ProjectUiAddComponentModal from "@/components/ProjectUiAddComponentModal.vue"
 
 defineOptions({ name: "ProjectUiComponentEditor" })
 
@@ -104,11 +105,6 @@ const selectedNodeSiblingsCount = computed(() => {
   const parent = getUiNodeAtPath(tree.value, parentPath)
   return Array.isArray(parent?.children) ? parent.children.length : 0
 })
-
-// --- HTML templates (top bar) ---
-const htmlTemplates = computed(() =>
-  UI_NODE_TEMPLATE_OPTIONS.filter((opt) => opt.group === "html" && opt.icon),
-)
 
 // --- Sync tree from props ---
 watch(
@@ -207,6 +203,28 @@ function handleAddNode(nodeFactory: () => ComponentNode): void {
     selectedNodePath.value = result.path
     scheduleSave(result.tree)
   }
+}
+
+const addModalOpen = ref(false)
+
+function handleModalSelect(component: string): void {
+  const meta = NUI_COMPONENTS[component]
+  if (meta) {
+    handleAddNode(() => createNuiNode(meta))
+  } else {
+    handleAddNode(() => createDefaultUiNode(component))
+  }
+}
+
+function createNuiNode(meta: NuiComponentMeta): ComponentNode {
+  const node: ComponentNode = { component: meta.name }
+  if (Object.keys(meta.defaults).length > 0) {
+    node.props = { ...meta.defaults }
+  }
+  if (meta.isContainer) {
+    node.children = []
+  }
+  return node
 }
 
 function handleDeleteNode(): void {
@@ -382,24 +400,19 @@ function getNodeChildrenSummary(node: ComponentNode): string {
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pt-3 pb-3">
-    <!-- Top bar: HTML elements + actions -->
+    <!-- Top bar: actions -->
     <div class="mb-3 flex shrink-0 items-center gap-2 overflow-x-auto">
-      <div
-        class="border-default bg-default flex items-center gap-1 rounded-xl border px-2 py-1.5 shadow-sm"
-      >
-        <UTooltip v-for="item in htmlTemplates" :key="item.component" :text="item.label">
-          <button
-            class="text-muted hover:text-default hover:bg-elevated flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
-            @click="handleAddNode(() => createDefaultUiNode(item.component))"
-          >
-            <UIcon :name="item.icon" class="h-4 w-4" />
-          </button>
-        </UTooltip>
-      </div>
-
       <div
         class="border-default bg-default flex items-center gap-0.5 rounded-xl border px-1.5 py-1.5 shadow-sm"
       >
+        <UTooltip :text="t({ en: 'Add component', ru: 'Добавить компонент' })">
+          <button
+            class="text-muted hover:text-default hover:bg-elevated flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
+            @click="addModalOpen = true"
+          >
+            <UIcon name="i-lucide-plus" class="h-4 w-4" />
+          </button>
+        </UTooltip>
         <UTooltip :text="t({ en: 'Move up', ru: 'Выше' })">
           <button
             class="text-muted hover:text-default hover:bg-elevated flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-30"
@@ -633,4 +646,6 @@ function getNodeChildrenSummary(node: ComponentNode): string {
       </aside>
     </section>
   </div>
+
+  <ProjectUiAddComponentModal v-model:open="addModalOpen" @select="handleModalSelect" />
 </template>
