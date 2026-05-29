@@ -104,9 +104,8 @@ const selectedTreeItem = computed(() => {
   return findTreeItemBySlot(treeItems.value, selectedKey.value)
 })
 
-function handleTreeSelect(item: TreeItem, handleSelect?: () => void): void {
+function handleTreeSelect(item: TreeItem): void {
   if (!item.slot) return
-  handleSelect?.()
   const path = getEntryPathByKey(item.slot)
   if (path) editorRef.value?.selectNode(path)
 }
@@ -448,8 +447,8 @@ watch(
             :unmount-on-hide="false"
             @update:model-value="handleTreeSelect"
           >
-            <template #item-label="{ item, handleSelect }">
-              <span class="cursor-grab text-xs" @click="handleTreeSelect(item, handleSelect)">
+            <template #item-label="{ item }">
+              <span class="cursor-grab text-xs" @click="handleTreeSelect(item)">
                 {{ item.label }}
               </span>
             </template>
