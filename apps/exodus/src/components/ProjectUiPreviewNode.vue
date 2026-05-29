@@ -3,6 +3,7 @@ import { computed, ref, onErrorCaptured } from "vue"
 import type { ComponentNode, Translation } from "@/project-manifest-schemas"
 import { serializeUiNodePath, type UiNodePath } from "@/project-ui-tree"
 import { PREVIEW_REGISTRY } from "@/components/ProjectUiPreviewRegistry"
+import ProjectUiPreviewRender from "@/components/ProjectUiPreviewRender.vue"
 
 defineOptions({ name: "ProjectUiPreviewNode" })
 
@@ -54,31 +55,6 @@ const textContent = computed(() => {
   return null
 })
 
-function isValidComponent(value: unknown): boolean {
-  if (value === null || value === undefined) return false
-  if (typeof value === "string") return true
-  if (typeof value === "object" || typeof value === "function") return true
-  return false
-}
-
-const resolvedComponent = computed(() => {
-  if (props.node.component === "template") {
-    return "div"
-  }
-
-  const isHtmlTag = props.node.component[0] === props.node.component[0]?.toLowerCase()
-  if (isHtmlTag) {
-    return props.node.component
-  }
-
-  const fromRegistry = REGISTRY[props.node.component]
-  if (isValidComponent(fromRegistry)) {
-    return fromRegistry
-  }
-
-  return "div"
-})
-
 const showsFallback = computed(() => {
   if (props.node.component === "template") {
     return false
@@ -88,64 +64,6 @@ const showsFallback = computed(() => {
   if (isHtmlTag) return false
   if (KNOWN_DYNAMIC_COMPONENTS.has(props.node.component)) return false
   return true
-})
-
-const renderedProps = computed<Record<string, unknown>>(() => {
-  const next = { ...props.node.props }
-
-  if (props.node.component === "RouterLink" && typeof next.to !== "string") {
-    next.to = "#"
-  }
-
-  if (props.node.component === "UInput" && next.modelValue === undefined) {
-    next.modelValue = ""
-  }
-
-  if (props.node.component === "UTextarea" && next.modelValue === undefined) {
-    next.modelValue = ""
-  }
-
-  if (props.node.component === "UIcon" && typeof next.name !== "string") {
-    next.name = "i-lucide-square"
-  }
-
-  if (props.node.component === "UBadge" && next.label === undefined && !props.node.children) {
-    next.label = "Badge"
-  }
-
-  if (props.node.component === "UButton" && next.label === undefined && !props.node.children) {
-    next.label = "Button"
-  }
-
-  if (props.node.component === "UProgress" && next.value === undefined) {
-    next.value = 50
-  }
-
-  if (props.node.component === "USelect" && next.modelValue === undefined) {
-    next.modelValue = ""
-  }
-
-  if (props.node.component === "USwitch" && next.modelValue === undefined) {
-    next.modelValue = false
-  }
-
-  if (props.node.component === "UCheckbox" && next.modelValue === undefined) {
-    next.modelValue = false
-  }
-
-  if (props.node.component === "URadioGroup" && next.modelValue === undefined) {
-    next.modelValue = ""
-  }
-
-  if (props.node.component === "UInputNumber" && next.modelValue === undefined) {
-    next.modelValue = 0
-  }
-
-  if (props.node.component === "USlider" && next.modelValue === undefined) {
-    next.modelValue = 0
-  }
-
-  return next
 })
 
 function isTranslation(value: unknown): value is Translation {
@@ -189,10 +107,9 @@ function handleClick(event: MouseEvent): void {
     />
   </template>
 
-  <component
+  <ProjectUiPreviewRender
     v-else
-    :is="resolvedComponent"
-    v-bind="renderedProps"
+    :node="node"
     :data-path="pathKey"
     :class="isSelected ? 'ui-preview-selected' : ''"
     class="ui-preview-node"
@@ -220,7 +137,7 @@ function handleClick(event: MouseEvent): void {
         {{ node.component }}
       </div>
     </template>
-  </component>
+  </ProjectUiPreviewRender>
 </template>
 
 <style scoped>
