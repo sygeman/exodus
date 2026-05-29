@@ -399,79 +399,79 @@ function getNodeChildrenSummary(node: ComponentNode): string {
 </script>
 
 <template>
-  <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pt-3 pb-3">
-    <!-- Top bar: actions -->
-    <div class="mb-3 flex shrink-0 items-center gap-2 overflow-x-auto">
-      <div
-        class="border-default bg-default flex items-center gap-0.5 rounded-xl border px-1.5 py-1.5 shadow-sm"
-      >
-        <UTooltip :text="t({ en: 'Add component', ru: 'Добавить компонент' })">
-          <button
-            class="text-muted hover:text-default hover:bg-elevated flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
-            @click="addModalOpen = true"
-          >
-            <UIcon name="i-lucide-plus" class="h-4 w-4" />
-          </button>
-        </UTooltip>
-        <UTooltip :text="t({ en: 'Move up', ru: 'Выше' })">
-          <button
-            class="text-muted hover:text-default hover:bg-elevated flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-30"
-            :disabled="selectedNodeIsRoot || selectedNodeIndex <= 0"
-            @click="handleMoveUp"
-          >
-            <UIcon name="i-lucide-arrow-up" class="h-4 w-4" />
-          </button>
-        </UTooltip>
-        <UTooltip :text="t({ en: 'Move down', ru: 'Ниже' })">
-          <button
-            class="text-muted hover:text-default hover:bg-elevated flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-30"
-            :disabled="selectedNodeIsRoot || selectedNodeIndex >= selectedNodeSiblingsCount - 1"
-            @click="handleMoveDown"
-          >
-            <UIcon name="i-lucide-arrow-down" class="h-4 w-4" />
-          </button>
-        </UTooltip>
-        <UTooltip :text="t({ en: 'Duplicate', ru: 'Дублировать' })">
-          <button
-            class="text-muted hover:text-default hover:bg-elevated flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-30"
-            :disabled="selectedNodeIsRoot"
-            @click="handleDuplicateNode"
-          >
-            <UIcon name="i-lucide-copy" class="h-4 w-4" />
-          </button>
-        </UTooltip>
-        <UTooltip :text="t({ en: 'Delete', ru: 'Удалить' })">
-          <button
-            class="text-muted hover:text-destructive hover:bg-destructive/10 flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-30"
-            :disabled="selectedNodeIsRoot"
-            @click="handleDeleteNode"
-          >
-            <UIcon name="i-lucide-trash-2" class="h-4 w-4" />
-          </button>
-        </UTooltip>
+  <div class="flex min-h-0 flex-1 gap-3 overflow-hidden p-3">
+    <!-- Center: Preview -->
+    <div
+      class="border-default bg-default flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border shadow-sm"
+    >
+      <div class="min-h-0 flex-1 overflow-auto p-4">
+        <ProjectUiPreviewNode
+          :node="tree"
+          :is-root="true"
+          :path="[]"
+          :selected-path="selectedNodePath"
+          @select="handlePreviewSelect"
+        />
       </div>
     </div>
 
-    <!-- Main: preview + inspector -->
-    <section class="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_380px]">
-      <!-- Center: Preview -->
-      <div
-        class="border-default bg-default flex min-h-0 flex-col overflow-hidden rounded-2xl border shadow-sm"
-      >
-        <div class="min-h-0 flex-1 overflow-auto p-4">
-          <ProjectUiPreviewNode
-            :node="tree"
-            :is-root="true"
-            :path="[]"
-            :selected-path="selectedNodePath"
-            @select="handlePreviewSelect"
-          />
+    <!-- Right: Toolbar + Inspector -->
+    <div class="flex w-[380px] shrink-0 flex-col gap-3 overflow-hidden">
+      <!-- Toolbar -->
+      <div class="flex shrink-0 items-center gap-2 overflow-x-auto">
+        <div
+          class="border-default bg-default flex items-center gap-0.5 rounded-xl border px-1.5 py-1.5 shadow-sm"
+        >
+          <UTooltip :text="t({ en: 'Add component', ru: 'Добавить компонент' })">
+            <button
+              class="bg-primary text-inverted hover:bg-primary/90 flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
+              @click="addModalOpen = true"
+            >
+              <UIcon name="i-lucide-plus" class="h-4 w-4" />
+            </button>
+          </UTooltip>
+          <UTooltip :text="t({ en: 'Move up', ru: 'Выше' })">
+            <button
+              class="text-muted hover:text-default hover:bg-elevated flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-30"
+              :disabled="selectedNodeIsRoot || selectedNodeIndex <= 0"
+              @click="handleMoveUp"
+            >
+              <UIcon name="i-lucide-arrow-up" class="h-4 w-4" />
+            </button>
+          </UTooltip>
+          <UTooltip :text="t({ en: 'Move down', ru: 'Ниже' })">
+            <button
+              class="text-muted hover:text-default hover:bg-elevated flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-30"
+              :disabled="selectedNodeIsRoot || selectedNodeIndex >= selectedNodeSiblingsCount - 1"
+              @click="handleMoveDown"
+            >
+              <UIcon name="i-lucide-arrow-down" class="h-4 w-4" />
+            </button>
+          </UTooltip>
+          <UTooltip :text="t({ en: 'Duplicate', ru: 'Дублировать' })">
+            <button
+              class="text-muted hover:text-default hover:bg-elevated flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-30"
+              :disabled="selectedNodeIsRoot"
+              @click="handleDuplicateNode"
+            >
+              <UIcon name="i-lucide-copy" class="h-4 w-4" />
+            </button>
+          </UTooltip>
+          <UTooltip :text="t({ en: 'Delete', ru: 'Удалить' })">
+            <button
+              class="text-muted hover:text-destructive hover:bg-destructive/10 flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-30"
+              :disabled="selectedNodeIsRoot"
+              @click="handleDeleteNode"
+            >
+              <UIcon name="i-lucide-trash-2" class="h-4 w-4" />
+            </button>
+          </UTooltip>
         </div>
       </div>
 
-      <!-- Right: Inspector -->
+      <!-- Inspector -->
       <aside
-        class="border-default bg-default flex min-h-0 flex-col overflow-hidden rounded-2xl border shadow-sm"
+        class="border-default bg-default flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border shadow-sm"
       >
         <div class="flex shrink-0 flex-col gap-4 p-4 pb-2">
           <div>
@@ -644,7 +644,7 @@ function getNodeChildrenSummary(node: ComponentNode): string {
           </div>
         </UScrollArea>
       </aside>
-    </section>
+    </div>
   </div>
 
   <ProjectUiAddComponentModal v-model:open="addModalOpen" @select="handleModalSelect" />
