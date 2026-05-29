@@ -485,8 +485,8 @@ function getNodeChildrenSummary(node: ComponentNode): string {
       <aside
         class="border-default bg-default flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border shadow-sm"
       >
-        <UScrollArea class="min-h-0 flex-1">
-          <div class="flex flex-col gap-4 p-4">
+        <UScrollArea class="min-h-0 flex-1 p-4">
+          <div class="flex flex-col gap-4">
             <!-- Text children -->
             <div
               v-if="typeof selectedNode.children === 'string'"
