@@ -122,16 +122,6 @@ const selectedTreeItem = computed({
   },
 })
 
-function handleTreeSelect(item: TreeItem): void {
-  if (!item.slot) return
-  const path = getEntryPathByKey(item.slot)
-  if (path) editorRef.value?.selectNode(path)
-}
-
-function handleTreeItemSelect(e: Event): void {
-  e.preventDefault()
-}
-
 // Sync tree items when editor data changes
 watch(
   () => editorRef.value?.nodeEntries,
@@ -469,10 +459,9 @@ watch(
             size="sm"
             :nested="false"
             :unmount-on-hide="false"
-            @select="handleTreeItemSelect"
           >
             <template #item-label="{ item }">
-              <span class="cursor-grab text-xs" @click="handleTreeSelect(item)">
+              <span class="cursor-grab text-xs">
                 {{ item.label }}
               </span>
             </template>
