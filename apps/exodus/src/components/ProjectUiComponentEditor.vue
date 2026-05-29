@@ -73,7 +73,6 @@ const selectedNode = computed(
   () => getUiNodeAtPath(tree.value, selectedNodePath.value) ?? tree.value,
 )
 
-const selectedNodePathLabel = computed(() => serializeUiNodePath(selectedNodePath.value))
 const selectedNodeSummary = computed(() => getNodeChildrenSummary(selectedNode.value))
 const canAcceptChildren = computed(() => canUiNodeAcceptChildren(selectedNode.value))
 
@@ -471,21 +470,8 @@ function getNodeChildrenSummary(node: ComponentNode): string {
       <aside
         class="border-default bg-default flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border shadow-sm"
       >
-        <div class="flex shrink-0 flex-col gap-4 p-4 pb-2">
-          <div>
-            <div class="mb-2 flex items-start justify-between gap-3">
-              <div class="flex min-w-0 flex-wrap items-center gap-2">
-                <h3 class="text-base font-semibold">
-                  {{ t({ en: "Inspector", ru: "Инспектор" }) }}
-                </h3>
-                <UBadge :label="selectedNodePathLabel" color="primary" variant="soft" size="sm" />
-              </div>
-            </div>
-          </div>
-        </div>
-
         <UScrollArea class="min-h-0 flex-1">
-          <div class="flex flex-col gap-4 px-4 pb-4">
+          <div class="flex flex-col gap-4 p-4">
             <!-- Node info -->
             <div class="border-default rounded-2xl border p-3">
               <div class="flex items-start gap-3">
