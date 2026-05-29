@@ -368,13 +368,7 @@ watch(
         v-if="selectedComponent && editorRef"
         class="border-default bg-default mt-3 flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border shadow-sm"
       >
-        <div class="border-default shrink-0 border-b px-3 py-2.5">
-          <p class="text-xs font-medium">
-            {{ t({ en: "Layers", ru: "Слои" }) }}
-          </p>
-        </div>
-
-        <UScrollArea class="min-h-0 flex-1">
+        <UScrollArea class="min-h-0 flex-1 p-2">
           <UTree
             v-if="treeItems.length > 0"
             ref="layersTreeRef"
