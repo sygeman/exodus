@@ -1,24 +1,35 @@
 <script setup lang="ts">
 import { computed } from "vue"
 import type { ComponentNode, Translation } from "@/project-manifest-schemas"
+import { serializeUiNodePath, type UiNodePath } from "@/project-ui-tree"
+import { PREVIEW_REGISTRY } from "@/components/ProjectUiPreviewRegistry"
 
 defineOptions({ name: "ProjectUiPreviewNode" })
 
 const props = defineProps<{
   node: ComponentNode
   isRoot?: boolean
+  path?: UiNodePath
+  selectedPath?: UiNodePath
 }>()
 
-const KNOWN_DYNAMIC_COMPONENTS = new Set([
-  "RouterLink",
-  "UButton",
-  "UIcon",
-  "UInput",
-  "UTextarea",
-  "USwitch",
-  "USelect",
-  "UTooltip",
-])
+const emit = defineEmits<{
+  select: [path: UiNodePath]
+}>()
+
+const REGISTRY = PREVIEW_REGISTRY as Record<string, unknown>
+const KNOWN_DYNAMIC_COMPONENTS = new Set(Object.keys(REGISTRY))
+
+const nodePath = computed<UiNodePath>(() => props.path ?? [])
+
+const isSelected = computed(() => {
+  const sel = props.selectedPath
+  if (!sel || sel.length === 0) return false
+  const cur = nodePath.value
+  return cur.length === sel.length && cur.every((s, i) => s === sel[i])
+})
+
+const pathKey = computed(() => serializeUiNodePath(nodePath.value))
 
 const childNodes = computed<ComponentNode[]>(() =>
   Array.isArray(props.node.children) ? props.node.children : [],
@@ -42,11 +53,12 @@ const resolvedComponent = computed(() => {
   }
 
   const isHtmlTag = props.node.component[0] === props.node.component[0]?.toLowerCase()
-  if (isHtmlTag || KNOWN_DYNAMIC_COMPONENTS.has(props.node.component)) {
+  if (isHtmlTag) {
     return props.node.component
   }
 
-  return "div"
+  // Return actual component object from registry (not a string)
+  return REGISTRY[props.node.component] ?? "div"
 })
 
 const showsFallback = computed(() => {
@@ -55,7 +67,9 @@ const showsFallback = computed(() => {
   }
 
   const isHtmlTag = props.node.component[0] === props.node.component[0]?.toLowerCase()
-  return !isHtmlTag && !KNOWN_DYNAMIC_COMPONENTS.has(props.node.component)
+  if (isHtmlTag) return false
+  if (KNOWN_DYNAMIC_COMPONENTS.has(props.node.component)) return false
+  return true
 })
 
 const renderedProps = computed<Record<string, unknown>>(() => {
@@ -77,6 +91,18 @@ const renderedProps = computed<Record<string, unknown>>(() => {
     next.name = "i-lucide-square"
   }
 
+  if (props.node.component === "UBadge" && next.label === undefined && !props.node.children) {
+    next.label = "Badge"
+  }
+
+  if (props.node.component === "UButton" && next.label === undefined && !props.node.children) {
+    next.label = "Button"
+  }
+
+  if (props.node.component === "UProgress" && next.value === undefined) {
+    next.value = 50
+  }
+
   return next
 })
 
@@ -95,6 +121,11 @@ function resolveTranslation(value: Translation): string {
     value.ru ?? value.en ?? Object.values(value).find((entry) => typeof entry === "string") ?? ""
   )
 }
+
+function handleClick(event: MouseEvent): void {
+  event.stopPropagation()
+  emit("select", nodePath.value)
+}
 </script>
 
 <template>
@@ -103,15 +134,29 @@ function resolveTranslation(value: Translation): string {
       v-for="(child, childIndex) in childNodes"
       :key="`${isRoot ? 'root' : node.component}.${childIndex}`"
       :node="child"
+      :path="[...nodePath, childIndex]"
+      :selected-path="selectedPath"
+      @select="emit('select', $event)"
     />
   </template>
 
-  <component v-else :is="resolvedComponent" v-bind="renderedProps">
+  <component
+    v-else
+    :is="resolvedComponent"
+    v-bind="renderedProps"
+    :data-path="pathKey"
+    :class="isSelected ? 'ui-preview-selected' : ''"
+    class="ui-preview-node"
+    @click="handleClick"
+  >
     <template v-if="Array.isArray(node.children)">
       <ProjectUiPreviewNode
         v-for="(child, childIndex) in childNodes"
         :key="`${node.component}.${childIndex}`"
         :node="child"
+        :path="[...nodePath, childIndex]"
+        :selected-path="selectedPath"
+        @select="emit('select', $event)"
       />
     </template>
 
@@ -128,3 +173,24 @@ function resolveTranslation(value: Translation): string {
     </template>
   </component>
 </template>
+
+<style scoped>
+.ui-preview-node {
+  position: relative;
+  cursor: pointer;
+  outline: 2px solid transparent;
+  outline-offset: 2px;
+  border-radius: 4px;
+  transition:
+    outline-color 0.1s ease,
+    background-color 0.1s ease;
+}
+
+.ui-preview-node:hover {
+  outline-color: color-mix(in srgb, var(--ui-primary) 40%, transparent);
+}
+
+.ui-preview-node.ui-preview-selected {
+  outline-color: color-mix(in srgb, var(--ui-primary) 80%, transparent);
+}
+</style>

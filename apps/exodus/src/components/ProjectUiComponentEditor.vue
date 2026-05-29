@@ -1,15 +1,24 @@
 <script setup lang="ts">
-import { computed, ref, watch } from "vue"
+import { computed, ref, watch, nextTick } from "vue"
 import type { ComponentNode } from "@/project-manifest-schemas"
 import { getProjectUiComponentTree, type ProjectUiComponentSourceItem } from "@/project-ui-source"
 import {
   getUiNodeAtPath,
-  getUiNodeLabel,
   serializeUiNodePath,
+  canUiNodeAcceptChildren,
+  addUiNodeChild,
+  insertUiNodeRelative,
+  removeUiNodeAtPath,
+  moveUiNode,
+  moveUiNodeRelative,
+  updateUiNodeAtPath,
   type UiNodePath,
 } from "@/project-ui-tree"
 import { useT } from "@exodus/edem-vue"
+import { edem } from "@/edem"
 import ProjectUiPreviewNode from "@/components/ProjectUiPreviewNode.vue"
+import { NUI_COMPONENTS, type NuiComponentMeta, type NuiPropMeta } from "@/generated-nuxt-ui-meta"
+import { UI_NODE_TEMPLATE_OPTIONS, createDefaultUiNode } from "@/project-ui-node-templates"
 
 defineOptions({ name: "ProjectUiComponentEditor" })
 
@@ -21,19 +30,20 @@ type UiNodeEntry = {
   childCount: number
 }
 
-defineEmits<{
-  saveName: [name: string]
-  saveTree: [tree: ComponentNode]
-  delete: []
-}>()
-
 const props = defineProps<{
   componentItem: ProjectUiComponentSourceItem
 }>()
 
 const t = useT()
 
-const tree = computed(() => getProjectUiComponentTree(props.componentItem))
+const updateSource = `project-ui-editor:${crypto.randomUUID()}`
+const suppressAutoSave = ref(false)
+let saveTimeout: ReturnType<typeof setTimeout> | null = null
+let updateQueue: Promise<void> = Promise.resolve()
+
+const localTree = ref<ComponentNode | null>(null)
+
+const tree = computed(() => localTree.value ?? getProjectUiComponentTree(props.componentItem))
 const selectedNodePath = ref<UiNodePath>([])
 
 const nodeEntries = computed<UiNodeEntry[]>(() => {
@@ -63,26 +73,64 @@ const selectedNode = computed(
 )
 
 const selectedNodePathLabel = computed(() => serializeUiNodePath(selectedNodePath.value))
-
-const selectedNodePropsPreview = computed(() => stringifyRecord(selectedNode.value.props))
-const selectedNodeEventsPreview = computed(() => stringifyRecord(selectedNode.value.events))
-const selectedNodeBindingsPreview = computed(() => stringifyRecord(selectedNode.value.bind))
-
 const selectedNodeSummary = computed(() => getNodeChildrenSummary(selectedNode.value))
+const canAcceptChildren = computed(() => canUiNodeAcceptChildren(selectedNode.value))
 
+const selectedNodeHasProps = computed(() => {
+  const nodeProps = selectedNode.value.props
+  return nodeProps !== undefined && Object.keys(nodeProps).length > 0
+})
+
+const selectedNodeHasEvents = computed(() => {
+  const events = selectedNode.value.events
+  return events !== undefined && Object.keys(events).length > 0
+})
+
+const selectedNodeHasBindings = computed(() => {
+  const bind = selectedNode.value.bind
+  return bind !== undefined && Object.keys(bind).length > 0
+})
+
+const selectedNodeIsRoot = computed(() => selectedNodePath.value.length === 0)
+
+const selectedNodeIndex = computed(() => {
+  if (selectedNodePath.value.length === 0) return -1
+  return selectedNodePath.value[selectedNodePath.value.length - 1]!
+})
+
+const selectedNodeSiblingsCount = computed(() => {
+  if (selectedNodePath.value.length === 0) return 1
+  const parentPath = selectedNodePath.value.slice(0, -1)
+  const parent = getUiNodeAtPath(tree.value, parentPath)
+  return Array.isArray(parent?.children) ? parent.children.length : 0
+})
+
+// --- HTML templates (top bar) ---
+const htmlTemplates = computed(() =>
+  UI_NODE_TEMPLATE_OPTIONS.filter((opt) => opt.group === "html" && opt.icon),
+)
+
+// --- Sync tree from props ---
 watch(
   () => props.componentItem.id,
   () => {
+    localTree.value = null
     selectedNodePath.value = []
   },
 )
 
-watch(tree, (nextTree) => {
-  if (!getUiNodeAtPath(nextTree, selectedNodePath.value)) {
-    selectedNodePath.value = []
-  }
-})
+watch(
+  () => getProjectUiComponentTree(props.componentItem),
+  (nextTree) => {
+    if (suppressAutoSave.value) return
+    localTree.value = null
+    if (!getUiNodeAtPath(nextTree, selectedNodePath.value)) {
+      selectedNodePath.value = []
+    }
+  },
+)
 
+// --- Selection ---
 function selectNode(path: UiNodePath): void {
   selectedNodePath.value = [...path]
 }
@@ -94,20 +142,222 @@ function isSelectedNode(path: UiNodePath): boolean {
   )
 }
 
-function getNodeIcon(entry: UiNodeEntry): string {
-  if (entry.path.length === 0) {
-    return "i-lucide-box"
+// --- Autosave ---
+function scheduleSave(nextTree: ComponentNode): void {
+  localTree.value = nextTree
+  cancelPendingSave()
+  saveTimeout = setTimeout(() => {
+    void saveToDb(nextTree, props.componentItem.id)
+  }, 500)
+}
+
+function cancelPendingSave(): void {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout)
+    saveTimeout = null
+  }
+}
+
+async function saveToDb(nextTree: ComponentNode, componentId: string): Promise<void> {
+  const run = updateQueue.then(async () => {
+    if (props.componentItem.id === componentId) {
+      suppressAutoSave.value = true
+    }
+    try {
+      await edem.data.updateItem({
+        item_id: componentId,
+        data: { tree: nextTree },
+        source: updateSource,
+      })
+    } catch (error) {
+      console.error("[ui-editor] Failed to save tree:", error)
+    } finally {
+      await nextTick()
+      if (props.componentItem.id === componentId) {
+        suppressAutoSave.value = false
+      }
+    }
+  })
+  updateQueue = run.catch(() => {})
+}
+
+// --- Tree mutations ---
+function applyTreeMutation(mutator: (tree: ComponentNode) => ComponentNode): void {
+  const nextTree = mutator(tree.value)
+  scheduleSave(nextTree)
+}
+
+function handlePreviewSelect(path: UiNodePath): void {
+  selectNode(path)
+}
+
+function handleAddNode(nodeFactory: () => ComponentNode): void {
+  const newNode = nodeFactory()
+
+  if (canAcceptChildren.value) {
+    const result = addUiNodeChild(tree.value, selectedNodePath.value, newNode)
+    selectedNodePath.value = result.path
+    scheduleSave(result.tree)
+  } else if (selectedNodePath.value.length > 0) {
+    const result = insertUiNodeRelative(tree.value, selectedNodePath.value, "after", newNode)
+    selectedNodePath.value = result.path
+    scheduleSave(result.tree)
+  } else {
+    const result = addUiNodeChild(tree.value, [], newNode)
+    selectedNodePath.value = result.path
+    scheduleSave(result.tree)
+  }
+}
+
+function handleDeleteNode(): void {
+  if (selectedNodeIsRoot.value) return
+  const result = removeUiNodeAtPath(tree.value, selectedNodePath.value)
+  selectedNodePath.value = result.path
+  scheduleSave(result.tree)
+}
+
+defineExpose({
+  addNode: handleAddNode,
+  moveNodeRelative: handleMoveNodeRelative,
+  nodeEntries,
+  selectedNodePath,
+  selectNode,
+  isSelectedNode,
+})
+
+function handleMoveUp(): void {
+  if (selectedNodeIsRoot.value) return
+  const result = moveUiNode(tree.value, selectedNodePath.value, "up")
+  selectedNodePath.value = result.path
+  scheduleSave(result.tree)
+}
+
+function handleMoveDown(): void {
+  if (selectedNodeIsRoot.value) return
+  const result = moveUiNode(tree.value, selectedNodePath.value, "down")
+  selectedNodePath.value = result.path
+  scheduleSave(result.tree)
+}
+
+function handleDuplicateNode(): void {
+  if (selectedNodeIsRoot.value) return
+  const node = getUiNodeAtPath(tree.value, selectedNodePath.value)
+  if (!node) return
+  const cloned = structuredClone(node)
+  const result = insertUiNodeRelative(tree.value, selectedNodePath.value, "after", cloned)
+  selectedNodePath.value = result.path
+  scheduleSave(result.tree)
+}
+
+function handleMoveNodeRelative(
+  sourcePath: UiNodePath,
+  targetPath: UiNodePath,
+  position: "before" | "after" | "inside",
+): void {
+  if (sourcePath.length === 0) return
+  const result = moveUiNodeRelative(tree.value, sourcePath, targetPath, position)
+  selectedNodePath.value = result.path
+  scheduleSave(result.tree)
+}
+
+// --- Props editing ---
+
+type PropEditorEntry = {
+  key: string
+  meta: NuiPropMeta | null
+  currentValue: unknown
+  isSet: boolean
+}
+
+const componentMeta = computed<NuiComponentMeta | null>(
+  () => NUI_COMPONENTS[selectedNode.value.component] ?? null,
+)
+
+const propEditorEntries = computed<PropEditorEntry[]>(() => {
+  const node = selectedNode.value
+  const meta = componentMeta.value
+  const entries: PropEditorEntry[] = []
+  const seen = new Set<string>()
+
+  // Props from metadata
+  if (meta) {
+    for (const [key, propMeta] of Object.entries(meta.props)) {
+      seen.add(key)
+      entries.push({
+        key,
+        meta: propMeta,
+        currentValue: node.props?.[key],
+        isSet: node.props !== undefined && key in node.props,
+      })
+    }
   }
 
-  if (Array.isArray(entry.node.children)) {
-    return "i-lucide-layers-3"
+  // Custom props not in metadata
+  if (node.props) {
+    for (const key of Object.keys(node.props)) {
+      if (!seen.has(key)) {
+        entries.push({
+          key,
+          meta: null,
+          currentValue: node.props[key],
+          isSet: true,
+        })
+      }
+    }
   }
 
-  if (typeof entry.node.children === "string") {
-    return "i-lucide-type"
-  }
+  return entries
+})
 
-  return "i-lucide-component"
+function handleSetProp(key: string, value: unknown): void {
+  applyTreeMutation((currentTree) =>
+    updateUiNodeAtPath(currentTree, selectedNodePath.value, (node) => ({
+      ...node,
+      props: { ...node.props, [key]: value },
+    })),
+  )
+}
+
+function handleUnsetProp(key: string): void {
+  applyTreeMutation((currentTree) =>
+    updateUiNodeAtPath(currentTree, selectedNodePath.value, (node) => {
+      const nextProps = { ...node.props }
+      delete nextProps[key]
+      return { ...node, props: Object.keys(nextProps).length > 0 ? nextProps : undefined }
+    }),
+  )
+}
+
+function handleUpdateProp(key: string, rawValue: string): void {
+  handleSetProp(key, parsePropValue(rawValue))
+}
+
+function handleUpdateBooleanProp(key: string, value: boolean): void {
+  handleSetProp(key, value)
+}
+
+function handleUpdateVariantProp(key: string, value: string): void {
+  handleSetProp(key, value)
+}
+
+function handleUpdateTextChildren(text: string): void {
+  applyTreeMutation((currentTree) =>
+    updateUiNodeAtPath(currentTree, selectedNodePath.value, (node) => ({
+      ...node,
+      children: text,
+    })),
+  )
+}
+
+// --- Helpers ---
+function parsePropValue(raw: string): unknown {
+  const trimmed = raw.trim()
+  if (trimmed === "true") return true
+  if (trimmed === "false") return false
+  if (trimmed === "null") return null
+  if (trimmed === "undefined") return undefined
+  if (trimmed !== "" && /^\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed)
+  return raw
 }
 
 function getNodeChildrenSummary(node: ComponentNode): string {
@@ -128,27 +378,85 @@ function getNodeChildrenSummary(node: ComponentNode): string {
 
   return t({ en: "No children", ru: "Без children" })
 }
-
-function getRecordSize(value: object | undefined): number {
-  return value ? Object.keys(value).length : 0
-}
-
-function stringifyRecord(value: object | undefined): string {
-  return value && Object.keys(value).length > 0 ? JSON.stringify(value, null, 2) : ""
-}
 </script>
 
 <template>
   <div class="flex min-h-0 flex-1 flex-col overflow-hidden px-3 pt-3 pb-3">
-    <section class="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_440px]">
+    <!-- Top bar: HTML elements + actions -->
+    <div class="mb-3 flex shrink-0 items-center gap-2 overflow-x-auto">
+      <div
+        class="border-default bg-default flex items-center gap-1 rounded-xl border px-2 py-1.5 shadow-sm"
+      >
+        <UTooltip v-for="item in htmlTemplates" :key="item.component" :text="item.label">
+          <button
+            class="text-muted hover:text-default hover:bg-elevated flex h-8 w-8 items-center justify-center rounded-lg transition-colors"
+            @click="handleAddNode(() => createDefaultUiNode(item.component))"
+          >
+            <UIcon :name="item.icon" class="h-4 w-4" />
+          </button>
+        </UTooltip>
+      </div>
+
+      <div
+        class="border-default bg-default flex items-center gap-0.5 rounded-xl border px-1.5 py-1.5 shadow-sm"
+      >
+        <UTooltip :text="t({ en: 'Move up', ru: 'Выше' })">
+          <button
+            class="text-muted hover:text-default hover:bg-elevated flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-30"
+            :disabled="selectedNodeIsRoot || selectedNodeIndex <= 0"
+            @click="handleMoveUp"
+          >
+            <UIcon name="i-lucide-arrow-up" class="h-4 w-4" />
+          </button>
+        </UTooltip>
+        <UTooltip :text="t({ en: 'Move down', ru: 'Ниже' })">
+          <button
+            class="text-muted hover:text-default hover:bg-elevated flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-30"
+            :disabled="selectedNodeIsRoot || selectedNodeIndex >= selectedNodeSiblingsCount - 1"
+            @click="handleMoveDown"
+          >
+            <UIcon name="i-lucide-arrow-down" class="h-4 w-4" />
+          </button>
+        </UTooltip>
+        <UTooltip :text="t({ en: 'Duplicate', ru: 'Дублировать' })">
+          <button
+            class="text-muted hover:text-default hover:bg-elevated flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-30"
+            :disabled="selectedNodeIsRoot"
+            @click="handleDuplicateNode"
+          >
+            <UIcon name="i-lucide-copy" class="h-4 w-4" />
+          </button>
+        </UTooltip>
+        <UTooltip :text="t({ en: 'Delete', ru: 'Удалить' })">
+          <button
+            class="text-muted hover:text-destructive hover:bg-destructive/10 flex h-8 w-8 items-center justify-center rounded-lg transition-colors disabled:opacity-30"
+            :disabled="selectedNodeIsRoot"
+            @click="handleDeleteNode"
+          >
+            <UIcon name="i-lucide-trash-2" class="h-4 w-4" />
+          </button>
+        </UTooltip>
+      </div>
+    </div>
+
+    <!-- Main: preview + inspector -->
+    <section class="grid min-h-0 flex-1 gap-3 xl:grid-cols-[minmax(0,1fr)_380px]">
+      <!-- Center: Preview -->
       <div
         class="border-default bg-default flex min-h-0 flex-col overflow-hidden rounded-2xl border shadow-sm"
       >
-        <div class="min-h-0 flex-1 overflow-auto">
-          <ProjectUiPreviewNode :node="tree" :is-root="true" />
+        <div class="min-h-0 flex-1 overflow-auto p-4">
+          <ProjectUiPreviewNode
+            :node="tree"
+            :is-root="true"
+            :path="[]"
+            :selected-path="selectedNodePath"
+            @select="handlePreviewSelect"
+          />
         </div>
       </div>
 
+      <!-- Right: Inspector -->
       <aside
         class="border-default bg-default flex min-h-0 flex-col overflow-hidden rounded-2xl border shadow-sm"
       >
@@ -157,78 +465,19 @@ function stringifyRecord(value: object | undefined): string {
             <div class="mb-2 flex items-start justify-between gap-3">
               <div class="flex min-w-0 flex-wrap items-center gap-2">
                 <h3 class="text-base font-semibold">
-                  {{ t({ en: "Node inspector", ru: "Инспектор ноды" }) }}
+                  {{ t({ en: "Inspector", ru: "Инспектор" }) }}
                 </h3>
                 <UBadge :label="selectedNodePathLabel" color="primary" variant="soft" size="sm" />
               </div>
             </div>
-            <p class="text-muted text-xs leading-5">
-              {{
-                t({
-                  en: "Select a layer below to inspect it.",
-                  ru: "Выбери слой ниже, чтобы посмотреть детали.",
-                })
-              }}
-            </p>
           </div>
         </div>
 
         <UScrollArea class="min-h-0 flex-1">
           <div class="flex flex-col gap-4 px-4 pb-4">
+            <!-- Node info -->
             <div class="border-default rounded-2xl border p-3">
-              <div class="mb-3 flex items-center justify-between gap-3">
-                <div>
-                  <p class="text-sm font-medium">{{ t({ en: "Layers", ru: "Слои" }) }}</p>
-                  <p class="text-muted mt-1 text-xs">
-                    {{ t({ en: "Component tree", ru: "Дерево компонента" }) }}
-                  </p>
-                </div>
-                <UBadge
-                  :label="`${nodeEntries.length}`"
-                  color="neutral"
-                  variant="subtle"
-                  size="sm"
-                />
-              </div>
-
-              <div class="flex flex-col gap-1">
-                <button
-                  v-for="entry in nodeEntries"
-                  :key="entry.key"
-                  class="group flex w-full items-center gap-2 rounded-xl py-2 pr-2 text-left transition-colors"
-                  :class="isSelectedNode(entry.path) ? 'bg-primary/5' : 'hover:bg-elevated/60'"
-                  :style="{ paddingLeft: `${entry.depth * 14 + 10}px` }"
-                  @click="selectNode(entry.path)"
-                >
-                  <span
-                    class="bg-elevated text-muted group-hover:text-default flex h-8 w-8 shrink-0 items-center justify-center rounded-xl transition-colors"
-                    :class="isSelectedNode(entry.path) ? 'text-primary' : ''"
-                  >
-                    <UIcon :name="getNodeIcon(entry)" class="h-4 w-4" />
-                  </span>
-
-                  <span class="min-w-0 flex-1">
-                    <span class="block truncate text-sm font-medium">
-                      {{ getUiNodeLabel(entry.node) }}
-                    </span>
-                    <span class="text-muted block truncate font-mono text-xs">
-                      {{ entry.key }}
-                    </span>
-                  </span>
-
-                  <UBadge
-                    v-if="entry.childCount > 0"
-                    :label="`${entry.childCount}`"
-                    color="neutral"
-                    variant="subtle"
-                    size="sm"
-                  />
-                </button>
-              </div>
-            </div>
-
-            <div class="border-default rounded-2xl border p-3">
-              <div class="mb-3 flex items-start gap-3">
+              <div class="flex items-start gap-3">
                 <div
                   class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
                 >
@@ -239,52 +488,131 @@ function stringifyRecord(value: object | undefined): string {
                   <p class="text-muted mt-1 text-xs leading-5">{{ selectedNodeSummary }}</p>
                 </div>
               </div>
+            </div>
 
-              <div class="grid grid-cols-3 gap-2">
-                <div class="bg-elevated/50 rounded-xl p-2">
-                  <p class="text-muted text-[10px] tracking-wide uppercase">Props</p>
-                  <p class="mt-1 text-sm font-medium">{{ getRecordSize(selectedNode.props) }}</p>
-                </div>
-                <div class="bg-elevated/50 rounded-xl p-2">
-                  <p class="text-muted text-[10px] tracking-wide uppercase">Events</p>
-                  <p class="mt-1 text-sm font-medium">{{ getRecordSize(selectedNode.events) }}</p>
-                </div>
-                <div class="bg-elevated/50 rounded-xl p-2">
-                  <p class="text-muted text-[10px] tracking-wide uppercase">Bind</p>
-                  <p class="mt-1 text-sm font-medium">{{ getRecordSize(selectedNode.bind) }}</p>
+            <!-- Text children -->
+            <div
+              v-if="typeof selectedNode.children === 'string'"
+              class="border-default rounded-2xl border p-3"
+            >
+              <p class="mb-2 text-sm font-medium">
+                {{ t({ en: "Text content", ru: "Текстовое содержимое" }) }}
+              </p>
+              <UInput
+                :model-value="selectedNode.children"
+                @update:model-value="handleUpdateTextChildren($event as string)"
+              />
+            </div>
+
+            <!-- Props -->
+            <div class="border-default rounded-2xl border p-3">
+              <div class="mb-3 flex items-center justify-between gap-3">
+                <p class="text-sm font-medium">Props</p>
+                <UBadge
+                  :label="`${propEditorEntries.length}`"
+                  color="neutral"
+                  variant="subtle"
+                  size="sm"
+                />
+              </div>
+
+              <div v-if="propEditorEntries.length > 0" class="flex flex-col gap-2.5">
+                <div
+                  v-for="entry in propEditorEntries"
+                  :key="entry.key"
+                  class="flex items-start gap-2"
+                >
+                  <div class="min-w-0 flex-1">
+                    <p class="text-muted mb-1 font-mono text-xs">
+                      {{ entry.key }}
+                      <span
+                        v-if="entry.meta?.description && entry.meta.description !== '/'"
+                        class="font-sans text-[10px] normal-case opacity-60"
+                      >
+                        — {{ entry.meta.description }}
+                      </span>
+                    </p>
+
+                    <!-- Enum prop → select -->
+                    <USelect
+                      v-if="
+                        entry.meta?.type === 'enum' && entry.meta.enum && entry.meta.enum.length > 0
+                      "
+                      :model-value="String(entry.currentValue ?? entry.meta?.defaultValue ?? '')"
+                      :items="entry.meta.enum"
+                      size="sm"
+                      @update:model-value="handleUpdateVariantProp(entry.key, $event as string)"
+                    />
+
+                    <!-- Boolean prop → switch -->
+                    <USwitch
+                      v-else-if="entry.meta?.type === 'boolean'"
+                      :model-value="entry.currentValue === true"
+                      size="sm"
+                      @update:model-value="handleUpdateBooleanProp(entry.key, $event as boolean)"
+                    />
+
+                    <!-- Number prop -->
+                    <UInput
+                      v-else-if="entry.meta?.type === 'number'"
+                      :model-value="String(entry.currentValue ?? '')"
+                      type="number"
+                      size="sm"
+                      @update:model-value="handleUpdateProp(entry.key, $event as string)"
+                    />
+
+                    <!-- String / other → input -->
+                    <UInput
+                      v-else
+                      :model-value="String(entry.currentValue ?? '')"
+                      size="sm"
+                      :placeholder="
+                        entry.meta?.defaultValue ? `Default: ${entry.meta.defaultValue}` : ''
+                      "
+                      @update:model-value="handleUpdateProp(entry.key, $event as string)"
+                    />
+                  </div>
+
+                  <button
+                    v-if="entry.isSet"
+                    class="text-muted hover:text-destructive mt-5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors"
+                    @click="handleUnsetProp(entry.key)"
+                  >
+                    <UIcon name="i-lucide-x" class="h-3 w-3" />
+                  </button>
                 </div>
               </div>
+
+              <p v-else class="text-muted text-xs">
+                {{ t({ en: "No props available", ru: "Нет доступных пропсов" }) }}
+              </p>
             </div>
 
-            <div v-if="selectedNodePropsPreview" class="flex flex-col gap-2">
-              <p class="text-sm font-medium">Props</p>
+            <!-- Events -->
+            <div v-if="selectedNodeHasEvents" class="border-default rounded-2xl border p-3">
+              <p class="mb-2 text-sm font-medium">Events</p>
               <pre
                 class="bg-elevated text-highlighted rounded-xl px-3 py-2 text-xs leading-5 break-words whitespace-pre-wrap"
-                >{{ selectedNodePropsPreview }}</pre
+                >{{ JSON.stringify(selectedNode.events, null, 2) }}</pre
               >
             </div>
 
-            <div v-if="selectedNodeEventsPreview" class="flex flex-col gap-2">
-              <p class="text-sm font-medium">Events</p>
+            <!-- Bind -->
+            <div v-if="selectedNodeHasBindings" class="border-default rounded-2xl border p-3">
+              <p class="mb-2 text-sm font-medium">Bind</p>
               <pre
                 class="bg-elevated text-highlighted rounded-xl px-3 py-2 text-xs leading-5 break-words whitespace-pre-wrap"
-                >{{ selectedNodeEventsPreview }}</pre
+                >{{ JSON.stringify(selectedNode.bind, null, 2) }}</pre
               >
             </div>
 
-            <div v-if="selectedNodeBindingsPreview" class="flex flex-col gap-2">
-              <p class="text-sm font-medium">Bind</p>
-              <pre
-                class="bg-elevated text-highlighted rounded-xl px-3 py-2 text-xs leading-5 break-words whitespace-pre-wrap"
-                >{{ selectedNodeBindingsPreview }}</pre
-              >
-            </div>
-
+            <!-- Empty -->
             <div
               v-if="
-                !selectedNodePropsPreview &&
-                !selectedNodeEventsPreview &&
-                !selectedNodeBindingsPreview
+                !selectedNodeHasProps &&
+                !selectedNodeHasEvents &&
+                !selectedNodeHasBindings &&
+                typeof selectedNode.children !== 'string'
               "
               class="border-default bg-elevated/30 rounded-2xl border p-3"
             >

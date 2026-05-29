@@ -46,6 +46,12 @@ export function getUiNodeLabel(node: ComponentNode): string {
   return node.component
 }
 
+export function getUiNodeIcon(node: ComponentNode): string {
+  if (Array.isArray(node.children)) return "i-lucide-layers-3"
+  if (typeof node.children === "string") return "i-lucide-type"
+  return "i-lucide-component"
+}
+
 export function cloneUiTreeValue<T>(value: T): T {
   return structuredClone(toRaw(value))
 }
