@@ -141,6 +141,20 @@ watch(
       (e) => e.path.length === path.length && e.path.every((v, i) => v === path[i]),
     )
     selectedKey.value = entry?.key
+
+    // Expand all ancestors so the selected node is visible
+    if (path.length > 1) {
+      const ancestorKeys = new Set(expandedKeys.value)
+      for (let len = 1; len < path.length; len++) {
+        const ancestorPath = path.slice(0, len)
+        const ancestor = editorRef.value.nodeEntries.find(
+          (e) =>
+            e.path.length === ancestorPath.length && e.path.every((v, i) => v === ancestorPath[i]),
+        )
+        if (ancestor) ancestorKeys.add(ancestor.key)
+      }
+      expandedKeys.value = [...ancestorKeys]
+    }
   },
   { deep: true },
 )
