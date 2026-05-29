@@ -88,6 +88,29 @@ function getEntryPathByKey(key: string): number[] | null {
   return entry?.path ?? null
 }
 
+function findTreeItemBySlot(items: TreeItem[], slot: string): TreeItem | undefined {
+  for (const item of items) {
+    if (item.slot === slot) return item
+    if (item.children) {
+      const found = findTreeItemBySlot(item.children as TreeItem[], slot)
+      if (found) return found
+    }
+  }
+  return undefined
+}
+
+const selectedTreeItem = computed(() => {
+  if (!selectedKey.value) return undefined
+  return findTreeItemBySlot(treeItems.value, selectedKey.value)
+})
+
+function handleTreeSelect(item: TreeItem, handleSelect?: () => void): void {
+  if (!item.slot) return
+  handleSelect?.()
+  const path = getEntryPathByKey(item.slot)
+  if (path) editorRef.value?.selectNode(path)
+}
+
 // Sync tree items when editor data changes
 watch(
   () => editorRef.value?.nodeEntries,
@@ -417,18 +440,16 @@ watch(
             v-if="treeItems.length > 0"
             ref="layersTreeRef"
             :items="treeItems"
+            :model-value="selectedTreeItem"
             :get-key="(i: TreeItem) => i.slot ?? i.label ?? ''"
             color="primary"
             size="sm"
             :nested="false"
             :unmount-on-hide="false"
+            @update:model-value="handleTreeSelect"
           >
-            <template #item-label="{ item }">
-              <span
-                class="cursor-grab text-xs"
-                :class="item.slot === selectedKey ? 'text-primary font-medium' : ''"
-                @click.stop="item.slot && editorRef?.selectNode(getEntryPathByKey(item.slot) ?? [])"
-              >
+            <template #item-label="{ item, handleSelect }">
+              <span class="cursor-grab text-xs" @click="handleTreeSelect(item, handleSelect)">
                 {{ item.label }}
               </span>
             </template>
