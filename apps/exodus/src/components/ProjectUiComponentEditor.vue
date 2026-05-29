@@ -267,7 +267,6 @@ type PropEditorEntry = {
   key: string
   meta: NuiPropMeta | null
   currentValue: unknown
-  isSet: boolean
 }
 
 const componentMeta = computed<NuiComponentMeta | null>(
@@ -288,7 +287,6 @@ const propEditorEntries = computed<PropEditorEntry[]>(() => {
         key,
         meta: propMeta,
         currentValue: node.props?.[key],
-        isSet: node.props !== undefined && key in node.props,
       })
     }
   }
@@ -301,7 +299,6 @@ const propEditorEntries = computed<PropEditorEntry[]>(() => {
           key,
           meta: null,
           currentValue: node.props[key],
-          isSet: true,
         })
       }
     }
@@ -316,16 +313,6 @@ function handleSetProp(key: string, value: unknown): void {
       ...node,
       props: { ...node.props, [key]: value },
     })),
-  )
-}
-
-function handleUnsetProp(key: string): void {
-  applyTreeMutation((currentTree) =>
-    updateUiNodeAtPath(currentTree, selectedNodePath.value, (node) => {
-      const nextProps = { ...node.props }
-      delete nextProps[key]
-      return { ...node, props: Object.keys(nextProps).length > 0 ? nextProps : undefined }
-    }),
   )
 }
 
@@ -444,69 +431,56 @@ function parsePropValue(raw: string): unknown {
           </div>
 
           <div v-if="propEditorEntries.length > 0" class="flex flex-col gap-3">
-            <div v-for="entry in propEditorEntries" :key="entry.key" class="flex items-start gap-2">
-              <UFormField
-                :label="entry.key"
-                :description="
-                  entry.meta?.description && entry.meta.description !== '/'
-                    ? entry.meta.description
-                    : undefined
-                "
+            <UFormField
+              v-for="entry in propEditorEntries"
+              :key="entry.key"
+              :label="entry.key"
+              :description="
+                entry.meta?.description && entry.meta.description !== '/'
+                  ? entry.meta.description
+                  : undefined
+              "
+              size="sm"
+            >
+              <!-- Enum prop → select -->
+              <USelect
+                v-if="entry.meta?.type === 'enum' && entry.meta.enum && entry.meta.enum.length > 0"
+                :model-value="String(entry.currentValue ?? entry.meta?.defaultValue ?? '')"
+                :items="entry.meta.enum"
                 size="sm"
-                class="min-w-0 flex-1"
-              >
-                <!-- Enum prop → select -->
-                <USelect
-                  v-if="
-                    entry.meta?.type === 'enum' && entry.meta.enum && entry.meta.enum.length > 0
-                  "
-                  :model-value="String(entry.currentValue ?? entry.meta?.defaultValue ?? '')"
-                  :items="entry.meta.enum"
-                  size="sm"
-                  class="w-full"
-                  @update:model-value="handleUpdateVariantProp(entry.key, $event as string)"
-                />
+                class="w-full"
+                @update:model-value="handleUpdateVariantProp(entry.key, $event as string)"
+              />
 
-                <!-- Boolean prop → switch -->
-                <USwitch
-                  v-else-if="entry.meta?.type === 'boolean'"
-                  :model-value="entry.currentValue === true"
-                  size="sm"
-                  class="w-full"
-                  @update:model-value="handleUpdateBooleanProp(entry.key, $event as boolean)"
-                />
+              <!-- Boolean prop → switch -->
+              <USwitch
+                v-else-if="entry.meta?.type === 'boolean'"
+                :model-value="entry.currentValue === true"
+                size="sm"
+                class="w-full"
+                @update:model-value="handleUpdateBooleanProp(entry.key, $event as boolean)"
+              />
 
-                <!-- Number prop -->
-                <UInput
-                  v-else-if="entry.meta?.type === 'number'"
-                  :model-value="String(entry.currentValue ?? '')"
-                  type="number"
-                  size="sm"
-                  class="w-full"
-                  @update:model-value="handleUpdateProp(entry.key, $event as string)"
-                />
+              <!-- Number prop -->
+              <UInput
+                v-else-if="entry.meta?.type === 'number'"
+                :model-value="String(entry.currentValue ?? '')"
+                type="number"
+                size="sm"
+                class="w-full"
+                @update:model-value="handleUpdateProp(entry.key, $event as string)"
+              />
 
-                <!-- String / other → input -->
-                <UInput
-                  v-else
-                  :model-value="String(entry.currentValue ?? '')"
-                  size="sm"
-                  class="w-full"
-                  :placeholder="
-                    entry.meta?.defaultValue ? `Default: ${entry.meta.defaultValue}` : ''
-                  "
-                  @update:model-value="handleUpdateProp(entry.key, $event as string)"
-                />
-              </UFormField>
-
-              <button
-                v-if="entry.isSet"
-                class="text-muted hover:text-destructive mt-6 flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors"
-                @click="handleUnsetProp(entry.key)"
-              >
-                <UIcon name="i-lucide-x" class="h-3 w-3" />
-              </button>
-            </div>
+              <!-- String / other → input -->
+              <UInput
+                v-else
+                :model-value="String(entry.currentValue ?? '')"
+                size="sm"
+                class="w-full"
+                :placeholder="entry.meta?.defaultValue ? `Default: ${entry.meta.defaultValue}` : ''"
+                @update:model-value="handleUpdateProp(entry.key, $event as string)"
+              />
+            </UFormField>
           </div>
 
           <p v-else class="text-muted text-xs">
