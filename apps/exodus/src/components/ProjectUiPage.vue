@@ -52,28 +52,39 @@ function buildTreeItems(): TreeItem[] {
   if (!editorRef.value) return []
   const entries = editorRef.value.nodeEntries
 
+  function buildNode(path: number[]): TreeItem | null {
+    const entry = entries.find(
+      (e) => e.path.length === path.length && e.path.every((v, i) => v === path[i]),
+    )
+    if (!entry) return null
+
+    const children = buildChildren(path)
+    const item: TreeItem = {
+      label: getUiNodeLabel(entry.node),
+      icon: getUiNodeIcon(entry.node),
+      slot: entry.key,
+    }
+    if (children.length > 0) {
+      item.children = children
+      item.defaultExpanded = true
+    }
+    return item
+  }
+
   function buildChildren(parentPath: number[]): TreeItem[] {
     const items: TreeItem[] = []
     for (const entry of entries) {
       if (entry.path.length !== parentPath.length + 1) continue
       if (!entry.path.slice(0, -1).every((v, i) => v === parentPath[i])) continue
 
-      const children = buildChildren(entry.path)
-      const item: TreeItem = {
-        label: getUiNodeLabel(entry.node),
-        icon: getUiNodeIcon(entry.node),
-        slot: entry.key,
-      }
-      if (children.length > 0) {
-        item.children = children
-        item.defaultExpanded = true
-      }
-      items.push(item)
+      const child = buildNode(entry.path)
+      if (child) items.push(child)
     }
     return items
   }
 
-  return buildChildren([])
+  const root = buildNode([])
+  return root ? [root] : []
 }
 
 type FlatEntry = { item: TreeItem; parent: TreeItem[]; index: number }
