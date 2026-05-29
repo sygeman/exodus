@@ -443,19 +443,18 @@ function parsePropValue(raw: string): unknown {
             <p class="text-sm font-medium">Props</p>
           </div>
 
-          <div v-if="propEditorEntries.length > 0" class="flex flex-col gap-2.5">
+          <div v-if="propEditorEntries.length > 0" class="flex flex-col gap-3">
             <div v-for="entry in propEditorEntries" :key="entry.key" class="flex items-start gap-2">
-              <div class="min-w-0 flex-1">
-                <p class="text-muted mb-1 font-mono text-xs">
-                  {{ entry.key }}
-                  <span
-                    v-if="entry.meta?.description && entry.meta.description !== '/'"
-                    class="font-sans text-[10px] normal-case opacity-60"
-                  >
-                    — {{ entry.meta.description }}
-                  </span>
-                </p>
-
+              <UFormField
+                :label="entry.key"
+                :description="
+                  entry.meta?.description && entry.meta.description !== '/'
+                    ? entry.meta.description
+                    : undefined
+                "
+                size="sm"
+                class="min-w-0 flex-1"
+              >
                 <!-- Enum prop → select -->
                 <USelect
                   v-if="
@@ -464,6 +463,7 @@ function parsePropValue(raw: string): unknown {
                   :model-value="String(entry.currentValue ?? entry.meta?.defaultValue ?? '')"
                   :items="entry.meta.enum"
                   size="sm"
+                  class="w-full"
                   @update:model-value="handleUpdateVariantProp(entry.key, $event as string)"
                 />
 
@@ -472,6 +472,7 @@ function parsePropValue(raw: string): unknown {
                   v-else-if="entry.meta?.type === 'boolean'"
                   :model-value="entry.currentValue === true"
                   size="sm"
+                  class="w-full"
                   @update:model-value="handleUpdateBooleanProp(entry.key, $event as boolean)"
                 />
 
@@ -481,6 +482,7 @@ function parsePropValue(raw: string): unknown {
                   :model-value="String(entry.currentValue ?? '')"
                   type="number"
                   size="sm"
+                  class="w-full"
                   @update:model-value="handleUpdateProp(entry.key, $event as string)"
                 />
 
@@ -489,16 +491,17 @@ function parsePropValue(raw: string): unknown {
                   v-else
                   :model-value="String(entry.currentValue ?? '')"
                   size="sm"
+                  class="w-full"
                   :placeholder="
                     entry.meta?.defaultValue ? `Default: ${entry.meta.defaultValue}` : ''
                   "
                   @update:model-value="handleUpdateProp(entry.key, $event as string)"
                 />
-              </div>
+              </UFormField>
 
               <button
                 v-if="entry.isSet"
-                class="text-muted hover:text-destructive mt-5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors"
+                class="text-muted hover:text-destructive mt-6 flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors"
                 @click="handleUnsetProp(entry.key)"
               >
                 <UIcon name="i-lucide-x" class="h-3 w-3" />
