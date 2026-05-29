@@ -32,7 +32,7 @@ const nodePath = computed<UiNodePath>(() => props.path ?? [])
 
 const isSelected = computed(() => {
   const sel = props.selectedPath
-  if (!sel || sel.length === 0) return false
+  if (!sel) return false
   const cur = nodePath.value
   return cur.length === sel.length && cur.every((s, i) => s === sel[i])
 })
