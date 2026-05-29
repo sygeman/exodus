@@ -109,15 +109,27 @@ function findTreeItemBySlot(items: TreeItem[], slot: string): TreeItem | undefin
   return undefined
 }
 
-const selectedTreeItem = computed(() => {
-  if (!selectedKey.value) return undefined
-  return findTreeItemBySlot(treeItems.value, selectedKey.value)
+const selectedTreeItem = computed({
+  get: () => {
+    if (!selectedKey.value) return undefined
+    return findTreeItemBySlot(treeItems.value, selectedKey.value)
+  },
+  set: (item: TreeItem | undefined) => {
+    if (item?.slot) {
+      const path = getEntryPathByKey(item.slot)
+      if (path) editorRef.value?.selectNode(path)
+    }
+  },
 })
 
 function handleTreeSelect(item: TreeItem): void {
   if (!item.slot) return
   const path = getEntryPathByKey(item.slot)
   if (path) editorRef.value?.selectNode(path)
+}
+
+function handleTreeItemSelect(e: Event): void {
+  e.preventDefault()
 }
 
 // Sync tree items when editor data changes
@@ -449,20 +461,15 @@ watch(
           <UTree
             v-if="treeItems.length > 0"
             ref="layersTreeRef"
+            v-model="selectedTreeItem"
+            v-model:expanded="expandedKeys"
             :items="treeItems"
-            :model-value="selectedTreeItem"
-            :expanded="expandedKeys"
             :get-key="(i: TreeItem) => i.slot ?? i.label ?? ''"
             color="primary"
             size="sm"
             :nested="false"
             :unmount-on-hide="false"
-            @update:model-value="handleTreeSelect"
-            @update:expanded="
-              (val: string[]) => {
-                expandedKeys = val
-              }
-            "
+            @select="handleTreeItemSelect"
           >
             <template #item-label="{ item }">
               <span class="cursor-grab text-xs" @click="handleTreeSelect(item)">
