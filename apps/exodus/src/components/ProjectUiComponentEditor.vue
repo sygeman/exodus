@@ -441,12 +441,6 @@ function parsePropValue(raw: string): unknown {
         <UScrollArea class="min-h-0 flex-1 p-4">
           <div class="mb-3 flex items-center justify-between gap-3">
             <p class="text-sm font-medium">Props</p>
-            <UBadge
-              :label="`${propEditorEntries.length}`"
-              color="neutral"
-              variant="subtle"
-              size="sm"
-            />
           </div>
 
           <div v-if="propEditorEntries.length > 0" class="flex flex-col gap-2.5">
