@@ -42,6 +42,16 @@ const editorRef = useTemplateRef<InstanceType<typeof ProjectUiComponentEditor>>(
 // Tree items for UTree layers panel
 const treeItems = shallowRef<TreeItem[]>([])
 const selectedKey = ref<string | undefined>(undefined)
+const expandedKeys = ref<string[]>([])
+
+function collectAllKeys(items: TreeItem[]): string[] {
+  const keys: string[] = []
+  for (const item of items) {
+    if (item.slot) keys.push(item.slot)
+    if (item.children) keys.push(...collectAllKeys(item.children as TreeItem[]))
+  }
+  return keys
+}
 
 function buildTreeItems(): TreeItem[] {
   if (!editorRef.value) return []
@@ -115,6 +125,7 @@ watch(
   () => editorRef.value?.nodeEntries,
   () => {
     treeItems.value = buildTreeItems()
+    expandedKeys.value = collectAllKeys(treeItems.value)
   },
   { deep: true },
 )
@@ -440,12 +451,18 @@ watch(
             ref="layersTreeRef"
             :items="treeItems"
             :model-value="selectedTreeItem"
+            :expanded="expandedKeys"
             :get-key="(i: TreeItem) => i.slot ?? i.label ?? ''"
             color="primary"
             size="sm"
             :nested="false"
             :unmount-on-hide="false"
             @update:model-value="handleTreeSelect"
+            @update:expanded="
+              (val: string[]) => {
+                expandedKeys = val
+              }
+            "
           >
             <template #item-label="{ item }">
               <span class="cursor-grab text-xs" @click="handleTreeSelect(item)">
