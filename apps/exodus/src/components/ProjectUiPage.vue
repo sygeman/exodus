@@ -122,6 +122,16 @@ const selectedTreeItem = computed({
   },
 })
 
+function handleTreeToggle(e: CustomEvent): void {
+  const originalEvent = e.detail.originalEvent
+  if (originalEvent instanceof PointerEvent) {
+    const target = originalEvent.target as HTMLElement
+    if (!target.closest('[data-slot="linkTrailingIcon"]')) {
+      e.preventDefault()
+    }
+  }
+}
+
 // Sync tree items when editor data changes
 watch(
   () => editorRef.value?.nodeEntries,
@@ -473,6 +483,7 @@ watch(
             size="sm"
             :nested="false"
             :unmount-on-hide="false"
+            @toggle="handleTreeToggle"
           >
             <template #item-label="{ item }">
               <span class="cursor-grab text-xs">
