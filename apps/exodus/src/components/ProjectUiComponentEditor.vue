@@ -466,27 +466,27 @@ function getNodeChildrenSummary(node: ComponentNode): string {
         </UTooltip>
       </div>
 
-      <!-- Inspector -->
+      <!-- Selected component -->
+      <div
+        class="border-default bg-default flex shrink-0 items-center gap-3 rounded-2xl border p-3 shadow-sm"
+      >
+        <div
+          class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
+        >
+          <UIcon name="i-lucide-component" class="h-5 w-5" />
+        </div>
+        <div class="min-w-0">
+          <p class="truncate text-sm font-medium">{{ selectedNode.component }}</p>
+          <p class="text-muted mt-0.5 text-xs leading-5">{{ selectedNodeSummary }}</p>
+        </div>
+      </div>
+
+      <!-- Settings -->
       <aside
         class="border-default bg-default flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border shadow-sm"
       >
         <UScrollArea class="min-h-0 flex-1">
           <div class="flex flex-col gap-4 p-4">
-            <!-- Node info -->
-            <div class="border-default rounded-2xl border p-3">
-              <div class="flex items-start gap-3">
-                <div
-                  class="bg-primary/10 text-primary flex h-10 w-10 shrink-0 items-center justify-center rounded-2xl"
-                >
-                  <UIcon name="i-lucide-component" class="h-5 w-5" />
-                </div>
-                <div class="min-w-0">
-                  <p class="truncate text-sm font-medium">{{ selectedNode.component }}</p>
-                  <p class="text-muted mt-1 text-xs leading-5">{{ selectedNodeSummary }}</p>
-                </div>
-              </div>
-            </div>
-
             <!-- Text children -->
             <div
               v-if="typeof selectedNode.children === 'string'"
