@@ -73,23 +73,7 @@ const selectedNode = computed(
   () => getUiNodeAtPath(tree.value, selectedNodePath.value) ?? tree.value,
 )
 
-const selectedNodeSummary = computed(() => getNodeChildrenSummary(selectedNode.value))
 const canAcceptChildren = computed(() => canUiNodeAcceptChildren(selectedNode.value))
-
-const selectedNodeHasProps = computed(() => {
-  const nodeProps = selectedNode.value.props
-  return nodeProps !== undefined && Object.keys(nodeProps).length > 0
-})
-
-const selectedNodeHasEvents = computed(() => {
-  const events = selectedNode.value.events
-  return events !== undefined && Object.keys(events).length > 0
-})
-
-const selectedNodeHasBindings = computed(() => {
-  const bind = selectedNode.value.bind
-  return bind !== undefined && Object.keys(bind).length > 0
-})
 
 const selectedNodeIsRoot = computed(() => selectedNodePath.value.length === 0)
 
@@ -357,15 +341,6 @@ function handleUpdateVariantProp(key: string, value: string): void {
   handleSetProp(key, value)
 }
 
-function handleUpdateTextChildren(text: string): void {
-  applyTreeMutation((currentTree) =>
-    updateUiNodeAtPath(currentTree, selectedNodePath.value, (node) => ({
-      ...node,
-      children: text,
-    })),
-  )
-}
-
 // --- Helpers ---
 function parsePropValue(raw: string): unknown {
   const trimmed = raw.trim()
@@ -375,25 +350,6 @@ function parsePropValue(raw: string): unknown {
   if (trimmed === "undefined") return undefined
   if (trimmed !== "" && /^\d+(\.\d+)?$/.test(trimmed)) return Number(trimmed)
   return raw
-}
-
-function getNodeChildrenSummary(node: ComponentNode): string {
-  if (Array.isArray(node.children)) {
-    return t(
-      { en: "{count} child nodes", ru: "Дочерних нод: {count}" },
-      { count: node.children.length },
-    )
-  }
-
-  if (typeof node.children === "string") {
-    return t({ en: "Text children", ru: "Текстовые children" })
-  }
-
-  if (node.children) {
-    return t({ en: "Translated text", ru: "Переводимый текст" })
-  }
-
-  return t({ en: "No children", ru: "Без children" })
 }
 </script>
 
@@ -475,159 +431,92 @@ function getNodeChildrenSummary(node: ComponentNode): string {
         >
           <UIcon name="i-lucide-component" class="h-5 w-5" />
         </div>
-        <div class="min-w-0">
-          <p class="truncate text-sm font-medium">{{ selectedNode.component }}</p>
-          <p class="text-muted mt-0.5 text-xs leading-5">{{ selectedNodeSummary }}</p>
-        </div>
+        <p class="truncate text-sm font-medium">{{ selectedNode.component }}</p>
       </div>
 
-      <!-- Settings -->
-      <aside
+      <!-- Props -->
+      <div
         class="border-default bg-default flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border shadow-sm"
       >
         <UScrollArea class="min-h-0 flex-1 p-4">
-          <div class="flex flex-col gap-4">
-            <!-- Text children -->
-            <div
-              v-if="typeof selectedNode.children === 'string'"
-              class="border-default rounded-2xl border p-3"
-            >
-              <p class="mb-2 text-sm font-medium">
-                {{ t({ en: "Text content", ru: "Текстовое содержимое" }) }}
-              </p>
-              <UInput
-                :model-value="selectedNode.children"
-                @update:model-value="handleUpdateTextChildren($event as string)"
-              />
-            </div>
+          <div class="mb-3 flex items-center justify-between gap-3">
+            <p class="text-sm font-medium">Props</p>
+            <UBadge
+              :label="`${propEditorEntries.length}`"
+              color="neutral"
+              variant="subtle"
+              size="sm"
+            />
+          </div>
 
-            <!-- Props -->
-            <div class="border-default rounded-2xl border p-3">
-              <div class="mb-3 flex items-center justify-between gap-3">
-                <p class="text-sm font-medium">Props</p>
-                <UBadge
-                  :label="`${propEditorEntries.length}`"
-                  color="neutral"
-                  variant="subtle"
+          <div v-if="propEditorEntries.length > 0" class="flex flex-col gap-2.5">
+            <div v-for="entry in propEditorEntries" :key="entry.key" class="flex items-start gap-2">
+              <div class="min-w-0 flex-1">
+                <p class="text-muted mb-1 font-mono text-xs">
+                  {{ entry.key }}
+                  <span
+                    v-if="entry.meta?.description && entry.meta.description !== '/'"
+                    class="font-sans text-[10px] normal-case opacity-60"
+                  >
+                    — {{ entry.meta.description }}
+                  </span>
+                </p>
+
+                <!-- Enum prop → select -->
+                <USelect
+                  v-if="
+                    entry.meta?.type === 'enum' && entry.meta.enum && entry.meta.enum.length > 0
+                  "
+                  :model-value="String(entry.currentValue ?? entry.meta?.defaultValue ?? '')"
+                  :items="entry.meta.enum"
                   size="sm"
+                  @update:model-value="handleUpdateVariantProp(entry.key, $event as string)"
+                />
+
+                <!-- Boolean prop → switch -->
+                <USwitch
+                  v-else-if="entry.meta?.type === 'boolean'"
+                  :model-value="entry.currentValue === true"
+                  size="sm"
+                  @update:model-value="handleUpdateBooleanProp(entry.key, $event as boolean)"
+                />
+
+                <!-- Number prop -->
+                <UInput
+                  v-else-if="entry.meta?.type === 'number'"
+                  :model-value="String(entry.currentValue ?? '')"
+                  type="number"
+                  size="sm"
+                  @update:model-value="handleUpdateProp(entry.key, $event as string)"
+                />
+
+                <!-- String / other → input -->
+                <UInput
+                  v-else
+                  :model-value="String(entry.currentValue ?? '')"
+                  size="sm"
+                  :placeholder="
+                    entry.meta?.defaultValue ? `Default: ${entry.meta.defaultValue}` : ''
+                  "
+                  @update:model-value="handleUpdateProp(entry.key, $event as string)"
                 />
               </div>
 
-              <div v-if="propEditorEntries.length > 0" class="flex flex-col gap-2.5">
-                <div
-                  v-for="entry in propEditorEntries"
-                  :key="entry.key"
-                  class="flex items-start gap-2"
-                >
-                  <div class="min-w-0 flex-1">
-                    <p class="text-muted mb-1 font-mono text-xs">
-                      {{ entry.key }}
-                      <span
-                        v-if="entry.meta?.description && entry.meta.description !== '/'"
-                        class="font-sans text-[10px] normal-case opacity-60"
-                      >
-                        — {{ entry.meta.description }}
-                      </span>
-                    </p>
-
-                    <!-- Enum prop → select -->
-                    <USelect
-                      v-if="
-                        entry.meta?.type === 'enum' && entry.meta.enum && entry.meta.enum.length > 0
-                      "
-                      :model-value="String(entry.currentValue ?? entry.meta?.defaultValue ?? '')"
-                      :items="entry.meta.enum"
-                      size="sm"
-                      @update:model-value="handleUpdateVariantProp(entry.key, $event as string)"
-                    />
-
-                    <!-- Boolean prop → switch -->
-                    <USwitch
-                      v-else-if="entry.meta?.type === 'boolean'"
-                      :model-value="entry.currentValue === true"
-                      size="sm"
-                      @update:model-value="handleUpdateBooleanProp(entry.key, $event as boolean)"
-                    />
-
-                    <!-- Number prop -->
-                    <UInput
-                      v-else-if="entry.meta?.type === 'number'"
-                      :model-value="String(entry.currentValue ?? '')"
-                      type="number"
-                      size="sm"
-                      @update:model-value="handleUpdateProp(entry.key, $event as string)"
-                    />
-
-                    <!-- String / other → input -->
-                    <UInput
-                      v-else
-                      :model-value="String(entry.currentValue ?? '')"
-                      size="sm"
-                      :placeholder="
-                        entry.meta?.defaultValue ? `Default: ${entry.meta.defaultValue}` : ''
-                      "
-                      @update:model-value="handleUpdateProp(entry.key, $event as string)"
-                    />
-                  </div>
-
-                  <button
-                    v-if="entry.isSet"
-                    class="text-muted hover:text-destructive mt-5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors"
-                    @click="handleUnsetProp(entry.key)"
-                  >
-                    <UIcon name="i-lucide-x" class="h-3 w-3" />
-                  </button>
-                </div>
-              </div>
-
-              <p v-else class="text-muted text-xs">
-                {{ t({ en: "No props available", ru: "Нет доступных пропсов" }) }}
-              </p>
-            </div>
-
-            <!-- Events -->
-            <div v-if="selectedNodeHasEvents" class="border-default rounded-2xl border p-3">
-              <p class="mb-2 text-sm font-medium">Events</p>
-              <pre
-                class="bg-elevated text-highlighted rounded-xl px-3 py-2 text-xs leading-5 break-words whitespace-pre-wrap"
-                >{{ JSON.stringify(selectedNode.events, null, 2) }}</pre
+              <button
+                v-if="entry.isSet"
+                class="text-muted hover:text-destructive mt-5 flex h-7 w-7 shrink-0 items-center justify-center rounded-md transition-colors"
+                @click="handleUnsetProp(entry.key)"
               >
-            </div>
-
-            <!-- Bind -->
-            <div v-if="selectedNodeHasBindings" class="border-default rounded-2xl border p-3">
-              <p class="mb-2 text-sm font-medium">Bind</p>
-              <pre
-                class="bg-elevated text-highlighted rounded-xl px-3 py-2 text-xs leading-5 break-words whitespace-pre-wrap"
-                >{{ JSON.stringify(selectedNode.bind, null, 2) }}</pre
-              >
-            </div>
-
-            <!-- Empty -->
-            <div
-              v-if="
-                !selectedNodeHasProps &&
-                !selectedNodeHasEvents &&
-                !selectedNodeHasBindings &&
-                typeof selectedNode.children !== 'string'
-              "
-              class="border-default bg-elevated/30 rounded-2xl border p-3"
-            >
-              <div class="flex items-start gap-3">
-                <UIcon name="i-lucide-info" class="text-muted mt-0.5 h-4 w-4" />
-                <p class="text-muted text-xs leading-5">
-                  {{
-                    t({
-                      en: "This node has no props, events, or data bindings yet.",
-                      ru: "У этой ноды пока нет props, событий или привязок данных.",
-                    })
-                  }}
-                </p>
-              </div>
+                <UIcon name="i-lucide-x" class="h-3 w-3" />
+              </button>
             </div>
           </div>
+
+          <p v-else class="text-muted text-xs">
+            {{ t({ en: "No props available", ru: "Нет доступных пропсов" }) }}
+          </p>
         </UScrollArea>
-      </aside>
+      </div>
     </div>
   </div>
 
