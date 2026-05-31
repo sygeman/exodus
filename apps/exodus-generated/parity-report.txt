@@ -1,16 +1,16 @@
 generated app reused
-total differences: 110
+total differences: 138
 
 by area:
 - shell: 8
 - layouts: 7
 - pages: 15
 - assets: 8
-- other: 72
+- other: 100
 
 by reason:
-- schema gap: 63
-- generator gap: 36
+- schema gap: 88
+- generator gap: 39
 - migration gap: 11
 
 shell:
@@ -90,15 +90,25 @@ other:
 - [different] src/bun/index.ts -> schema gap
 - [only_in_reference] src/components/DebugFlowsPage.vue -> schema gap
 - [only_in_reference] src/components/DeletableEdge.vue -> schema gap
+- [only_in_reference] src/components/FlowContractFieldList.vue -> schema gap
+- [only_in_reference] src/components/FlowMapEditorModal.vue -> schema gap
+- [only_in_reference] src/components/FlowMapNode.vue -> schema gap
 - [only_in_reference] src/components/FlowNode.vue -> schema gap
 - [only_in_reference] src/components/FlowNodeConfigPanel.vue -> schema gap
 - [only_in_reference] src/components/FlowNodeWrapper.vue -> schema gap
 - [only_in_reference] src/components/NotFoundPage.vue -> schema gap
+- [only_in_reference] src/components/ProjectDataPage.vue -> schema gap
 - [only_in_reference] src/components/ProjectFlowCodePage.vue -> schema gap
 - [only_in_reference] src/components/ProjectFlowGraphPage.vue -> schema gap
 - [only_in_reference] src/components/ProjectFlowSettingsPage.vue -> schema gap
 - [only_in_reference] src/components/ProjectIdeaPage.vue -> schema gap
 - [only_in_reference] src/components/ProjectOverviewPage.vue -> schema gap
+- [only_in_reference] src/components/ProjectUiAddComponentModal.vue -> schema gap
+- [only_in_reference] src/components/ProjectUiComponentEditor.vue -> schema gap
+- [only_in_reference] src/components/ProjectUiPage.vue -> schema gap
+- [only_in_reference] src/components/ProjectUiPreviewNode.vue -> schema gap
+- [only_in_reference] src/components/ProjectUiPreviewRegistry.ts -> schema gap
+- [only_in_reference] src/components/ProjectUiPreviewRender.vue -> schema gap
 - [only_in_reference] src/components/SettingsAppearancePage.vue -> schema gap
 - [only_in_reference] src/components/SettingsLanguagePage.vue -> schema gap
 - [only_in_reference] src/components/SettingsPage.vue -> schema gap
@@ -111,16 +121,26 @@ other:
 - [only_in_generated] src/composables/useLogs.ts -> generator gap
 - [only_in_reference] src/composables/useNodeLabel.ts -> schema gap
 - [only_in_reference] src/composables/useNodeTestMode.ts -> schema gap
+- [only_in_generated] src/composables/useProject_data_collections.ts -> generator gap
 - [only_in_generated] src/composables/useProject_flows.ts -> generator gap
+- [only_in_generated] src/composables/useProject_ui_components.ts -> generator gap
+- [only_in_generated] src/composables/useProject_ui_routes.ts -> generator gap
 - [only_in_generated] src/composables/useProjects.ts -> generator gap
 - [different] src/data-manifest.ts -> schema gap
 - [different] src/edem-client.ts -> schema gap
 - [different] src/edem.ts -> schema gap
 - [only_in_reference] src/flow-collections.ts -> schema gap
+- [only_in_reference] src/flow-map-editor.test.ts -> schema gap
+- [only_in_reference] src/flow-map-editor.ts -> schema gap
+- [only_in_reference] src/flow-node-contract.test.ts -> schema gap
+- [only_in_reference] src/flow-node-contract.ts -> schema gap
 - [different] src/flows-bootstrap.ts -> schema gap
+- [only_in_reference] src/generated-nuxt-ui-meta.ts -> schema gap
 - [different] src/hooks.ts -> schema gap
 - [only_in_reference] src/procedure-catalog.test.ts -> schema gap
 - [only_in_reference] src/procedure-catalog.ts -> schema gap
+- [only_in_reference] src/project-data-source.test.ts -> schema gap
+- [only_in_reference] src/project-data-source.ts -> schema gap
 - [only_in_reference] src/project-flow-normalization.test.ts -> schema gap
 - [only_in_reference] src/project-flow-normalization.ts -> schema gap
 - [only_in_reference] src/project-flow-preview.test.ts -> schema gap
@@ -129,6 +149,14 @@ other:
 - [only_in_reference] src/project-flow-source.ts -> schema gap
 - [only_in_reference] src/project-flow-validation.test.ts -> schema gap
 - [only_in_reference] src/project-flow-validation.ts -> schema gap
+- [only_in_reference] src/project-manifest-collections.ts -> schema gap
+- [only_in_reference] src/project-manifest-schemas.ts -> schema gap
+- [only_in_reference] src/project-manifests.ts -> schema gap
+- [only_in_reference] src/project-ui-node-templates.ts -> schema gap
+- [only_in_reference] src/project-ui-source.test.ts -> schema gap
+- [only_in_reference] src/project-ui-source.ts -> schema gap
+- [only_in_reference] src/project-ui-tree.test.ts -> schema gap
+- [only_in_reference] src/project-ui-tree.ts -> schema gap
 - [only_in_reference] src/types/flow.ts -> schema gap
 - [only_in_reference] src/utils/apply-theme.ts -> schema gap
 - [only_in_reference] src/utils/persist-route.ts -> schema gap

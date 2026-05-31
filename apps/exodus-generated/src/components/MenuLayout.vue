@@ -2,7 +2,7 @@
 import { useRoute } from "vue-router"
 
 const route = useRoute()
-const props = defineProps<Record<string, unknown>>()
+const props = defineProps<{ [key: string]: unknown }>()
 </script>
 
 <template>

@@ -4,17 +4,17 @@
     "generatedNow": false
   },
   "summary": {
-    "total": 110,
+    "total": 138,
     "byArea": {
-      "other": 72,
+      "other": 100,
       "assets": 8,
       "shell": 8,
       "layouts": 7,
       "pages": 15
     },
     "byReason": {
-      "generator gap": 36,
-      "schema gap": 63,
+      "generator gap": 39,
+      "schema gap": 88,
       "migration gap": 11
     }
   },
@@ -308,10 +308,28 @@
       "status": "only_in_generated"
     },
     {
+      "file": "src/components/FlowContractFieldList.vue",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
       "file": "src/components/FlowEditorGraphPage.vue",
       "area": "pages",
       "reason": "generator gap",
       "status": "only_in_generated"
+    },
+    {
+      "file": "src/components/FlowMapEditorModal.vue",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/components/FlowMapNode.vue",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
     },
     {
       "file": "src/components/FlowNode.vue",
@@ -357,6 +375,12 @@
     },
     {
       "file": "src/components/NotFoundPage.vue",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/components/ProjectDataPage.vue",
       "area": "other",
       "reason": "schema gap",
       "status": "only_in_reference"
@@ -426,6 +450,42 @@
       "area": "pages",
       "reason": "generator gap",
       "status": "different"
+    },
+    {
+      "file": "src/components/ProjectUiAddComponentModal.vue",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/components/ProjectUiComponentEditor.vue",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/components/ProjectUiPage.vue",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/components/ProjectUiPreviewNode.vue",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/components/ProjectUiPreviewRegistry.ts",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/components/ProjectUiPreviewRender.vue",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
     },
     {
       "file": "src/components/ProjectsListPage.vue",
@@ -524,7 +584,25 @@
       "status": "only_in_reference"
     },
     {
+      "file": "src/composables/useProject_data_collections.ts",
+      "area": "other",
+      "reason": "generator gap",
+      "status": "only_in_generated"
+    },
+    {
       "file": "src/composables/useProject_flows.ts",
+      "area": "other",
+      "reason": "generator gap",
+      "status": "only_in_generated"
+    },
+    {
+      "file": "src/composables/useProject_ui_components.ts",
+      "area": "other",
+      "reason": "generator gap",
+      "status": "only_in_generated"
+    },
+    {
+      "file": "src/composables/useProject_ui_routes.ts",
       "area": "other",
       "reason": "generator gap",
       "status": "only_in_generated"
@@ -566,10 +644,40 @@
       "status": "only_in_reference"
     },
     {
+      "file": "src/flow-map-editor.test.ts",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/flow-map-editor.ts",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/flow-node-contract.test.ts",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/flow-node-contract.ts",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
       "file": "src/flows-bootstrap.ts",
       "area": "other",
       "reason": "schema gap",
       "status": "different"
+    },
+    {
+      "file": "src/generated-nuxt-ui-meta.ts",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
     },
     {
       "file": "src/hooks.ts",
@@ -591,6 +699,18 @@
     },
     {
       "file": "src/procedure-catalog.ts",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/project-data-source.test.ts",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/project-data-source.ts",
       "area": "other",
       "reason": "schema gap",
       "status": "only_in_reference"
@@ -639,6 +759,54 @@
     },
     {
       "file": "src/project-flow-validation.ts",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/project-manifest-collections.ts",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/project-manifest-schemas.ts",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/project-manifests.ts",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/project-ui-node-templates.ts",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/project-ui-source.test.ts",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/project-ui-source.ts",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/project-ui-tree.test.ts",
+      "area": "other",
+      "reason": "schema gap",
+      "status": "only_in_reference"
+    },
+    {
+      "file": "src/project-ui-tree.ts",
       "area": "other",
       "reason": "schema gap",
       "status": "only_in_reference"

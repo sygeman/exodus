@@ -7,6 +7,7 @@ export const dataManifest = {
         { name: "slug", type: "string", required: true, labels: { en: "Slug", ru: "Слаг" } },
         { name: "description", type: "text", labels: { en: "Description", ru: "Описание" } },
         { name: "icon", type: "string", labels: { en: "Icon", ru: "Иконка" } },
+        { name: "logo", type: "image", labels: { en: "Logo", ru: "Логотип" } },
         { name: "type", type: "string", default: "desktop", labels: { en: "Type", ru: "Тип" } },
         {
           name: "sort_order",
@@ -51,6 +52,40 @@ export const dataManifest = {
         { name: "meta", type: "json" },
         { name: "manifest_id", type: "string" },
         { name: "backpressure", type: "json" },
+      ],
+    },
+    {
+      id: "project_data_collections",
+      fields: [
+        { name: "project_id", type: "uuid", required: true },
+        { name: "manifest_id", type: "string", required: true },
+        { name: "name", type: "string", required: true },
+        { name: "singleton", type: "boolean", default: false },
+        { name: "fields", type: "json" },
+        { name: "labels", type: "json" },
+        { name: "description", type: "text" },
+        { name: "icon", type: "string" },
+      ],
+    },
+    {
+      id: "project_ui_components",
+      fields: [
+        { name: "project_id", type: "uuid", required: true },
+        { name: "manifest_id", type: "string", required: true },
+        { name: "name", type: "string", required: true },
+        { name: "tree", type: "json" },
+      ],
+    },
+    {
+      id: "project_ui_routes",
+      fields: [
+        { name: "project_id", type: "uuid", required: true },
+        { name: "manifest_id", type: "string", required: true },
+        { name: "path", type: "string", required: true },
+        { name: "root", type: "string" },
+        { name: "redirect", type: "string" },
+        { name: "parent_manifest_id", type: "string" },
+        { name: "sort_order", type: "number", default: 0 },
       ],
     },
     {

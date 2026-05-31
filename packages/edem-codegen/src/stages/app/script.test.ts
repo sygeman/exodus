@@ -34,7 +34,7 @@ describe("renderScript", () => {
 
     const script = renderScript(component, makeIR(component), new Map())
 
-    expect(script).toContain("const props = defineProps<Record<string, unknown>>()")
+    expect(script).toContain("const props = defineProps<{ [key: string]: unknown }>()")
   })
 
   it("skips useRoute when a catch-all route param is unused", () => {

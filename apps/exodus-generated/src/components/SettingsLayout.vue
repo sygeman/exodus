@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import MenuLayout from "@/components/MenuLayout.vue"
 
-const props = defineProps<Record<string, unknown>>()
+const props = defineProps<{ [key: string]: unknown }>()
 </script>
 
 <template>

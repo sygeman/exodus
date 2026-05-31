@@ -195,7 +195,7 @@ export function renderScript(comp: IRComponent, ir: IR, handlers: Map<string, st
   }
 
   if (usesProps(comp)) {
-    statements.push(`const props = defineProps<Record<string, unknown>>()`)
+    statements.push(`const props = defineProps<{ [key: string]: unknown }>()`)
   }
 
   for (const [name, action] of Object.entries(componentActions)) {

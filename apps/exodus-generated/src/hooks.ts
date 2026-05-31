@@ -27,5 +27,8 @@ export const {
 export { useProjects } from "./composables/useProjects"
 export { useIdeas } from "./composables/useIdeas"
 export { useProject_flows } from "./composables/useProject_flows"
+export { useProject_data_collections } from "./composables/useProject_data_collections"
+export { useProject_ui_components } from "./composables/useProject_ui_components"
+export { useProject_ui_routes } from "./composables/useProject_ui_routes"
 export { useLogs } from "./composables/useLogs"
 export { useApp_state } from "./composables/useApp_state"
