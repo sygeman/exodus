@@ -1,3 +1,12 @@
+## [2.1.1](https://github.com/sygeman/exodus/compare/v2.1.0...v2.1.1) (2026-06-01)
+
+
+### Bug Fixes
+
+* **flows:** await ensureCollections via async _react callback ([773ac49](https://github.com/sygeman/exodus/commit/773ac49600983bcfb2a69544a784b37051e959fc))
+
+
+
 # [2.1.0](https://github.com/sygeman/exodus/compare/v2.0.0...v2.1.0) (2026-06-01)
 
 
@@ -72,25 +81,6 @@
 ### Bug Fixes
 
 * **edem-vue:** evaluate templated runtime conditions ([162e7f0](https://github.com/sygeman/exodus/commit/162e7f0a33300a50b488cfa633a7c5f7808ac135))
-
-
-
-# [1.14.0](https://github.com/sygeman/exodus/compare/v1.13.0...v1.14.0) (2026-05-19)
-
-
-### Bug Fixes
-
-* **edem-codegen:** close IdeaPage parity slice ([9f5b1e6](https://github.com/sygeman/exodus/commit/9f5b1e616be035b8c23047201dcd1988094f553b))
-* **edem-codegen:** improve manifest page parity generation ([2d6da9c](https://github.com/sygeman/exodus/commit/2d6da9cac73db2136cafe13e813d93081b9d1903))
-* **edem-codegen:** reduce flow page parity gaps ([3f341c5](https://github.com/sygeman/exodus/commit/3f341c560a910b5d3e4ee114502da76e36508387))
-* **edem-codegen:** reduce parity noise for manifest pages ([134d242](https://github.com/sygeman/exodus/commit/134d24236ebc5bab0595891811ac43ea0449a169))
-* **edem-codegen:** reduce project page parity gaps ([2005509](https://github.com/sygeman/exodus/commit/2005509cfce81e6eb57d17a651d5444194d5eb78))
-* **edem-codegen:** sync shared runtime files into generated app ([6925279](https://github.com/sygeman/exodus/commit/6925279f06e7bedab372527c2131e347474ec8a5))
-
-
-### Features
-
-* **edem-codegen:** add page wrappers and manifest action helpers ([2c47cf0](https://github.com/sygeman/exodus/commit/2c47cf0bfd2c69a93f6b38533e8f2c90cf689669))
 
 
 
