@@ -1431,12 +1431,12 @@ export const flowsModule = createEdemModule(
           return { nodes }
         },
       }),
-  (edem) => {
+  async (edem) => {
     const modules = edem as Record<string, Record<string, unknown>>
     dataRef = modules.data as unknown as EdemData
     procedureCatalogRef = getEdemProcedureCatalog(edem)
     setEdemModules(modules)
-    ensureCollections(dataRef).catch(console.error)
+    await ensureCollections(dataRef)
   },
 )
 

@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, mock } from "bun:test"
-import { createEdem } from "@exodus/edem-core"
+import { createEdem, awaitEdemInit } from "@exodus/edem-core"
 import { dataModule, resetDataEngine } from "@exodus/edem-data"
 import { flowsModule } from "../index"
 import { testModule } from "../test-actions"
@@ -20,6 +20,7 @@ export function setupTests() {
   beforeEach(async () => {
     resetDataEngine()
     edem = createEdem([dataModule, flowsModule, testModule])
+    await awaitEdemInit(edem)
     originalLog = console.log
     originalError = console.error
     console.log = mock(() => {})

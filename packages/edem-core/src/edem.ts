@@ -294,7 +294,7 @@ export interface EdemModuleFn<TName extends string, TProcs extends ProcMap> {
   _name: TName
   _procs: TProcs
   _register: (builder: ModuleBuilderImpl) => void
-  _react: ((edem: unknown) => void) | null
+  _react: ((edem: unknown) => void | Promise<void>) | null
 }
 
 // ── createEdemModule ──────────────────────────────────────────────────────────
@@ -332,7 +332,7 @@ export function createEdemModule<
 >(
   name: TName,
   register: (module: ModuleBuilder<{}, {}>) => ModuleBuilder<Record<string, unknown>, TProcs>,
-  react?: (edem: TEdem) => void,
+  react?: (edem: TEdem) => void | Promise<void>,
 ): EdemModuleFn<TName, TProcs> {
   const mod: EdemModuleFn<TName, TProcs> = {
     _name: name,
@@ -419,6 +419,8 @@ type MergeModules<T extends EdemModuleFn<string, ProcMap>[]> = {
   [K in T[number] as K["_name"]]: ModuleAPI<K["_procs"]>
 }
 
+export const EDEM_INIT = Symbol("edem:init")
+
 export function createEdem<const TModules extends EdemModuleFn<string, ProcMap>[]>(
   modules: [...TModules],
   config?: EdemConfig,
@@ -426,6 +428,7 @@ export function createEdem<const TModules extends EdemModuleFn<string, ProcMap>[
 ): MergeModules<TModules> {
   const edem: Record<string, Record<string, unknown>> = {}
   const procedureCatalog: ModuleProcedureCatalog[] = []
+  const pendingInits: Promise<void>[] = []
 
   for (const mod of modules) {
     try {
@@ -446,10 +449,20 @@ export function createEdem<const TModules extends EdemModuleFn<string, ProcMap>[
     writable: false,
   })
 
+  Object.defineProperty(edem, EDEM_INIT, {
+    value: () => Promise.all(pendingInits),
+    enumerable: false,
+    configurable: false,
+    writable: false,
+  })
+
   for (const mod of modules) {
     if (mod._react) {
       try {
-        mod._react(edem)
+        const result = mod._react(edem)
+        if (result && typeof (result as Promise<void>).then === "function") {
+          pendingInits.push(result as Promise<void>)
+        }
       } catch (cause) {
         throw new EdemError(`Failed to initialize reactions for module "${mod._name}"`, cause)
       }
@@ -457,6 +470,13 @@ export function createEdem<const TModules extends EdemModuleFn<string, ProcMap>[
   }
 
   return edem as MergeModules<TModules>
+}
+
+export async function awaitEdemInit(edem: unknown): Promise<void> {
+  const init = (edem as Record<symbol, (() => Promise<void>) | undefined>)[EDEM_INIT]
+  if (init) {
+    await init()
+  }
 }
 
 // ── createEdemProxy ─────────────────────────────────────────────────────────

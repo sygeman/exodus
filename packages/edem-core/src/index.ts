@@ -7,6 +7,8 @@ export {
   getModuleProcedures,
   getModuleSubscriptions,
   getProcedureCatalog,
+  EDEM_INIT,
+  awaitEdemInit,
 } from "./edem"
 export type {
   EdemWorker,

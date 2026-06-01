@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from "bun:test"
-import { createEdem } from "@exodus/edem-core"
+import { createEdem, awaitEdemInit } from "@exodus/edem-core"
 import { dataModule, resetDataEngine } from "@exodus/edem-data"
 import flowsModule from "./index"
 import { reg, testModule } from "./test-actions"
@@ -13,6 +13,7 @@ describe("edem-flows", () => {
   beforeEach(async () => {
     resetDataEngine()
     edem = createEdem([dataModule, flowsModule, testModule])
+    await awaitEdemInit(edem)
   })
 
   describe("createFlow", () => {
