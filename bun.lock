@@ -16,7 +16,7 @@
     },
     "apps/exodus": {
       "name": "exodus",
-      "version": "2.2.0",
+      "version": "2.3.0",
       "dependencies": {
         "@comark/vue": "0.4.0",
         "@exodus/edem-core": "workspace:*",
