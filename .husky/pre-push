@@ -1,0 +1,13 @@
+#!/bin/sh
+# Prevent direct push to main. Use PRs instead.
+
+protected_branch="main"
+current_branch=$(git rev-parse --abbrev-ref HEAD)
+
+if [ "$current_branch" = "$protected_branch" ]; then
+  echo "❌ Direct push to main is forbidden. Create a PR instead."
+  echo "   git checkout -b <branch-name>"
+  echo "   git push origin <branch-name>"
+  echo "   gh pr create"
+  exit 1
+fi
