@@ -67,6 +67,7 @@ jobs:
 
   changelog:
     name: Generate Changelog
+    if: github.event_name != 'pull_request'
     timeout-minutes: 15
     runs-on: ubuntu-latest
     outputs:
