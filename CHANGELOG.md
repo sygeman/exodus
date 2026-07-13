@@ -1,3 +1,12 @@
+# [2.2.0](https://github.com/sygeman/exodus/compare/v2.1.1...v2.2.0) (2026-07-13)
+
+
+### Features
+
+* add AI agent integration with OpenCode, TTS, and model settings ([f53fc31](https://github.com/sygeman/exodus/commit/f53fc31a3fd011c699819f38698bb651934aa10f))
+
+
+
 ## [2.1.1](https://github.com/sygeman/exodus/compare/v2.1.0...v2.1.1) (2026-06-01)
 
 
@@ -72,15 +81,6 @@
 ### Features
 
 * **flows:** add flow and subflow graph contracts ([db42e05](https://github.com/sygeman/exodus/commit/db42e05fef7a7bb7fd1df012e028808a5c0ab450))
-
-
-
-## [1.14.1](https://github.com/sygeman/exodus/compare/v1.14.0...v1.14.1) (2026-05-19)
-
-
-### Bug Fixes
-
-* **edem-vue:** evaluate templated runtime conditions ([162e7f0](https://github.com/sygeman/exodus/commit/162e7f0a33300a50b488cfa633a7c5f7808ac135))
 
 
 
