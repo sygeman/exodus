@@ -9,6 +9,8 @@ import type {
   IRAsset,
   IRLayoutInfo,
   IRPlatformConfig,
+  IRIntent,
+  IRArchitecture,
   ExtendedComponentNode,
 } from "./ir"
 import { kebabCase } from "./utils"
@@ -23,6 +25,34 @@ export interface Manifests {
   flows: FlowsManifest
   assets?: AssetsManifest
   platform?: PlatformManifest
+  intent?: IntentManifest
+  architecture?: ArchitectureManifest
+}
+
+interface IntentManifest {
+  id: string
+  description: string
+  goals: Array<{ id: string; text: string }>
+  constraints: Array<{ id: string; text: string }>
+  non_goals: Array<{ id: string; text: string }>
+  examples?: string[]
+}
+
+interface ArchitectureManifest {
+  id: string
+  covers: string[]
+  layers: {
+    data?: { collections: string[]; rationale: string }
+    flows?: { patterns: string[]; rationale: string }
+    ui?: { screens: string[]; rationale: string }
+    platform?: { target: string; rationale: string }
+  }
+  decisions: Array<{
+    id: string
+    question: string
+    answer: string
+    covers: string[]
+  }>
 }
 
 interface DataCollection {
@@ -37,6 +67,7 @@ interface DataCollection {
   }>
   labels?: Record<string, string>
   singleton?: boolean
+  covers?: string[]
 }
 
 interface FlowManifest {
@@ -55,6 +86,7 @@ interface FlowManifest {
     target: string
   }>
   meta?: Record<string, unknown>
+  covers?: string[]
 }
 
 interface FlowsManifest {
@@ -79,6 +111,8 @@ export function parseManifests(manifests: Manifests, projectName?: string): IR {
   const layout = parseLayout(manifests.components)
   const platform = parsePlatform(manifests.platform)
   const usedComponents = extractUsedComponents(manifests.components)
+  const intent = parseIntent(manifests.intent)
+  const architecture = parseArchitecture(manifests.architecture)
 
   return {
     project: { name: projectName ?? "app", identifier: `${projectName ?? "app"}.local` },
@@ -90,6 +124,8 @@ export function parseManifests(manifests: Manifests, projectName?: string): IR {
     layout,
     platform,
     usedComponents,
+    intent,
+    architecture,
   }
 }
 
@@ -229,6 +265,7 @@ function parseCollections(data: { collections: DataCollection[] }): IRCollection
       labels: f.labels,
     })),
     singleton: col.singleton ?? false,
+    covers: col.covers,
   }))
 }
 
@@ -265,6 +302,7 @@ function parseFlows(flows: FlowsManifest): IRFlow[] {
       target: e.target,
     })),
     meta: flow.meta,
+    covers: flow.covers,
   }))
 }
 
@@ -394,5 +432,31 @@ function parsePlatform(platform?: PlatformManifest): IRPlatformConfig {
       splash: f["splash"] as IRPlatformConfig["features"]["splash"],
       waylandWorkaround: !!f["wayland-workaround"],
     },
+  }
+}
+
+// ── Intent (L0) ──────────────────────────────────────────────────────────────
+
+function parseIntent(manifest?: IntentManifest): IRIntent | undefined {
+  if (!manifest) return undefined
+  return {
+    id: manifest.id,
+    description: manifest.description,
+    goals: manifest.goals,
+    constraints: manifest.constraints,
+    non_goals: manifest.non_goals,
+    examples: manifest.examples,
+  }
+}
+
+// ── Architecture (L1) ────────────────────────────────────────────────────────
+
+function parseArchitecture(manifest?: ArchitectureManifest): IRArchitecture | undefined {
+  if (!manifest) return undefined
+  return {
+    id: manifest.id,
+    covers: manifest.covers,
+    layers: manifest.layers,
+    decisions: manifest.decisions,
   }
 }

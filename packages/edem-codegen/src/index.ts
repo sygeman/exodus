@@ -28,7 +28,7 @@ export type {
 } from "./ir"
 
 export { parseManifests, type Manifests } from "./parse"
-export { validateIR, type ValidationError } from "./validate"
+export { validateIR, validateTraceability, type ValidationError } from "./validate"
 export { walkComponentTree, collectFromTree, someInTree } from "./walker"
 export { buildParamMap, findRouteForComponent, type ExpressionContext } from "./expressions"
 export { capitalize, kebabCase, camelCase, slugify, escapeAttr } from "./utils"

@@ -4,6 +4,7 @@
       "id": "projects",
       "name": "Projects",
       "labels": { "en": "Projects", "ru": "Проекты" },
+      "covers": ["G-01"],
       "fields": [
         { "name": "name", "type": "string", "required": true, "labels": { "en": "Name", "ru": "Название" } },
         { "name": "slug", "type": "string", "required": true, "labels": { "en": "Slug", "ru": "Слаг" } },
@@ -18,6 +19,7 @@
       "id": "ideas",
       "name": "Ideas",
       "labels": { "en": "Ideas", "ru": "Идеи" },
+      "covers": ["G-01"],
       "fields": [
         { "name": "project_id", "type": "uuid", "required": true, "labels": { "en": "Project", "ru": "Проект" } },
         { "name": "title", "type": "string", "required": true, "labels": { "en": "Title", "ru": "Заголовок" } },
@@ -31,6 +33,7 @@
       "id": "project_flows",
       "name": "Project Flows",
       "labels": { "en": "Project Flows", "ru": "Проектные флоу" },
+      "covers": ["G-03"],
       "fields": [
         { "name": "project_id", "type": "uuid", "required": true },
         { "name": "name", "type": "string", "required": true },
@@ -49,6 +52,7 @@
       "id": "project_data_collections",
       "name": "Project Data Collections",
       "labels": { "en": "Project Data Collections", "ru": "Проектные коллекции данных" },
+      "covers": ["G-02"],
       "fields": [
         { "name": "project_id", "type": "uuid", "required": true },
         { "name": "manifest_id", "type": "string", "required": true },
@@ -136,6 +140,7 @@
       "id": "agent_providers",
       "name": "Agent Providers",
       "labels": { "en": "Agent Providers", "ru": "Провайдеры агента" },
+      "covers": ["G-06"],
       "fields": [
         { "name": "name", "type": "string", "required": true, "labels": { "en": "Name", "ru": "Название" } },
         { "name": "api_url", "type": "string", "required": true, "labels": { "en": "API URL", "ru": "URL API" } },
@@ -149,6 +154,7 @@
       "name": "Agent Settings",
       "singleton": true,
       "labels": { "en": "Agent Settings", "ru": "Настройки агента" },
+      "covers": ["G-06"],
       "fields": [
         { "name": "active_provider_id", "type": "string", "labels": { "en": "Active Provider", "ru": "Активный провайдер" } },
         { "name": "voice", "type": "string", "labels": { "en": "Voice", "ru": "Голос" } },

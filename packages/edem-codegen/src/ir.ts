@@ -59,6 +59,54 @@ export interface ExtendedComponentNode extends Omit<ComponentNode, "children"> {
   actions?: Record<string, ManifestAction>
 }
 
+// ── Intent (L0) ───────────────────────────────────────────────────────────────
+// Structured human intent. The root of traceability.
+
+export interface IRIntent {
+  id: string
+  description: string
+  goals: IRGoal[]
+  constraints: IRConstraint[]
+  non_goals: Array<{ id: string; text: string }>
+  examples?: string[]
+}
+
+export interface IRGoal {
+  id: string
+  text: string
+}
+
+export interface IRConstraint {
+  id: string
+  text: string
+}
+
+export interface IRArchitectureDecision {
+  id: string
+  question: string
+  answer: string
+  covers: string[]
+}
+
+export interface IRArchitecture {
+  id: string
+  covers: string[]
+  layers: {
+    data?: { collections: string[]; rationale: string }
+    flows?: { patterns: string[]; rationale: string }
+    ui?: { screens: string[]; rationale: string }
+    platform?: { target: string; rationale: string }
+  }
+  decisions: IRArchitectureDecision[]
+}
+
+// ── Traceability ──────────────────────────────────────────────────────────────
+// Each manifest element can reference which goals/decisions it covers.
+
+export interface Traceable {
+  covers?: string[]
+}
+
 // ── Intermediate Representation (IR) ──────────────────────────────────────────
 // Framework-agnostic description of the application.
 // Generated from manifests (data.json + flows.json + routes.json + platform.json + assets.json).
@@ -73,6 +121,8 @@ export interface IR {
   layout: IRLayoutInfo
   platform: IRPlatformConfig
   usedComponents: string[]
+  intent?: IRIntent
+  architecture?: IRArchitecture
 }
 
 export interface IRProject {
@@ -80,7 +130,7 @@ export interface IRProject {
   identifier: string
 }
 
-export interface IRComponent {
+export interface IRComponent extends Traceable {
   name: string
   tree: ExtendedComponentNode
   usedCollections: string[]
@@ -100,7 +150,7 @@ export interface IRRoute {
   children?: IRRoute[]
 }
 
-export interface IRCollection {
+export interface IRCollection extends Traceable {
   id: string
   name: string
   fields: IRField[]
@@ -116,7 +166,7 @@ export interface IRField {
   labels?: Record<string, string>
 }
 
-export interface IRFlow {
+export interface IRFlow extends Traceable {
   id: string
   name: string
   kind?: "flow" | "subflow"

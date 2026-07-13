@@ -21,6 +21,97 @@ export function validateIR(ir: IR): ValidationError[] {
   return errors
 }
 
+// ── Traceability Validation ───────────────────────────────────────────────────
+// Validates the chain: L0 (intent) → L1 (architecture) → L2 (manifests)
+
+export function validateTraceability(ir: IR): ValidationError[] {
+  const errors: ValidationError[] = []
+
+  if (!ir.intent) return errors
+
+  const goalIds = new Set(ir.intent.goals.map((g) => g.id))
+  const constraintIds = new Set(ir.intent.constraints.map((c) => c.id))
+  const allIntentIds = new Set([...goalIds, ...constraintIds])
+
+  // Collect all covers from manifests
+  const coveredByCollections = new Map<string, string[]>()
+  const coveredByFlows = new Map<string, string[]>()
+
+  for (const col of ir.collections) {
+    if (col.covers) {
+      for (const ref of col.covers) {
+        if (!coveredByCollections.has(ref)) coveredByCollections.set(ref, [])
+        coveredByCollections.get(ref)!.push(`collection:${col.id}`)
+      }
+    }
+  }
+
+  for (const flow of ir.flows) {
+    if (flow.covers) {
+      for (const ref of flow.covers) {
+        if (!coveredByFlows.has(ref)) coveredByFlows.set(ref, [])
+        coveredByFlows.get(ref)!.push(`flow:${flow.id}`)
+      }
+    }
+  }
+
+  // Check: all goals are covered by at least one manifest
+  for (const goal of ir.intent.goals) {
+    const coveredByCol = coveredByCollections.has(goal.id)
+    const coveredByFlow = coveredByFlows.has(goal.id)
+    const coveredByArch = ir.architecture?.covers.includes(goal.id) ?? false
+
+    if (!coveredByCol && !coveredByFlow && !coveredByArch) {
+      errors.push({
+        type: "warning",
+        message: `Goal "${goal.id}" (${goal.text}) is not covered by any collection, flow, or architecture`,
+        path: `intent.goals.${goal.id}`,
+      })
+    }
+  }
+
+  // Check: all covers reference valid goal/constraint IDs
+  for (const [ref, sources] of [...coveredByCollections.entries(), ...coveredByFlows.entries()]) {
+    if (!allIntentIds.has(ref)) {
+      for (const source of sources) {
+        errors.push({
+          type: "warning",
+          message: `${source} covers unknown intent ID "${ref}"`,
+          path: source,
+        })
+      }
+    }
+  }
+
+  // Check: architecture decisions cover valid goals
+  if (ir.architecture) {
+    for (const decision of ir.architecture.decisions) {
+      for (const ref of decision.covers) {
+        if (!goalIds.has(ref)) {
+          errors.push({
+            type: "warning",
+            message: `Decision "${decision.id}" covers unknown goal "${ref}"`,
+            path: `architecture.decisions.${decision.id}`,
+          })
+        }
+      }
+    }
+
+    // Check: architecture covers valid goals
+    for (const ref of ir.architecture.covers) {
+      if (!goalIds.has(ref)) {
+        errors.push({
+          type: "warning",
+          message: `Architecture covers unknown goal "${ref}"`,
+          path: `architecture.covers`,
+        })
+      }
+    }
+  }
+
+  return errors
+}
+
 function validateRoutes(ir: IR, errors: ValidationError[]): void {
   const componentNames = new Set(ir.components.map((c) => c.name))
 

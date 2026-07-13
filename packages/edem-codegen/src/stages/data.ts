@@ -93,7 +93,11 @@ function generateDataManifest(collections: IRCollection[]): string {
         prefix.push("singleton: true")
       }
 
-      return `    {
+      const coversLine = collection.covers?.length
+        ? `      // covers: ${collection.covers.join(", ")}\n`
+        : ""
+
+      return `${coversLine}    {
       ${prefix.join(",\n      ")},
       fields: [
 ${fields}
@@ -182,11 +186,15 @@ function generateComposable(col: IRCollection): string {
     })
     .join(",\n")
 
+  const coversComment = col.covers?.length
+    ? `// covers: ${col.covers.join(", ")} | manifest:data.json | collection:${col.id}\n`
+    : ""
+
   if (col.singleton) {
-    return generateSingletonComposable(typeName, itemType, fieldDefs, col.id)
+    return generateSingletonComposable(typeName, itemType, fieldDefs, col.id, coversComment)
   }
 
-  return generateCollectionComposable(typeName, itemType, fieldDefs, col.id)
+  return generateCollectionComposable(typeName, itemType, fieldDefs, col.id, coversComment)
 }
 
 function generateSingletonComposable(
@@ -194,8 +202,9 @@ function generateSingletonComposable(
   itemType: string,
   fieldDefs: string,
   collectionId: string,
+  coversComment: string,
 ): string {
-  return `import { ref, onMounted, onUnmounted } from "vue"
+  return `${coversComment}import { ref, onMounted, onUnmounted } from "vue"
 import { edem } from "@/edem"
 
 export interface ${itemType} {
@@ -252,8 +261,9 @@ function generateCollectionComposable(
   itemType: string,
   fieldDefs: string,
   collectionId: string,
+  coversComment: string,
 ): string {
-  return `import { ref, watchEffect } from "vue"
+  return `${coversComment}import { ref, watchEffect } from "vue"
 import { edem } from "@/edem"
 
 export interface ${itemType} {

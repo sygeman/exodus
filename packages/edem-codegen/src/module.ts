@@ -3,7 +3,7 @@ import { createEdemModule } from "@exodus/edem-core"
 import { existsSync, readFileSync, readdirSync } from "fs"
 import { dirname, join, relative, resolve } from "path"
 import { parseManifests, type Manifests } from "./parse"
-import { validateIR } from "./validate"
+import { validateIR, validateTraceability } from "./validate"
 import {
   bunStage,
   electrobunStage,
@@ -53,7 +53,9 @@ export const codegenModule = createEdemModule("codegen", (module) => {
 
         // 2. Validate
         const errors = validateIR(ir)
-        const criticalErrors = errors.filter((e) => e.type === "error")
+        const traceabilityErrors = validateTraceability(ir)
+        const allErrors = [...errors, ...traceabilityErrors]
+        const criticalErrors = allErrors.filter((e) => e.type === "error")
         if (criticalErrors.length > 0) {
           throw new Error(
             `Validation failed:\n${criticalErrors.map((e) => `  - ${e.message}`).join("\n")}`,
@@ -151,6 +153,20 @@ export const codegenModule = createEdemModule("codegen", (module) => {
           writeFileSync(
             join(manifestsDir, "platform.json"),
             JSON.stringify(manifests.platform, null, 2),
+            "utf-8",
+          )
+        }
+        if (manifests.intent) {
+          writeFileSync(
+            join(manifestsDir, "intent.json"),
+            JSON.stringify(manifests.intent, null, 2),
+            "utf-8",
+          )
+        }
+        if (manifests.architecture) {
+          writeFileSync(
+            join(manifestsDir, "architecture.json"),
+            JSON.stringify(manifests.architecture, null, 2),
             "utf-8",
           )
         }
