@@ -1,3 +1,12 @@
+# [2.3.0](https://github.com/sygeman/exodus/compare/v2.2.0...v2.3.0) (2026-07-13)
+
+
+### Features
+
+* **codegen:** add L0 intent format, traceability, and covers validation ([6f8f287](https://github.com/sygeman/exodus/commit/6f8f28750cee7d5af432d097be1f6a7b33dd3aba))
+
+
+
 # [2.2.0](https://github.com/sygeman/exodus/compare/v2.1.1...v2.2.0) (2026-07-13)
 
 
@@ -72,15 +81,6 @@
 ### BREAKING CHANGES
 
 * webhook triggers are no longer accepted in flow definitions or exposed by the dispatcher API.
-
-
-
-# [1.15.0](https://github.com/sygeman/exodus/compare/v1.14.1...v1.15.0) (2026-05-19)
-
-
-### Features
-
-* **flows:** add flow and subflow graph contracts ([db42e05](https://github.com/sygeman/exodus/commit/db42e05fef7a7bb7fd1df012e028808a5c0ab450))
 
 
 
