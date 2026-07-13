@@ -20,6 +20,8 @@ import DebugFlowRunsPage from "@/components/DebugFlowRunsPage.vue"
 import SettingsPage from "@/components/SettingsPage.vue"
 import SettingsAppearancePage from "@/components/SettingsAppearancePage.vue"
 import SettingsLanguagePage from "@/components/SettingsLanguagePage.vue"
+import SettingsAgentPage from "@/components/SettingsAgentPage.vue"
+import SettingsModelsPage from "@/components/SettingsModelsPage.vue"
 import NotFoundPage from "@/components/NotFoundPage.vue"
 
 const routes: RouteRecordRaw[] = [
@@ -97,6 +99,8 @@ const routes: RouteRecordRaw[] = [
     children: [
       { path: "appearance", name: "settings-appearance", component: SettingsAppearancePage },
       { path: "language", name: "settings-language", component: SettingsLanguagePage },
+      { path: "agent", name: "settings-agent", component: SettingsAgentPage },
+      { path: "models", name: "settings-models", component: SettingsModelsPage },
     ],
   },
   { path: "/:pathMatch(.*)*", name: "not-found", component: NotFoundPage },

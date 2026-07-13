@@ -14,10 +14,14 @@
     "prepare": "bun scripts/patch-electrobun.js"
   },
   "dependencies": {
+    "@comark/vue": "0.4.0",
     "@exodus/edem-core": "workspace:*",
     "@exodus/edem-data": "workspace:*",
     "@exodus/edem-electrobun": "workspace:*",
     "@exodus/edem-flows": "workspace:*",
+    "@exodus/edem-net": "workspace:*",
+    "@exodus/edem-opencode": "workspace:*",
+    "@exodus/edem-tts": "workspace:*",
     "@exodus/edem-vue": "workspace:*",
     "@exodus/typescript-config": "workspace:*",
     "@nuxt/ui": "4.7.1",
@@ -28,6 +32,7 @@
     "@vueuse/core": "14.3.0",
     "@vueuse/integrations": "14.3.0",
     "electrobun": "1.18.1",
+    "marked": "18.0.5",
     "sortablejs": "1.15.7",
     "tailwindcss": "4.3.0",
     "vue-i18n": "11.4.4",

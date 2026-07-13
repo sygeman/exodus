@@ -10,6 +10,7 @@ import { ensureFlows } from "@/flows-bootstrap"
 import { bunLogger } from "@exodus/edem-electrobun/logger-bun"
 import { getSystemLocale, getSystemTheme } from "@exodus/edem-electrobun/system"
 import { onWindowFrameChange } from "@exodus/edem-electrobun/window"
+import { startOpencodeServer } from "./opencode"
 
 const MIN_WINDOW_WIDTH = 400
 const MIN_WINDOW_HEIGHT = 300
@@ -53,6 +54,8 @@ async function getMainViewUrl(): Promise<string> {
 }
 
 const url = await getMainViewUrl()
+
+await startOpencodeServer()
 
 const edemBridge = createBunEdemBridge(edem, modules)
 

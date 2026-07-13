@@ -325,10 +325,6 @@ const fieldTypeGroups = computed<FieldTypeCatalogGroup[]>(() => [
 ])
 
 const booleanDefaultItems = computed(() => [
-  {
-    label: t({ en: "No default", ru: "Без значения" }),
-    value: "",
-  },
   { label: "true", value: "true" },
   { label: "false", value: "false" },
 ])

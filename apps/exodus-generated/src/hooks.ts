@@ -32,3 +32,5 @@ export { useProject_ui_components } from "./composables/useProject_ui_components
 export { useProject_ui_routes } from "./composables/useProject_ui_routes"
 export { useLogs } from "./composables/useLogs"
 export { useApp_state } from "./composables/useApp_state"
+export { useAgent_providers } from "./composables/useAgent_providers"
+export { useAgent_settings } from "./composables/useAgent_settings"

@@ -105,11 +105,46 @@ export const dataManifest = {
       fields: [
         { name: "last_route", type: "json" },
         { name: "locale", type: "string" },
-        { name: "locales", type: "json" },
+        {
+          name: "locales",
+          type: "json",
+          default: [
+            { value: "en", label: "English", flag: "🇺🇸" },
+            { value: "ru", label: "Русский", flag: "🇷🇺" },
+          ],
+        },
         { name: "dark", type: "boolean", default: false },
         { name: "window_frame", type: "json" },
         { name: "window_maximized", type: "boolean", default: false },
       ],
+    },
+    {
+      id: "agent_providers",
+      fields: [
+        { name: "name", type: "string", required: true },
+        { name: "api_url", type: "string", required: true },
+        { name: "api_key", type: "string" },
+        { name: "models", type: "json" },
+        { name: "active_model", type: "string" },
+      ],
+    },
+    {
+      id: "agent_settings",
+      singleton: true,
+      fields: [
+        { name: "active_provider_id", type: "string" },
+        { name: "voice", type: "string" },
+        { name: "language", type: "string", default: "auto" },
+        { name: "auto_listen", type: "boolean", default: false },
+        { name: "volume", type: "number", default: 0.8 },
+        { name: "tts_voice", type: "string" },
+        { name: "tts_speed", type: "number", default: 1.0 },
+      ],
+    },
+    {
+      id: "agent_conversation",
+      singleton: true,
+      fields: [{ name: "messages", type: "json", default: [] }],
     },
   ],
 } as const

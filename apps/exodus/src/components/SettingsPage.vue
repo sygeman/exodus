@@ -15,6 +15,16 @@ const navItems = computed<MenuLayoutItem[]>(() => [
     icon: "i-lucide-palette",
   },
   { to: "/settings/language", label: t({ en: "Language", ru: "Язык" }), icon: "i-lucide-globe" },
+  {
+    to: "/settings/models",
+    label: t({ en: "Models", ru: "Модели" }),
+    icon: "i-lucide-cpu",
+  },
+  {
+    to: "/settings/agent",
+    label: t({ en: "AI Agent", ru: "AI Агент" }),
+    icon: "i-lucide-sparkles",
+  },
 ])
 
 const activeItem = computed(() => navItems.value.find((item) => route.path === item.to))

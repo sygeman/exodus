@@ -1917,3 +1917,9 @@ export type { SchedulerOptions } from "./scheduler"
 export type { DispatcherOptions, FlowFilter } from "./dispatcher"
 export { parseEvery, matchesSchedule, type ScheduleTrigger, type DayOfWeek } from "./manifest"
 export { validateFlow } from "./engine"
+export {
+  executors,
+  registerExecutor,
+  type NodeExecutor,
+  type NodeExecutorResult,
+} from "./executors"

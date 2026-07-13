@@ -4,17 +4,17 @@
     "generatedNow": false
   },
   "summary": {
-    "total": 138,
+    "total": 141,
     "byArea": {
-      "other": 100,
+      "other": 103,
       "assets": 8,
       "shell": 8,
       "layouts": 7,
       "pages": 15
     },
     "byReason": {
-      "generator gap": 39,
-      "schema gap": 88,
+      "generator gap": 41,
+      "schema gap": 89,
       "migration gap": 11
     }
   },
@@ -245,6 +245,12 @@
       "file": "src/app.css",
       "area": "shell",
       "reason": "generator gap",
+      "status": "different"
+    },
+    {
+      "file": "src/bun/edem.ts",
+      "area": "other",
+      "reason": "schema gap",
       "status": "different"
     },
     {
@@ -537,6 +543,18 @@
     },
     {
       "file": "src/components/registry.ts",
+      "area": "other",
+      "reason": "generator gap",
+      "status": "only_in_generated"
+    },
+    {
+      "file": "src/composables/useAgent_providers.ts",
+      "area": "other",
+      "reason": "generator gap",
+      "status": "only_in_generated"
+    },
+    {
+      "file": "src/composables/useAgent_settings.ts",
       "area": "other",
       "reason": "generator gap",
       "status": "only_in_generated"

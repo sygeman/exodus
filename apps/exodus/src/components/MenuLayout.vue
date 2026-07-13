@@ -18,12 +18,12 @@ const route = useRoute()
 
 <template>
   <div class="flex h-full w-full">
-    <aside class="border-default flex w-56 flex-col gap-6 border-r p-4">
-      <div>
-        <h2 class="px-2 text-xl font-bold">{{ props.title }}</h2>
-      </div>
-      <nav class="flex flex-col gap-0.5" v-for="(item, idx) in props.items" :key="idx">
+    <aside class="border-default flex w-56 flex-col gap-1 border-r p-3">
+      <h2 class="px-2 pb-1 text-xl font-bold">{{ props.title }}</h2>
+      <nav class="flex flex-col gap-0.5">
         <RouterLink
+          v-for="(item, idx) in props.items"
+          :key="idx"
           :to="item.to"
           :class="
             route.path === item.to || (item.to !== '/' && route.path.startsWith(item.to + '/'))

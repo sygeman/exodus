@@ -1,0 +1,1 @@
+export { ttsModule } from "./module"

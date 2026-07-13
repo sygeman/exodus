@@ -46,6 +46,10 @@ export const executors: Record<string, NodeExecutor> = {
   subflow: executeSubflow,
 }
 
+export function registerExecutor(name: string, executor: NodeExecutor): void {
+  executors[name] = executor
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return !!value && typeof value === "object" && !Array.isArray(value)
 }

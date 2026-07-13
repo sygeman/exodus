@@ -1,16 +1,16 @@
 generated app reused
-total differences: 138
+total differences: 141
 
 by area:
 - shell: 8
 - layouts: 7
 - pages: 15
 - assets: 8
-- other: 100
+- other: 103
 
 by reason:
-- schema gap: 88
-- generator gap: 39
+- schema gap: 89
+- generator gap: 41
 - migration gap: 11
 
 shell:
@@ -87,6 +87,7 @@ other:
 - [different] package.json -> schema gap
 - [different] scripts/generate-icons.sh -> schema gap
 - [different] scripts/install-linux.sh -> schema gap
+- [different] src/bun/edem.ts -> schema gap
 - [different] src/bun/index.ts -> schema gap
 - [only_in_reference] src/components/DebugFlowsPage.vue -> schema gap
 - [only_in_reference] src/components/DeletableEdge.vue -> schema gap
@@ -114,6 +115,8 @@ other:
 - [only_in_reference] src/components/SettingsPage.vue -> schema gap
 - [only_in_reference] src/components/UpdateOverlay.vue -> schema gap
 - [only_in_generated] src/components/registry.ts -> generator gap
+- [only_in_generated] src/composables/useAgent_providers.ts -> generator gap
+- [only_in_generated] src/composables/useAgent_settings.ts -> generator gap
 - [only_in_generated] src/composables/useApp_state.ts -> generator gap
 - [only_in_reference] src/composables/useFlowHighlighting.ts -> schema gap
 - [only_in_generated] src/composables/useFlows.ts -> generator gap

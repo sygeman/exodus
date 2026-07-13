@@ -149,5 +149,56 @@ export const dataManifest = {
         },
       ],
     },
+    {
+      id: "agent_providers",
+      fields: [
+        { name: "name", type: "string", required: true, labels: { en: "Name", ru: "Название" } },
+        {
+          name: "api_url",
+          type: "string",
+          required: true,
+          labels: { en: "API URL", ru: "URL API" },
+        },
+        { name: "api_key", type: "string", labels: { en: "API Key", ru: "API Ключ" } },
+        { name: "models", type: "json", labels: { en: "Models", ru: "Модели" } },
+        {
+          name: "active_model",
+          type: "string",
+          labels: { en: "Active Model", ru: "Активная модель" },
+        },
+      ],
+    },
+    {
+      id: "agent_settings",
+      singleton: true,
+      fields: [
+        {
+          name: "active_provider_id",
+          type: "string",
+          labels: { en: "Active Provider", ru: "Активный провайдер" },
+        },
+        { name: "voice", type: "string", labels: { en: "Voice", ru: "Голос" } },
+        {
+          name: "language",
+          type: "string",
+          default: "auto",
+          labels: { en: "Language", ru: "Язык" },
+        },
+        {
+          name: "auto_listen",
+          type: "boolean",
+          default: false,
+          labels: { en: "Auto Listen", ru: "Автопрослушивание" },
+        },
+        { name: "volume", type: "number", default: 0.8, labels: { en: "Volume", ru: "Громкость" } },
+        { name: "tts_voice", type: "string", labels: { en: "TTS Voice", ru: "Голос TTS" } },
+        {
+          name: "tts_speed",
+          type: "number",
+          default: 1,
+          labels: { en: "TTS Speed", ru: "Скорость TTS" },
+        },
+      ],
+    },
   ],
 } as const
