@@ -136,13 +136,11 @@ const statusClass = computed(() => {
           <pre
             v-if="editOldStr"
             class="bg-error/10 text-error overflow-x-auto rounded p-2 font-mono text-xs"
-            >{{ editOldStr }}</pre
-          >
+            >{{ editOldStr }}</pre>
           <pre
             v-if="editNewStr"
             class="bg-success/10 text-success overflow-x-auto rounded p-2 font-mono text-xs"
-            >{{ editNewStr }}</pre
-          >
+            >{{ editNewStr }}</pre>
         </div>
       </div>
 
@@ -203,8 +201,7 @@ const statusClass = computed(() => {
       >
         <pre
           class="bg-default max-h-48 overflow-x-auto overflow-y-auto rounded p-2 font-mono text-xs"
-          >{{ truncateOutput(output) }}</pre
-        >
+          >{{ truncateOutput(output) }}</pre>
       </div>
 
       <div v-if="isError && error" class="p-2">

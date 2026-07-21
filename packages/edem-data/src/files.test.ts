@@ -121,7 +121,7 @@ describe("data module files", () => {
     expect(completed.file.size).toBe(data.byteLength)
 
     const chunks: Buffer[] = []
-    for (let offset = 0; ; ) {
+    for (let offset = 0; ;) {
       const chunk = await edem.data.readFileChunk({
         hash: expectedHash,
         offset,
