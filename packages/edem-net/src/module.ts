@@ -73,6 +73,7 @@ export const netModule = createEdemModule("net", (module) =>
         let buffer = ""
         let fullBody = ""
         let eventId = ""
+        let eventName = ""
 
         try {
           while (true) {
@@ -90,16 +91,17 @@ export const netModule = createEdemModule("net", (module) =>
               if (trimmed.startsWith("id: ")) {
                 eventId = trimmed.slice(4)
               } else if (trimmed.startsWith("event: ")) {
-                // event name — will be used in next data line
+                eventName = trimmed.slice(7)
               } else if (trimmed.startsWith("data: ")) {
                 const data = trimmed.slice(6)
                 fullBody += data
                 await emit.onSSEEvent({
                   id: eventId || `sse-${Date.now()}`,
-                  event: "message",
+                  event: eventName || "message",
                   data,
                 })
                 eventId = ""
+                eventName = ""
               } else if (trimmed === "data:") {
                 // empty data line
               }
