@@ -1,3 +1,12 @@
+## [2.3.1](https://github.com/sygeman/exodus/compare/v2.3.0...v2.3.1) (2026-07-21)
+
+
+### Bug Fixes
+
+* **ci:** use HEAD ref for builds and fix bump detection ([#5](https://github.com/sygeman/exodus/issues/5)) ([1b40374](https://github.com/sygeman/exodus/commit/1b40374112b6b9152d73bc6971e4f58f3a13b66d))
+
+
+
 # [2.3.0](https://github.com/sygeman/exodus/compare/v2.2.0...v2.3.0) (2026-07-13)
 
 
@@ -64,23 +73,6 @@
 * **projects:** add project logo upload ([b72ff82](https://github.com/sygeman/exodus/commit/b72ff826b69a697dc964c326161a01e69dea715e))
 * **ui:** add component preview back to add component modal ([bff4dae](https://github.com/sygeman/exodus/commit/bff4daed11a1078ed932a327f4e973a537682a40))
 * **ui:** add project UI component browser ([c17bc92](https://github.com/sygeman/exodus/commit/c17bc924d14c49a24f1d3d7b27bc9e2a0f68b01a))
-
-
-
-# [2.0.0](https://github.com/sygeman/exodus/compare/v1.15.0...v2.0.0) (2026-05-19)
-
-
-### Bug Fixes
-
-* **flows:** scope Exodus runtime to system flows ([82728de](https://github.com/sygeman/exodus/commit/82728de3cd135c68be5a89473ee9f9fe5b215c57))
-
-
-* refactor(flows)!: remove webhook trigger support ([bf5bcb8](https://github.com/sygeman/exodus/commit/bf5bcb89db361ee9f33041ce82e7bee4fd96d47f))
-
-
-### BREAKING CHANGES
-
-* webhook triggers are no longer accepted in flow definitions or exposed by the dispatcher API.
 
 
 
