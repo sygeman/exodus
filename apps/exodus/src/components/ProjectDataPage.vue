@@ -2035,8 +2035,7 @@ async function handleUpdateFieldDefaultValue(index: number, type: FieldType, raw
             <UScrollArea class="min-h-0 flex-1">
               <pre
                 class="min-h-full p-4 font-mono text-xs leading-relaxed break-words whitespace-pre-wrap"
-                >{{ manifestPreview }}</pre
-              >
+                >{{ manifestPreview }}</pre>
             </UScrollArea>
           </div>
         </section>

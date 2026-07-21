@@ -273,8 +273,7 @@ function handleOpenChange(value: boolean): void {
                   </p>
                   <pre
                     class="text-default bg-elevated min-w-0 overflow-x-auto rounded-lg p-3 text-xs break-words whitespace-pre-wrap"
-                    >{{ JSON.stringify(selectedMeta.meta.defaults, null, 2) }}</pre
-                  >
+                    >{{ JSON.stringify(selectedMeta.meta.defaults, null, 2) }}</pre>
                 </div>
 
                 <p v-if="!selectedMeta.meta" class="text-muted text-sm">
