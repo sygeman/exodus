@@ -90,26 +90,37 @@ jobs:
           version-file: "./apps/exodus/package.json"
           version-path: "version"
           skip-version-file: false
-          skip-commit: false
-          skip-tag: false
+          skip-commit: true
+          skip-tag: true
           skip-git-pull: false
           create-summary: true
 
       - name: Check if version was bumped
         id: check-bump
         run: |
-          TAG="v${{ steps.changelog.outputs.version }}"
-          CURRENT_SHA=$(git rev-parse HEAD)
-          if git rev-parse "$TAG" >/dev/null 2>&1; then
-            TAG_SHA=$(git rev-parse "$TAG")
-            if [ "$TAG_SHA" = "$CURRENT_SHA" ]; then
-              echo "bumped=true" >> "$GITHUB_OUTPUT"
-            else
-              echo "bumped=false" >> "$GITHUB_OUTPUT"
-            fi
-          else
+          if [ -z "${{ steps.changelog.outputs.version }}" ]; then
             echo "bumped=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          TAG="v${{ steps.changelog.outputs.version }}"
+          if git rev-parse "$TAG" >/dev/null 2>&1; then
+            echo "Tag $TAG already exists, skipping release"
+            echo "bumped=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "bumped=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Push tag
+        if: steps.check-bump.outputs.bumped == 'true'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          VERSION="${{ steps.changelog.outputs.version }}"
+          TAG="v${VERSION}"
+          git tag -a "$TAG" -m "$TAG"
+          git push origin "$TAG"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build-macos:
     name: Build macOS
